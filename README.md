@@ -41,6 +41,7 @@ python infra_compare.py --ref ref폴더/ --new new폴더/ --blank blank.csv --bl
 | `--blank` | blank 데이터 (아래 형식) |
 | `--blank-map` | 제품 ITEM과 blank 이름 연결표 |
 | `--r` | 상대 허용폭. 기본 0.01 (1%) |
+| `--encoding` | 기본 `auto`: UTF-8로 읽고 안 되면 CP949. 다른 인코딩은 직접 지정 (예: `euc-kr`) |
 
 같은 키가 여러 번 나오면 중앙값을 쓰고 개수를 결과에 남깁니다.
 

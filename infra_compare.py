@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import io
 import math
 import sys
 from pathlib import Path
@@ -63,11 +64,26 @@ def find_files(inputs: list[str]) -> list[Path]:
     return list(dict.fromkeys(out))
 
 
+def decode(raw: bytes, path: Path, encoding: str) -> tuple[str, str]:
+    """auto: UTF-8 먼저, 안 되면 CP949(한글 윈도우·엑셀 기본)."""
+    for enc in (["utf-8-sig", "cp949"] if encoding == "auto" else [encoding]):
+        try:
+            return raw.decode(enc), enc
+        except UnicodeDecodeError:
+            continue
+    sys.exit(f"{path}: 인코딩 {encoding} 으로 읽을 수 없습니다. --encoding 으로 지정하세요 (예: cp949, euc-kr, latin-1)")
+
+
+def read_csv_auto(path: Path, encoding: str) -> pd.DataFrame:
+    text, _ = decode(path.read_bytes(), path, encoding)
+    return pd.read_csv(io.StringIO(text))
+
+
 def read_dcnormal(path: Path, encoding: str) -> pd.DataFrame:
     header: dict[str, str] = {}
     rows: list[list] = []
     block, header_ok, bad = None, None, 0
-    text = path.read_bytes().decode(encoding).lstrip("﻿")
+    text, enc = decode(path.read_bytes(), path, encoding)
     for no, line in enumerate(text.splitlines(), start=1):
         if line == "[EOF]":
             break
@@ -97,6 +113,7 @@ def read_dcnormal(path: Path, encoding: str) -> pd.DataFrame:
     for k in ("LOTID", "WAFERID", "EQPID", "STARTDATETIME"):
         df[k] = header.get(k)
     df["FILE"] = str(path)
+    df["ENC"] = enc
     return df
 
 
@@ -107,7 +124,8 @@ def load_side(inputs: list[str], label: str, encoding: str) -> pd.DataFrame:
     df = pd.concat([read_dcnormal(f, encoding) for f in files], ignore_index=True)
     n_nan = int(df["DATA"].isna().sum())
     df = df.dropna(subset=["DATA"])
-    print(f"[{label}] 파일 {len(files)}개, 측정 {len(df):,}행 (숫자 아닌 DATA {n_nan}행 제외), "
+    encs = df.drop_duplicates("FILE")["ENC"].value_counts().to_dict()
+    print(f"[{label}] 파일 {len(files)}개 (인코딩 {encs}), 측정 {len(df):,}행 (숫자 아닌 DATA {n_nan}행 제외), "
           f"ITEM {df['ITEM'].nunique():,}개")
     return df
 
@@ -131,14 +149,14 @@ def load_blank(inputs: list[str], encoding: str) -> pd.DataFrame:
     for s in inputs:
         p = Path(s)
         if p.is_file() and p.suffix.lower() == ".csv":
-            t = pd.read_csv(p)
+            t = read_csv_auto(p, encoding)
             t.columns = [c.strip().upper() for c in t.columns]
             if {"ITEM", "SIGMA0"} <= set(t.columns):
                 summary.append(t[["ITEM", "SIGMA0"]].rename(columns={"SIGMA0": "sigma0"}).assign(blank_source=p.name))
             elif {"ITEM", "VALUE"} <= set(t.columns):
                 raw.append(t[["ITEM", "VALUE"]].rename(columns={"VALUE": "DATA"}).assign(blank_source=p.name))
             elif "ITEM" not in t.columns:
-                t = pd.read_csv(p)   # 가로형: 열 이름 = blank ITEM, 위에서 아래로 측정 순서
+                t = read_csv_auto(p, encoding)   # 가로형: 열 이름 = blank ITEM, 위에서 아래로 측정 순서
                 long = t.melt(var_name="ITEM", value_name="DATA").dropna(subset=["DATA"])
                 raw.append(long.assign(DATA=pd.to_numeric(long["DATA"], errors="coerce"), blank_source=p.name))
             else:
@@ -235,7 +253,7 @@ def main() -> None:
     ap.add_argument("--r", type=float, default=0.01, help="상대 허용폭 (기본 0.01 = 1%%)")
     ap.add_argument("--key", default="WAFERID,DIE_X_Y,ITEM", help="die·item 짝짓기 키 (ITEM 포함 필수)")
     ap.add_argument("--out", default="infra_compare_out")
-    ap.add_argument("--encoding", default="utf-8")
+    ap.add_argument("--encoding", default="auto", help="auto(기본: UTF-8, 안 되면 CP949) 또는 cp949, euc-kr 등")
     a = ap.parse_args()
 
     key = [k.strip() for k in a.key.split(",")]
@@ -250,7 +268,7 @@ def main() -> None:
     blank = load_blank(a.blank, a.encoding) if a.blank else pd.DataFrame(columns=["BLANK_ITEM", "sigma0"])
     items = pd.DataFrame({"ITEM": paired["ITEM"].unique()})
     if a.blank_map:
-        mp = pd.read_csv(a.blank_map)
+        mp = read_csv_auto(Path(a.blank_map), a.encoding)
         mp.columns = [c.strip().upper() for c in mp.columns]
         items = items.merge(mp[["ITEM", "BLANK_ITEM"]], on="ITEM", how="left")
         items["BLANK_ITEM"] = items["BLANK_ITEM"].fillna(items["ITEM"])
