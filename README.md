@@ -38,7 +38,7 @@ blank 평균 μ와 표준편차 SD로 한계 3개를 구하고, Ref 값의 중�
 | 검출~정량 (LoD ~ LoQ) | 숫자 비교 안 함. die별 검출 일치로 판정 |
 | 정량 (≥ LoQ) | 위 TOST |
 
-die마다 검출 여부(|값| ≥ LoD)를 봅니다. 한쪽만 검출된 die가 한 방향으로 치우치고(McNemar 정확 검정 p < 0.05) 그 순차이가 die의 5%를 넘으면 차이, 아니면 동등입니다. 노이즈만으로도 한쪽만 검출되는 die는 생기지만 양쪽으로 비슷하게 생기므로 차이로 잡히지 않습니다. 한쪽만 검출된 die 목록은 `mismatch_dies.csv`에 나옵니다.
+LoQ 아래 값은 "<LoQ"로 보고하는 관례(IUPAC, CLSI EP17)대로 숫자를 비교하지 않습니다. die마다 |값| ≥ LoQ인지만 보고, 한쪽만 LoQ 이상인 die가 한 방향으로 치우치고(McNemar 정확 검정 p < 0.05) 그 순차이가 die의 5%를 넘으면 차이, 아니면 동등입니다. 둘 다 LoQ 아래면 둘 다 "<LoQ"이므로 같다고 봅니다. LoD 기준으로 더 엄격하게 보려면 `--strict-low`. 한쪽만 기준을 넘은 die 목록은 `mismatch_dies.csv`에 나옵니다.
 
 허용폭이 해상도보다 작으면(h ≥ Δ) 노이즈 수준의 shift가 차이로 잡히므로 판정하지 않고 미결(해상도 부족)로 둡니다.
 
@@ -90,6 +90,7 @@ python infra_compare.py --ref ref폴더/ --new new폴더/ --blank blank.csv --bl
 | `--blank` | blank 데이터 (아래 형식) |
 | `--blank-map` | 제품 ITEM과 blank 이름 연결표 |
 | `--r` | 상대 허용폭. 기본 0.01 (1%) |
+| `--strict-low` | LoQ 아래 항목을 LoD 기준으로 비교 (바닥 offset 차이까지 잡음) |
 | `--verbose` | 입력 요약, 재측정 반영 전후, 항목군·값 구간 표까지 화면에 출력. 기본은 판정 표와 사유만 |
 | `--no-repeat` | Ref 재측정 흔들림을 허용폭에 넣지 않음 |
 | `--family-regex` | 항목군을 뽑는 정규식. 기본 `^[A-Za-z]+` |

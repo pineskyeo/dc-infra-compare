@@ -18,7 +18,8 @@ blank가 있는 ITEM은 먼저 구간을 나눈다 (CLSI EP17 / IUPAC, μ·SD = 
   < LoD       : 검출한계 이하  → 숫자 비교 안 함. die별 검출 일치로 판정
   LoD ~ LoQ   : 검출~정량      → 숫자 비교 안 함. die별 검출 일치로 판정
   ≥ LoQ       : 정량           → 위 TOST
-  검출 여부(|값| ≥ LoD)가 한쪽만 나온 die가 한 방향으로 치우치면(McNemar p < 0.05) 그리고 순차이가 5%를 넘으면 차이.
+  LoQ 아래 값은 "<LoQ"로 보고하는 관례(IUPAC, EP17)대로 숫자를 비교하지 않는다. die별로 |값| ≥ LoQ 인지만 보고,
+  한쪽만 LoQ 이상인 die가 한 방향으로 치우치고(McNemar p < 0.05) 순차이가 5%를 넘으면 차이. --strict-low 는 LoQ 대신 LoD.
 측정값 자체의 1회 흔들림 robustσ(New − Ref)/√2 가 blank보다 크거나 blank가 없으면 그 값으로 같은 구간을 나눈다 (μ = 0).
 
 usage:
@@ -306,10 +307,10 @@ def mcnemar_p(b: int, c: int) -> float:
     return min(1.0, 2 * tail)
 
 
-def judge_detection(g: pd.DataFrame, lob: float, lod: float, zone: str) -> tuple[dict, np.ndarray]:
+def judge_detection(g: pd.DataFrame, thr: float, level: str, zone: str) -> tuple[dict, np.ndarray]:
     """die별 검출 여부(|값| ≥ LoD)를 두 인프라가 같은 비율로 내는지 본다.
     차이 = 한쪽만 검출된 die가 한 방향으로 치우치고(McNemar p < 0.05) 그 순차이가 die의 5%를 넘을 때."""
-    rd, nd = g["ref"].abs().to_numpy() >= lod, g["new"].abs().to_numpy() >= lod
+    rd, nd = g["ref"].abs().to_numpy() >= thr, g["new"].abs().to_numpy() >= thr
     b, c = int((rd & ~nd).sum()), int((~rd & nd).sum())
     n = len(rd)
     p = mcnemar_p(b, c)
@@ -317,9 +318,9 @@ def judge_detection(g: pd.DataFrame, lob: float, lod: float, zone: str) -> tuple
     if n < MIN_PAIRS:
         verdict, reason = "미결", f"die 부족(n<{MIN_PAIRS})"
     elif p < 0.05 and abs(net) > MISMATCH_MAX:
-        verdict, reason = "차이", f"{zone}: {'New' if net > 0 else 'Ref'}만 검출 die가 {abs(net):.0%} 더 많음"
+        verdict, reason = "차이", f"{zone}: {'New' if net > 0 else 'Ref'}만 {level} 이상인 die가 {abs(net):.0%} 더 많음"
     else:
-        verdict, reason = "동등", f"{zone}: 검출 일치"
+        verdict, reason = "동등", f"{zone}: {level} 기준 일치"
     return {"verdict": verdict, "reason": reason, "n_mismatch_die": b + c, "only_ref_detect": b, "only_new_detect": c,
             "mcnemar_p": p, "ref_detect_frac": float(rd.mean()), "new_detect_frac": float(nd.mean())}, rd != nd
 
@@ -335,6 +336,8 @@ def main() -> None:
     ap.add_argument("--out", default="infra_compare_out")
     ap.add_argument("--encoding", default="auto", help="auto(기본: UTF-8, 안 되면 CP949) 또는 cp949, euc-kr 등")
     ap.add_argument("--no-repeat", action="store_true", help="Ref 재측정 흔들림을 허용폭에 넣지 않음")
+    ap.add_argument("--strict-low", action="store_true",
+                    help="LoQ 아래 항목을 LoQ 대신 LoD 기준으로 비교 (바닥 offset 차이까지 잡음)")
     ap.add_argument("--verbose", action="store_true", help="입력 요약, 재측정 반영 전후, 항목군·값 구간 표까지 출력")
     ap.add_argument("--family-regex", default=r"^[A-Za-z]+",
                     help="ITEM 이름에서 항목군을 뽑는 정규식 (기본: 앞쪽 영문자. 예: VTN_LIN_1 → VTN)")
@@ -402,7 +405,8 @@ def main() -> None:
             res.update(LoB=lob, LoD=lod, LoQ=loq, limit_source=limit_source)
             res["zone"] = ZONE_FLOOR if ref_abs < lod else ZONE_DETECT if ref_abs < loq else ZONE_QUANT
             if res["zone"] != ZONE_QUANT:
-                det, mis = judge_detection(g, lob, lod, res["zone"])
+                thr, level = (lod, "LoD") if a.strict_low else (loq, "LoQ")
+                det, mis = judge_detection(g, thr, level, res["zone"])
                 res.update(det, verdict_blank_only=det["verdict"])
                 if mis.any():
                     mismatches.append(g.loc[mis, key + ["ref", "new"]].assign(LoB=lob, LoD=lod))
