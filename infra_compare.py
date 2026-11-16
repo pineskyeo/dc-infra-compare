@@ -50,6 +50,14 @@ MIN_PAIRS = 10
 OUTLIER_K = 5.0
 K_LOB, K_LOD, K_LOQ = 1.645, 3.29, 10.0
 MISMATCH_MAX = 0.05
+VERBOSE = False
+
+
+def info(msg: str) -> None:
+    if VERBOSE:
+        print(msg)
+
+
 ZONE_FLOOR, ZONE_DETECT, ZONE_QUANT, ZONE_NOBLANK = "검출한계 이하", "검출~정량", "정량", "blank 없음"
 
 
@@ -137,7 +145,7 @@ def load_side(inputs: list[str], label: str, encoding: str) -> pd.DataFrame:
     n_nan = int(df["DATA"].isna().sum())
     df = df.dropna(subset=["DATA"])
     encs = df.drop_duplicates("FILE")["ENC"].value_counts().to_dict()
-    print(f"[{label}] 파일 {len(files)}개 (인코딩 {encs}), 측정 {len(df):,}행 (숫자 아닌 DATA {n_nan}행 제외), "
+    info(f"[{label}] 파일 {len(files)}개 (인코딩 {encs}), 측정 {len(df):,}행 (숫자 아닌 DATA {n_nan}행 제외), "
           f"ITEM {df['ITEM'].nunique():,}개")
     return df
 
@@ -195,7 +203,7 @@ def load_blank(inputs: list[str], encoding: str) -> pd.DataFrame:
     if dup.any():
         print(f"  경고: blank ITEM {dup.sum()}개가 여러 입력에 중복. 마지막 입력 값을 사용", file=sys.stderr)
     out = out[~dup]
-    print(f"[Blank] σ₀ 확보 ITEM {len(out)}개")
+    info(f"[Blank] σ₀ 확보 ITEM {len(out)}개")
     return out
 
 
@@ -213,7 +221,7 @@ def pair_up(ref: pd.DataFrame, new: pd.DataFrame, key: list[str]) -> tuple[pd.Da
         "n_dup_ref": a[a["n_ref"] > 1].reset_index().groupby("ITEM").size(),
         "n_dup_new": b[b["n_new"] > 1].reset_index().groupby("ITEM").size(),
     }).fillna(0).astype(int)
-    print(f"[짝짓기] 키 {key}: 짝 {len(paired):,}개, Ref만 {int(cnt['n_ref_only'].sum()):,}, "
+    info(f"[짝짓기] 키 {key}: 짝 {len(paired):,}개, Ref만 {int(cnt['n_ref_only'].sum()):,}, "
           f"New만 {int(cnt['n_new_only'].sum()):,}, 중복 키(중앙값 사용) Ref {int(cnt['n_dup_ref'].sum()):,} / "
           f"New {int(cnt['n_dup_new'].sum()):,}")
     return paired, cnt
@@ -233,7 +241,7 @@ def ref_repeat(ref: pd.DataFrame, key: list[str]) -> pd.DataFrame:
         return 1.4826 * float(np.median(np.abs(x - np.median(x)))) / math.sqrt(2)
     st = d.groupby("ITEM")["d"].agg(n_rep="size", rep_shift="median", rep_sigma=robust)
     st = st[st["n_rep"] >= MIN_PAIRS]
-    print(f"[Ref 재측정] 같은 die를 두 번 잰 ITEM {len(st)}개 (die {MIN_PAIRS}개 이상)")
+    info(f"[Ref 재측정] 같은 die를 두 번 잰 ITEM {len(st)}개 (die {MIN_PAIRS}개 이상)")
     return st
 
 
@@ -327,9 +335,12 @@ def main() -> None:
     ap.add_argument("--out", default="infra_compare_out")
     ap.add_argument("--encoding", default="auto", help="auto(기본: UTF-8, 안 되면 CP949) 또는 cp949, euc-kr 등")
     ap.add_argument("--no-repeat", action="store_true", help="Ref 재측정 흔들림을 허용폭에 넣지 않음")
+    ap.add_argument("--verbose", action="store_true", help="입력 요약, 재측정 반영 전후, 항목군·값 구간 표까지 출력")
     ap.add_argument("--family-regex", default=r"^[A-Za-z]+",
                     help="ITEM 이름에서 항목군을 뽑는 정규식 (기본: 앞쪽 영문자. 예: VTN_LIN_1 → VTN)")
     a = ap.parse_args()
+    global VERBOSE
+    VERBOSE = a.verbose
 
     key = [k.strip() for k in a.key.split(",")]
     if "ITEM" not in key:
@@ -430,27 +441,37 @@ def main() -> None:
     files += [out / "patterns_family.csv", out / "patterns_level.csv"]
 
     verdicts = ["동등", "차이", "미결"]
-    print(f"\n판정 (r = {a.r:.2%}, ITEM {len(res):,}개)")
-    src = res["limit_source"].fillna("") if "limit_source" in res else pd.Series("", index=res.index)
-    view = res["zone"] + np.where(src == "", "", " (" + src + ")")
-    zones = [f"{z} ({s})" for z in (ZONE_FLOOR, ZONE_DETECT, ZONE_QUANT) for s in ("blank", "자체 흔들림")] + [ZONE_NOBLANK]
+    if VERBOSE:
+        src = res["limit_source"].fillna("") if "limit_source" in res else pd.Series("", index=res.index)
+        view = res["zone"] + np.where(src == "", "", " (" + src + ")")
+        zones = [f"{z} ({s})" for z in (ZONE_FLOOR, ZONE_DETECT, ZONE_QUANT) for s in ("blank", "자체 흔들림")] + [ZONE_NOBLANK]
+    else:
+        view, zones = res["zone"], [ZONE_FLOOR, ZONE_DETECT, ZONE_QUANT, ZONE_NOBLANK]
     tab = pd.crosstab(view, res["verdict"]).reindex(index=zones, columns=verdicts, fill_value=0)
+    tab = tab[tab.sum(axis=1) > 0]
     tab.loc["합계"] = tab.sum()
-    print(tab.to_string())
-    und = res[res["verdict"] == "미결"]
-    if len(und):
-        print("\n미결 사유")
-        print(und["reason"].value_counts().to_string())
-    if not a.no_repeat:
-        print("\n재측정 흔들림 반영 전(blank만) → 후")
-        print(pd.crosstab(res["verdict_blank_only"], res["verdict"]).reindex(
-            index=verdicts, columns=verdicts, fill_value=0).rename_axis(index="전", columns="후").to_string())
-        print("흔들림 출처: " + str(res["noise_source"].replace("", "없음").value_counts().to_dict()))
-    print("\n동등이 아닌 ITEM이 많은 항목군 (상위 10)")
-    print(fam.head(10).to_string())
-    print("\n값 구간별 (단위, 10의 거듭제곱)")
-    print(lvl.to_string())
-    print("\n출력: " + ", ".join(str(f) for f in files))
+    print(f"\n판정 (ITEM {len(res):,}개, 짝 die 중앙값 {int(per_item.median())}개, r = {a.r:.0%})")
+    print(tab.rename_axis(index=None, columns=None).to_string())
+    for label, v in (("차이", "차이"), ("미결", "미결")):
+        sub = res.loc[res["verdict"] == v, "reason"].fillna("")
+        if len(sub):
+            kind = (sub.str.replace(r"^[^:]*: ", "", regex=True)
+                       .str.replace(r"die가 \d+% 더 많음", "die가 더 많음", regex=True))
+            print(f"\n{label} 사유")
+            print(kind.value_counts().rename_axis(None).to_string())
+    if VERBOSE:
+        if not a.no_repeat:
+            print("\n재측정 흔들림 반영 전(blank만) → 후")
+            print(pd.crosstab(res["verdict_blank_only"], res["verdict"]).reindex(
+                index=verdicts, columns=verdicts, fill_value=0).rename_axis(index="전", columns="후").to_string())
+            print("흔들림 출처: " + str(res["noise_source"].replace("", "없음").value_counts().to_dict()))
+        print("\n동등이 아닌 ITEM이 많은 항목군 (상위 10)")
+        print(fam.head(10).to_string())
+        print("\n값 구간별 (단위, 10의 거듭제곱)")
+        print(lvl.to_string())
+        print("\n출력: " + ", ".join(str(f) for f in files))
+    else:
+        print(f"\n결과: {out}/items.csv (verdict, reason 열). 자세한 화면은 --verbose")
 
 
 def pattern_tables(res: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:

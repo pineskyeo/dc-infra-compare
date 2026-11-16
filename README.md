@@ -90,6 +90,7 @@ python infra_compare.py --ref ref폴더/ --new new폴더/ --blank blank.csv --bl
 | `--blank` | blank 데이터 (아래 형식) |
 | `--blank-map` | 제품 ITEM과 blank 이름 연결표 |
 | `--r` | 상대 허용폭. 기본 0.01 (1%) |
+| `--verbose` | 입력 요약, 재측정 반영 전후, 항목군·값 구간 표까지 화면에 출력. 기본은 판정 표와 사유만 |
 | `--no-repeat` | Ref 재측정 흔들림을 허용폭에 넣지 않음 |
 | `--family-regex` | 항목군을 뽑는 정규식. 기본 `^[A-Za-z]+` |
 | `--encoding` | 기본 `auto`: UTF-8로 읽고 안 되면 CP949. 다른 인코딩은 직접 지정 (예: `euc-kr`) |
