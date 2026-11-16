@@ -19,6 +19,7 @@ blank가 있는 ITEM은 먼저 구간을 나눈다 (CLSI EP17 / IUPAC, μ·SD = 
   LoD ~ LoQ   : 검출~정량      → 숫자 비교 안 함. die별 검출 일치로 판정
   ≥ LoQ       : 정량           → 위 TOST
   검출 불일치 die = 한쪽은 LoD 이상, 다른 쪽은 LoB 이하. 그 비율이 5% 이하면 동등, 넘으면 차이.
+blank가 없는 ITEM은 SD 대신 측정값 자체의 1회 흔들림 robustσ(New − Ref)/√2 로 같은 구간을 나눈다 (μ = 0).
 
 usage:
   python infra_compare.py --ref REF_DIR --new NEW_DIR [--blank BLANK ...] [--blank-map map.csv]
@@ -360,13 +361,17 @@ def main() -> None:
         res.update(verdict_blank_only=base["verdict"], sigma_rep=sigma_rep, noise_source=noise_source,
                    rep_shift=items.at[item, "rep_shift"], FAMILY=items.at[item, "FAMILY"],
                    rel_noise_d=res["robust_sd_d"] / abs(res["ref_median"]) if res["ref_median"] else np.nan)
-        lim = blank_limits(items.loc[item])
+        lim, limit_source = blank_limits(items.loc[item]), "blank"
+        if lim is None and res["robust_sd_d"] > 0:
+            # 측정값 자체를 blank로 본다: 1회 측정 흔들림 = robustσ(New − Ref) / √2
+            s_meas = res["robust_sd_d"] / math.sqrt(2)
+            lim, limit_source = (K_LOB * s_meas, K_LOD * s_meas, K_LOQ * s_meas), "자체 흔들림"
         if lim is None:
             res["zone"] = ZONE_NOBLANK
         else:
             lob, lod, loq = lim
             ref_abs = float(g["ref"].abs().median())
-            res.update(LoB=lob, LoD=lod, LoQ=loq)
+            res.update(LoB=lob, LoD=lod, LoQ=loq, limit_source=limit_source)
             res["zone"] = ZONE_FLOOR if ref_abs < lod else ZONE_DETECT if ref_abs < loq else ZONE_QUANT
             if res["zone"] != ZONE_QUANT:
                 det, mis = judge_detection(g, lob, lod, res["zone"])
@@ -409,8 +414,10 @@ def main() -> None:
 
     verdicts = ["동등", "차이", "미결"]
     print(f"\n판정 (r = {a.r:.2%}, ITEM {len(res):,}개)")
-    zones = [ZONE_FLOOR, ZONE_DETECT, ZONE_QUANT, ZONE_NOBLANK]
-    tab = pd.crosstab(res["zone"], res["verdict"]).reindex(index=zones, columns=verdicts, fill_value=0)
+    src = res["limit_source"].fillna("") if "limit_source" in res else pd.Series("", index=res.index)
+    view = res["zone"] + np.where(src == "", "", " (" + src + ")")
+    zones = [f"{z} ({s})" for z in (ZONE_FLOOR, ZONE_DETECT, ZONE_QUANT) for s in ("blank", "자체 흔들림")] + [ZONE_NOBLANK]
+    tab = pd.crosstab(view, res["verdict"]).reindex(index=zones, columns=verdicts, fill_value=0)
     tab.loc["합계"] = tab.sum()
     print(tab.to_string())
     und = res[res["verdict"] == "미결"]
