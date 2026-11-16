@@ -218,6 +218,24 @@ def pair_up(ref: pd.DataFrame, new: pd.DataFrame, key: list[str]) -> tuple[pd.Da
     return paired, cnt
 
 
+def ref_repeat(ref: pd.DataFrame, key: list[str]) -> pd.DataFrame:
+    """Ref에서 같은 키를 두 번 이상 잰 die로 ITEM별 재측정 흔들림을 구한다.
+    rep_sigma = 1회 측정의 흔들림 = robustσ(2회차 − 1회차) / √2,  rep_shift = median(2회차 − 1회차)."""
+    r = ref.sort_values(["FILE", "LINE"]).assign(_rep=lambda x: x.groupby(key).cumcount())
+    r = r[r["_rep"] < 2]
+    two = r.pivot_table(index=key, columns="_rep", values="DATA", aggfunc="first")
+    if 1 not in two.columns:
+        return pd.DataFrame(columns=["n_rep", "rep_shift", "rep_sigma"])
+    d = (two[1] - two[0]).dropna().rename("d").reset_index()
+
+    def robust(x: pd.Series) -> float:
+        return 1.4826 * float(np.median(np.abs(x - np.median(x)))) / math.sqrt(2)
+    st = d.groupby("ITEM")["d"].agg(n_rep="size", rep_shift="median", rep_sigma=robust)
+    st = st[st["n_rep"] >= MIN_PAIRS]
+    print(f"[Ref 재측정] 같은 die를 두 번 잰 ITEM {len(st)}개 (die {MIN_PAIRS}개 이상)")
+    return st
+
+
 def judge_item(g: pd.DataFrame, r: float, sigma0: float) -> tuple[dict, np.ndarray]:
     d = (g["new"] - g["ref"]).to_numpy(dtype=float)
     n = len(d)
@@ -227,22 +245,22 @@ def judge_item(g: pd.DataFrame, r: float, sigma0: float) -> tuple[dict, np.ndarr
         s = float(np.std(d, ddof=1))       # 값이 계단식(양자화)이라 MAD가 0인 경우
     h = Z90 * MEDIAN_SE * s / math.sqrt(n) if n else np.nan
     ref_med = float(np.median(g["ref"]))
-    has_blank = not math.isnan(sigma0)
+    has_noise = not math.isnan(sigma0)
     d_rel = r * abs(ref_med)
-    d_blank = Z90 * sigma0 if has_blank else 0.0
-    delta = d_rel + d_blank
+    d_noise = Z90 * sigma0 if has_noise else 0.0
+    delta = d_rel + d_noise
     lo, hi = m - h, m + h
     out_mask = np.abs(d - m) > OUTLIER_K * s if s > 0 else np.zeros(n, bool)
 
     if n < MIN_PAIRS:
         verdict, reason = "미결", f"die 부족(n<{MIN_PAIRS})"
     elif delta == 0:
-        verdict, reason = "미결", "허용폭 0(기준값 0, blank 없음)"
+        verdict, reason = "미결", "허용폭 0(기준값 0, 흔들림 정보 없음)"
     elif -delta < lo and hi < delta:
         verdict, reason = "동등", ""
     elif h >= delta:
         # 허용폭이 해상도보다 작으면 노이즈 수준의 shift도 '차이'로 잡히므로 판정하지 않는다
-        verdict, reason = "미결", "해상도 부족" + ("" if has_blank else " / blank 없음")
+        verdict, reason = "미결", "해상도 부족" + ("" if has_noise else " / 흔들림 정보 없음")
     elif hi <= -delta or lo >= delta:
         verdict, reason = "차이", "New가 큼" if m > 0 else "New가 작음"
     else:
@@ -250,7 +268,7 @@ def judge_item(g: pd.DataFrame, r: float, sigma0: float) -> tuple[dict, np.ndarr
 
     return {"n_pair": n, "ref_median": ref_med, "new_median": float(np.median(g["new"])),
             "shift_m": m, "ci_lo": lo, "ci_hi": hi, "h": h, "robust_sd_d": s,
-            "delta": delta, "delta_rel": d_rel, "delta_blank": d_blank,
+            "delta": delta, "delta_rel": d_rel, "delta_noise": d_noise,
             "h_over_delta": h / delta if delta else np.nan, "m_over_delta": abs(m) / delta if delta else np.nan,
             "D95_abs_d": float(np.percentile(np.abs(d), 95)), "n_outlier_die": int(out_mask.sum()),
             "verdict": verdict, "reason": reason}, out_mask
@@ -290,6 +308,9 @@ def main() -> None:
     ap.add_argument("--key", default="WAFERID,COORD_X_Y,ITEM", help="die·item 짝짓기 키 (ITEM 포함 필수)")
     ap.add_argument("--out", default="infra_compare_out")
     ap.add_argument("--encoding", default="auto", help="auto(기본: UTF-8, 안 되면 CP949) 또는 cp949, euc-kr 등")
+    ap.add_argument("--no-repeat", action="store_true", help="Ref 재측정 흔들림을 허용폭에 넣지 않음")
+    ap.add_argument("--family-regex", default=r"^[A-Za-z]+",
+                    help="ITEM 이름에서 항목군을 뽑는 정규식 (기본: 앞쪽 영문자. 예: VTN_LIN_1 → VTN)")
     a = ap.parse_args()
 
     key = [k.strip() for k in a.key.split(",")]
@@ -316,11 +337,29 @@ def main() -> None:
     else:
         items["BLANK_ITEM"] = items["ITEM"]
     items = items.merge(blank, on="BLANK_ITEM", how="left").set_index("ITEM")
+    items["FAMILY"] = items.index.to_series().str.extract(f"({a.family_regex})", expand=False).fillna("(기타)")
+    items["ref_abs"] = paired.groupby("ITEM")["ref"].median().abs()
+    rep = pd.DataFrame(columns=["n_rep", "rep_shift", "rep_sigma"]) if a.no_repeat else ref_repeat(ref, key)
+    items = items.join(rep, how="left")
+    rel = (items["rep_sigma"] / items["ref_abs"]).where(items["ref_abs"] > 0)
+    fam_rel = rel.groupby(items["FAMILY"]).agg(["median", "count"])
+    fam_rel = fam_rel.loc[fam_rel["count"] >= 3, "median"]
 
     results, outliers, mismatches = [], [], []
     for item, g in paired.groupby("ITEM", sort=True):
         sigma0 = float(items.at[item, "sigma0"]) if pd.notna(items.at[item, "sigma0"]) else math.nan
-        res, mask = judge_item(g, a.r, sigma0)
+        sigma_rep, source = math.nan, ""
+        if pd.notna(items.at[item, "rep_sigma"]):
+            sigma_rep, source = float(items.at[item, "rep_sigma"]), "재측정"
+        elif items.at[item, "FAMILY"] in fam_rel.index:
+            sigma_rep, source = float(fam_rel[items.at[item, "FAMILY"]]) * float(items.at[item, "ref_abs"]), "항목군 추정"
+        sigma_noise = float(np.nanmax([sigma0, sigma_rep])) if not (math.isnan(sigma0) and math.isnan(sigma_rep)) else math.nan
+        noise_source = ("blank" if sigma_noise == sigma0 else source) if not math.isnan(sigma_noise) else ""
+        base, _ = judge_item(g, a.r, sigma0)
+        res, mask = judge_item(g, a.r, sigma_noise)
+        res.update(verdict_blank_only=base["verdict"], sigma_rep=sigma_rep, noise_source=noise_source,
+                   rep_shift=items.at[item, "rep_shift"], FAMILY=items.at[item, "FAMILY"],
+                   rel_noise_d=res["robust_sd_d"] / abs(res["ref_median"]) if res["ref_median"] else np.nan)
         lim = blank_limits(items.loc[item])
         if lim is None:
             res["zone"] = ZONE_NOBLANK
@@ -331,7 +370,7 @@ def main() -> None:
             res["zone"] = ZONE_FLOOR if ref_abs < lod else ZONE_DETECT if ref_abs < loq else ZONE_QUANT
             if res["zone"] != ZONE_QUANT:
                 det, mis = judge_detection(g, lob, lod, res["zone"])
-                res.update(det)
+                res.update(det, verdict_blank_only=det["verdict"])
                 if mis.any():
                     mismatches.append(g.loc[mis, key + ["ref", "new"]].assign(LoB=lob, LoD=lod))
         unit = g["UNIT"].iloc[0]
@@ -363,16 +402,48 @@ def main() -> None:
         blank.to_csv(out / "blank_sigma.csv", index=False, encoding="utf-8-sig")
         files.append(out / "blank_sigma.csv")
 
+    fam, lvl = pattern_tables(res)
+    fam.to_csv(out / "patterns_family.csv", encoding="utf-8-sig")
+    lvl.to_csv(out / "patterns_level.csv", encoding="utf-8-sig")
+    files += [out / "patterns_family.csv", out / "patterns_level.csv"]
+
+    verdicts = ["동등", "차이", "미결"]
     print(f"\n판정 (r = {a.r:.2%}, ITEM {len(res):,}개)")
     zones = [ZONE_FLOOR, ZONE_DETECT, ZONE_QUANT, ZONE_NOBLANK]
-    tab = pd.crosstab(res["zone"], res["verdict"]).reindex(index=zones, columns=["동등", "차이", "미결"], fill_value=0)
+    tab = pd.crosstab(res["zone"], res["verdict"]).reindex(index=zones, columns=verdicts, fill_value=0)
     tab.loc["합계"] = tab.sum()
     print(tab.to_string())
     und = res[res["verdict"] == "미결"]
     if len(und):
         print("\n미결 사유")
         print(und["reason"].value_counts().to_string())
+    if not a.no_repeat:
+        print("\n재측정 흔들림 반영 전(blank만) → 후")
+        print(pd.crosstab(res["verdict_blank_only"], res["verdict"]).reindex(
+            index=verdicts, columns=verdicts, fill_value=0).rename_axis(index="전", columns="후").to_string())
+        print("흔들림 출처: " + str(res["noise_source"].replace("", "없음").value_counts().to_dict()))
+    print("\n동등이 아닌 ITEM이 많은 항목군 (상위 10)")
+    print(fam.head(10).to_string())
+    print("\n값 구간별 (단위, 10의 거듭제곱)")
+    print(lvl.to_string())
     print("\n출력: " + ", ".join(str(f) for f in files))
+
+
+def pattern_tables(res: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """동등이 아닌 ITEM이 어느 항목군·값 구간에 몰리는지. rel_noise_d = die별 차이의 흔들림 / |Ref 값|."""
+    r = res.assign(not_eq=res["verdict"] != "동등", unresolved=res["reason"].fillna("").str.startswith("해상도"),
+                   decade=np.floor(np.log10(res["ref_median"].abs().where(res["ref_median"] != 0))))
+
+    def summarize(g: pd.core.groupby.DataFrameGroupBy) -> pd.DataFrame:
+        t = g.agg(ITEM수=("ITEM", "size"), 동등아님=("not_eq", "sum"), 해상도부족=("unresolved", "sum"),
+                  차이=("verdict", lambda v: int((v == "차이").sum())), 흔들림_중앙값=("rel_noise_d", "median"))
+        t["동등아님_비율"] = (t["동등아님"] / t["ITEM수"]).round(3)
+        t["흔들림_중앙값"] = t["흔들림_중앙값"].round(3)
+        return t
+    fam = summarize(r.groupby("FAMILY")).sort_values(["동등아님", "동등아님_비율"], ascending=False)
+    r["level"] = r["UNIT"].fillna("") + " 1e" + r["decade"].astype("Int64").astype(str)
+    lvl = summarize(r.groupby("level")).sort_index()
+    return fam, lvl
 
 
 if __name__ == "__main__":

@@ -21,11 +21,19 @@ true = {
     "ILEAK_DETECT": ("A", np.full(N, 4e-12), 0.7e-12, 0.0),
     "ION_BIMODAL": ("A", np.where(np.arange(N) % 2, 500e-6, 300e-6), 0.5e-6, 0.0),
     "CAP_OUT": ("F", rng.normal(1e-12, 2e-14, N), 1e-15, 0.0),
+    # 측정할 때마다 5 Ω씩 흔들리는 항목군 (접촉). A~C는 Ref 재측정이 있고 D는 없음
+    "RON_A": ("ohm", rng.normal(100, 3, N), 5.0, 0.0),
+    "RON_B": ("ohm", rng.normal(100, 3, N), 5.0, 0.0),
+    "RON_C": ("ohm", rng.normal(100, 3, N), 5.0, 0.0),
+    "RON_D": ("ohm", rng.normal(100, 3, N), 5.0, 0.0),
 }
+REPEAT = ["RON_A", "RON_B", "RON_C"]
 EXPECT = {"VT_N": "동등", "VT_SHIFT": "차이", "VT_BORDER": "미결(경계 shift)", "IOFF_FLOOR": "동등(검출한계 이하)",
           "IOFF_NOBLANK": "미결(해상도 부족 / blank 없음)", "IOFF_OFFSET": "차이(검출 불일치)", "IOFF_MAP": "동등(검출한계 이하)",
           "ILEAK_DETECT": "동등(검출~정량)",
-          "ION_BIMODAL": "동등", "CAP_OUT": "동등 + 이상 die 3개"}
+          "ION_BIMODAL": "동등", "CAP_OUT": "동등 + 이상 die 3개",
+          "RON_A~C": "동등 (재측정 흔들림 반영. 반영 전엔 미결: 해상도 부족)",
+          "RON_D": "동등 (항목군 추정 흔들림 반영. 반영 전엔 미결: 해상도 부족)"}
 
 def measure(side):
     vals = {}
@@ -58,6 +66,8 @@ for k in range(10):
     write(out / "ref" / f"REF_part{k:02d}", range(k * 10, k * 10 + 10), ref)
 for k in range(2):
     write(out / "new" / f"NEW_part{k}", range(k * 50, k * 50 + 50), new)
+again = {k: (true[k][0], true[k][1] + rng.normal(0, true[k][2], N)) for k in REPEAT}
+write(out / "ref" / "REF_zz_repeat", range(N), again)   # 같은 die를 POR로 한 번 더 측정
 
 blank_vals = {"IOFF_FLOOR": ("A", rng.normal(0, 0.7e-12, 61)), "OPEN_I_1PA": ("A", rng.normal(0, 0.7e-12, 61))}
 write(out / "blank" / "BLANK_open", range(61), {k: (u, v) for k, (u, v) in blank_vals.items()})
