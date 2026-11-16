@@ -229,20 +229,30 @@ def pair_up(ref: pd.DataFrame, new: pd.DataFrame, key: list[str]) -> tuple[pd.Da
 
 
 def ref_repeat(ref: pd.DataFrame, key: list[str]) -> pd.DataFrame:
-    """Ref에서 같은 키를 두 번 이상 잰 die로 ITEM별 재측정 흔들림을 구한다.
-    rep_sigma = 1회 측정의 흔들림 = robustσ(2회차 − 1회차) / √2,  rep_shift = median(2회차 − 1회차)."""
+    """Ref에서 같은 키를 여러 번 잰 die로 ITEM별 재측정 흔들림을 구한다. 회차 순서는 파일·행 순서.
+    이웃한 회차끼리의 차이(2−1, 3−2, …)를 회차쌍마다 중앙값으로 맞춘 뒤 모아서
+    rep_sigma = 1회 측정의 흔들림 = robustσ(차이) / √2.  rep_shift = 회차쌍 shift 중 절댓값이 가장 큰 것."""
     r = ref.sort_values(["FILE", "LINE"]).assign(_rep=lambda x: x.groupby(key).cumcount())
-    r = r[r["_rep"] < 2]
-    two = r.pivot_table(index=key, columns="_rep", values="DATA", aggfunc="first")
-    if 1 not in two.columns:
-        return pd.DataFrame(columns=["n_rep", "rep_shift", "rep_sigma"])
-    d = (two[1] - two[0]).dropna().rename("d").reset_index()
-
-    def robust(x: pd.Series) -> float:
-        return 1.4826 * float(np.median(np.abs(x - np.median(x)))) / math.sqrt(2)
-    st = d.groupby("ITEM")["d"].agg(n_rep="size", rep_shift="median", rep_sigma=robust)
+    wide = r.pivot_table(index=key, columns="_rep", values="DATA", aggfunc="first")
+    if 1 not in wide.columns:
+        return pd.DataFrame(columns=["n_rep", "n_runs", "rep_shift", "rep_sigma"])
+    parts = []
+    for j in range(1, len(wide.columns)):
+        d = (wide[j] - wide[j - 1]).dropna().rename("d").reset_index()
+        d["pair"] = j
+        parts.append(d)
+    d = pd.concat(parts)
+    shift = d.groupby(["ITEM", "pair"])["d"].transform("median")
+    d["dev"] = d["d"] - shift
+    pair_shift = d.groupby(["ITEM", "pair"])["d"].median()
+    st = pd.DataFrame({
+        "n_rep": d.groupby("ITEM").size(),
+        "n_runs": d.groupby("ITEM")["pair"].max() + 1,
+        "rep_shift": pair_shift.groupby(level="ITEM").agg(lambda s: s.loc[s.abs().idxmax()]),
+        "rep_sigma": d.groupby("ITEM")["dev"].agg(lambda x: 1.4826 * float(np.median(np.abs(x))) / math.sqrt(2)),
+    })
     st = st[st["n_rep"] >= MIN_PAIRS]
-    info(f"[Ref 재측정] 같은 die를 두 번 잰 ITEM {len(st)}개 (die {MIN_PAIRS}개 이상)")
+    info(f"[Ref 재측정] 같은 die를 여러 번 잰 ITEM {len(st)}개 (회차 최대 {int(st['n_runs'].max()) if len(st) else 0}회)")
     return st
 
 
