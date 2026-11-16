@@ -22,6 +22,26 @@ ITEM마다 die별 차이 `d = New − Ref`를 구하고, 공통 shift가 허용�
 - blank가 없는 ITEM은 Δ = r × \|median(Ref)\|만 씁니다. 0 근처 ITEM은 "해상도 부족 / blank 없음"으로 나옵니다.
 - 쌍봉이나 튀는 die가 있어도 중앙값과 robust σ를 쓰기 때문에 판정이 끌려가지 않습니다. 튀는 die는 따로 목록으로 냅니다.
 
+## blank가 있는 ITEM: LoB / LoD / LoQ 구간 (CLSI EP17, IUPAC)
+
+blank 평균 μ와 표준편차 SD로 한계 3개를 구하고, Ref 값의 중앙값(|값|)이 어느 구간인지에 따라 판정 방식을 나눕니다.
+
+| 한계 | 계산 |
+|---|---|
+| LoB | \|μ\| + 1.645 × SD |
+| LoD | \|μ\| + 3.29 × SD |
+| LoQ | \|μ\| + 10 × SD |
+
+| 구간 | 판정 |
+|---|---|
+| 검출한계 이하 (< LoD) | 숫자 비교 안 함. die별 검출 일치로 판정 |
+| 검출~정량 (LoD ~ LoQ) | 숫자 비교 안 함. die별 검출 일치로 판정 |
+| 정량 (≥ LoQ) | 위 TOST |
+
+검출 불일치 die는 한쪽이 LoD 이상인데 다른 쪽이 LoB 이하인 die입니다. 그 비율이 5% 이하면 동등, 넘으면 차이입니다. 목록은 `mismatch_dies.csv`에 나옵니다.
+
+허용폭이 해상도보다 작으면(h ≥ Δ) 노이즈 수준의 shift가 차이로 잡히므로 판정하지 않고 미결(해상도 부족)로 둡니다.
+
 ## 설치
 
 ```bash
@@ -75,7 +95,8 @@ blank 측정 구성은 전류와 용량은 open, 전압은 short입니다.
 
 | 파일 | 내용 |
 |---|---|
-| `items.csv` | ITEM별 판정. 차이, 미결, 동등 순. `verdict`, `reason`, `shift_m`, `h`, `delta`, `sigma0`, `n_outlier_die` 등 |
+| `items.csv` | ITEM별 판정. 차이, 미결, 동등 순. `zone`, `verdict`, `reason`, `LoB`, `LoD`, `LoQ`, `n_mismatch_die`, `shift_m`, `h`, `delta`, `sigma0`, `n_outlier_die` 등 |
+| `mismatch_dies.csv` | 검출 불일치 die (검출한계 이하, 검출~정량 구간) |
 | `outlier_dies.csv` | 공통 shift에서 robust σ의 5배 넘게 벗어난 die |
 | `blank_sigma.csv` | blank 조건별 σ₀. `blank_drift_ratio`가 1보다 확연히 크면 blank에 드리프트가 있음 |
 
@@ -86,13 +107,14 @@ python examples/make_test_data.py td
 python infra_compare.py --ref td/ref --new td/new --blank td/blank td/blank_summary.csv --blank-map td/blank_map.csv --out td/out
 ```
 
-합성 데이터의 9개 ITEM(정상, shift, 경계, 바닥 노이즈, blank 없음, offset, 쌍봉, 튀는 die)에 대해 기대 판정이 함께 출력됩니다.
+합성 데이터의 10개 ITEM(정상, shift, 경계, 바닥 노이즈, blank 없음, offset, 검출~정량, 쌍봉, 튀는 die)에 대해 기대 판정이 함께 출력됩니다.
 
 ## 근거
 
 - 동등성 판정: TOST (Schuirmann 1987), ASTM E2935
 - 차이 기반 비교: Bland & Altman 1986
 - blank 기반 노이즈 한계: ISO 11843, IUPAC (Currie)
+- LoB / LoD / LoQ: CLSI EP17, IUPAC
 - 단기 노이즈 MR̄/1.128: NIST/SEMATECH e-Handbook of Statistical Methods (관리도)
 
 상대 허용폭 r은 표준이 정하지 않는 사내 정책 값입니다.

@@ -12,6 +12,14 @@
 
 blank σ₀ = MR̄ / 1.128 (이웃 측정 차이로 구한 단기 노이즈, 측정 순서 기준).
 
+blank가 있는 ITEM은 먼저 구간을 나눈다 (CLSI EP17 / IUPAC, μ·SD = blank 평균·표준편차):
+  LoB = |μ| + 1.645·SD,  LoD = |μ| + 3.29·SD,  LoQ = |μ| + 10·SD
+  구간은 median(|Ref|)로 정한다.
+  < LoD       : 검출한계 이하  → 숫자 비교 안 함. die별 검출 일치로 판정
+  LoD ~ LoQ   : 검출~정량      → 숫자 비교 안 함. die별 검출 일치로 판정
+  ≥ LoQ       : 정량           → 위 TOST
+  검출 불일치 die = 한쪽은 LoD 이상, 다른 쪽은 LoB 이하. 그 비율이 5% 이하면 동등, 넘으면 차이.
+
 usage:
   python infra_compare.py --ref REF_DIR --new NEW_DIR [--blank BLANK ...] [--blank-map map.csv]
                           [--r 0.01] [--key WAFERID,COORD_X_Y,ITEM] [--out result_dir]
@@ -39,6 +47,9 @@ MEDIAN_SE = 1.2533     # 정규분포에서 중앙값 표준오차 / 평균 표�
 D2 = 1.128             # 관리도 상수 d2 (n=2)
 MIN_PAIRS = 10
 OUTLIER_K = 5.0
+K_LOB, K_LOD, K_LOQ = 1.645, 3.29, 10.0
+MISMATCH_MAX = 0.05
+ZONE_FLOOR, ZONE_DETECT, ZONE_QUANT, ZONE_NOBLANK = "검출한계 이하", "검출~정량", "정량", "blank 없음"
 
 
 # ------------------------------------------------------------------ DCNORMAL 읽기
@@ -229,10 +240,11 @@ def judge_item(g: pd.DataFrame, r: float, sigma0: float) -> tuple[dict, np.ndarr
         verdict, reason = "미결", "허용폭 0(기준값 0, blank 없음)"
     elif -delta < lo and hi < delta:
         verdict, reason = "동등", ""
+    elif h >= delta:
+        # 허용폭이 해상도보다 작으면 노이즈 수준의 shift도 '차이'로 잡히므로 판정하지 않는다
+        verdict, reason = "미결", "해상도 부족" + ("" if has_blank else " / blank 없음")
     elif hi <= -delta or lo >= delta:
         verdict, reason = "차이", "New가 큼" if m > 0 else "New가 작음"
-    elif h >= delta:
-        verdict, reason = "미결", "해상도 부족" + ("" if has_blank else " / blank 없음")
     else:
         verdict, reason = "미결", "경계 shift"
 
@@ -242,6 +254,30 @@ def judge_item(g: pd.DataFrame, r: float, sigma0: float) -> tuple[dict, np.ndarr
             "h_over_delta": h / delta if delta else np.nan, "m_over_delta": abs(m) / delta if delta else np.nan,
             "D95_abs_d": float(np.percentile(np.abs(d), 95)), "n_outlier_die": int(out_mask.sum()),
             "verdict": verdict, "reason": reason}, out_mask
+
+
+def blank_limits(row: pd.Series) -> tuple[float, float, float] | None:
+    sd = row.get("blank_sd")
+    sd = float(sd) if pd.notna(sd) else float(row.get("sigma0", np.nan))
+    if math.isnan(sd):
+        return None
+    mu = row.get("blank_offset")
+    mu = abs(float(mu)) if pd.notna(mu) else 0.0
+    return mu + K_LOB * sd, mu + K_LOD * sd, mu + K_LOQ * sd
+
+
+def judge_detection(g: pd.DataFrame, lob: float, lod: float, zone: str) -> tuple[dict, np.ndarray]:
+    ra, na = g["ref"].abs().to_numpy(), g["new"].abs().to_numpy()
+    mismatch = ((ra >= lod) & (na <= lob)) | ((na >= lod) & (ra <= lob))
+    n, k = len(ra), int(mismatch.sum())
+    if n < MIN_PAIRS:
+        verdict, reason = "미결", f"die 부족(n<{MIN_PAIRS})"
+    elif k / n <= MISMATCH_MAX:
+        verdict, reason = "동등", f"{zone}: 검출 일치"
+    else:
+        verdict, reason = "차이", f"{zone}: 검출 불일치 die {k}개"
+    return {"verdict": verdict, "reason": reason, "n_mismatch_die": k,
+            "ref_detect_frac": float((ra >= lod).mean()), "new_detect_frac": float((na >= lod).mean())}, mismatch
 
 
 def main() -> None:
@@ -281,10 +317,23 @@ def main() -> None:
         items["BLANK_ITEM"] = items["ITEM"]
     items = items.merge(blank, on="BLANK_ITEM", how="left").set_index("ITEM")
 
-    results, outliers = [], []
+    results, outliers, mismatches = [], [], []
     for item, g in paired.groupby("ITEM", sort=True):
         sigma0 = float(items.at[item, "sigma0"]) if pd.notna(items.at[item, "sigma0"]) else math.nan
         res, mask = judge_item(g, a.r, sigma0)
+        lim = blank_limits(items.loc[item])
+        if lim is None:
+            res["zone"] = ZONE_NOBLANK
+        else:
+            lob, lod, loq = lim
+            ref_abs = float(g["ref"].abs().median())
+            res.update(LoB=lob, LoD=lod, LoQ=loq)
+            res["zone"] = ZONE_FLOOR if ref_abs < lod else ZONE_DETECT if ref_abs < loq else ZONE_QUANT
+            if res["zone"] != ZONE_QUANT:
+                det, mis = judge_detection(g, lob, lod, res["zone"])
+                res.update(det)
+                if mis.any():
+                    mismatches.append(g.loc[mis, key + ["ref", "new"]].assign(LoB=lob, LoD=lod))
         unit = g["UNIT"].iloc[0]
         bu = items.at[item, "blank_unit"] if "blank_unit" in items.columns else None
         if pd.notna(bu) and unit and bu != unit:
@@ -305,19 +354,25 @@ def main() -> None:
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     res.to_csv(out / "items.csv", index=False, encoding="utf-8-sig")
-    if outliers:
-        pd.concat(outliers).to_csv(out / "outlier_dies.csv", index=False, encoding="utf-8-sig")
+    files = [out / "items.csv"]
+    for name, frames in (("outlier_dies.csv", outliers), ("mismatch_dies.csv", mismatches)):
+        if frames:
+            pd.concat(frames).to_csv(out / name, index=False, encoding="utf-8-sig")
+            files.append(out / name)
     if not blank.empty:
         blank.to_csv(out / "blank_sigma.csv", index=False, encoding="utf-8-sig")
+        files.append(out / "blank_sigma.csv")
 
     print(f"\n판정 (r = {a.r:.2%}, ITEM {len(res):,}개)")
-    print(res["verdict"].value_counts().reindex(["동등", "차이", "미결"], fill_value=0).to_string())
+    zones = [ZONE_FLOOR, ZONE_DETECT, ZONE_QUANT, ZONE_NOBLANK]
+    tab = pd.crosstab(res["zone"], res["verdict"]).reindex(index=zones, columns=["동등", "차이", "미결"], fill_value=0)
+    tab.loc["합계"] = tab.sum()
+    print(tab.to_string())
     und = res[res["verdict"] == "미결"]
     if len(und):
         print("\n미결 사유")
         print(und["reason"].value_counts().to_string())
-    print(f"\n출력: {out / 'items.csv'}" + (f", {out / 'outlier_dies.csv'}" if outliers else "")
-          + (f", {out / 'blank_sigma.csv'}" if not blank.empty else ""))
+    print("\n출력: " + ", ".join(str(f) for f in files))
 
 
 if __name__ == "__main__":

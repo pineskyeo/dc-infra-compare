@@ -13,22 +13,26 @@ def vt():   return rng.normal(0.45, 0.01, N)
 true = {
     "VT_N": ("V", vt(), 0.5e-3, 0.0),
     "VT_SHIFT": ("V", vt(), 0.5e-3, 10e-3),
-    "VT_BORDER": ("V", np.full(N, 0.45) + rng.normal(0, 0.01, N), 0.5e-3, 4.5e-3),
+    "VT_BORDER": ("V", 0.45 + rng.permutation(np.linspace(-0.02, 0.02, N)), 0.0, 4.5e-3),
     "IOFF_FLOOR": ("A", np.zeros(N), 0.7e-12, 0.0),
     "IOFF_NOBLANK": ("A", np.zeros(N), 0.7e-12, 0.0),
     "IOFF_OFFSET": ("A", np.zeros(N), 0.7e-12, 3e-12),
     "IOFF_MAP": ("A", np.zeros(N), 0.7e-12, 0.0),
+    "ILEAK_DETECT": ("A", np.full(N, 4e-12), 0.7e-12, 0.0),
     "ION_BIMODAL": ("A", np.where(np.arange(N) % 2, 500e-6, 300e-6), 0.5e-6, 0.0),
     "CAP_OUT": ("F", rng.normal(1e-12, 2e-14, N), 1e-15, 0.0),
 }
-EXPECT = {"VT_N": "동등", "VT_SHIFT": "차이", "VT_BORDER": "미결(경계 shift)", "IOFF_FLOOR": "동등",
-          "IOFF_NOBLANK": "미결(해상도 부족 / blank 없음)", "IOFF_OFFSET": "차이", "IOFF_MAP": "동등",
+EXPECT = {"VT_N": "동등", "VT_SHIFT": "차이", "VT_BORDER": "미결(경계 shift)", "IOFF_FLOOR": "동등(검출한계 이하)",
+          "IOFF_NOBLANK": "미결(해상도 부족 / blank 없음)", "IOFF_OFFSET": "차이(검출 불일치)", "IOFF_MAP": "동등(검출한계 이하)",
+          "ILEAK_DETECT": "동등(검출~정량)",
           "ION_BIMODAL": "동등", "CAP_OUT": "동등 + 이상 die 3개"}
 
 def measure(side):
     vals = {}
     for item, (unit, t, noise, shift) in true.items():
         v = t + rng.normal(0, noise, N) + (shift if side == "new" else 0.0)
+        if item == "VT_BORDER" and side == "new":
+            v = v + rng.permutation(np.linspace(-3e-3, 3e-3, N))   # 차이 중앙값 = 1% 허용폭(4.5 mV)과 정확히 같게
         if item == "CAP_OUT" and side == "new":
             v[[5, 40, 77]] = 0.0
         vals[item] = (unit, v)
@@ -58,7 +62,7 @@ for k in range(2):
 blank_vals = {"IOFF_FLOOR": ("A", rng.normal(0, 0.7e-12, 61)), "OPEN_I_1PA": ("A", rng.normal(0, 0.7e-12, 61))}
 write(out / "blank" / "BLANK_open", range(61), {k: (u, v) for k, (u, v) in blank_vals.items()})
 (out / "blank_summary.csv").write_text("ITEM,SIGMA0\nIOFF_OFFSET,7e-13\n")
-(out / "blank_map.csv").write_text("ITEM,BLANK_ITEM\nIOFF_MAP,OPEN_I_1PA\n")
+(out / "blank_map.csv").write_text("ITEM,BLANK_ITEM\nIOFF_MAP,OPEN_I_1PA\nILEAK_DETECT,OPEN_I_1PA\n")
 print("기대 판정:")
 for k, v in EXPECT.items():
     print(f"  {k:14s} {v}")
