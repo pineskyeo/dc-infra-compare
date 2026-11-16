@@ -18,8 +18,8 @@ blank가 있는 ITEM은 먼저 구간을 나눈다 (CLSI EP17 / IUPAC, μ·SD = 
   < LoD       : 검출한계 이하  → 숫자 비교 안 함. die별 검출 일치로 판정
   LoD ~ LoQ   : 검출~정량      → 숫자 비교 안 함. die별 검출 일치로 판정
   ≥ LoQ       : 정량           → 위 TOST
-  검출 불일치 die = 한쪽은 LoD 이상, 다른 쪽은 LoB 이하. 그 비율이 5% 이하면 동등, 넘으면 차이.
-blank가 없는 ITEM은 SD 대신 측정값 자체의 1회 흔들림 robustσ(New − Ref)/√2 로 같은 구간을 나눈다 (μ = 0).
+  검출 여부(|값| ≥ LoD)가 한쪽만 나온 die가 한 방향으로 치우치면(McNemar p < 0.05) 그리고 순차이가 5%를 넘으면 차이.
+측정값 자체의 1회 흔들림 robustσ(New − Ref)/√2 가 blank보다 크거나 blank가 없으면 그 값으로 같은 구간을 나눈다 (μ = 0).
 
 usage:
   python infra_compare.py --ref REF_DIR --new NEW_DIR [--blank BLANK ...] [--blank-map map.csv]
@@ -242,7 +242,8 @@ def judge_item(g: pd.DataFrame, r: float, sigma0: float) -> tuple[dict, np.ndarr
     n = len(d)
     m = float(np.median(d))
     s = 1.4826 * float(np.median(np.abs(d - m)))
-    if s == 0 and n > 1:
+    stepped = s == 0 and n > 1
+    if stepped:
         s = float(np.std(d, ddof=1))       # 값이 계단식(양자화)이라 MAD가 0인 경우
     h = Z90 * MEDIAN_SE * s / math.sqrt(n) if n else np.nan
     ref_med = float(np.median(g["ref"]))
@@ -261,7 +262,10 @@ def judge_item(g: pd.DataFrame, r: float, sigma0: float) -> tuple[dict, np.ndarr
         verdict, reason = "동등", ""
     elif h >= delta:
         # 허용폭이 해상도보다 작으면 노이즈 수준의 shift도 '차이'로 잡히므로 판정하지 않는다
-        verdict, reason = "미결", "해상도 부족" + ("" if has_noise else " / 흔들림 정보 없음")
+        pos = float((g["ref"] > 0).mean())
+        why = [w for w, hit in (("die 적음", n < 40), ("부호 섞임", 0.1 < pos < 0.9),
+                                ("계단값", stepped), ("흔들림 정보 없음", not has_noise)) if hit]
+        verdict, reason = "미결", "해상도 부족" + (f" ({', '.join(why)})" if why else "")
     elif hi <= -delta or lo >= delta:
         verdict, reason = "차이", "New가 큼" if m > 0 else "New가 작음"
     else:
@@ -285,18 +289,31 @@ def blank_limits(row: pd.Series) -> tuple[float, float, float] | None:
     return mu + K_LOB * sd, mu + K_LOD * sd, mu + K_LOQ * sd
 
 
+def mcnemar_p(b: int, c: int) -> float:
+    """짝지은 검출 여부의 McNemar 정확 검정 (양측). b, c = 한쪽만 검출된 die 수."""
+    k, m = min(b, c), b + c
+    if m == 0:
+        return 1.0
+    tail = sum(math.comb(m, i) for i in range(k + 1)) / 2 ** m
+    return min(1.0, 2 * tail)
+
+
 def judge_detection(g: pd.DataFrame, lob: float, lod: float, zone: str) -> tuple[dict, np.ndarray]:
-    ra, na = g["ref"].abs().to_numpy(), g["new"].abs().to_numpy()
-    mismatch = ((ra >= lod) & (na <= lob)) | ((na >= lod) & (ra <= lob))
-    n, k = len(ra), int(mismatch.sum())
+    """die별 검출 여부(|값| ≥ LoD)를 두 인프라가 같은 비율로 내는지 본다.
+    차이 = 한쪽만 검출된 die가 한 방향으로 치우치고(McNemar p < 0.05) 그 순차이가 die의 5%를 넘을 때."""
+    rd, nd = g["ref"].abs().to_numpy() >= lod, g["new"].abs().to_numpy() >= lod
+    b, c = int((rd & ~nd).sum()), int((~rd & nd).sum())
+    n = len(rd)
+    p = mcnemar_p(b, c)
+    net = (c - b) / n if n else 0.0
     if n < MIN_PAIRS:
         verdict, reason = "미결", f"die 부족(n<{MIN_PAIRS})"
-    elif k / n <= MISMATCH_MAX:
-        verdict, reason = "동등", f"{zone}: 검출 일치"
+    elif p < 0.05 and abs(net) > MISMATCH_MAX:
+        verdict, reason = "차이", f"{zone}: {'New' if net > 0 else 'Ref'}만 검출 die가 {abs(net):.0%} 더 많음"
     else:
-        verdict, reason = "차이", f"{zone}: 검출 불일치 die {k}개"
-    return {"verdict": verdict, "reason": reason, "n_mismatch_die": k,
-            "ref_detect_frac": float((ra >= lod).mean()), "new_detect_frac": float((na >= lod).mean())}, mismatch
+        verdict, reason = "동등", f"{zone}: 검출 일치"
+    return {"verdict": verdict, "reason": reason, "n_mismatch_die": b + c, "only_ref_detect": b, "only_new_detect": c,
+            "mcnemar_p": p, "ref_detect_frac": float(rd.mean()), "new_detect_frac": float(nd.mean())}, rd != nd
 
 
 def main() -> None:
@@ -361,10 +378,10 @@ def main() -> None:
         res.update(verdict_blank_only=base["verdict"], sigma_rep=sigma_rep, noise_source=noise_source,
                    rep_shift=items.at[item, "rep_shift"], FAMILY=items.at[item, "FAMILY"],
                    rel_noise_d=res["robust_sd_d"] / abs(res["ref_median"]) if res["ref_median"] else np.nan)
+        # 실제 측정 흔들림이 blank보다 크면 그쪽으로 한계를 정한다. 1회 측정 흔들림 = robustσ(New − Ref) / √2
+        s_meas = res["robust_sd_d"] / math.sqrt(2)
         lim, limit_source = blank_limits(items.loc[item]), "blank"
-        if lim is None and res["robust_sd_d"] > 0:
-            # 측정값 자체를 blank로 본다: 1회 측정 흔들림 = robustσ(New − Ref) / √2
-            s_meas = res["robust_sd_d"] / math.sqrt(2)
+        if s_meas > 0 and (lim is None or K_LOD * s_meas > lim[1]):
             lim, limit_source = (K_LOB * s_meas, K_LOD * s_meas, K_LOQ * s_meas), "자체 흔들림"
         if lim is None:
             res["zone"] = ZONE_NOBLANK

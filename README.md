@@ -16,7 +16,7 @@ ITEM마다 die별 차이 `d = New − Ref`를 구하고, 공통 shift가 허용�
 |---|---|
 | 동등 | [m−h, m+h]가 ±Δ 안 |
 | 차이 | [m−h, m+h]가 통째로 ±Δ 밖 |
-| 미결 | 걸침. 사유: 해상도 부족(h ≥ Δ), 경계 shift, die 부족 |
+| 미결 | 걸침. 사유: 해상도 부족(h ≥ Δ. 괄호에 die 적음 / 부호 섞임 / 계단값 / 흔들림 정보 없음), 경계 shift, die 부족 |
 
 - blank σ₀ = MR̄ / 1.128. 이웃한 두 측정의 차이로 구한 단기 노이즈입니다.
 - blank가 없는 ITEM은 Δ = r × \|median(Ref)\|만 씁니다. 0 근처 ITEM은 "해상도 부족 / blank 없음"으로 나옵니다.
@@ -38,13 +38,13 @@ blank 평균 μ와 표준편차 SD로 한계 3개를 구하고, Ref 값의 중�
 | 검출~정량 (LoD ~ LoQ) | 숫자 비교 안 함. die별 검출 일치로 판정 |
 | 정량 (≥ LoQ) | 위 TOST |
 
-검출 불일치 die는 한쪽이 LoD 이상인데 다른 쪽이 LoB 이하인 die입니다. 그 비율이 5% 이하면 동등, 넘으면 차이입니다. 목록은 `mismatch_dies.csv`에 나옵니다.
+die마다 검출 여부(|값| ≥ LoD)를 봅니다. 한쪽만 검출된 die가 한 방향으로 치우치고(McNemar 정확 검정 p < 0.05) 그 순차이가 die의 5%를 넘으면 차이, 아니면 동등입니다. 노이즈만으로도 한쪽만 검출되는 die는 생기지만 양쪽으로 비슷하게 생기므로 차이로 잡히지 않습니다. 한쪽만 검출된 die 목록은 `mismatch_dies.csv`에 나옵니다.
 
 허용폭이 해상도보다 작으면(h ≥ Δ) 노이즈 수준의 shift가 차이로 잡히므로 판정하지 않고 미결(해상도 부족)로 둡니다.
 
-### blank가 없는 ITEM: 측정값 자체의 흔들림으로 한계 계산
+### 측정값 자체의 흔들림으로 한계 계산
 
-blank가 연결되지 않은 ITEM은 측정값 자체를 blank로 봅니다.
+blank가 연결되지 않았거나, 실제 측정 흔들림이 blank보다 큰 ITEM은 측정값 자체를 blank로 봅니다.
 
 - 1회 측정 흔들림 σ = robustσ(New − Ref) / √2. 같은 die끼리 빼서 공정 산포를 없애고, 두 번 측정한 몫(√2)을 나눕니다.
 - LoB = 1.645σ, LoD = 3.29σ, LoQ = 10σ. 판정은 blank가 있을 때와 같습니다.
@@ -135,6 +135,7 @@ blank 측정 구성은 전류와 용량은 open, 전압은 short입니다.
 
 ```bash
 python examples/make_test_data.py td
+python examples/add_hard_cases.py td   # 선택: 부호 섞임, 계단값, blank보다 큰 흔들림
 python infra_compare.py --ref td/ref --new td/new --blank td/blank td/blank_summary.csv --blank-map td/blank_map.csv --out td/out
 ```
 
