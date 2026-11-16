@@ -393,10 +393,16 @@ def main() -> None:
                    rep_shift=items.at[item, "rep_shift"], FAMILY=items.at[item, "FAMILY"],
                    rel_noise_d=res["robust_sd_d"] / abs(res["ref_median"]) if res["ref_median"] else np.nan)
         # 실제 측정 흔들림이 blank보다 크면 그쪽으로 한계를 정한다. 1회 측정 흔들림 = robustσ(New − Ref) / √2
-        s_meas = res["robust_sd_d"] / math.sqrt(2)
+        # 한계를 정하는 흔들림: POR 재측정(같은 인프라, 컨택·소자 포함)이 있으면 그것, 없으면 New − Ref 차이에서.
+        # blank(장비만)보다 작으면 blank를 쓴다.
+        own_rep = items.at[item, "rep_sigma"]
+        if pd.notna(own_rep) and own_rep > 0:
+            s_meas, s_source = float(own_rep), "POR 재측정"
+        else:
+            s_meas, s_source = res["robust_sd_d"] / math.sqrt(2), "자체 흔들림"
         lim, limit_source = blank_limits(items.loc[item]), "blank"
         if s_meas > 0 and (lim is None or K_LOD * s_meas > lim[1]):
-            lim, limit_source = (K_LOB * s_meas, K_LOD * s_meas, K_LOQ * s_meas), "자체 흔들림"
+            lim, limit_source = (K_LOB * s_meas, K_LOD * s_meas, K_LOQ * s_meas), s_source
         if lim is None:
             res["zone"] = ZONE_NOBLANK
         else:
@@ -439,6 +445,11 @@ def main() -> None:
         blank.to_csv(out / "blank_sigma.csv", index=False, encoding="utf-8-sig")
         files.append(out / "blank_sigma.csv")
 
+    low = res[res["zone"].isin([ZONE_FLOOR, ZONE_DETECT])]
+    low_cols = ["ITEM", "FAMILY", "UNIT", "zone", "limit_source", "ref_median", "LoD", "LoQ", "verdict", "reason"]
+    low[[c for c in low_cols if c in low]].sort_values(["FAMILY", "ITEM"]).to_csv(
+        out / "low_items.csv", index=False, encoding="utf-8-sig")
+    files.append(out / "low_items.csv")
     fam, lvl = pattern_tables(res)
     fam.to_csv(out / "patterns_family.csv", encoding="utf-8-sig")
     lvl.to_csv(out / "patterns_level.csv", encoding="utf-8-sig")
@@ -448,7 +459,8 @@ def main() -> None:
     if VERBOSE:
         src = res["limit_source"].fillna("") if "limit_source" in res else pd.Series("", index=res.index)
         view = res["zone"] + np.where(src == "", "", " (" + src + ")")
-        zones = [f"{z} ({s})" for z in (ZONE_FLOOR, ZONE_DETECT, ZONE_QUANT) for s in ("blank", "자체 흔들림")] + [ZONE_NOBLANK]
+        zones = [f"{z} ({s})" for z in (ZONE_FLOOR, ZONE_DETECT, ZONE_QUANT)
+                 for s in ("blank", "POR 재측정", "자체 흔들림")] + [ZONE_NOBLANK]
     else:
         view, zones = res["zone"], [ZONE_FLOOR, ZONE_DETECT, ZONE_QUANT, ZONE_NOBLANK]
     tab = pd.crosstab(view, res["verdict"]).reindex(index=zones, columns=verdicts, fill_value=0)
@@ -475,7 +487,7 @@ def main() -> None:
         print(lvl.to_string())
         print("\n출력: " + ", ".join(str(f) for f in files))
     else:
-        print(f"\n결과: {out}/items.csv (verdict, reason 열). 자세한 화면은 --verbose")
+        print(f"\n결과: {out}/items.csv (verdict, reason 열), LoQ 아래 항목 목록: {out}/low_items.csv. 자세한 화면은 --verbose")
 
 
 def pattern_tables(res: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
