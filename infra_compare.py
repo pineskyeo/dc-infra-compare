@@ -14,7 +14,7 @@ blank σ₀ = MR̄ / 1.128 (이웃 측정 차이로 구한 단기 노이즈, 측
 
 usage:
   python infra_compare.py --ref REF_DIR --new NEW_DIR [--blank BLANK ...] [--blank-map map.csv]
-                          [--r 0.01] [--key WAFERID,DIE_X_Y,ITEM] [--out result_dir]
+                          [--r 0.01] [--key WAFERID,COORD_X_Y,ITEM] [--out result_dir]
   --ref/--new/--blank 에는 폴더(하위의 DCNORMAL 결과를 모두 읽음)나 파일을 여러 개 줄 수 있다.
   --blank 형식: DCNORMAL 파일·폴더 / CSV(ITEM,SIGMA0 요약) / CSV(ITEM,VALUE 원측정값, 측정 순서대로)
   --blank-map : CSV(ITEM,BLANK_ITEM). 제품 ITEM 이름과 blank ITEM 이름이 다를 때 연결. 없으면 같은 이름끼리.
@@ -251,7 +251,7 @@ def main() -> None:
     ap.add_argument("--blank", nargs="*", default=[])
     ap.add_argument("--blank-map")
     ap.add_argument("--r", type=float, default=0.01, help="상대 허용폭 (기본 0.01 = 1%%)")
-    ap.add_argument("--key", default="WAFERID,DIE_X_Y,ITEM", help="die·item 짝짓기 키 (ITEM 포함 필수)")
+    ap.add_argument("--key", default="WAFERID,COORD_X_Y,ITEM", help="die·item 짝짓기 키 (ITEM 포함 필수)")
     ap.add_argument("--out", default="infra_compare_out")
     ap.add_argument("--encoding", default="auto", help="auto(기본: UTF-8, 안 되면 CP949) 또는 cp949, euc-kr 등")
     a = ap.parse_args()
@@ -263,7 +263,12 @@ def main() -> None:
     new = load_side(a.new, "New", a.encoding)
     paired, counts = pair_up(ref, new, key)
     if paired.empty:
-        sys.exit("짝지어진 die가 없습니다. --key (WAFERID, DIE_X_Y 등)가 두 데이터에서 같은지 확인하세요")
+        sys.exit("짝지어진 die가 없습니다. --key (WAFERID, COORD_X_Y 등)가 두 데이터에서 같은지 확인하세요")
+    per_item = paired.groupby("ITEM").size()
+    if per_item.median() < MIN_PAIRS:
+        filled = {c: int(ref[c].nunique()) for c in ("COORD_X_Y", "FLAT_X_Y", "DIE_X_Y")}
+        print(f"\n  경고: ITEM당 짝 die 수 중앙값이 {per_item.median():.0f}개뿐입니다. 키 {key}가 die를 구별하지 못하는 것 같습니다.\n"
+              f"  Ref의 좌표 열별 서로 다른 값 개수: {filled}. 값이 많은 열을 --key 에 쓰세요.\n", file=sys.stderr)
 
     blank = load_blank(a.blank, a.encoding) if a.blank else pd.DataFrame(columns=["BLANK_ITEM", "sigma0"])
     items = pd.DataFrame({"ITEM": paired["ITEM"].unique()})

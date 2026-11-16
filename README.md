@@ -37,7 +37,7 @@ python infra_compare.py --ref ref폴더/ --new new폴더/ --blank blank.csv --bl
 | 옵션 | 내용 |
 |---|---|
 | `--ref`, `--new` | DCNORMAL 파일이나 폴더 (여러 개 가능, 확장자 없는 파일도 인식) |
-| `--key` | 짝짓기 키. 기본 `WAFERID,DIE_X_Y,ITEM` |
+| `--key` | 짝짓기 키. 기본 `WAFERID,COORD_X_Y,ITEM` (다른 좌표를 쓰면 `FLAT_X_Y`, `DIE_X_Y`로 변경) |
 | `--blank` | blank 데이터 (아래 형식) |
 | `--blank-map` | 제품 ITEM과 blank 이름 연결표 |
 | `--r` | 상대 허용폭. 기본 0.01 (1%) |
