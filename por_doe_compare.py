@@ -17,21 +17,17 @@
   --blank 를 주면 blank 한계(|μ| + 3.29 SD, |μ| + 10 SD)가 더 클 때 그쪽을 씀 (하한). blank는 원측정값이라
   level.csv 에서 변형이 아니고 CALCVAL이 있는 ITEM에만 × CALCVAL 해서 쓴다.
 
-두 구간 모두 같은 TOST 규칙. 비교하는 양만 다르다.
-  정량 (|POR| ≥ LoQ)  : die별 d = DOE − POR 회차 평균
-                         허용폭 Δ = r × |POR 중앙값| + t(0.95, J−1) × √(1 + 1/J) × sigma_run
-  LoQ 미만             : die별 "|값| ≥ LoQ" 여부(0/1). d = DOE 여부 − POR 회차 평균 여부
-                         허용폭 Δ = det_margin + t(0.95, J−1) × √(1 + 1/J) × sigma_run(여부)
+판정 (die별 d = DOE − POR 회차 평균, 신뢰구간은 shift의 90%)
+  허용폭 Δ = r × |POR 중앙값| + t(0.95, J−1) × √(1 + 1/J) × sigma_run
   t(0.95, J−1) × √(1 + 1/J) × sigma_run : 같은 프로그램으로 다시 재도 생기는 회차 간 차이 (DOE 1회 vs POR J회 평균의
   90% 예측구간 한쪽). sigma_run 의 자유도가 J − 1이라 t를 쓴다 (J = 3: 2.92, J = 5: 2.13).
-  LoQ 미만은 값을 "<LoQ"로 보고하므로(IUPAC), 넘는 비율의 신뢰구간이 통째로 ±Δ 밖이고 die 중심 이동(값 척도,
-  Hodges–Lehmann)도 POR 회차 흔들림 예측구간(r × |POR| + t × √(1 + 1/J) × sigma_run) 밖일 때만 차이. 그 밖은 동등.
-  TOST 그대로의 판정은 verdict_tost_low 열. --strict-low-tost 면 TOST 그대로 판정.
+  정량 (|POR| ≥ LoQ): TOST. 신뢰구간이 ±Δ 안 → 동등, 통째로 밖 → 차이, 걸침 → 미결
+  LoQ 미만: 값은 "<LoQ"로 보고한다 (IUPAC). 신뢰구간이 통째로 ±Δ 밖이고 DOE 중심(POR 중앙값 + shift)이 LoQ 이상이라
+           보고가 달라질 때만 차이, 그 밖은 동등 ("<LoQ 보고 일치"). --strict-low-tost 면 정량과 같은 TOST.
 
 90% 신뢰구간 (shift)
   hl   (기본): Hodges–Lehmann 추정 + Wilcoxon 부호순위 신뢰구간. 분포 가정 없음, 튀는 die에 강함
   mean       : 평균 + t 신뢰구간 (NIST 7.3.1.1)
-  LoQ 미만의 0/1 비교는 항상 mean (비율 차이)
 
 판정: 신뢰구간이 ±Δ 안 → 동등 / 통째로 밖 → 차이 / 걸침 → 미결 (해상도 부족: 신뢰구간 반폭 ≥ Δ, 그 외 경계)
 t-test (NIST 7.3.1.1): 평균 d가 0인지. 참고용이며 판정에 쓰지 않는다.
@@ -276,36 +272,30 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
         return {**out, "zone": "die 부족", "verdict": "미결", "reason": f"die {n}개 (< {MIN_DIE})"}, outlier
 
     if level < loq:
+        # LoQ 미만 값은 숫자가 아니라 "<LoQ"로 보고한다 (IUPAC). die 61개의 중심은 die 하나보다 훨씬 정밀하므로 중심으로 본다.
+        # 차이 = DOE 중심 이동이 POR 회차 흔들림 예측구간 밖이고, 그 결과 DOE 중심이 LoQ 이상이라 보고가 달라질 때.
         zone = "검출한계 이하" if level < lod else "검출~정량"
-        I, D = (np.abs(Y) >= loq).astype(float), (np.abs(z) >= loq).astype(float)
-        _, s_run_det = run_anova(I)
-        e = D - I.mean(axis=1)
-        center, lo, hi = ci_mean(e) if e.std() > 0 else (float(e.mean()),) * 3
-        run_term = run_factor(J) * s_run_det
-        delta = a.det_margin + run_term
-        v, why = tost(center, lo, hi, delta, fmt=lambda x: f"{x:+.0%}p")
-        por_det = I.mean(axis=0)
-        out.update(zone=zone, method="TOST LoQ 넘는 die 비율", policy_margin=a.det_margin, run_margin=run_term,
-                   delta=delta, center=center, ci_low=lo, ci_high=hi, h=(hi - lo) / 2, sigma_run_det=s_run_det,
-                   **{f"POR{k + 1}_det": float(por_det[k]) for k in range(J)}, DOE_det=float(D.mean()),
-                   doe_det_outside_por=bool(D.mean() > por_det.max() or D.mean() < por_det.min()),
-                   verdict_tost_low=v)
+        center, lo, hi = ci_hl(d) if d.std() > 0 else (float(d.mean()),) * 3
+        policy, run_term = a.r * level, run_factor(J) * s_run
+        delta = policy + run_term
+        por_c = float(np.median(R))
+        doe_c = por_c + center
+        beyond = lo > delta or hi < -delta
+        por_means = Y.mean(axis=0)
+        out.update(zone=zone, method="중심 이동 (<LoQ 보고)", policy_margin=policy, run_margin=run_term, delta=delta,
+                   center=center, ci_low=lo, ci_high=hi, h=(hi - lo) / 2, doe_center=doe_c,
+                   doe_center_ge_loq=bool(abs(doe_c) >= loq), beyond_run=bool(beyond),
+                   doe_outside_por_runs=bool(z.mean() > por_means.max() or z.mean() < por_means.min()),
+                   verdict_strict=tost(center, lo, hi, delta)[0])
         if "range_doe" in out:
             out.update(range_doe="", range_changed=None)   # 바닥 값은 DOE/POR 비가 의미 없어 range를 정하지 않음
-        # 같은 비교를 값 척도로도 한다. die 61개의 중심(Hodges–Lehmann)은 개별 값보다 훨씬 정밀하고, 문턱(LoQ) 근처에서
-        # 중심이 조금만 움직여도 넘는 비율은 크게 바뀌므로, 비율만 보면 POR 회차 흔들림보다 작은 이동도 차이로 보인다.
-        vc, vlo, vhi = ci_hl(d) if d.std() > 0 else (float(d.mean()),) * 3
-        v_delta = a.r * level + run_factor(J) * s_run
-        v_out = vlo > v_delta or vhi < -v_delta
-        out.update(value_center=vc, value_ci_low=vlo, value_ci_high=vhi, value_delta=v_delta,
-                   value_beyond_run=bool(v_out))
         if a.strict_low_tost:
-            return {**out, "verdict": v, "reason": f"LoQ 넘는 die 비율: {why}"}, outlier
-        if v == "차이" and v_out:
-            return {**out, "verdict": "차이", "reason": f"LoQ 넘는 die 비율: {why}, 중심 이동도 POR 회차 흔들림 밖"}, outlier
-        # LoQ 미만 값은 숫자가 아니라 "<LoQ"로 보고한다 (IUPAC). 차이는 넘는 비율과 중심 이동이 둘 다 POR 회차 흔들림을
-        # 넘을 때만. 그 밖은 보고가 같다고 본다.
-        note = "비율은 다르지만 중심 이동이 POR 회차 흔들림 안" if v == "차이" else f"TOST: {why}"
+            v, why = tost(center, lo, hi, delta)
+            return {**out, "verdict": v, "reason": f"LoQ 미만 TOST: {why}"}, outlier
+        if beyond and abs(doe_c) >= loq:
+            return {**out, "verdict": "차이",
+                    "reason": f"DOE 중심 {doe_c:.4g}가 LoQ({loq:.4g}) 이상이고 이동 {center:+.4g}가 POR 회차 흔들림(±{delta:.4g}) 밖"}, outlier
+        note = "중심 이동이 POR 회차 흔들림 안" if not beyond else "DOE 중심도 LoQ 미만"
         return {**out, "verdict": "동등", "reason": f"<LoQ 보고 일치 ({note})"}, outlier
 
     policy = a.r * level
@@ -329,10 +319,8 @@ def main() -> None:
                     help="POR 1회분 (파일이나 폴더). 회차마다 --por 를 따로 씀: --por run1/ --por run2/ --por run3/")
     ap.add_argument("--doe", nargs="+", required=True, help="DOE 1회분 (파일이나 폴더)")
     ap.add_argument("--r", type=float, default=0.05, help="정량 구간 허용폭 = r × |POR| (기본 0.05)")
-    ap.add_argument("--det-margin", type=float, default=0.05,
-                    help="LoQ 미만 구간 허용폭: LoQ 넘는 die 비율 차이 (기본 0.05 = 5%%p)")
     ap.add_argument("--strict-low-tost", action="store_true",
-                    help="LoQ 미만도 동등을 증명해야 동등 (기본: 차이 증거가 없으면 '<LoQ 보고 일치'로 동등)")
+                    help="LoQ 미만도 정량과 같은 TOST로 판정 (기본: '<LoQ 보고 일치')")
     ap.add_argument("--estimator", choices=["hl", "mean"], default="hl",
                     help="정량 구간 신뢰구간: hl = Hodges–Lehmann/Wilcoxon (기본), mean = 평균/t")
     ap.add_argument("--level", help="CSV ITEM,LEVEL[,CALCVAL][,DERIVED]. LEVEL = 실제 측정값 자릿수 (예: 10fA = 10~100 fA, "
@@ -425,7 +413,7 @@ def main() -> None:
     od = pd.concat(outl) if outl else pd.DataFrame(columns=die_cols + ["ITEM"])
     od.to_csv(out / "outlier_dies.csv", index=False, encoding="utf-8-sig")
 
-    print(f"\n판정 (정량 ±{a.r:.0%}, LoQ 미만 ±{a.det_margin:.0%}p, 각각 + 회차 흔들림, 신뢰구간 {a.estimator})")
+    print(f"\n판정 (허용폭 ±{a.r:.0%} + POR 회차 흔들림, 신뢰구간 {a.estimator}, LoQ 미만은 '<LoQ 보고 일치')")
     print(pd.crosstab(res["zone"], res["verdict"], margins=True, margins_name="합계").to_string())
     q = res[res["zone"] == "정량"]
     if len(q):

@@ -81,11 +81,11 @@ def main() -> None:
             sec("blank로 판정이 바뀐 ITEM", changed[["ID", "UNIT", "zone_no_blank", "zone", "verdict_no_blank", "verdict",
                                               "sigma_die", "LoQ", "blank_LoQ_item"]].to_string(
                 index=False, float_format=lambda v: f"{v:.4g}"))
-    if "verdict_tost_low" in d:
+    if "doe_outside_por_runs" in d:
         lr = d[d["reason"].astype(str).str.startswith("<LoQ 보고 일치")]
         if len(lr):
-            sec(f"<LoQ 보고 일치로 동등이 된 ITEM {len(lr)}개 중 DOE 비율이 POR 회차 범위 밖인 ITEM "
-                f"{int(lr['doe_det_outside_por'].sum())}개", pd.crosstab(lr["FAMILY"], lr["doe_det_outside_por"].map(
+            sec(f"<LoQ 보고 일치로 동등이 된 ITEM {len(lr)}개 중 DOE 평균이 POR 회차 평균들의 범위 밖인 ITEM "
+                f"{int(lr['doe_outside_por_runs'].sum())}개", pd.crosstab(lr["FAMILY"], lr["doe_outside_por_runs"].map(
                     {True: "DOE가 POR 범위 밖", False: "POR 범위 안"})))
     if "limit_source" in d:
         sec("LoQ를 정한 쪽", d["limit_source"].value_counts())
@@ -133,14 +133,13 @@ def main() -> None:
         if "delta_source" in qb:
             rel["Δ 출처"] = qb["delta_source"]
         sec("정량 차이·미결: 회차별 평균 (POR 평균 대비 %). DOE가 POR 회차들의 퍼짐 밖에 있나", rel.head(a.list).to_string(index=False))
-    dets = sorted(c for c in d.columns if c.startswith("POR") and c.endswith("_det"))
     lb = bad[bad["zone"].isin(["검출한계 이하", "검출~정량"])]
-    if len(lb) and dets:
-        t = lb[["ID", "UNIT", "verdict", "por_median"] + dets + ["DOE_det", "center", "delta", "ci_low", "ci_high"]].copy()
-        t.columns = ["ID", "UNIT", "verdict", "POR 값"] + [c.replace("_det", "") for c in dets] + \
-                    ["DOE", "비율 차이", "Δ", "CI low", "CI high"]
-        sec("LoQ 미만 차이·미결: 회차별 LoQ 넘는 die 비율", t.head(a.list).to_string(
-            index=False, float_format=lambda v: f"{v:.3g}"))
+    if len(lb):
+        t = lb[["ID", "UNIT", "verdict", "por_median", "LoQ"] + runs + ["DOE_mean", "center", "ci_low", "ci_high", "delta",
+                                                                         "doe_center"]].copy()
+        t.columns = ["ID", "UNIT", "verdict", "POR 값", "LoQ"] + [c.replace("_mean", "") for c in runs] + \
+                    ["DOE", "shift", "CI low", "CI high", "Δ(회차 흔들림)", "DOE 중심"]
+        sec("LoQ 미만 차이·미결: 회차별 평균과 중심 이동", t.head(a.list).to_string(index=False, float_format=lambda v: f"{v:.3g}"))
     od_path = path.parent / "outlier_dies.csv"
     if od_path.exists():
         od = pd.read_csv(od_path)

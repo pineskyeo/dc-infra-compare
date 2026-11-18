@@ -26,7 +26,7 @@ EXPECT = {
     "VT_SHIFT": "차이",
     "RON_CONTACT": "t-test 유의차, TOST 동등 (회차 평균 흔들림 안)",
     "IOFF_FLOOR": "동등 (LoQ 미만)",
-    "IOFF_LEAK": "차이 (LoQ 미만, DOE만 누설 die)",
+    "IOFF_LEAK": "동등 (<LoQ 보고 일치: DOE 중심 14 pA < LoQ 16.5 pA). verdict_strict 차이, 튀는 die 20개로 표시",
     "ION_OUTLIER": "동등 (튀는 die 4개. Hodges–Lehmann이라 끌려가지 않음)",
     "IDSAT_SPEC": "동등 (가짜 스펙 10 µA는 무시. shift 8 µA < |POR| 5% = 30 µA)",
     "VOS_OFFSET": "차이 (+3.7 µV > |POR| 5% = 1.5 µV). --level level.csv --accuracy: 동등 (2 V range 정확도 안)",
