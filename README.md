@@ -116,22 +116,33 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 |---|---|
 | `--blank`, `--blank-map` | blank 데이터와 연결표. 형식은 아래 "blank 넣기"와 같음 |
 
-**blank.** blank는 실제 측정값(A, V)이고 결과 값은 가공(CALCVAL 배율, 정규화)됐을 수 있습니다. 그래서 `--level`에 SCALE이 있는 ITEM만 blank 한계(LoD = \|μ\| + 3.29 SD, LoQ = \|μ\| + 10 SD)에 SCALE을 곱해 ITEM 단위로 바꿔 쓰고, 나머지 ITEM은 쓰지 않습니다(`blank_status`). 바꾼 한계(`blank_LoQ_item`)가 POR 반복으로 구한 한계보다 크면 blank 쪽을 씁니다. blank 값은 A, V 기본 단위여야 합니다.
+**blank.** blank는 원측정값(A, V 기본 단위)이고 결과 값은 가공됐을 수 있습니다. 그래서 `--level` 표에서 **변형이 아니고 CALCVAL이 있는 ITEM에만** blank 한계(LoD = \|μ\| + 3.29 SD, LoQ = \|μ\| + 10 SD)에 CALCVAL을 곱해 ITEM 단위로 바꿔 씁니다. 나머지는 쓰지 않습니다(`blank_status`: 변형 / CALCVAL 없음 / level.csv 없음). 바꾼 한계(`blank_LoQ_item`)가 POR 반복으로 구한 한계보다 크면 blank 쪽을 씁니다.
 
 **UNIT은 판정에 쓰지 않습니다.** DCNORMAL의 UNIT 값이 잘못 들어간 경우가 많아서, 판정은 값과 POR 반복 흔들림만으로 합니다. 판정이 모두 비율 기준(허용폭은 POR 값의 r배, LoQ는 그 ITEM 흔들림의 10배)이라 값의 단위나 정규화 계수가 무엇이든 결과가 같습니다. UNIT 열은 결과 표시용으로만 옮깁니다.
 
-**실제 측정값 자릿수 (`--level`, 선택).** ITEM마다 실제로 잰 값의 자릿수를 CSV로 주면 장비 사양(Keysight P9001A Per-pin SMU)을 씁니다. UNIT은 여전히 보지 않습니다.
+**ITEM 정보 표 (`--level`, 선택).** ITEM마다 원측정값의 크기와 가공 방식을 주면 장비 사양(Keysight P9001A Per-pin SMU)과 blank를 정확하게 씁니다. UNIT은 여전히 보지 않습니다.
 
 ```
-ITEM,LEVEL,SCALE
-IOFF_N1,10fA,1e12   ← 실제 값이 10~100 fA (예: 중앙값 -7.7e-14 A). 파일에 pA로 찍혀 있으면 SCALE 1e12
-ION_N1,100nA,       ← 100 nA~1 µA (예: 2.8e-07 A). SCALE을 모르면 비워 둠
-VOS_P1,10uV,1
+ITEM,LEVEL,CALCVAL,DERIVED
+IOFF_N1,10fA,1e12,N     ← 원측정값 10~100 fA, 파일 값 = 원측정값 × 1e12 (pA로 찍힘)
+ION_N1,100nA,,N         ← CALCVAL 모름
+VT_N1,,,Y               ← 변형 값 (여러 측정 조합·추출, 예: Vt 추출, 저항 = V / I, 비율)
 ```
 
-- 표기: 1fA … 100mA, 1uV … 1V (A, V는 사양 적용), 100fF … 100pF, 10kHz … 1MHz (아직 사양 없음, 기록만).
-- SCALE(선택) = 파일 값 / 실제 값 (CALCVAL 배율, 단위 환산 포함). 있으면 실제 값 = \|POR 중앙값\| / SCALE로 정확히 바꿉니다. blank는 SCALE이 있어야 씁니다.
-- SCALE이 없으면 실제 값을 자릿수 상한 10L로 둡니다(허용폭을 가장 작게 잡는 쪽). 파일 값 / 실제 값 = \|POR 중앙값\| / 10L이라 최대 10배까지 어긋날 수 있지만, 장비 분해능·정확도를 실제보다 작게 잡는 쪽이라 판정이 느슨해지지는 않습니다.
+| 열 | 뜻 |
+|---|---|
+| LEVEL | 원측정값 \|값\|의 자릿수 아래 끝. 10fA = 10~100 fA, 1nA = 1~10 nA. 표기 1fA … 100mA, 1uV … 1V (A, V는 사양 적용), 100fF … 100pF, 10kHz … 1MHz (기록만) |
+| CALCVAL | 파일 값 = 원측정값 × CALCVAL (단위 환산, 정규화 포함). 모르면 비움 |
+| DERIVED | Y = 변형 값. 원측정값의 배율이 아니라서 장비 사양과 blank를 쓰지 않음 (LEVEL 비워도 됨) |
+
+| 경우 | 장비 분해능·정확도 | blank |
+|---|---|---|
+| 변형 (DERIVED = Y) | 안 씀 | 안 씀 |
+| 변형 아님 + CALCVAL 있음 | 실제 값 = \|POR 중앙값\| / CALCVAL로 정확히 환산 | × CALCVAL 해서 씀 |
+| 변형 아님 + CALCVAL 없음 | 실제 값을 자릿수 상한 10L로 보수적으로 환산 (장비 분해능·정확도를 실제보다 작게 잡는 쪽) | 안 씀 |
+| 표에 없음 | 안 씀 | 안 씀 |
+
+- CALCVAL로 환산한 실제 값이 LEVEL 자릿수와 다르면 `level_check` 열과 화면에 경고가 나옵니다. CALCVAL이나 LEVEL 입력 실수를 잡는 용도입니다.
 - auto range: `measure_i`/`measure_v`에 range 0을 주면 값이 들어가는 가장 작은 range를 씁니다(Programming Reference Table 2-19, 2-22). `range_por`, `range_doe`, `range_changed` 열. 바닥(LoQ 미만) ITEM은 DOE range를 정하지 않습니다.
 - 분해능 하한: σ ≥ range 측정 분해능 / √12 (GUM F.2.2.1). `limit_source` = 장비 분해능.
 - `--accuracy`: 두 측정이 각자 사양 정확도 ±(a × |값| + b × range + c) 안에 있을 때 생길 수 있는 차이 1.645 × √((U_POR² + U_DOE²) / 3) (균일분포, GUM 4.3.7)를 정량 구간 허용폭 하한으로 씁니다. 사양의 Vo, Rres × Io 항은 0으로 둡니다. 정확도 없이 낸 판정은 `verdict_no_accuracy`, 허용폭을 정한 쪽은 `delta_source`.

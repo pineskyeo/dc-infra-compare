@@ -11,10 +11,11 @@
   σ = max(sigma_die, 분해능 / √12). 분해능 = 측정값 사이의 가장 작은 간격 (계단값, GUM F.2.2.1)
   UNIT 열은 판정에 쓰지 않는다 (결과 표시용으로만 옮긴다).
   --level ITEM,LEVEL (실제 측정값 자릿수, 예 10fA = 10~100 fA)이 있으면 P9001A Per-pin SMU 사양을 ITEM 단위로 바꿔 쓴다.
-  SCALE이 있으면 실제 값 = |POR 중앙값| / SCALE. 없으면 실제 값 = 자릿수 상한 10L, 파일 값 / 실제 값 = |POR 중앙값| / 10L.
-  분해능 하한은 항상, 정확도 하한은 --accuracy 일 때.
-  --blank 를 주면 blank 한계(|μ| + 3.29 SD, |μ| + 10 SD)가 더 클 때 그쪽을 씀 (하한). blank는 실제 측정값이라
-  --level 의 SCALE(파일 값 / 실제 값)이 있는 ITEM에만 ITEM 단위로 바꿔 쓴다.
+  level.csv 열: ITEM, LEVEL, CALCVAL(파일 값 = 원측정값 × CALCVAL), DERIVED(Y = 여러 측정을 조합·추출한 변형 값).
+  변형 값: 장비 사양·blank 안 씀.  CALCVAL 있음: 실제 값 = |POR 중앙값| / CALCVAL로 정확히 환산, blank 사용.
+  CALCVAL 없음: 실제 값 = 자릿수 상한 10L로 보수적 환산, blank 안 씀.  분해능 하한은 항상, 정확도 하한은 --accuracy 일 때.
+  --blank 를 주면 blank 한계(|μ| + 3.29 SD, |μ| + 10 SD)가 더 클 때 그쪽을 씀 (하한). blank는 원측정값이라
+  level.csv 에서 변형이 아니고 CALCVAL이 있는 ITEM에만 × CALCVAL 해서 쓴다.
 
 두 구간 모두 같은 TOST 규칙. 비교하는 양만 다르다.
   정량 (|POR| ≥ LoQ)  : die별 d = DOE − POR 회차 평균
@@ -38,6 +39,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -80,6 +82,16 @@ LEVEL_RE = re.compile(r"^\s*([0-9.]+)\s*([fpnuµmkKM]?)\s*(A|V|F|HZ)\s*$", re.I)
 SI = [(1e-15, "f"), (1e-12, "p"), (1e-9, "n"), (1e-6, "u"), (1e-3, "m"), (1.0, "")]
 
 
+@dataclass(frozen=True)
+class ItemInfo:
+    """level.csv 한 줄. 실제 측정값 |값|의 자릿수가 [L, 10L), 측정 종류 kind (A, V, F, Hz).
+    calcval: 파일 값 = 원측정값 × CALCVAL (모르면 None). derived: 여러 측정을 조합·추출한 값이라 원측정값의 배율이 아님."""
+    L: float
+    kind: str
+    calcval: float | None
+    derived: bool
+
+
 def parse_level(text) -> tuple[float, str] | None:
     """'10fA' → (1e-14, 'A'). 실제 측정값 |값|이 [L, 10L) 자릿수라는 뜻."""
     m = LEVEL_RE.match(str(text))
@@ -103,20 +115,28 @@ def range_name(row, kind: str) -> str:
     return f"{row[0] / f:g}{pre}{kind}"
 
 
-def spec_terms(lvl, level: float, doe_level: float) -> dict:
-    """LEVEL 표로 장비 사양을 ITEM 단위로 바꾼다. 실제 값은 자릿수 상한 10L로 둔다 (허용폭을 가장 작게 잡는 쪽).
-    파일 값 / 실제 값 = level / 10L 이라서 UNIT이나 정규화 계수를 몰라도 된다."""
-    if lvl is None or level <= 0:
+def spec_terms(info: ItemInfo | None, level: float, doe_level: float) -> dict:
+    """장비 사양을 ITEM 단위로 바꾼다. 변형 값은 원측정값의 배율이 아니라 쓰지 않는다.
+    CALCVAL이 있으면 실제 값 = level / CALCVAL 로 정확히, 없으면 실제 값 = 자릿수 상한 10L (허용폭을 가장 작게 잡는 쪽)."""
+    if info is None:
         return {}
-    L, kind, scale = lvl
-    if scale:                       # 파일 값 = 실제 값 × SCALE 을 알면 정확히 바꾼다
-        k, phys = scale, level / scale
+    kind = info.kind
+    if level <= 0 and not info.derived:
+        return {"level_kind": kind, "spec_status": "POR 값 0: 환산 불가"}
+    if info.derived:
+        return {"level_kind": kind, "spec_status": "변형: 장비 사양 미적용"}
+    if info.calcval:
+        k, phys = info.calcval, level / info.calcval
+        check = "일치" if info.L <= phys < 10 * info.L else f"불일치 (CALCVAL로 본 실제 값 {phys:.3g})"
+        status = "CALCVAL로 환산"
     else:
-        phys = 10 * L
+        phys = 10 * info.L
         k = level / phys
+        check, status = "", "자릿수 상한으로 환산"
     phys_d = phys * doe_level / level
     rp, rd = smu_row(kind, phys), smu_row(kind, phys_d)
-    out = {"level_kind": kind, "range_por": range_name(rp, kind), "range_doe": range_name(rd, kind),
+    out = {"level_kind": kind, "spec_status": status, "level_check": check,
+           "range_por": range_name(rp, kind), "range_doe": range_name(rd, kind),
            "range_changed": bool(rp and rd and rp[0] != rd[0])}
     if rp:
         out["spec_resolution"] = rp[2] * k
@@ -195,17 +215,17 @@ def tost(center: float, lo: float, hi: float, delta: float, fmt=lambda v: f"{v:+
 
 
 def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
-          blank_lim: tuple[float, float] | None = None, lvl=None) -> tuple[dict, np.ndarray]:
+          blank_lim: tuple[float, float] | None = None, info: ItemInfo | None = None) -> tuple[dict, np.ndarray]:
     """blank_lim = blank 원측정값으로 구한 (LoD, LoQ). blank는 실제 측정값(A, V)이고 결과 값은 가공됐을 수 있어서
-    level.csv 의 SCALE(파일 값 = 실제 값 × SCALE)로 ITEM 단위로 바꾼 뒤 반복으로 구한 한계보다 크면 그쪽을 쓴다.
-    SCALE이 없으면 자릿수만으로는 최대 10배까지 틀릴 수 있어 blank를 쓰지 않는다. (결과, 튀는 die 표시)"""
+    변형이 아니고 CALCVAL(파일 값 = 원측정값 × CALCVAL)이 있는 ITEM만 ITEM 단위로 바꿔 쓴다.
+    변형 값은 blank와 같은 양이 아니고, CALCVAL이 없으면 단위를 맞출 수 없다. (결과, 튀는 die 표시)"""
     n, J = Y.shape
     R = Y.mean(axis=1)
     level = abs(float(np.median(R)))
     s_die, s_run = robust_noise(Y)
     s_die_anova, s_run_anova = run_anova(Y)
     vals = np.unique(np.concatenate([Y.ravel(), z]))
-    sp = spec_terms(lvl, level, abs(float(np.median(z))))
+    sp = spec_terms(info, level, abs(float(np.median(z))))
     cands = [(s_die, "POR 반복"),
              (float(np.diff(vals).min()) / np.sqrt(12) if len(vals) > 1 else 0.0, "데이터 분해능"),
              (sp.get("spec_resolution", 0.0) / np.sqrt(12), "장비 분해능")]
@@ -213,10 +233,14 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
     lod, loq = K_LOD * s_lim, K_LOQ * s_lim
     blank_info = {}
     if blank_lim:
-        if lvl is None or not lvl[2]:
-            blank_info = {"blank_status": "SCALE 없음: 미적용"}
+        if info is None:
+            blank_info = {"blank_status": "level.csv 없음: 미적용"}
+        elif info.derived:
+            blank_info = {"blank_status": "변형: 미적용"}
+        elif not info.calcval:
+            blank_info = {"blank_status": "CALCVAL 없음: 미적용"}
         else:
-            k = lvl[2]
+            k = info.calcval
             b_lod, b_loq = blank_lim[0] * k, blank_lim[1] * k
             blank_info = {"blank_status": "적용", "blank_LoD_item": b_lod, "blank_LoQ_item": b_loq}
             if b_loq > loq:
@@ -289,8 +313,9 @@ def main() -> None:
                     help="LoQ 미만도 동등을 증명해야 동등 (기본: 차이 증거가 없으면 '<LoQ 보고 일치'로 동등)")
     ap.add_argument("--estimator", choices=["hl", "mean"], default="hl",
                     help="정량 구간 신뢰구간: hl = Hodges–Lehmann/Wilcoxon (기본), mean = 평균/t")
-    ap.add_argument("--level", help="CSV ITEM,LEVEL[,SCALE]. LEVEL = 실제 측정값 자릿수 (예: 10fA = 10~100 fA, 100nA, 10uV, "
-                                    "1pF, 1MHz). SCALE = 파일 값 / 실제 값 (CALCVAL 배율). SCALE이 있어야 blank를 씀")
+    ap.add_argument("--level", help="CSV ITEM,LEVEL[,CALCVAL][,DERIVED]. LEVEL = 실제 측정값 자릿수 (예: 10fA = 10~100 fA, "
+                                    "100nA, 10uV). CALCVAL = 파일 값 / 원측정값. DERIVED = Y면 변형(조합·추출) 값이라 "
+                                    "장비 사양과 blank를 쓰지 않음. blank는 변형 아님 + CALCVAL 있는 ITEM에만")
     ap.add_argument("--accuracy", action="store_true",
                     help="--level 이 있는 A·V ITEM에서 정량 구간 허용폭 하한으로 장비 사양 정확도를 씀")
     ap.add_argument("--blank", nargs="*", default=[],
@@ -328,17 +353,24 @@ def main() -> None:
     if a.level:
         lv = read_csv_auto(Path(a.level), a.encoding)
         lv.columns = [c.strip().upper() for c in lv.columns]
+        lv = lv.rename(columns={"SCALE": "CALCVAL", "변형": "DERIVED"})
+        cv = pd.to_numeric(lv["CALCVAL"], errors="coerce") if "CALCVAL" in lv else pd.Series(np.nan, index=lv.index)
+        dv = (lv["DERIVED"].astype(str).str.strip().str.upper().isin({"Y", "YES", "1", "TRUE", "O", "변형"})
+              if "DERIVED" in lv else pd.Series(False, index=lv.index))
         bad = []
-        scales = pd.to_numeric(lv["SCALE"], errors="coerce") if "SCALE" in lv else pd.Series(np.nan, index=lv.index)
-        for it, txt, sc in zip(lv["ITEM"].astype(str).str.strip(), lv["LEVEL"], scales):
+        for it, txt, c, der in zip(lv["ITEM"].astype(str).str.strip(), lv["LEVEL"], cv, dv):
             parsed = parse_level(txt)
-            if parsed:
-                levels[it] = (*parsed, float(sc) if np.isfinite(sc) and sc != 0 else None)
+            if parsed or der:
+                L, kind = parsed or (np.nan, "")
+                levels[it] = ItemInfo(L, kind, float(c) if np.isfinite(c) and c != 0 else None, bool(der))
             else:
                 bad.append(f"{it}={txt}")
-        kinds = pd.Series([k for _, k, _ in levels.values()]).value_counts().to_dict()
-        print(f"  SCALE 있는 ITEM {sum(1 for *_, sc in levels.values() if sc):,}개")
+        info_all = list(levels.values())
+        kinds = pd.Series([i.kind for i in info_all if i.kind]).value_counts().to_dict()
         print(f"LEVEL 표: ITEM {len(levels):,}개 {kinds}" + (f", 읽지 못한 행 {len(bad)}개: {bad[:5]}" if bad else ""))
+        print(f"  변형 {sum(i.derived for i in info_all):,}개, 변형 아님 + CALCVAL 있음 "
+              f"{sum(not i.derived and bool(i.calcval) for i in info_all):,}개, 변형 아님 + CALCVAL 없음 "
+              f"{sum(not i.derived and not i.calcval for i in info_all):,}개")
         no_spec = {k: n for k, n in kinds.items() if k not in ("A", "V")}
         if no_spec:
             print(f"  {no_spec}: 장비 사양을 아직 넣지 않아 LEVEL만 기록")
@@ -382,8 +414,7 @@ def main() -> None:
               f"  (같은 프로그램인데 t-test가 '차이'라고 한 수)")
     if "verdict_no_blank" in res:
         hb = res[res["verdict_no_blank"].notna()]
-        print(f"\nblank 연결 ITEM {len(hb):,}개: SCALE로 단위 맞춰 적용 {int(hb['blank_status'].eq('적용').sum()):,}개, "
-              f"SCALE 없어 미적용 {int(hb['blank_status'].ne('적용').sum()):,}개, "
+        print(f"\nblank 연결 ITEM {len(hb):,}개: {hb['blank_status'].value_counts().to_dict()}, "
               f"blank가 한계를 정한 ITEM {int((hb['limit_source'] == 'blank').sum()):,}개")
         print("blank 없이 → blank 하한 적용 (행: 없이, 열: 적용)")
         print(pd.crosstab(hb["verdict_no_blank"], hb["verdict"], margins=True, margins_name="합계").to_string())
@@ -392,6 +423,9 @@ def main() -> None:
               f"허용폭을 정한 ITEM {int((q['delta_source'] == '장비 정확도').sum()):,}개")
         print("정확도 없이 → 적용 (행: 없이, 열: 적용)")
         print(pd.crosstab(q["verdict_no_accuracy"], q["verdict"], margins=True, margins_name="합계").to_string())
+    if "level_check" in res and res["level_check"].astype(str).str.startswith("불일치").any():
+        n = int(res["level_check"].astype(str).str.startswith("불일치").sum())
+        print(f"\n경고: CALCVAL로 환산한 실제 값이 LEVEL 자릿수와 다른 ITEM {n}개 (level_check 열). CALCVAL이나 LEVEL을 확인하세요")
     if "range_changed" in res:
         nb = res[res["verdict"] != "동등"]
         print(f"\nPOR과 DOE의 auto range가 다른 ITEM: 전체 {int(res['range_changed'].eq(True).sum())}개, "

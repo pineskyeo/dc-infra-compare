@@ -68,9 +68,8 @@ def main() -> None:
             }, dtype=object).to_string())
     if "verdict_no_blank" in d:
         hb = d[d["verdict_no_blank"].notna()]
-        n_app = int(hb["blank_status"].eq("적용").sum()) if "blank_status" in hb else len(hb)
-        sec(f"blank: 연결 {len(hb)}개 (SCALE로 단위 맞춰 적용 {n_app}개), blank가 한계를 정한 ITEM "
-            f"{int((hb['limit_source'] == 'blank').sum())}개",
+        st = hb["blank_status"].value_counts().to_dict() if "blank_status" in hb else {}
+        sec(f"blank: 연결 {len(hb)}개 {st}, blank가 한계를 정한 ITEM {int((hb['limit_source'] == 'blank').sum())}개",
             pd.crosstab(hb["verdict_no_blank"].rename("blank 없이"), hb["verdict"].rename("blank 적용"),
                         margins=True, margins_name="합계"))
         changed = hb[hb["verdict_no_blank"] != hb["verdict"]]
@@ -86,6 +85,13 @@ def main() -> None:
                     {True: "DOE가 POR 범위 밖", False: "POR 범위 안"})))
     if "limit_source" in d:
         sec("LoQ를 정한 쪽", d["limit_source"].value_counts())
+    if "spec_status" in d:
+        sec("장비 사양 환산 방식 (level.csv)", d["spec_status"].fillna("level.csv 없음").value_counts())
+    if "level_check" in d:
+        bad_lv = d[d["level_check"].astype(str).str.startswith("불일치")]
+        if len(bad_lv):
+            sec(f"CALCVAL로 환산한 실제 값이 LEVEL 자릿수와 다른 ITEM {len(bad_lv)}개 (CALCVAL·LEVEL 확인)",
+                bad_lv[["ID", "level_check"]].head(30).to_string(index=False))
     if "verdict_no_accuracy" in d and d.get("delta_source").eq("장비 정확도").any():
         qa = d[d["zone"] == "정량"]
         sec(f"장비 정확도 하한: 허용폭을 정한 ITEM {int(qa['delta_source'].eq('장비 정확도').sum())}개",
