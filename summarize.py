@@ -89,6 +89,8 @@ def main() -> None:
                     {True: "DOE가 POR 범위 밖", False: "POR 범위 안"})))
     if "limit_source" in d:
         sec("LoQ를 정한 쪽", d["limit_source"].value_counts())
+    if "판정 경로" in d and d["판정 경로"].astype(str).str.startswith("보조").any():
+        sec("판정 경로 x 판정 (보조 = 주 방식 미결 + 튀는 die → 중앙값·부호검정)", ct(d["판정 경로"], d["verdict"]))
     if "spec_status" in d:
         sec("장비 사양 환산 방식 (level.csv)", d["spec_status"].fillna("level.csv 없음").value_counts())
     if "level_check" in d:

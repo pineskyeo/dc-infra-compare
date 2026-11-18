@@ -356,6 +356,9 @@ def main() -> None:
     ap.add_argument("--drop-unstable-dies", action="store_true",
                     help="POR 회차끼리도 재현되지 않는 die(POR 잔차의 수정 Z > 3.5, NIST 1.3.5.17)를 ITEM마다 빼고 판정. "
                          "DOE 값은 보지 않음. 뺀 die는 dropped_dies.csv")
+    ap.add_argument("--two-track", action="store_true",
+                    help="주 방식(--estimator)이 미결이고 튀는 die가 있는 ITEM만 중앙값·부호검정으로 다시 판정 (보조 판정). "
+                         "'판정 경로' 열에 주/보조, 원래 판정은 verdict_primary")
     ap.add_argument("--estimator", choices=["hl", "median", "mean"], default="hl",
                     help="shift 신뢰구간: hl = Hodges–Lehmann/Wilcoxon (기본), median = 중앙값/부호검정 "
                          "(튀는 die가 많아도 버팀), mean = 평균/t")
@@ -440,6 +443,13 @@ def main() -> None:
                 lim = lim3[1:]
                 extra.update(blank_item=bitem, blank_LoD_raw=lim[0], blank_LoQ_raw=lim[1])
         res, mask = judge(Y, z, a, lim, levels.get(item))
+        res["판정 경로"] = f"주 ({EST_NAME[a.estimator]})"
+        if a.two_track and res["verdict"] == "미결" and res.get("n_outlier_die", 0) > 0 and a.estimator != "median":
+            # 튀는 die 때문에 주 방식 신뢰구간이 넓어 결론이 안 난 ITEM만 중앙값·부호검정으로 다시 본다 (보조 판정)
+            alt, _ = judge(Y, z, argparse.Namespace(**{**vars(a), "estimator": "median"}), lim, levels.get(item))
+            res.update({k: alt[k] for k in ("verdict", "reason", "center", "ci_low", "ci_high", "h", "method")},
+                       verdict_primary="미결", reason_primary=res["reason"])
+            res["판정 경로"] = "보조 (중앙값: 주 방식 미결 + 튀는 die)"
         if lim:
             base, _ = judge(Y, z, a, None, levels.get(item))
             extra.update(verdict_no_blank=base["verdict"], zone_no_blank=base["zone"])
@@ -488,6 +498,9 @@ def main() -> None:
         nb = res[res["verdict"] != "동등"]
         print(f"\nPOR과 DOE의 auto range가 다른 ITEM: 전체 {int(res['range_changed'].eq(True).sum())}개, "
               f"동등이 아닌 ITEM 중 {int(nb['range_changed'].eq(True).sum())}개")
+    if a.two_track and "verdict_primary" in res:
+        sub = res[res["verdict_primary"].notna()]
+        print(f"\n보조 판정 (주 방식 미결 + 튀는 die → 중앙값·부호검정): {len(sub)}개 → {sub['verdict'].value_counts().to_dict()}")
     rs = res[res["verdict"] != "동등"]["reason"].str.replace(r"shift .*가", "shift가", regex=True).value_counts()
     if len(rs):
         print("\n동등이 아닌 사유")
