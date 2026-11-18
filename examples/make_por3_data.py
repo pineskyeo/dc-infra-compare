@@ -19,6 +19,7 @@ ITEMS = {
     "ION_OUTLIER": ("A", rng.normal(500e-6, 5e-6, N), 0.5e-6, 0.1e-6, 0.0, None),
     "IDSAT_SPEC": ("A", rng.normal(600e-6, 5e-6, N), 0.5e-6, 0.2e-6, 8e-6, (500e-6, 510e-6)),
     "IOFF_RUNWOBBLE": ("A", np.zeros(N), 1e-12, 0.0, 0.0, None),
+    "VOS_OFFSET": ("V", rng.normal(30e-6, 3e-6, N), 2.4e-6, 0.5e-6, 3.7e-6, None),
 }
 EXPECT = {
     "VT_SAME": "동등",
@@ -28,6 +29,7 @@ EXPECT = {
     "IOFF_LEAK": "차이 (LoQ 미만, DOE만 누설 die)",
     "ION_OUTLIER": "동등 (튀는 die 4개. Hodges–Lehmann이라 끌려가지 않음)",
     "IDSAT_SPEC": "동등 (가짜 스펙 10 µA는 무시. shift 8 µA < |POR| 5% = 30 µA)",
+    "VOS_OFFSET": "기본: 차이 (+3.7 µV > 5%). --accuracy: 동등 (2 V range 정확도 ±0.8 mV 안)",
     "IOFF_RUNWOBBLE": "동등 또는 미결, 차이 아님 (POR 회차마다 바닥 offset이 크게 다름. DOE offset은 그 범위 안)",
 }
 run_offset = {k: rng.normal(0, v[3], 4) for k, v in ITEMS.items()}
@@ -45,6 +47,8 @@ def measure(run: int) -> dict:
                 v[rng.permutation(N)[:20]] += 30e-12
             if k == "ION_OUTLIER":
                 v[[3, 17, 40, 52]] += 80e-6
+        if k == "VOS_OFFSET":
+            v = np.round(v / 2e-6) * 2e-6      # 2 V range 분해능 2 µV
         vals[k] = (u, v, spec)
     return vals
 

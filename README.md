@@ -109,6 +109,14 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 | 옵션 | 내용 |
 |---|---|
 | `--blank`, `--blank-map` | blank 데이터와 연결표. 형식은 아래 "blank 넣기"와 같음 |
+| `--accuracy` | 정량 구간 허용폭의 하한으로 장비 사양 정확도를 씀 (아래) |
+
+**장비 사양 (Keysight P9001A Per-pin SMU, auto range).** 단위가 측정 단위(A, pA, nA, uA, mA, V, mV, uV)인 ITEM은 값의 크기로 auto range를 정합니다. measure_i/measure_v에 range 0을 주면 값이 들어가는 가장 작은 range를 쓰기 때문입니다(Programming Reference Table 2-19/2-22). 정규화·유도 단위(ohm, nA/um, pA/cell, F 등)는 range를 알 수 없어 적용하지 않습니다.
+
+- `range_por`, `range_doe`, `range_changed`: POR 값과 DOE 값이 들어가는 range. 다르면 range 차이가 원인 후보입니다.
+- 분해능 하한: σ ≥ range의 측정 분해능 / √12 (GUM F.2.2.1). `limit_source` = 장비 분해능.
+- `--accuracy`: 두 측정이 각자 사양 정확도 ±(a × |값| + b × range + c) 안에 있을 때 생길 수 있는 차이 1.645 × √((U_POR² + U_DOE²) / 3) (균일분포, GUM 4.3.7)를 허용폭 하한으로 씁니다. 사양의 Vo, Rres × Io 항은 알 수 없어 0으로 둡니다. 정확도 없이 낸 판정은 `verdict_no_accuracy`, 허용폭을 정한 쪽은 `delta_source`. 10 V 넘는 값(Shared SMU)은 정확도를 넣지 않았습니다.
+- 사양 값은 `por_doe_compare.py`의 `I_RANGES`, `V_RANGES` 표에 있습니다 (P9001 Data sheet p.6-7). 원본과 대조해서 쓰세요.
 
 **blank (선택):** blank 한계(LoD = \|μ\| + 3.29 SD, LoQ = \|μ\| + 10 SD)가 POR 반복으로 구한 한계보다 크면 blank 쪽을 씁니다. 계단값처럼 반복해도 값이 같아서 `sigma_die`가 0에 가깝게 나오는 바닥 항목을 막는 하한입니다. blank 없이 낸 판정은 `verdict_no_blank`, `zone_no_blank` 열에 남습니다.
 
