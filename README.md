@@ -67,48 +67,57 @@ Ref에 같은 die, 같은 ITEM을 두 번 이상 잰 데이터가 있으면 ITEM
 - 뜻: 같은 인프라로 다시 재도 생기는 크기의 차이는 인프라 차이로 보지 않습니다.
 - 끄려면 `--no-repeat`. 화면에 반영 전(blank만)과 반영 후 판정의 교차표가 나옵니다.
 
-## POR 여러 회 + DOE: t-test와 TOST 같이 보기 (`por_doe_compare.py`)
+## POR 여러 회 + DOE: 동등 판정 (`por_doe_compare.py`)
 
-POR을 같은 웨이퍼, 같은 die로 여러 번(권장 3회 이상, 매번 재터치다운) 재고 DOE를 1회 잰 데이터로 ITEM마다 t-test와 TOST를 같이 냅니다.
+POR을 같은 웨이퍼, 같은 die로 여러 번(권장 3회 이상, 매번 재터치다운) 재고 DOE를 1회 잰 데이터로 ITEM마다 동등 / 차이 / 미결을 판정합니다. t-test도 참고로 같이 냅니다.
 
 ```bash
 python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out 결과폴더
 ```
 
-`--por`는 회차마다 따로 씁니다. 하나의 `--por` 뒤에 파일이나 폴더를 여러 개 적으면 그 회차의 파일로 묶입니다.
+`--por`는 회차마다 따로 씁니다. 하나의 `--por` 뒤에 파일이나 폴더를 여러 개 적으면 그 회차의 파일로 묶입니다. SPECLOW/SPECHIGH는 읽지 않습니다.
+
+**기준은 실행 전에 정하는 값 세 개뿐입니다.** 데이터를 보고 바뀌는 문턱값은 없습니다.
+
+| 값 | 기본 | 뜻 |
+|---|---|---|
+| `--r` | 0.05 | 정량 구간 허용폭 = r × \|POR 중앙값\| |
+| `--det-margin` | 0.05 | LoQ 미만 구간 허용폭 = LoQ 넘는 die 비율 차이 5%p |
+| `--estimator` | hl | 신뢰구간 방식. `hl` = Hodges–Lehmann + Wilcoxon 부호순위, `mean` = 평균 + t (NIST 7.3.1.1) |
 
 **흔들림** (die × 회차 이원분산분석, NIST e-Handbook 2.4.4)
 
 | 값 | 뜻 |
 |---|---|
 | `sigma_die` | 같은 회차 안에서 die마다의 1회 측정 흔들림 |
-| `sigma_run` | 회차마다 전체 평균이 같이 움직이는 크기 (컨택, 온도 등). 자유도 = 회차 수 − 1 |
+| `sigma_run` | 회차마다 전체가 같이 움직이는 크기 (컨택, 온도 등). 자유도 = 회차 수 − 1 |
 
-**판정**
+**구간.** σ = max(`sigma_die`, 분해능 / √12)로 LoD = 3.29σ, LoQ = 10σ를 정합니다(Currie, IUPAC). 분해능은 측정값 사이의 가장 작은 간격입니다. 계단값 항목은 반복해도 같은 값이 나와 `sigma_die`가 0이 되므로, 분해능의 표준불확도(GUM F.2.2.1, 간격 / √12)를 하한으로 씁니다. `limit_source` 열에 한계를 정한 쪽(POR 반복 / 분해능 / blank)이 나옵니다.
 
-| 구간 (\|POR 중앙값\|) | 방법 |
-|---|---|
-| LoQ (= 10 × `sigma_die`) 미만 | 숫자 비교 안 함. die별 \|값\| ≥ LoQ 여부를 DOE와 POR 1회차로 McNemar 비교 |
-| LoQ 이상 | t-test와 TOST |
+**판정.** 두 구간 모두 같은 TOST 규칙이고 비교하는 양만 다릅니다.
 
-- d = DOE − POR 회차 평균 (die별)
-- t-test (NIST 7.3.1.1): t = mean(d) / (sd(d)/√n). 차이가 있는지만 봅니다. "같다"의 근거가 되지 않습니다.
-- TOST: 90% 신뢰구간이 ±Δ 안이면 동등, 통째로 밖이면 차이, 걸치면 미결.
-  - Δ = 정책 허용폭 + 1.645 × √(1 + 1/J) × `sigma_run`. J는 POR 회차 수입니다.
-  - 정책 허용폭은 스펙(SPECLOW, SPECHIGH)이 있으면 스펙 폭 × 0.10, 없으면 0.05 × |POR 중앙값|입니다.
-  - 뜻: 같은 프로그램으로 다시 재도 평균이 이만큼은 움직이니, 그 안의 차이는 프로그램 차이로 보지 않습니다.
-- 튀는 die가 있으면(sd / robust σ > 1.3) 평균과 표준편차 대신 중앙값과 robust σ로 신뢰구간을 구합니다 (NIST 1.3.5.6: 꼬리가 긴 데이터는 MAD).
-- `por_ttest_sig`: POR 회차끼리 t-test를 했을 때 유의차가 나온 쌍의 수. 같은 프로그램인데도 t-test가 차이라고 하는 경우를 보여 줍니다.
+| 구간 (\|POR 중앙값\|) | 비교하는 양 (die별) | 허용폭 Δ |
+|---|---|---|
+| 정량 (≥ LoQ = 10σ) | d = DOE − POR 회차 평균 | r × \|POR\| + 1.645 × √(1 + 1/J) × `sigma_run` |
+| LoQ 미만 | "\|값\| ≥ LoQ" 여부(0/1)의 DOE − POR 회차 평균 | det_margin + 1.645 × √(1 + 1/J) × 여부의 `sigma_run` |
+
+- 1.645 × √(1 + 1/J) × `sigma_run`은 같은 프로그램으로 다시 재도 생기는 회차 간 차이입니다(DOE 1회 vs POR J회 평균). 그 안의 차이는 프로그램 차이로 보지 않습니다.
+- 90% 신뢰구간이 ±Δ 안이면 동등, 통째로 밖이면 차이, 걸치면 미결(신뢰구간 반폭 ≥ Δ면 해상도 부족, 아니면 경계).
+- Hodges–Lehmann은 die별 차이의 모든 두 개 평균(Walsh 평균)의 중앙값입니다. 분포 가정이 없고 튀는 die에 끌려가지 않아서, 평균과 robust 방식을 데이터로 골라 쓰는 문턱값이 필요 없습니다.
+- t-test(`ttest`, `ttest_p`)는 참고용이며 판정에 쓰지 않습니다. `por_ttest_sig`는 POR 회차끼리 t-test를 했을 때 유의차가 나온 쌍의 수입니다.
 
 | 옵션 | 내용 |
 |---|---|
-| `--r` | 스펙 없을 때 상대 허용폭. 기본 0.05 |
-| `--spec-frac` | 스펙 있을 때 스펙 폭 대비 허용폭. 기본 0.10 |
-| `--no-spec` | 스펙이 있어도 `--r` 사용 |
-| `--robust-ratio` | 중앙값·robust σ로 바꾸는 기준. 기본 1.3 |
 | `--blank`, `--blank-map` | blank 데이터와 연결표. 형식은 아래 "blank 넣기"와 같음 |
 
-**blank (선택):** blank 한계(LoD = \|μ\| + 3.29 SD, LoQ = \|μ\| + 10 SD)가 POR 반복으로 구한 한계보다 크면 blank 쪽을 씁니다. 계단값처럼 반복해도 값이 같아서 `sigma_die`가 0에 가깝게 나오는 바닥 항목을 막는 하한입니다. blank 없이 낸 판정은 `verdict_no_blank`, `zone_no_blank` 열에 남고, 화면과 `summary.txt`에 blank 전후 교차표와 판정이 바뀐 ITEM이 나옵니다. `limit_source` 열은 한계를 정한 쪽(POR 반복 / blank)입니다.
+**blank (선택):** blank 한계(LoD = \|μ\| + 3.29 SD, LoQ = \|μ\| + 10 SD)가 POR 반복으로 구한 한계보다 크면 blank 쪽을 씁니다. 계단값처럼 반복해도 값이 같아서 `sigma_die`가 0에 가깝게 나오는 바닥 항목을 막는 하한입니다. blank 없이 낸 판정은 `verdict_no_blank`, `zone_no_blank` 열에 남습니다.
+
+**결과 파일**
+
+| 파일 | 내용 |
+|---|---|
+| `items.csv` | ITEM별 판정, 신뢰구간, 허용폭 구성(`policy_margin`, `run_margin`), 회차별 평균(`POR1_mean` … `DOE_mean`), LoQ 미만은 회차별 LoQ 넘는 die 비율(`POR1_det` … `DOE_det`) |
+| `outlier_dies.csv` | ITEM마다 \|d − 중앙값\| > 5 robust σ인 die (확인용. 판정에는 쓰지 않음) |
 
 예제: `python examples/make_por3_data.py p3` 후 `python por_doe_compare.py --por p3/por_run1 --por p3/por_run2 --por p3/por_run3 --doe p3/doe --blank p3/blank --blank-map p3/blank_map.csv --out p3/out`
 
@@ -118,7 +127,7 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 python summarize.py 결과폴더/items.csv
 ```
 
-- `summary.txt`: 판정 표, t-test x TOST, POR끼리 t-test, 흔들림 비율, 허용폭 구성, 이상 신호, 항목군별·값 자릿수별 판정, 차이·미결 목록. ITEM 이름 대신 `F03_I0123` 같은 익명 번호가 나옵니다.
+- `summary.txt`: 판정 표, t-test x TOST, POR끼리 t-test, 흔들림 비율, 허용폭 구성, 이상 신호, 항목군별·값 자릿수별 판정, 차이·미결 ITEM의 회차별 평균(DOE가 POR 회차들의 퍼짐 밖인지), 여러 ITEM에서 반복해서 튀는 die, 차이·미결 목록. ITEM 이름 대신 `F03_I0123` 같은 익명 번호가 나옵니다.
 - `item_map.csv`: 익명 번호와 실제 ITEM의 대응표. 공유하지 말고 로컬에서 찾아볼 때만 씁니다.
 - 항목군 이름(VT, ION 등)도 기본으로 `F01`처럼 바꿉니다. 그대로 두려면 `--keep-family`.
 

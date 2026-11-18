@@ -17,7 +17,8 @@ ITEMS = {
     "IOFF_FLOOR": ("A", np.zeros(N), 1e-12, 0.1e-12, 0.0, None),
     "IOFF_LEAK": ("A", np.zeros(N), 1e-12, 0.1e-12, 0.0, None),
     "ION_OUTLIER": ("A", rng.normal(500e-6, 5e-6, N), 0.5e-6, 0.1e-6, 0.0, None),
-    "IDSAT_SPEC": ("A", rng.normal(600e-6, 5e-6, N), 0.5e-6, 0.2e-6, 8e-6, (500e-6, 700e-6)),
+    "IDSAT_SPEC": ("A", rng.normal(600e-6, 5e-6, N), 0.5e-6, 0.2e-6, 8e-6, (500e-6, 510e-6)),
+    "IOFF_RUNWOBBLE": ("A", np.zeros(N), 1e-12, 0.0, 0.0, None),
 }
 EXPECT = {
     "VT_SAME": "동등",
@@ -25,11 +26,13 @@ EXPECT = {
     "RON_CONTACT": "t-test 유의차, TOST 동등 (회차 평균 흔들림 안)",
     "IOFF_FLOOR": "동등 (LoQ 미만)",
     "IOFF_LEAK": "차이 (LoQ 미만, DOE만 누설 die)",
-    "ION_OUTLIER": "동등 (튀는 die → 중앙값·robust σ)",
-    "IDSAT_SPEC": "동등 (스펙 폭 10% = 20 µA 안. |POR| 5%면 30 µA)",
+    "ION_OUTLIER": "동등 (튀는 die 4개. Hodges–Lehmann이라 끌려가지 않음)",
+    "IDSAT_SPEC": "동등 (가짜 스펙 10 µA는 무시. shift 8 µA < |POR| 5% = 30 µA)",
+    "IOFF_RUNWOBBLE": "동등 또는 미결, 차이 아님 (POR 회차마다 바닥 offset이 크게 다름. DOE offset은 그 범위 안)",
 }
 run_offset = {k: rng.normal(0, v[3], 4) for k, v in ITEMS.items()}
 run_offset["RON_CONTACT"] = np.array([0.0, 1.8, -1.6, 0.5])
+run_offset["IOFF_RUNWOBBLE"] = np.array([0.0, 15e-12, -12e-12, 12e-12])
 
 
 def measure(run: int) -> dict:
