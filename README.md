@@ -82,7 +82,7 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 | 값 | 기본 | 뜻 |
 |---|---|---|
 | `--r` | 0.05 | 정량 구간 허용폭 = r × \|POR 중앙값\| |
-| `--estimator` | hl | 신뢰구간 방식. `hl` = Hodges–Lehmann + Wilcoxon 부호순위, `mean` = 평균 + t (NIST 7.3.1.1) |
+| `--estimator` | hl | 신뢰구간 방식. `hl` = Hodges–Lehmann + Wilcoxon 부호순위, `median` = 중앙값 + 부호검정 (튀는 die가 많을 때), `mean` = 평균 + t (NIST 7.3.1.1) |
 
 **흔들림** (POR 회차 반복으로 die·회차 몫을 나눔, NIST e-Handbook 2.4.4. 튀는 die에 끌려가지 않도록 robust 통계 사용)
 
@@ -109,6 +109,7 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 - 90% 신뢰구간이 ±Δ 안이면 동등, 통째로 밖이면 차이, 걸치면 미결(신뢰구간 반폭 ≥ Δ면 해상도 부족, 아니면 경계).
 - **LoQ 미만은 "<LoQ 보고 일치".** LoQ 미만 값은 숫자가 아니라 "<LoQ"로 보고하므로(IUPAC), 두 조건이 모두 맞을 때만 차이이고 그 밖은 동등입니다. ① shift의 신뢰구간이 통째로 ±Δ(5% + POR 회차 흔들림) 밖. ② DOE 중심(POR 중앙값 + shift, `doe_center`)이 LoQ 이상이라 DOE 쪽 보고가 숫자로 바뀜. die 61개의 중심은 die 하나보다 훨씬 정밀해서 LoQ 미만에서도 중심 이동은 비교할 수 있습니다. 일부 die만 바뀐 경우(예: 몇 개 die만 누설)는 중심이 거의 안 움직여 이 규칙으로는 차이가 되지 않고, `outlier_dies.csv`와 `n_outlier_die`에 나옵니다. TOST 그대로의 판정은 `verdict_strict`, 정량과 같은 TOST로 판정하려면 `--strict-low-tost`.
 - Hodges–Lehmann은 die별 차이의 모든 두 개 평균(Walsh 평균)의 중앙값입니다. 분포 가정이 없고 튀는 die에 끌려가지 않아서, 평균과 robust 방식을 데이터로 골라 쓰는 문턱값이 필요 없습니다.
+- `--estimator median`: die별 차이의 중앙값과 부호검정 신뢰구간(순서통계량). 튀는 die의 **개수**만 영향을 주고 **크기**는 영향이 없습니다. 한쪽으로만 크게 튀는 die가 61개 중 16개(26%)쯤 되면 Hodges–Lehmann 신뢰구간은 수십 %로 벌어지지만, 중앙값은 25개(41%) 근처까지 버팁니다. 튀는 die가 없을 때는 신뢰구간이 Hodges–Lehmann보다 약 1.4배 넓습니다. 튀는 die에서의 차이는 판정에 들어가지 않으므로 `n_outlier_die`, `outlier_dies.csv`로 따로 보고합니다. 방식은 데이터를 보고 고르지 말고 실행 전에 하나로 정합니다.
 - t-test(`ttest`, `ttest_p`)는 참고용이며 판정에 쓰지 않습니다. `por_ttest_sig`는 POR 회차끼리 t-test를 했을 때 유의차가 나온 쌍의 수입니다.
 
 | 옵션 | 내용 |

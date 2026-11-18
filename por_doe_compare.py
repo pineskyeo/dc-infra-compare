@@ -200,6 +200,27 @@ def ci_mean(d: np.ndarray) -> tuple[float, float, float]:
     return c, c - h, c + h
 
 
+def ci_median(d: np.ndarray) -> tuple[float, float, float]:
+    """중앙값과 부호검정 90% 신뢰구간 (순서통계량, 분포 가정 없음). 튀는 die의 개수만 영향을 주고 크기는 영향이 없다.
+    die의 절반 가까이가 튀어도 버틴다 (Hollander & Wolfe, 부호검정 신뢰구간)."""
+    n = len(d)
+    x = np.sort(d)
+    k = int(stats.binom.ppf(0.05, n, 0.5))          # P(B ≤ k) ≥ 0.05 인 가장 작은 k
+    if stats.binom.cdf(k, n, 0.5) > 0.05:
+        k -= 1
+    k = max(k, 0)
+    return float(np.median(d)), float(x[k]), float(x[n - 1 - k])
+
+
+def ci_center(d: np.ndarray, estimator: str) -> tuple[float, float, float]:
+    if d.std() == 0:
+        return (float(d.mean()),) * 3
+    return {"hl": ci_hl, "mean": ci_mean, "median": ci_median}[estimator](d)
+
+
+EST_NAME = {"hl": "Hodges–Lehmann", "mean": "평균", "median": "중앙값"}
+
+
 def ci_hl(d: np.ndarray) -> tuple[float, float, float]:
     """Hodges–Lehmann 추정과 Wilcoxon 부호순위 90% 신뢰구간 (정규 근사 임계값, Hollander & Wolfe)."""
     n = len(d)
@@ -275,7 +296,7 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
         # LoQ 미만 값은 숫자가 아니라 "<LoQ"로 보고한다 (IUPAC). die 61개의 중심은 die 하나보다 훨씬 정밀하므로 중심으로 본다.
         # 차이 = DOE 중심 이동이 POR 회차 흔들림 예측구간 밖이고, 그 결과 DOE 중심이 LoQ 이상이라 보고가 달라질 때.
         zone = "검출한계 이하" if level < lod else "검출~정량"
-        center, lo, hi = ci_hl(d) if d.std() > 0 else (float(d.mean()),) * 3
+        center, lo, hi = ci_center(d, a.estimator)
         policy, run_term = a.r * level, run_factor(J) * s_run
         delta = policy + run_term
         por_c = float(np.median(R))
@@ -301,12 +322,12 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
     policy = a.r * level
     run_term = run_factor(J) * s_run
     delta, delta_src = policy + run_term, "정책 + 회차"
-    center, lo, hi = (ci_hl(d) if a.estimator == "hl" else ci_mean(d)) if d.std() > 0 else (float(d.mean()),) * 3
+    center, lo, hi = ci_center(d, a.estimator)
     v0, _ = tost(center, lo, hi, delta)
     if a.accuracy and sp.get("accuracy_margin", 0.0) > delta:
         delta, delta_src = sp["accuracy_margin"], "장비 정확도"
     v, why = tost(center, lo, hi, delta)
-    out.update(zone="정량", method=f"TOST {'Hodges–Lehmann' if a.estimator == 'hl' else '평균'}",
+    out.update(zone="정량", method=f"TOST {EST_NAME[a.estimator]}",
                policy_margin=policy, run_margin=run_term, delta=delta, delta_source=delta_src,
                verdict_no_accuracy=v0, center=center, ci_low=lo, ci_high=hi,
                h=(hi - lo) / 2, rel_shift=center / level if level else np.nan)
@@ -321,8 +342,9 @@ def main() -> None:
     ap.add_argument("--r", type=float, default=0.05, help="정량 구간 허용폭 = r × |POR| (기본 0.05)")
     ap.add_argument("--strict-low-tost", action="store_true",
                     help="LoQ 미만도 정량과 같은 TOST로 판정 (기본: '<LoQ 보고 일치')")
-    ap.add_argument("--estimator", choices=["hl", "mean"], default="hl",
-                    help="정량 구간 신뢰구간: hl = Hodges–Lehmann/Wilcoxon (기본), mean = 평균/t")
+    ap.add_argument("--estimator", choices=["hl", "median", "mean"], default="hl",
+                    help="shift 신뢰구간: hl = Hodges–Lehmann/Wilcoxon (기본), median = 중앙값/부호검정 "
+                         "(튀는 die가 많아도 버팀), mean = 평균/t")
     ap.add_argument("--level", help="CSV ITEM,LEVEL[,CALCVAL][,DERIVED]. LEVEL = 실제 측정값 자릿수 (예: 10fA = 10~100 fA, "
                                     "100nA, 10uV). CALCVAL = 파일 값 / 원측정값. DERIVED = Y면 변형(조합·추출) 값이라 "
                                     "장비 사양과 blank를 쓰지 않음. blank는 변형 아님 + CALCVAL 있는 ITEM에만")
