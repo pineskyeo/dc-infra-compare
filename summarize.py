@@ -84,6 +84,12 @@ def main() -> None:
             sec("blank로 판정이 바뀐 ITEM", changed[["ID", "UNIT", "zone_no_blank", "zone", "verdict_no_blank", "verdict",
                                               "sigma_die", "LoQ", "blank_LoQ"]].to_string(
                 index=False, float_format=lambda v: f"{v:.4g}"))
+    if "verdict_tost_low" in d:
+        lr = d[d["reason"].astype(str).str.startswith("<LoQ 보고 일치")]
+        if len(lr):
+            sec(f"<LoQ 보고 일치로 동등이 된 ITEM {len(lr)}개 중 DOE 비율이 POR 회차 범위 밖인 ITEM "
+                f"{int(lr['doe_det_outside_por'].sum())}개", pd.crosstab(lr["FAMILY"], lr["doe_det_outside_por"].map(
+                    {True: "DOE가 POR 범위 밖", False: "POR 범위 안"})))
     if "verdict_no_accuracy" in d and (d.get("delta_source") == "장비 정확도").any():
         qa = d[d["zone"] == "정량"]
         sec(f"장비 정확도 하한: 허용폭을 정한 ITEM {int((qa['delta_source'] == '장비 정확도').sum())}개",

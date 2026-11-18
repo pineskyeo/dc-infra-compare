@@ -16,6 +16,8 @@
   LoQ 미만             : die별 "|값| ≥ LoQ" 여부(0/1). d = DOE 여부 − POR 회차 평균 여부
                          허용폭 Δ = det_margin + 1.645 × √(1 + 1/J) × sigma_run(여부)
   1.645 × √(1 + 1/J) × sigma_run : 같은 프로그램으로 다시 재도 생기는 회차 간 차이 (DOE 1회 vs POR J회 평균)
+  LoQ 미만은 값을 "<LoQ"로 보고하므로(IUPAC), 신뢰구간이 통째로 ±Δ 밖일 때만 차이, 그 밖은 동등 ("<LoQ 보고 일치").
+  TOST 그대로의 판정은 verdict_tost_low 열. --strict-low-tost 면 TOST 그대로 판정.
 
 90% 신뢰구간 (shift)
   hl   (기본): Hodges–Lehmann 추정 + Wilcoxon 부호순위 신뢰구간. 분포 가정 없음, 튀는 die에 강함
@@ -195,9 +197,15 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace, unit=None,
         run_term = Z90 * np.sqrt(1 + 1 / J) * s_run_det
         delta = a.det_margin + run_term
         v, why = tost(center, lo, hi, delta, fmt=lambda x: f"{x:+.0%}p")
+        por_det = I.mean(axis=0)
         out.update(zone=zone, method="TOST LoQ 넘는 die 비율", policy_margin=a.det_margin, run_margin=run_term,
                    delta=delta, center=center, ci_low=lo, ci_high=hi, h=(hi - lo) / 2, sigma_run_det=s_run_det,
-                   **{f"POR{k + 1}_det": float(I[:, k].mean()) for k in range(J)}, DOE_det=float(D.mean()))
+                   **{f"POR{k + 1}_det": float(por_det[k]) for k in range(J)}, DOE_det=float(D.mean()),
+                   doe_det_outside_por=bool(D.mean() > por_det.max() or D.mean() < por_det.min()),
+                   verdict_tost_low=v)
+        if v == "미결" and not a.strict_low_tost:
+            # LoQ 미만 값은 숫자가 아니라 "<LoQ"로 보고한다 (IUPAC). 차이의 증거(신뢰구간이 통째로 ±Δ 밖)가 없으면 보고가 같다.
+            return {**out, "verdict": "동등", "reason": f"<LoQ 보고 일치 (TOST: {why})"}, outlier
         return {**out, "verdict": v, "reason": f"LoQ 넘는 die 비율: {why}"}, outlier
 
     policy = a.r * level
@@ -227,6 +235,8 @@ def main() -> None:
     ap.add_argument("--r", type=float, default=0.05, help="정량 구간 허용폭 = r × |POR| (기본 0.05)")
     ap.add_argument("--det-margin", type=float, default=0.05,
                     help="LoQ 미만 구간 허용폭: LoQ 넘는 die 비율 차이 (기본 0.05 = 5%%p)")
+    ap.add_argument("--strict-low-tost", action="store_true",
+                    help="LoQ 미만도 동등을 증명해야 동등 (기본: 차이 증거가 없으면 '<LoQ 보고 일치'로 동등)")
     ap.add_argument("--estimator", choices=["hl", "mean"], default="hl",
                     help="정량 구간 신뢰구간: hl = Hodges–Lehmann/Wilcoxon (기본), mean = 평균/t")
     ap.add_argument("--accuracy", action="store_true",
