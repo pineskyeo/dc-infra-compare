@@ -127,7 +127,9 @@ def spec_terms(info: ItemInfo | None, level: float, doe_level: float) -> dict:
         return {"level_kind": kind, "spec_status": "변형: 장비 사양 미적용"}
     if info.calcval:
         k, phys = info.calcval, level / info.calcval
-        check = "일치" if info.L <= phys < 10 * info.L else f"불일치 (CALCVAL로 본 실제 값 {phys:.3g})"
+        # 자릿수 경계 근처(9.6 nA를 10nA로 적은 경우)는 auto range가 겹치는 1.15배까지 일치로 본다
+        check = ("일치" if info.L / 1.15 <= phys < 11.5 * info.L
+                 else f"불일치 (CALCVAL로 본 실제 값 {phys:.3g}, LEVEL {info.L:.3g}~{10 * info.L:.3g})")
         status = "CALCVAL로 환산"
     else:
         phys = 10 * info.L
