@@ -109,6 +109,16 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 
 예제: `python examples/make_por3_data.py p3` 후 `python por_doe_compare.py --por p3/por_run1 --por p3/por_run2 --por p3/por_run3 --doe p3/doe --out p3/out`
 
+### 결과 요약 (공유용, ITEM 이름 익명화)
+
+```bash
+python summarize.py 결과폴더/items.csv
+```
+
+- `summary.txt`: 판정 표, t-test x TOST, POR끼리 t-test, 흔들림 비율, 허용폭 구성, 이상 신호, 항목군별·값 자릿수별 판정, 차이·미결 목록. ITEM 이름 대신 `F03_I0123` 같은 익명 번호가 나옵니다.
+- `item_map.csv`: 익명 번호와 실제 ITEM의 대응표. 공유하지 말고 로컬에서 찾아볼 때만 씁니다.
+- 항목군 이름(VT, ION 등)도 기본으로 `F01`처럼 바꿉니다. 그대로 두려면 `--keep-family`.
+
 ## 패턴 리포트
 
 동등이 아닌 ITEM이 어디에 몰리는지 봅니다. `흔들림_중앙값`은 die별 차이의 흔들림 ÷ |Ref 값|입니다.

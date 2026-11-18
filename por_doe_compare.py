@@ -143,11 +143,13 @@ def main() -> None:
         sys.exit("POR은 2회 이상 필요합니다 (--por 를 회차마다 따로)")
     key = a.key.split(",")
 
-    runs, spec = [], {}
+    runs, spec, units = [], {}, {}
     for i, paths in enumerate(a.por):
         df = load_side(paths, f"POR{i + 1}", a.encoding)
-        if i == 0 and not a.no_spec:
-            spec = to_spec(df)
+        if i == 0:
+            units = df.groupby("ITEM")["UNIT"].first().to_dict()
+            if not a.no_spec:
+                spec = to_spec(df)
         runs.append(df.groupby(key)["DATA"].median().rename(f"POR{i + 1}"))
     doe = load_side(a.doe, "DOE", a.encoding).groupby(key)["DATA"].median().rename("DOE")
     wide = pd.concat(runs + [doe], axis=1, join="inner").reset_index()
@@ -157,7 +159,7 @@ def main() -> None:
     rows = []
     for item, g in wide.groupby("ITEM", sort=False):
         res = judge(g[por_cols].to_numpy(float), g["DOE"].to_numpy(float), spec.get(item), a)
-        rows.append({"ITEM": item, **res})
+        rows.append({"ITEM": item, "UNIT": units.get(item), **res})
     res = pd.DataFrame(rows)
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
 
