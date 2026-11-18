@@ -70,6 +70,16 @@ def main() -> None:
                           "신뢰구간 반폭 h / Δ": (q["h"] / q["delta"]).median(),
                           "스펙 기준 ITEM 수": int(q["policy_source"].astype(str).str.startswith("스펙").sum())},
                          index=["값"]).T)
+    if "verdict_no_blank" in d:
+        hb = d[d["verdict_no_blank"].notna()]
+        sec(f"blank: 연결 {len(hb)}개, blank가 한계를 정한 ITEM {int((hb['limit_source'] == 'blank').sum())}개",
+            pd.crosstab(hb["verdict_no_blank"].rename("blank 없이"), hb["verdict"].rename("blank 적용"),
+                        margins=True, margins_name="합계"))
+        changed = hb[hb["verdict_no_blank"] != hb["verdict"]]
+        if len(changed):
+            sec("blank로 판정이 바뀐 ITEM", changed[["ID", "UNIT", "zone_no_blank", "zone", "verdict_no_blank", "verdict",
+                                              "sigma_die", "LoQ", "blank_LoQ"]].to_string(
+                index=False, float_format=lambda v: f"{v:.4g}"))
     sec("이상 신호", pd.Series({
         "sigma_die = 0 (계단값 의심)": int((d["sigma_die"] == 0).sum()),
         "sigma_run = 0": int((d["sigma_run"] == 0).sum()),

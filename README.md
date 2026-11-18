@@ -106,8 +106,11 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 | `--spec-frac` | 스펙 있을 때 스펙 폭 대비 허용폭. 기본 0.10 |
 | `--no-spec` | 스펙이 있어도 `--r` 사용 |
 | `--robust-ratio` | 중앙값·robust σ로 바꾸는 기준. 기본 1.3 |
+| `--blank`, `--blank-map` | blank 데이터와 연결표. 형식은 아래 "blank 넣기"와 같음 |
 
-예제: `python examples/make_por3_data.py p3` 후 `python por_doe_compare.py --por p3/por_run1 --por p3/por_run2 --por p3/por_run3 --doe p3/doe --out p3/out`
+**blank (선택):** blank 한계(LoD = \|μ\| + 3.29 SD, LoQ = \|μ\| + 10 SD)가 POR 반복으로 구한 한계보다 크면 blank 쪽을 씁니다. 계단값처럼 반복해도 값이 같아서 `sigma_die`가 0에 가깝게 나오는 바닥 항목을 막는 하한입니다. blank 없이 낸 판정은 `verdict_no_blank`, `zone_no_blank` 열에 남고, 화면과 `summary.txt`에 blank 전후 교차표와 판정이 바뀐 ITEM이 나옵니다. `limit_source` 열은 한계를 정한 쪽(POR 반복 / blank)입니다.
+
+예제: `python examples/make_por3_data.py p3` 후 `python por_doe_compare.py --por p3/por_run1 --por p3/por_run2 --por p3/por_run3 --doe p3/doe --blank p3/blank --blank-map p3/blank_map.csv --out p3/out`
 
 ### 결과 요약 (공유용, ITEM 이름 익명화)
 

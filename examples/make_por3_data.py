@@ -58,9 +58,20 @@ def write(path: Path, vals: dict) -> None:
     path.write_text("\n".join(lines + ["#MeasureDataEnd", "[EOF]"]) + "\n")
 
 
+def step_item(run: int) -> tuple:
+    """분해능 10 pA 계단값 바닥 항목. POR은 전부 0으로 읽히고 DOE만 die 5개가 한 계단 위."""
+    v = np.zeros(N)
+    if run == 3:
+        v[rng.permutation(N)[:5]] = 10e-12
+    return ("A", v, None)
+
+
 for r in range(3):
-    write(out / f"por_run{r + 1}" / "POR", measure(r))
-write(out / "doe" / "DOE", measure(3))
+    write(out / f"por_run{r + 1}" / "POR", {**measure(r), "IOFF_STEP": step_item(r)})
+write(out / "doe" / "DOE", {**measure(3), "IOFF_STEP": step_item(3)})
+write(out / "blank" / "BLANK", {"OPEN_I": ("A", rng.normal(0, 1.5e-12, N), None)})
+(out / "blank_map.csv").write_text("ITEM,BLANK_ITEM\nIOFF_STEP,OPEN_I\nIOFF_FLOOR,OPEN_I\nIOFF_LEAK,OPEN_I\n")
+EXPECT["IOFF_STEP"] = "blank 없이: 미결(해상도 부족, sigma_die = 0). blank 하한 적용: 동등 (LoQ 미만)"
 print("기대 판정:")
 for k, v in EXPECT.items():
     print(f"  {k:12s} {v}")

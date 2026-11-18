@@ -5,6 +5,8 @@
   sigma_run : 회차마다 전체 평균이 같이 움직이는 크기 (컨택 상태, 온도 등)
 
 구간 (Currie / IUPAC): LoD = 3.29 sigma_die, LoQ = 10 sigma_die, |POR 중앙값| 기준
+  --blank 를 주면 blank 한계(|μ| + 3.29 SD, |μ| + 10 SD)가 더 클 때 그쪽을 씀 (하한).
+  blank 없이 낸 판정은 verdict_no_blank 열에 남겨서 blank가 바꾼 ITEM을 볼 수 있게 한다.
   LoQ 미만 : 숫자 비교 안 함. die별 |값| ≥ LoQ 여부를 DOE와 POR 1회차로 McNemar 비교
   LoQ 이상 : t-test와 TOST
 
@@ -25,7 +27,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from infra_compare import load_side, mcnemar_p
+from infra_compare import blank_limits, load_blank, load_side, mcnemar_p, read_csv_auto
 
 Z90 = 1.645
 MEDIAN_SE = 1.2533
@@ -58,18 +60,22 @@ def paired_t_p(d: np.ndarray) -> float:
     return float(2 * stats.t.sf(abs(t), len(d) - 1))
 
 
-def judge(Y: np.ndarray, z: np.ndarray, spec: tuple[float, float] | None, a: argparse.Namespace) -> dict:
+def judge(Y: np.ndarray, z: np.ndarray, spec: tuple[float, float] | None, a: argparse.Namespace,
+          blank_lim: tuple[float, float] | None = None) -> dict:
+    """blank_lim = (LoD, LoQ) from blank. 반복으로 구한 한계보다 크면 그쪽을 쓴다 (하한)."""
     n, J = Y.shape
     R = Y.mean(axis=1)
     level = abs(float(np.median(R)))
     s_die, s_run = run_anova(Y)
-    lod, loq = K_LOD * s_die, K_LOQ * s_die
+    lod, loq, src = K_LOD * s_die, K_LOQ * s_die, "POR 반복"
+    if blank_lim and blank_lim[1] > loq:
+        lod, loq, src = max(lod, blank_lim[0]), blank_lim[1], "blank"
     d = z - R
     p_t = paired_t_p(d)
     por_pairs = [paired_t_p(Y[:, j] - Y[:, i]) for i in range(J) for j in range(i + 1, J)]
     out = {
         "n_die": n, "n_por_runs": J, "por_median": float(np.median(R)), "doe_median": float(np.median(z)),
-        "sigma_die": s_die, "sigma_run": s_run, "sigma_run_df": J - 1, "LoD": lod, "LoQ": loq,
+        "sigma_die": s_die, "sigma_run": s_run, "sigma_run_df": J - 1, "LoD": lod, "LoQ": loq, "limit_source": src,
         "mean_d": float(d.mean()), "median_d": float(np.median(d)), "sd_d": float(d.std(ddof=1)),
         "robust_sigma_d": robust_sigma(d),
         "ttest_p": p_t, "ttest": "유의차" if p_t < 0.05 else "유의차 없음",
@@ -135,6 +141,9 @@ def main() -> None:
     ap.add_argument("--no-spec", action="store_true", help="스펙이 있어도 r × |POR| 사용")
     ap.add_argument("--robust-ratio", type=float, default=1.3,
                     help="sd / robust σ 가 이 값보다 크면 중앙값·robust σ 사용 (기본 1.3)")
+    ap.add_argument("--blank", nargs="*", default=[],
+                    help="blank 데이터 (infra_compare.py 와 같은 형식). LoD·LoQ 하한으로만 씀")
+    ap.add_argument("--blank-map", help="CSV ITEM,BLANK_ITEM. 없으면 같은 이름끼리 연결")
     ap.add_argument("--key", default="WAFERID,COORD_X_Y,ITEM")
     ap.add_argument("--encoding", default="auto")
     ap.add_argument("--out", default="por_doe_out")
@@ -156,10 +165,32 @@ def main() -> None:
     por_cols = [f"POR{i + 1}" for i in range(len(a.por))]
     print(f"POR {len(por_cols)}회 + DOE, 모든 회차에 있는 die·ITEM {len(wide):,}개, ITEM {wide['ITEM'].nunique():,}개")
 
+    blank = load_blank(a.blank, a.encoding) if a.blank else pd.DataFrame(columns=["BLANK_ITEM"])
+    bmap = {}
+    if a.blank_map:
+        mp = read_csv_auto(Path(a.blank_map), a.encoding)
+        mp.columns = [c.strip().upper() for c in mp.columns]
+        bmap = dict(zip(mp["ITEM"], mp["BLANK_ITEM"]))
+    blank = blank.set_index("BLANK_ITEM")
+
     rows = []
     for item, g in wide.groupby("ITEM", sort=False):
-        res = judge(g[por_cols].to_numpy(float), g["DOE"].to_numpy(float), spec.get(item), a)
-        rows.append({"ITEM": item, "UNIT": units.get(item), **res})
+        Y, z = g[por_cols].to_numpy(float), g["DOE"].to_numpy(float)
+        bitem = bmap.get(item, item)
+        extra, lim = {}, None
+        if bitem in blank.index:
+            b = blank.loc[bitem]
+            lim3 = blank_limits(b)
+            if lim3:
+                lim = lim3[1:]
+                bu = b.get("blank_unit")
+                extra = {"blank_item": bitem, "blank_LoD": lim[0], "blank_LoQ": lim[1],
+                         "blank_unit_mismatch": bool(pd.notna(bu) and bu != units.get(item))}
+        res = judge(Y, z, spec.get(item), a, lim)
+        if lim:
+            base = judge(Y, z, spec.get(item), a)
+            extra.update(verdict_no_blank=base["verdict"], zone_no_blank=base["zone"])
+        rows.append({"ITEM": item, "UNIT": units.get(item), **res, **extra})
     res = pd.DataFrame(rows)
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
 
@@ -176,6 +207,15 @@ def main() -> None:
         n_por = int((q["por_ttest_sig"].str.split("/").str[0].astype(int) > 0).sum())
         print(f"\nPOR끼리 t-test에서도 유의차가 나온 ITEM: {n_por:,} / {len(q):,}"
               f"  (같은 프로그램인데 t-test가 '차이'라고 한 수)")
+    if "verdict_no_blank" in res:
+        hb = res[res["verdict_no_blank"].notna()]
+        print(f"\nblank 연결 ITEM {len(hb):,}개 중 blank가 한계를 정한 ITEM {int((hb['limit_source'] == 'blank').sum()):,}개")
+        print("blank 없이 → blank 하한 적용 (행: 없이, 열: 적용)")
+        print(pd.crosstab(hb["verdict_no_blank"], hb["verdict"], margins=True, margins_name="합계").to_string())
+        n_bad = int(hb["blank_unit_mismatch"].sum())
+        if n_bad:
+            print(f"경고: blank 단위가 ITEM 단위와 다른 ITEM {n_bad}개 (blank_unit_mismatch 열)")
+        blank.reset_index().to_csv(out / "blank_sigma.csv", index=False, encoding="utf-8-sig")
     rs = res[res["verdict"] != "동등"]["reason"].value_counts()
     if len(rs):
         print("\n동등이 아닌 사유")
