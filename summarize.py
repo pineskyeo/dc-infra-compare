@@ -8,17 +8,10 @@ from __future__ import annotations
 
 import argparse
 import io
-import math
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
-
-def decade(v: float) -> str:
-    if not np.isfinite(v) or v == 0:
-        return "0"
-    return f"1e{math.floor(math.log10(abs(v))):+d}"
 
 
 def main() -> None:
@@ -40,7 +33,6 @@ def main() -> None:
     d[["ID", "ITEM"]].to_csv(path.parent / "item_map.csv", index=False, encoding="utf-8-sig")
     if "UNIT" not in d:
         d["UNIT"] = "?"
-    d["LEVEL"] = d["UNIT"].fillna("?").astype(str) + " " + d["por_median"].map(decade)
     q = d[d["zone"] == "정량"]
     bad = d[d["verdict"] != "동등"]
 
@@ -90,15 +82,8 @@ def main() -> None:
             sec(f"<LoQ 보고 일치로 동등이 된 ITEM {len(lr)}개 중 DOE 비율이 POR 회차 범위 밖인 ITEM "
                 f"{int(lr['doe_det_outside_por'].sum())}개", pd.crosstab(lr["FAMILY"], lr["doe_det_outside_por"].map(
                     {True: "DOE가 POR 범위 밖", False: "POR 범위 안"})))
-    if "verdict_no_accuracy" in d and (d.get("delta_source") == "장비 정확도").any():
-        qa = d[d["zone"] == "정량"]
-        sec(f"장비 정확도 하한: 허용폭을 정한 ITEM {int((qa['delta_source'] == '장비 정확도').sum())}개",
-            pd.crosstab(qa["verdict_no_accuracy"].rename("정확도 없이"), qa["verdict"].rename("정확도 적용"),
-                        margins=True, margins_name="합계"))
-    if "range_changed" in d:
-        sec("POR과 DOE의 auto range가 다른 ITEM (판정별)", pd.crosstab(d["range_changed"], d["verdict"]))
-        if "limit_source" in d:
-            sec("LoQ를 정한 쪽", d["limit_source"].value_counts())
+    if "limit_source" in d:
+        sec("LoQ를 정한 쪽", d["limit_source"].value_counts())
     sec("이상 신호", pd.Series({
         "sigma_die = 0 (계단값 의심)": int((d["sigma_die"] == 0).sum()),
         "sigma_run = 0": int((d["sigma_run"] == 0).sum()),
@@ -108,9 +93,6 @@ def main() -> None:
     fam = pd.crosstab(d["FAMILY"], d["verdict"])
     fam["동등 아님 비율"] = (1 - fam.get("동등", 0) / fam.sum(axis=1)).round(3)
     sec("항목군별 판정 (동등 아님이 있는 항목군)", fam[fam["동등 아님 비율"] > 0].sort_values("동등 아님 비율", ascending=False))
-    lv = pd.crosstab(d["LEVEL"], d["verdict"])
-    lv["동등 아님 비율"] = (1 - lv.get("동등", 0) / lv.sum(axis=1)).round(3)
-    sec("단위 x 값 자릿수별 판정 (동등 아님이 있는 구간)", lv[lv["동등 아님 비율"] > 0])
     sec("동등 아닌 사유", bad["reason"].str.replace(r"shift .*가", "shift가", regex=True).value_counts())
 
     runs = sorted(c for c in d.columns if c.startswith("POR") and c.endswith("_mean"))
@@ -126,10 +108,6 @@ def main() -> None:
         rel["CI %"] = [f"[{lo / abs(m) * 100:+.2f}, {hi / abs(m) * 100:+.2f}]"
                        for lo, hi, m in zip(qb["ci_low"], qb["ci_high"], qb["por_median"])]
         rel["튀는 die"] = qb["n_outlier_die"]
-        if "range_por" in qb:
-            rel["range POR→DOE"] = qb["range_por"].fillna("").astype(str) + "→" + qb["range_doe"].fillna("").astype(str)
-        if "delta_source" in qb:
-            rel["Δ 출처"] = qb["delta_source"]
         sec("정량 차이·미결: 회차별 평균 (POR 평균 대비 %). DOE가 POR 회차들의 퍼짐 밖에 있나", rel.head(a.list).to_string(index=False))
     dets = sorted(c for c in d.columns if c.startswith("POR") and c.endswith("_det"))
     lb = bad[bad["zone"].isin(["검출한계 이하", "검출~정량"])]

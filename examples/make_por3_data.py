@@ -29,7 +29,7 @@ EXPECT = {
     "IOFF_LEAK": "차이 (LoQ 미만, DOE만 누설 die)",
     "ION_OUTLIER": "동등 (튀는 die 4개. Hodges–Lehmann이라 끌려가지 않음)",
     "IDSAT_SPEC": "동등 (가짜 스펙 10 µA는 무시. shift 8 µA < |POR| 5% = 30 µA)",
-    "VOS_OFFSET": "기본: 차이 (+3.7 µV > 5%). --accuracy: 동등 (2 V range 정확도 ±0.8 mV 안)",
+    "VOS_OFFSET": "차이 (+3.7 µV offset이 |POR| 5% = 1.5 µV보다 큼)",
     "IOFF_RUNWOBBLE": "동등 또는 미결, 차이 아님 (POR 회차마다 바닥 offset이 크게 다름. DOE offset은 그 범위 안)",
 }
 run_offset = {k: rng.normal(0, v[3], 4) for k, v in ITEMS.items()}

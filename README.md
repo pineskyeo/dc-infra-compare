@@ -92,7 +92,7 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 | `sigma_die` | 같은 회차 안에서 die마다의 1회 측정 흔들림 |
 | `sigma_run` | 회차마다 전체가 같이 움직이는 크기 (컨택, 온도 등). 자유도 = 회차 수 − 1 |
 
-**구간.** σ = max(`sigma_die`, 분해능 / √12)로 LoD = 3.29σ, LoQ = 10σ를 정합니다(Currie, IUPAC). 분해능은 측정값 사이의 가장 작은 간격입니다. 계단값 항목은 반복해도 같은 값이 나와 `sigma_die`가 0이 되므로, 분해능의 표준불확도(GUM F.2.2.1, 간격 / √12)를 하한으로 씁니다. `limit_source` 열에 한계를 정한 쪽(POR 반복 / 분해능 / blank)이 나옵니다.
+**구간.** σ = max(`sigma_die`, 분해능 / √12)로 LoD = 3.29σ, LoQ = 10σ를 정합니다(Currie, IUPAC). 분해능은 데이터에서 측정값 사이의 가장 작은 간격입니다. 계단값 항목은 반복해도 같은 값이 나와 `sigma_die`가 0이 되므로, 분해능의 표준불확도(GUM F.2.2.1, 간격 / √12)를 하한으로 씁니다. `limit_source` 열에 한계를 정한 쪽(POR 반복 / 데이터 분해능 / blank)이 나옵니다.
 
 **판정.** 두 구간 모두 같은 TOST 규칙이고 비교하는 양만 다릅니다.
 
@@ -110,17 +110,8 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 | 옵션 | 내용 |
 |---|---|
 | `--blank`, `--blank-map` | blank 데이터와 연결표. 형식은 아래 "blank 넣기"와 같음 |
-| `--accuracy` | 정량 구간 허용폭의 하한으로 장비 사양 정확도를 씀 (아래) |
-| `--exclude-units` | 판정에서 뺄 단위, 쉼표로 구분 (예: `nA/um,pA/cell,Kohm/set`). 정규화 계수가 잘못 들어간 ITEM처럼 값 자체를 쓸 수 없을 때. 뺀 ITEM은 `excluded_items.csv` |
 
-**장비 사양 (Keysight P9001A Per-pin SMU, auto range).** 단위가 측정 단위(A, pA, nA, uA, mA, V, mV, uV)인 ITEM은 값의 크기로 auto range를 정합니다. measure_i/measure_v에 range 0을 주면 값이 들어가는 가장 작은 range를 쓰기 때문입니다(Programming Reference Table 2-19/2-22). 정규화·유도 단위(ohm, nA/um, pA/cell, F 등)는 range를 알 수 없어 적용하지 않습니다.
-
-- `range_por`, `range_doe`, `range_changed`: POR 값과 DOE 값이 들어가는 range. 다르면 range 차이가 원인 후보입니다.
-- 분해능 하한: σ ≥ range의 측정 분해능 / √12 (GUM F.2.2.1). `limit_source` = 장비 분해능.
-- `--accuracy`: 두 측정이 각자 사양 정확도 ±(a × |값| + b × range + c) 안에 있을 때 생길 수 있는 차이 1.645 × √((U_POR² + U_DOE²) / 3) (균일분포, GUM 4.3.7)를 허용폭 하한으로 씁니다. 사양의 Vo, Rres × Io 항은 알 수 없어 0으로 둡니다. 정확도 없이 낸 판정은 `verdict_no_accuracy`, 허용폭을 정한 쪽은 `delta_source`. 10 V 넘는 값(Shared SMU)은 정확도를 넣지 않았습니다.
-- 사양 값은 `por_doe_compare.py`의 `I_RANGES`, `V_RANGES` 표에 있습니다 (P9001 Data sheet p.6-7). 원본과 대조해서 쓰세요.
-
-**blank (선택):** blank 한계(LoD = \|μ\| + 3.29 SD, LoQ = \|μ\| + 10 SD)가 POR 반복으로 구한 한계보다 크면 blank 쪽을 씁니다. 계단값처럼 반복해도 값이 같아서 `sigma_die`가 0에 가깝게 나오는 바닥 항목을 막는 하한입니다. blank 없이 낸 판정은 `verdict_no_blank`, `zone_no_blank` 열에 남습니다.
+**UNIT은 판정에 쓰지 않습니다.** DCNORMAL의 UNIT 값이 잘못 들어간 경우가 많아서, 판정은 값과 POR 반복 흔들림만으로 합니다. 판정이 모두 비율 기준(허용폭은 POR 값의 r배, LoQ는 그 ITEM 흔들림의 10배)이라 값의 단위나 정규화 계수가 무엇이든 결과가 같습니다. UNIT 열은 결과 표시용으로만 옮깁니다.
 
 **결과 파일**
 
@@ -137,7 +128,7 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 python summarize.py 결과폴더/items.csv
 ```
 
-- `summary.txt`: 판정 표, t-test x TOST, POR끼리 t-test, 흔들림 비율, 허용폭 구성, 이상 신호, 항목군별·값 자릿수별 판정, 차이·미결 ITEM의 회차별 평균(DOE가 POR 회차들의 퍼짐 밖인지), 여러 ITEM에서 반복해서 튀는 die, 차이·미결 목록. ITEM 이름 대신 `F03_I0123` 같은 익명 번호가 나옵니다.
+- `summary.txt`: 판정 표, t-test x TOST, POR끼리 t-test, 흔들림 비율, 허용폭 구성, 이상 신호, 항목군별 판정, 차이·미결 ITEM의 회차별 평균(DOE가 POR 회차들의 퍼짐 밖인지), 여러 ITEM에서 반복해서 튀는 die, 차이·미결 목록. ITEM 이름 대신 `F03_I0123` 같은 익명 번호가 나옵니다.
 - `item_map.csv`: 익명 번호와 실제 ITEM의 대응표. 공유하지 말고 로컬에서 찾아볼 때만 씁니다.
 - 항목군 이름(VT, ION 등)도 기본으로 `F01`처럼 바꿉니다. 그대로 두려면 `--keep-family`.
 
