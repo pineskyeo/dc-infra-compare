@@ -19,10 +19,11 @@
 
 두 구간 모두 같은 TOST 규칙. 비교하는 양만 다르다.
   정량 (|POR| ≥ LoQ)  : die별 d = DOE − POR 회차 평균
-                         허용폭 Δ = r × |POR 중앙값| + 1.645 × √(1 + 1/J) × sigma_run
+                         허용폭 Δ = r × |POR 중앙값| + t(0.95, J−1) × √(1 + 1/J) × sigma_run
   LoQ 미만             : die별 "|값| ≥ LoQ" 여부(0/1). d = DOE 여부 − POR 회차 평균 여부
-                         허용폭 Δ = det_margin + 1.645 × √(1 + 1/J) × sigma_run(여부)
-  1.645 × √(1 + 1/J) × sigma_run : 같은 프로그램으로 다시 재도 생기는 회차 간 차이 (DOE 1회 vs POR J회 평균)
+                         허용폭 Δ = det_margin + t(0.95, J−1) × √(1 + 1/J) × sigma_run(여부)
+  t(0.95, J−1) × √(1 + 1/J) × sigma_run : 같은 프로그램으로 다시 재도 생기는 회차 간 차이 (DOE 1회 vs POR J회 평균의
+  90% 예측구간 한쪽). sigma_run 의 자유도가 J − 1이라 t를 쓴다 (J = 3: 2.92, J = 5: 2.13).
   LoQ 미만은 값을 "<LoQ"로 보고하므로(IUPAC), 신뢰구간이 통째로 ±Δ 밖일 때만 차이, 그 밖은 동등 ("<LoQ 보고 일치").
   TOST 그대로의 판정은 verdict_tost_low 열. --strict-low-tost 면 TOST 그대로 판정.
 
@@ -181,6 +182,12 @@ def robust_noise(Y: np.ndarray) -> tuple[float, float]:
     return s_die, s_run
 
 
+def run_factor(J: int) -> float:
+    """DOE 1회가 POR J회 평균과 같은 프로그램 안에서 다를 수 있는 폭의 배수 (90% 예측구간 한쪽).
+    sigma_run 은 회차 J개로 추정해서 자유도가 J − 1뿐이라 1.645 대신 t(0.95, J − 1)를 쓴다 (J = 3이면 2.92)."""
+    return float(stats.t.ppf(0.95, J - 1) * np.sqrt(1 + 1 / J))
+
+
 def paired_t_p(d: np.ndarray) -> float:
     s = d.std(ddof=1)
     if s == 0:
@@ -273,7 +280,7 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
         _, s_run_det = run_anova(I)
         e = D - I.mean(axis=1)
         center, lo, hi = ci_mean(e) if e.std() > 0 else (float(e.mean()),) * 3
-        run_term = Z90 * np.sqrt(1 + 1 / J) * s_run_det
+        run_term = run_factor(J) * s_run_det
         delta = a.det_margin + run_term
         v, why = tost(center, lo, hi, delta, fmt=lambda x: f"{x:+.0%}p")
         por_det = I.mean(axis=0)
@@ -290,7 +297,7 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
         return {**out, "verdict": v, "reason": f"LoQ 넘는 die 비율: {why}"}, outlier
 
     policy = a.r * level
-    run_term = Z90 * np.sqrt(1 + 1 / J) * s_run
+    run_term = run_factor(J) * s_run
     delta, delta_src = policy + run_term, "정책 + 회차"
     center, lo, hi = (ci_hl(d) if a.estimator == "hl" else ci_mean(d)) if d.std() > 0 else (float(d.mean()),) * 3
     v0, _ = tost(center, lo, hi, delta)
