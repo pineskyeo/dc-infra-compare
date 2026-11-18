@@ -126,7 +126,8 @@ def spec_terms(info: ItemInfo | None, level: float, doe_level: float) -> dict:
     if info.derived:
         return {"level_kind": kind, "spec_status": "변형: 장비 사양 미적용"}
     if info.calcval:
-        k, phys = info.calcval, level / info.calcval
+        k = abs(info.calcval)        # 부호를 뒤집는 CALCVAL(음수)도 크기 환산은 절댓값으로
+        phys = level / k
         # 자릿수 경계 근처(9.6 nA를 10nA로 적은 경우)는 auto range가 겹치는 1.15배까지 일치로 본다
         check = ("일치" if info.L / 1.15 <= phys < 11.5 * info.L
                  else f"불일치 (CALCVAL로 본 실제 값 {phys:.3g}, LEVEL {info.L:.3g}~{10 * info.L:.3g})")
@@ -242,7 +243,7 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
         elif not info.calcval:
             blank_info = {"blank_status": "CALCVAL 없음: 미적용"}
         else:
-            k = info.calcval
+            k = abs(info.calcval)
             b_lod, b_loq = blank_lim[0] * k, blank_lim[1] * k
             blank_info = {"blank_status": "적용", "blank_LoD_item": b_lod, "blank_LoQ_item": b_loq}
             if b_loq > loq:
