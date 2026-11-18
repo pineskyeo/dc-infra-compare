@@ -2,9 +2,10 @@
 
 모든 기준은 실행 전에 정해지는 값이고, 데이터를 보고 바뀌는 문턱값은 없다.
 
-흔들림 (POR 회차 × die 이원분산분석, NIST e-Handbook 2.4.4)
-  sigma_die : 같은 회차 안 die별 1회 측정 흔들림 (잔차)
-  sigma_run : 회차마다 전체가 같이 움직이는 크기 (컨택 상태, 온도 등)
+흔들림 (POR 회차 반복, NIST e-Handbook 2.4.4의 die·회차 분리를 robust 통계로)
+  sigma_die : 같은 die를 다시 잰 1회 측정 흔들림. 이웃 회차 차이의 robust σ / √2
+  sigma_run : 회차마다 전체가 같이 움직이는 크기 (컨택 상태, 온도 등). 회차별 중앙값으로
+  튀는 die가 있어도 부풀지 않는다. 비교용 분산분석 값은 sigma_die_anova, sigma_run_anova 열.
 
 구간 (Currie / IUPAC): LoD = 3.29 σ, LoQ = 10 σ, |POR 중앙값| 기준
   σ = max(sigma_die, 분해능 / √12). 분해능 = 측정값 사이의 가장 작은 간격 (계단값, GUM F.2.2.1)
@@ -137,6 +138,21 @@ def run_anova(Y: np.ndarray) -> tuple[float, float]:
     return float(np.sqrt(ms_e)), float(np.sqrt(max(0.0, (ms_run - ms_e) / n)))
 
 
+def robust_noise(Y: np.ndarray) -> tuple[float, float]:
+    """튀는 die에 끌려가지 않는 (sigma_die, sigma_run).
+    sigma_die: 이웃 회차 차이(2−1, 3−2 …)를 회차쌍마다 중앙값으로 맞춘 뒤 모아서 robust σ / √2
+    sigma_run: die별 평균을 뺀 값의 회차별 중앙값들의 분산에서 die 잡음 몫((π/2) sigma_die² / n)을 뺀 것"""
+    n, J = Y.shape
+    dd = []
+    for k in range(J - 1):
+        x = Y[:, k + 1] - Y[:, k]
+        dd.append(x - np.median(x))
+    s_die = robust_sigma(np.concatenate(dd)) / np.sqrt(2)
+    r = np.median(Y - Y.mean(axis=1, keepdims=True), axis=0)
+    s_run = float(np.sqrt(max(0.0, r.var(ddof=1) - (np.pi / 2) * s_die ** 2 / n)))
+    return s_die, s_run
+
+
 def paired_t_p(d: np.ndarray) -> float:
     s = d.std(ddof=1)
     if s == 0:
@@ -179,7 +195,8 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
     n, J = Y.shape
     R = Y.mean(axis=1)
     level = abs(float(np.median(R)))
-    s_die, s_run = run_anova(Y)
+    s_die, s_run = robust_noise(Y)
+    s_die_anova, s_run_anova = run_anova(Y)
     vals = np.unique(np.concatenate([Y.ravel(), z]))
     sp = spec_terms(lvl, level, abs(float(np.median(z))))
     cands = [(s_die, "POR 반복"),
@@ -196,7 +213,8 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
     por_pairs = [paired_t_p(Y[:, j] - Y[:, i]) for i in range(J) for j in range(i + 1, J)]
     out = {
         "n_die": n, "n_por_runs": J, "por_median": float(np.median(R)), "doe_median": float(np.median(z)),
-        "sigma_die": s_die, "sigma_run": s_run, "sigma_run_df": J - 1, "LoD": lod, "LoQ": loq, "limit_source": src,
+        "sigma_die": s_die, "sigma_run": s_run, "sigma_run_df": J - 1,
+        "sigma_die_anova": s_die_anova, "sigma_run_anova": s_run_anova, "LoD": lod, "LoQ": loq, "limit_source": src,
         "mean_d": float(d.mean()), "median_d": float(np.median(d)), "sd_d": float(d.std(ddof=1)),
         "robust_sigma_d": rs, "n_outlier_die": int(outlier.sum()),
         "ttest_p": p_t, "ttest": "유의차" if p_t < 0.05 else "유의차 없음",

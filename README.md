@@ -85,12 +85,14 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 | `--det-margin` | 0.05 | LoQ 미만 구간 허용폭 = LoQ 넘는 die 비율 차이 5%p |
 | `--estimator` | hl | 신뢰구간 방식. `hl` = Hodges–Lehmann + Wilcoxon 부호순위, `mean` = 평균 + t (NIST 7.3.1.1) |
 
-**흔들림** (die × 회차 이원분산분석, NIST e-Handbook 2.4.4)
+**흔들림** (POR 회차 반복으로 die·회차 몫을 나눔, NIST e-Handbook 2.4.4. 튀는 die에 끌려가지 않도록 robust 통계 사용)
 
 | 값 | 뜻 |
 |---|---|
-| `sigma_die` | 같은 회차 안에서 die마다의 1회 측정 흔들림 |
-| `sigma_run` | 회차마다 전체가 같이 움직이는 크기 (컨택, 온도 등). 자유도 = 회차 수 − 1 |
+| `sigma_die` | 같은 die를 다시 잰 1회 측정 흔들림. 이웃 회차 차이(2−1, 3−2)를 회차쌍마다 중앙값으로 맞춘 뒤 robust σ(1.4826 × MAD) / √2 |
+| `sigma_run` | 회차마다 전체가 같이 움직이는 크기 (컨택, 온도 등). die별 평균을 뺀 값의 회차별 중앙값으로 구함. 자유도 = 회차 수 − 1 |
+
+분산분석(평균·제곱합) 값은 튀는 die 몇 개에도 몇 배로 부풀어서 비교용으로만 `sigma_die_anova`, `sigma_run_anova` 열에 남깁니다. LoQ 미만 구간의 0/1 여부 데이터는 MAD가 0이 되므로 분산분석을 씁니다.
 
 **구간.** σ = max(`sigma_die`, 분해능 / √12)로 LoD = 3.29σ, LoQ = 10σ를 정합니다(Currie, IUPAC). 분해능은 데이터에서 측정값 사이의 가장 작은 간격입니다. 계단값 항목은 반복해도 같은 값이 나와 `sigma_die`가 0이 되므로, 분해능의 표준불확도(GUM F.2.2.1, 간격 / √12)를 하한으로 씁니다. `limit_source` 열에 한계를 정한 쪽(POR 반복 / 데이터 분해능 / blank)이 나옵니다.
 
