@@ -438,7 +438,7 @@ def main() -> None:
             lim3 = blank_limits(blank.loc[bitem])
             if lim3:
                 lim = lim3[1:]
-                extra = {"blank_item": bitem, "blank_LoD_raw": lim[0], "blank_LoQ_raw": lim[1]}
+                extra.update(blank_item=bitem, blank_LoD_raw=lim[0], blank_LoQ_raw=lim[1])
         res, mask = judge(Y, z, a, lim, levels.get(item))
         if lim:
             base, _ = judge(Y, z, a, None, levels.get(item))
