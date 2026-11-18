@@ -67,6 +67,48 @@ Ref에 같은 die, 같은 ITEM을 두 번 이상 잰 데이터가 있으면 ITEM
 - 뜻: 같은 인프라로 다시 재도 생기는 크기의 차이는 인프라 차이로 보지 않습니다.
 - 끄려면 `--no-repeat`. 화면에 반영 전(blank만)과 반영 후 판정의 교차표가 나옵니다.
 
+## POR 여러 회 + DOE: t-test와 TOST 같이 보기 (`por_doe_compare.py`)
+
+POR을 같은 웨이퍼, 같은 die로 여러 번(권장 3회 이상, 매번 재터치다운) 재고 DOE를 1회 잰 데이터로 ITEM마다 t-test와 TOST를 같이 냅니다.
+
+```bash
+python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out 결과폴더
+```
+
+`--por`는 회차마다 따로 씁니다. 하나의 `--por` 뒤에 파일이나 폴더를 여러 개 적으면 그 회차의 파일로 묶입니다.
+
+**흔들림** (die × 회차 이원분산분석, NIST e-Handbook 2.4.4)
+
+| 값 | 뜻 |
+|---|---|
+| `sigma_die` | 같은 회차 안에서 die마다의 1회 측정 흔들림 |
+| `sigma_run` | 회차마다 전체 평균이 같이 움직이는 크기 (컨택, 온도 등). 자유도 = 회차 수 − 1 |
+
+**판정**
+
+| 구간 (\|POR 중앙값\|) | 방법 |
+|---|---|
+| LoQ (= 10 × `sigma_die`) 미만 | 숫자 비교 안 함. die별 \|값\| ≥ LoQ 여부를 DOE와 POR 1회차로 McNemar 비교 |
+| LoQ 이상 | t-test와 TOST |
+
+- d = DOE − POR 회차 평균 (die별)
+- t-test (NIST 7.3.1.1): t = mean(d) / (sd(d)/√n). 차이가 있는지만 봅니다. "같다"의 근거가 되지 않습니다.
+- TOST: 90% 신뢰구간이 ±Δ 안이면 동등, 통째로 밖이면 차이, 걸치면 미결.
+  - Δ = 정책 허용폭 + 1.645 × √(1 + 1/J) × `sigma_run`. J는 POR 회차 수입니다.
+  - 정책 허용폭은 스펙(SPECLOW, SPECHIGH)이 있으면 스펙 폭 × 0.10, 없으면 0.05 × |POR 중앙값|입니다.
+  - 뜻: 같은 프로그램으로 다시 재도 평균이 이만큼은 움직이니, 그 안의 차이는 프로그램 차이로 보지 않습니다.
+- 튀는 die가 있으면(sd / robust σ > 1.3) 평균과 표준편차 대신 중앙값과 robust σ로 신뢰구간을 구합니다 (NIST 1.3.5.6: 꼬리가 긴 데이터는 MAD).
+- `por_ttest_sig`: POR 회차끼리 t-test를 했을 때 유의차가 나온 쌍의 수. 같은 프로그램인데도 t-test가 차이라고 하는 경우를 보여 줍니다.
+
+| 옵션 | 내용 |
+|---|---|
+| `--r` | 스펙 없을 때 상대 허용폭. 기본 0.05 |
+| `--spec-frac` | 스펙 있을 때 스펙 폭 대비 허용폭. 기본 0.10 |
+| `--no-spec` | 스펙이 있어도 `--r` 사용 |
+| `--robust-ratio` | 중앙값·robust σ로 바꾸는 기준. 기본 1.3 |
+
+예제: `python examples/make_por3_data.py p3` 후 `python por_doe_compare.py --por p3/por_run1 --por p3/por_run2 --por p3/por_run3 --doe p3/doe --out p3/out`
+
 ## 패턴 리포트
 
 동등이 아닌 ITEM이 어디에 몰리는지 봅니다. `흔들림_중앙값`은 die별 차이의 흔들림 ÷ |Ref 값|입니다.
