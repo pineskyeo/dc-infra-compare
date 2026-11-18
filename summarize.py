@@ -3,6 +3,7 @@
   python summarize.py 결과/items.csv
   → 결과/summary.txt   : 붙여 넣어 공유할 요약 (ITEM 이름 없음)
   → 결과/item_map.csv  : 익명 번호 ↔ 실제 ITEM 대응표 (공유하지 말 것)
+  → 결과/items.csv     : ITEM 옆에 같은 익명 번호(ID 열)를 넣어 다시 저장
 """
 from __future__ import annotations
 
@@ -23,7 +24,8 @@ def main() -> None:
     a = ap.parse_args()
 
     path = Path(a.items)
-    d = pd.read_csv(path)
+    d = pd.read_csv(path).drop(columns=["ID"], errors="ignore")
+    raw = d.copy()
     d["FAMILY"] = d["ITEM"].astype(str).str.extract(a.family_regex, expand=False).fillna("?")
     fam_ids = {f: f"F{i + 1:02d}" for i, f in enumerate(pd.unique(d["FAMILY"]))}
     d["ID"] = [f"I{i + 1:04d}" for i in range(len(d))]
@@ -31,6 +33,8 @@ def main() -> None:
         d["FAMILY"] = d["FAMILY"].map(fam_ids)
     d["ID"] = d["FAMILY"] + "_" + d["ID"]
     d[["ID", "ITEM"]].to_csv(path.parent / "item_map.csv", index=False, encoding="utf-8-sig")
+    raw.insert(raw.columns.get_loc("ITEM") + 1, "ID", d["ID"])
+    raw.to_csv(path, index=False, encoding="utf-8-sig")
     if "UNIT" not in d:
         d["UNIT"] = "?"
     q = d[d["zone"] == "정량"]
@@ -156,6 +160,7 @@ def main() -> None:
     print(text)
     print(f"공유용 요약: {path.parent / 'summary.txt'}")
     print(f"익명 번호 대응표 (공유하지 마세요): {path.parent / 'item_map.csv'}")
+    print(f"items.csv 에 ID 열 추가: {path}")
 
 
 if __name__ == "__main__":

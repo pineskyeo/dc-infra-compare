@@ -165,6 +165,7 @@ python summarize.py 결과폴더/items.csv
 
 - `summary.txt`: 판정 표, t-test x TOST, POR끼리 t-test, 흔들림 비율, 허용폭 구성, 이상 신호, 항목군별 판정, 차이·미결 ITEM의 회차별 평균(DOE가 POR 회차들의 퍼짐 밖인지), 여러 ITEM에서 반복해서 튀는 die, 차이·미결 목록. ITEM 이름 대신 `F03_I0123` 같은 익명 번호가 나옵니다.
 - `item_map.csv`: 익명 번호와 실제 ITEM의 대응표. 공유하지 말고 로컬에서 찾아볼 때만 씁니다.
+- `items.csv`에도 ITEM 바로 옆에 같은 익명 번호가 `ID` 열로 들어갑니다(다시 실행해도 같은 번호).
 - 항목군 이름(VT, ION 등)도 기본으로 `F01`처럼 바꿉니다. 그대로 두려면 `--keep-family`.
 
 ## 패턴 리포트
