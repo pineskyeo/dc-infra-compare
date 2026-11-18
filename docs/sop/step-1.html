@@ -1,0 +1,72 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>① 반복성 확인 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html" aria-current="page">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="appendix.html">부록</a></nav>
+<main><div class="wrap">
+<h1>① 반복성 확인</h1>
+<p class="key">기준 조건 3회로 반복성 σ<sub>r</sub>와 회차 간 정밀도 σ<sub>run</sub>을 구합니다.</p>
+
+<section id="criteria">
+<h2>판정 기준</h2>
+<p class="key">이 단계는 판정하지 않고 계산만 합니다.</p>
+<details><summary>자세히</summary>
+<div class="crit" id="C1-1"><!-- EDIT C1-1 --><span class="id">C1-1</span><span class="none">판정 없음 · 계산 단계</span>
+<p>σ<sub>r</sub> → <a href="step-2.html">② LoQ로 구간 나누기</a> σ = max( σ<sub>r</sub>, … )</p>
+<p>σ<sub>run</sub> → <a href="step-4.html">④ 동등 한계 정하기</a> t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub></p></div>
+</details>
+</section>
+
+<section id="formula">
+<h2>수식</h2>
+<p class="key">σ<sub>r</sub>는 이웃 회차 차이에서, σ<sub>run</sub>은 회차 전체 이동에서 구합니다.</p>
+<details><summary>자세히</summary>
+<div class="formula">
+<div>e<sub>k</sub> = (Y<sub>k+1</sub> − Y<sub>k</sub>) − median(Y<sub>k+1</sub> − Y<sub>k</sub>)   <span class="c">이웃 회차 차이, 회차 전체 이동은 뺌</span></div>
+<div>σ<sub>r</sub> = 1.4826 · median|e − median(e)| / √2   <span class="c">반복성. MAD 기반 robust 추정. √2 = 두 번 잰 차이 → 1회</span></div>
+<div>r<sub>k</sub> = median<sub>die</sub>(Y<sub>k</sub> − Ȳ<sub>die</sub>)   <span class="c">회차 k의 전체 이동</span></div>
+<div>σ<sub>run</sub><sup>2</sup> = Var(r<sub>k</sub>) − (π/2)·σ<sub>r</sub><sup>2</sup>/n   <span class="c">회차 간 정밀도. 반복성 몫을 뺌</span></div>
+</div>
+</details>
+</section>
+
+<section id="pass">
+<h2>통과 조건</h2>
+<p class="key">σ<sub>r</sub>와 σ<sub>run</sub>을 다음 단계로 넘깁니다.</p>
+<details><summary>자세히</summary>
+<div class="crit" id="C1-2"><!-- EDIT C1-2 --><span class="id">C1-2</span><h3>다음 단계로 넘기는 값</h3>
+<p>sigma_die · sigma_run 반복성 σ<sub>r</sub>, 회차 간 정밀도 σ<sub>run</sub></p></div>
+</details>
+</section>
+
+<section id="exceptions">
+<h2>흔한 예외</h2>
+<p class="key">이상치 die → robust(중앙값·MAD) 추정.</p>
+<details><summary>자세히</summary>
+<ul><li>이상치 die → robust(중앙값·MAD) 추정. 이상치 die에 끌려가지 않도록 합니다.</li></ul>
+</details>
+</section>
+
+<section id="derivation">
+<h2>유도·설명</h2>
+<p class="key">목적, 용어, 상수의 뜻입니다.</p>
+<details><summary>자세히</summary>
+<p><b>목적</b> · 기준 조건 3회만 씁니다. die마다 다른 값(공정 산포)을 빼고 남는 측정 정밀도를 두 성분으로 나눕니다. 이상치 die에 끌려가지 않도록 robust(중앙값·MAD)로 추정합니다.</p>
+<ul>
+<li>반복성 표준편차 repeatability SD σ<sub>r</sub>: 같은 die를 다시 잰 1회 측정의 표준편차 (robust 추정)</li>
+<li>회차 간 정밀도 between-run precision σ<sub>run</sub>: 측정 회차마다 전체 값이 같이 움직이는 크기</li>
+<li>1.4826 = 정규분포에서 MAD를 σ로 바꾸는 상수</li>
+</ul>
+</details>
+</section>
+
+<section id="basis">
+<h2>근거</h2>
+<p class="key">NIST/SEMATECH e-Handbook, GUM, VIM, ISO 5725-3:2023</p>
+<details><summary>자세히</summary>
+<ul class="basis"><li>MAD, robust 척도: NIST/SEMATECH e-Handbook · 1.3.5.6 Measures of Scale (MAD 정의) · <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda356.htm" rel="noopener" target="_blank">링크</a> / 1.3.5.17 Detection of Outliers (상수 1.4826: 0.6745 = 1/1.4826) · <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm" rel="noopener" target="_blank">링크</a> / Wikipedia (2차) "Median absolute deviation" · <a href="https://en.wikipedia.org/wiki/Median_absolute_deviation" rel="noopener" target="_blank">링크</a></li>
+<li>/√2 (차이의 분산 합성): JCGM 100:2008 (GUM) · 5.1.2 · <a href="https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf" rel="noopener" target="_blank">링크</a></li>
+<li>회차 간 흔들림 분리: NIST/SEMATECH e-Handbook · 2.4.4 Analysis of variability · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section4/mpc44.htm" rel="noopener" target="_blank">링크</a> / 2.4 Gauge R &amp; R studies · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section4/mpc4.htm" rel="noopener" target="_blank">링크</a> / 2.6.1 Gauge study of resistivity probes · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section6/mpc61.htm" rel="noopener" target="_blank">링크</a> / Wikipedia (2차) "Median" Efficiency 절 · <a href="https://en.wikipedia.org/wiki/Median" rel="noopener" target="_blank">링크</a> <span class="s">개념 근거, 세부 방식은 자체 변형</span></li>
+<li>반복성·중간 정밀도 용어: JCGM 200:2012 (VIM) · 2.20~2.23 · <a href="https://www.bipm.org/documents/20126/2071204/JCGM_200_2012.pdf" rel="noopener" target="_blank">링크</a> / ISO 5725-3:2023 (1994판 폐지, 본문 미열람) · <a href="https://www.iso.org/standard/69420.html" rel="noopener" target="_blank">링크</a></li></ul>
+</details>
+</section>
+
+<footer class="pager"><a href="step-0.html">← 이전 · ⓪ 표본 크기 정하기</a><a href="step-2.html">다음 · ② LoQ로 구간 나누기 →</a></footer>
+</div></main></body></html>

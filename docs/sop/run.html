@@ -1,0 +1,138 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>실행 방법 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html" aria-current="page">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="appendix.html">부록</a></nav>
+<main><div class="wrap">
+<h1>실행 방법</h1>
+
+<section id="measure">
+<h2>측정 준비</h2>
+<p class="key">같은 웨이퍼의 같은 die를 기준 조건으로 3회, 비교 조건으로 1회 측정합니다.</p>
+<details><summary>자세히</summary>
+<p class="readme">같은 웨이퍼, 같은 die를 POR(기존 프로그램)로 여러 번, DOE(새 프로그램)로 한 번 잰 DCNORMAL 결과를 ITEM별로 비교해서 <b>동등 / 차이 / 미결</b>로 판정합니다.</p>
+<p class="s">기준 조건 회차 수 (옵션 설명)</p>
+<p class="readme">POR 1회분 (파일이나 폴더). <b>회차마다 따로</b> 씁니다. 2회 이상, 권장 3회 이상(매번 재터치다운)</p>
+<ul>
+<li><span class="todo">TODO: 측정 결과(DCNORMAL) 파일을 어디서 받는지 (저장 위치, 내려받는 방법)</span></li>
+<li><span class="todo">TODO: 누가 측정하고 누가 도구를 실행하는지</span></li>
+<li><span class="todo">TODO: 재터치다운 외 회차별 측정 절차 (장비·프로브카드 준비, 회차 간격)</span></li>
+<li><span class="todo">TODO: 측정할 웨이퍼 수와 die 수 (③은 die 61개 기준, 부록 N3)</span></li>
+</ul>
+</details>
+</section>
+
+<section id="install">
+<h2>설치</h2>
+<p class="key">Python 3.9 이상 환경에 필요한 패키지를 설치합니다.</p>
+<details><summary>자세히</summary>
+<div class="formula readme">pip install -r requirements.txt   # Python 3.9+, pandas, numpy, scipy</div>
+<p><span class="todo">TODO: 도구(dc-infra-compare)를 어디서 받는지 (저장소 위치, 접근 권한)</span></p>
+</details>
+</section>
+
+<section id="run">
+<h2>실행</h2>
+<p class="key">기준 조건 회차별 데이터와 비교 조건 데이터를 지정해 비교를 실행한 뒤, 요약을 만듭니다.</p>
+<details><summary>자세히</summary>
+<div class="formula readme">python por_doe_compare.py --por POR1/ --por POR2/ --por POR3/ --doe DOE/ \
+  --level item_info.csv --blank blank.csv --blank-map blank_map.csv --out 결과
+python summarize.py 결과/items.csv</div>
+<h3>예제</h3>
+<div class="formula readme">python examples/make_por3_data.py p3
+python por_doe_compare.py --por p3/por_run1 --por p3/por_run2 --por p3/por_run3 --doe p3/doe \
+  --level p3/level.csv --blank p3/blank --blank-map p3/blank_map.csv --out p3/out
+python summarize.py p3/out/items.csv</div>
+<h3>이전 방식</h3>
+<p class="readme">POR 1회(+ 일부 재측정)와 DOE 1회를 비교하던 첫 버전입니다. python infra_compare.py --ref ref/ --new new/ --blank ... --blank-map ... --out 결과. 새 분석에는 por_doe_compare.py를 쓰세요. por_doe_compare.py가 파일 읽기와 blank 읽기 함수를 여기서 가져다 씁니다.</p>
+<p><span class="todo">TODO: 어느 PC·서버에서 실행하는지 (실행 환경)</span></p>
+</details>
+</section>
+
+<section id="options">
+<h2>옵션</h2>
+<p class="key">기준 조건은 회차마다 따로 지정합니다.</p>
+<details><summary>자세히</summary>
+<div class="tw"><table class="readme">
+<tr><th>옵션</th><th>내용</th></tr>
+<tr><td>--por</td><td>POR 1회분 (파일이나 폴더). <b>회차마다 따로</b> 씁니다. 2회 이상, 권장 3회 이상(매번 재터치다운)</td></tr>
+<tr><td>--doe</td><td>DOE 1회분</td></tr>
+<tr><td>--r</td><td>허용폭의 정책 몫. 기본 0.05 (POR 값의 5%)</td></tr>
+<tr><td>--level</td><td>ITEM 정보 표 (선택, 아래). 장비 분해능·정확도와 blank 환산에 씀</td></tr>
+<tr><td>--blank, --blank-map</td><td>blank 데이터와 연결표 (선택, 아래). LoQ 하한으로만 씀</td></tr>
+<tr><td>--key</td><td>짝짓기 키. 기본 WAFERID,COORD_X_Y,ITEM</td></tr>
+<tr><td>--encoding</td><td>기본 auto (UTF-8, 안 되면 CP949)</td></tr>
+</table></div>
+<p class="readme">UNIT, SPECLOW, SPECHIGH 열은 판정에 쓰지 않습니다(값이 잘못 들어간 경우가 많음). 판정은 모두 비율 기준이라 단위나 정규화 계수가 무엇이든 결과가 같습니다.</p>
+</details>
+</section>
+
+<section id="inputs">
+<h2>입력 파일</h2>
+<p class="key">ITEM 정보 표와 blank는 선택 입력입니다.</p>
+<details><summary>자세히</summary>
+<p><span class="todo">TODO: 측정 결과(DCNORMAL) 파일 형식 — 짝짓기 키 열(WAFERID, COORD_X_Y, ITEM) 외 값 열 이름, 파일·폴더 구성</span></p>
+<h3>ITEM 정보 표 (--level, 선택)</h3>
+<div class="formula readme">ITEM,LEVEL,CALCVAL,DERIVED
+IOFF_N1,10fA,1e12,N     ← 원측정값 10~100 fA, 파일 값 = 원측정값 × 1e12 (pA로 찍힘)
+ION_N1,100nA,,N         ← CALCVAL 모름
+VT_N1,,,Y               ← 변형 값 (여러 측정 조합·추출: Vt 추출, 저항 = V / I, 비율 등)</div>
+<div class="tw"><table class="readme">
+<tr><th>열</th><th>뜻</th></tr>
+<tr><td>LEVEL</td><td>원측정값 |값|의 자릿수 아래 끝. 10fA = 10~100 fA, 1nA = 1~10 nA. 1fA … 100mA, 1uV … 1V (A, V는 장비 사양 적용), fF, pF, kHz, MHz (기록만)</td></tr>
+<tr><td>CALCVAL</td><td>파일 값 = 원측정값 × CALCVAL (단위 환산, 정규화, 부호 포함). 모르면 비움</td></tr>
+<tr><td>DERIVED</td><td>Y = 변형 값. 장비 사양과 blank를 쓰지 않음 (LEVEL 비워도 됨)</td></tr>
+</table></div>
+<div class="tw"><table class="readme">
+<tr><th>경우</th><th>장비 분해능·정확도</th><th>blank</th></tr>
+<tr><td>변형</td><td>안 씀</td><td>안 씀</td></tr>
+<tr><td>변형 아님 + CALCVAL 있음</td><td>원측정값 = 파일 값 / |CALCVAL|로 정확히 환산</td><td>× |CALCVAL| 해서 씀</td></tr>
+<tr><td>변형 아님 + CALCVAL 없음</td><td>자릿수 상한 10L로 보수적 환산</td><td>안 씀</td></tr>
+</table></div>
+<ul class="readme">
+<li>장비 사양: Keysight P9001A Per-pin SMU (P9001 Data sheet p.6-7, Programming Reference Table 2-19/2-22). auto range는 값이 들어가는 가장 작은 range입니다. 표는 por_doe_compare.py의 I_RANGES, V_RANGES. 원본과 대조해서 쓰세요.</li>
+<li>장비 정확도 허용폭: 두 측정이 각자 사양 정확도 ±(a × |값| + b × range + c) 안일 때 생길 수 있는 차이 1.645 × √((U_POR² + U_DOE²) / 3) (균일분포, GUM 4.3.7). 사양의 Vo, Rres × Io 항은 0으로 둡니다.</li>
+<li>level_check: CALCVAL로 환산한 원측정값이 LEVEL 자릿수와 다르면 "불일치". 자릿수 경계는 1.15배까지 일치로 봅니다. CALCVAL이 맞으면 판정에는 영향이 없습니다.</li>
+</ul>
+<h3>blank (--blank, --blank-map, 선택)</h3>
+<p class="readme">blank는 원측정값(A, V 기본 단위)이어야 합니다. 가로형 CSV가 가장 쉽습니다. 맨 윗줄에 blank 조건 이름을 쓰고, 그 아래에 측정값을 측정 순서대로 붙입니다.</p>
+<div class="formula readme">OPEN_I_1PA,OPEN_I_10PA,SHORT_V
+1.2e-12,3.1e-12,0.00012
+-0.8e-12,-1.5e-12,-0.00008</div>
+<p class="readme">제품 ITEM과 이름이 다르면 연결표를 만듭니다. 같은 측정 종류, 같은 range끼리 연결합니다.</p>
+<div class="formula readme">ITEM,BLANK_ITEM
+IOFF_N1,OPEN_I_1PA
+VT_N1,SHORT_V</div>
+<p class="readme">그 밖에 DCNORMAL blank 파일·폴더, CSV ITEM,VALUE, CSV ITEM,SIGMA0도 읽습니다. blank 측정 구성은 전류와 용량은 open, 전압은 short입니다. blank LoQ = |평균| + 10 × 표준편차를 CALCVAL로 ITEM 단위로 바꿔, POR 반복 LoQ보다 크면 그쪽을 씁니다(blank_status).</p>
+</details>
+</section>
+
+<section id="outputs">
+<h2>결과 파일</h2>
+<p class="key">결과 폴더에 네 파일이 생기며, item_map.csv는 공유하지 않습니다.</p>
+<details><summary>자세히</summary>
+<div class="tw"><table class="readme">
+<tr><th>파일</th><th>내용</th></tr>
+<tr><td>items.csv</td><td>ITEM별 판정. 차이, 미결, 동등 순</td></tr>
+<tr><td>outlier_dies.csv</td><td>ITEM마다 튀는 die와 POR 회차별, DOE 값</td></tr>
+<tr><td>summary.txt</td><td>summarize.py가 만드는 공유용 요약 (ITEM 이름 대신 익명 번호)</td></tr>
+<tr><td>item_map.csv</td><td>익명 번호 ↔ ITEM. 공유하지 마세요. items.csv에도 ID 열이 들어갑니다. 번호는 ITEM 이름 순서로 매겨서 실행마다 같습니다</td></tr>
+</table></div>
+<h3>items.csv 주요 열</h3>
+<div class="tw"><table class="readme">
+<tr><th>열</th><th>내용</th></tr>
+<tr><td>zone, verdict, reason</td><td>구간, 판정, 사유</td></tr>
+<tr><td>por_median, POR1_mean …, DOE_mean</td><td>POR 값, 회차별 평균</td></tr>
+<tr><td>center, ci_low, ci_high, rel_shift</td><td>shift와 90% 신뢰구간, POR 대비 비율</td></tr>
+<tr><td>delta, policy_margin, run_margin, delta_source</td><td>허용폭과 그 구성</td></tr>
+<tr><td>sigma_die, sigma_run, LoQ, LoD, limit_source</td><td>흔들림과 LoQ</td></tr>
+<tr><td>doe_center</td><td>LoQ 미만: DOE 중심</td></tr>
+<tr><td>n_outlier_die, ttest, ttest_p, por_ttest_sig</td><td>참고 지표</td></tr>
+<tr><td>spec_status, level_check, range_por, range_doe, spec_resolution, accuracy_margin, verdict_no_accuracy</td><td>--level 관련</td></tr>
+<tr><td>blank_item, blank_status, blank_LoQ_item, verdict_no_blank</td><td>--blank 관련</td></tr>
+</table></div>
+<h3>summary.txt</h3>
+<p class="readme">summary.txt 구성: 구간 × 판정, 동등 아닌 사유, 정량·LoQ 미만 차이·미결 표(회차별 평균), 항목군별 판정, t-test로 판정했다면, 판정 근거 점검(회차 흔들림 몫, LoQ를 정한 쪽, blank·장비 정확도가 바꾼 판정 수), 입력 점검, 반복해서 튀는 die.</p>
+<p><span class="todo">TODO: 결과 파일을 어디에 보관하고 누구에게 공유하는지</span></p>
+</details>
+</section>
+
+<footer class="pager"><a href="index.html">← 이전 · 개요</a><a href="step-1.html">다음 · ① 반복성 확인 →</a></footer>
+</div></main></body></html>

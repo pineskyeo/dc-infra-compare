@@ -1,0 +1,49 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>개요 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html" aria-current="page">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="appendix.html">부록</a></nav>
+<main><div class="wrap">
+<h1>DC Test 동일성 검증</h1>
+
+<section id="procedure">
+<h2>검증 절차</h2>
+<p class="s">준비: 측정·실행 방법은 <a href="run.html">실행 방법</a>, 결과 해석은 <a href="reading.html">결과 읽는 법</a></p>
+<ol class="steps" start="0">
+<li><a href="step-0.html"><strong>표본 크기 정하기</strong></a><br>파일럿으로 기준 조건 3회 측정 → 회차 간 흔들림(σ_run)과 die별 흔들림(σ_die) 산출. 흔들림 여유(t·√(1+1/J)·σ_run)가 |기준 조건 중앙값|의 5% 이하가 되는 최소 J 선택. 주어진 die 수(최소 10개)로 판별 가능한 최소 여유 확인.</li>
+<li><a href="step-1.html"><strong>차이 구하기</strong></a><br>die별 비교 조건 값 − 기준 조건 3회 평균</li>
+<li><a href="step-1.html"><strong>측정 흔들림 확인</strong></a><br>기준 조건 재측정 시 die별 변동과 회차 전체의 이동 크기 산출</li>
+<li><a href="step-2.html"><strong>LoQ 설정</strong></a><br>기준 조건 반복 흔들림·데이터 분해능/√12·장비 분해능/√12·blank(CALCVAL로 ITEM 단위 환산이 될 때만) 중 최대값(σ)의 10배. 그 미만 값은 신뢰하기 어려움</li>
+<li><a href="step-2.html"><strong>항목 분류</strong></a><br>|기준 조건 중앙값| ≥ LoQ면 정량 비교 항목, 미만이면 LoQ 미만 항목</li>
+<li><details id="d5"><summary><strong>die 수 확인</strong><br>유효 die 10개 미만이면 미결. 크게 튀는 die는 제외하지 않고 개수만 기록</summary>
+<ul><li>die 수가 10개 미만이면 판정하지 않고 미결로 둠. items.csv의 zone은 "die 부족", reason은 "die n개 (&lt; 10)"
+<span class="s">근거: por_doe_compare.py MIN_DIE = 10 (method.html·README에는 없음)</span></li>
+<li>이상치 die: |d − median(d)| &gt; 5·robustσ(d). 개수는 n_outlier_die 열에 기록, 판정에는 쓰지 않음 <span class="s">근거: 참고 지표</span></li>
+<li>신뢰구간은 값의 크기가 아니라 순서만 쓰므로 이상치가 얼마나 커도 구간이 움직이지 않음 <span class="s">근거: ③</span></li>
+<li><span class="todo">TODO: 유효 die의 정의 (원문에 없음)</span></li></ul>
+</details></li>
+<li><a href="step-3.html"><strong>치우침 확인</strong></a><br>차이의 중앙값으로 치우침 판단, 90% 신뢰구간 산출</li>
+<li><a href="step-4.html"><strong>허용 범위(Δ) 설정</strong></a><br>|기준 조건 중앙값|의 5% + 기준 조건 회차 간 흔들림으로 구한 예측 한계. 장비 정확도 한계를 쓰는 항목(원문의 A·V ITEM)은 둘 중 큰 값</li>
+<li><a href="step-5.html"><strong>정량 항목 판정(TOST)</strong></a><br>신뢰구간이 허용 범위 안이면 동등, 완전히 밖이면 차이, 걸치면 미결</li>
+<li><a href="step-6.html"><strong>LoQ 미만 항목 판정</strong></a><br>신뢰구간 전체가 허용 범위 밖이고 |비교 조건 중심|(기준 중앙값 + 치우침) ≥ LoQ일 때만 차이, 그 외 동등</li>
+<li><details id="d10"><summary><strong>결과 기록</strong><br>항목별 판정, 치우침, 신뢰구간, 허용 범위, LoQ, 튄 die 수를 결과표에 기록</summary>
+<p>도구가 결과 폴더의 items.csv에 ITEM별로 기록함</p><p>LoQ 미만 항목은 측정값을 그대로 기록하고 &lt;LoQ 표시를 붙임(내부 기준)</p>
+<table class="readme"><tr><th>열</th><th>내용</th></tr>
+<tr><td>zone, verdict, reason</td><td>구간, 판정, 사유</td></tr>
+<tr><td>center, ci_low, ci_high, rel_shift</td><td>shift와 90% 신뢰구간, POR 대비 비율</td></tr>
+<tr><td>delta, policy_margin, run_margin, delta_source</td><td>허용폭과 그 구성</td></tr>
+<tr><td>sigma_die, sigma_run, LoQ, LoD, limit_source</td><td>흔들림과 LoQ</td></tr>
+<tr><td>n_outlier_die, ttest, ttest_p, por_ttest_sig</td><td>참고 지표</td></tr></table>
+<p class="s">전체 열: <a href="reading.html">결과 읽는 법</a> · <span class="todo">TODO: 결과표 보관·공유 위치</span></p>
+</details></li>
+</ol>
+</section>
+
+<section id="result">
+<h2>판정 결과</h2>
+<p class="key">기준 조건을 다시 재도 생기는 차이보다 크지 않으면 같다고 본다</p>
+<!-- EDIT: 정의 문장 --><p class="s">기준 조건(Reference)은 기존 조건, 비교 조건(Candidate)은 바뀐 쪽입니다. 프로그램, 장비, 프로브카드, 측정 조건 등 무엇이 바뀌었든 같은 die를 양쪽에서 측정해 비교합니다.</p><!-- /EDIT -->
+<div class="row3">
+<div class="card"><p><span class="pill ok">동등</span></p><p>비교 조건이 기준 조건과 같다고 본다.</p></div>
+<div class="card"><p><span class="pill bad">차이</span></p><p>비교 조건이 기준 조건과 다르다고 본다.</p></div>
+<div class="card"><p><span class="pill hold">미결</span></p><p>이번 측정으로는 같다고도 다르다고도 할 수 없다.</p></div>
+</div>
+</section>
+</div></main></body></html>

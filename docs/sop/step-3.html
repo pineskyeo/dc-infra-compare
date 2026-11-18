@@ -1,0 +1,73 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>③ 편향과 신뢰구간 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html" aria-current="page">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="appendix.html">부록</a></nav>
+<main><div class="wrap">
+<h1>③ 편향과 신뢰구간</h1>
+<p class="key">편향 b = die별 (비교 조건 − 기준 조건 평균)의 중앙값과 그 90% 신뢰구간을 구합니다.</p>
+
+<section id="criteria">
+<h2>판정 기준</h2>
+<p class="key">이 단계는 판정하지 않고, 90% CI와 b를 ⑤·⑥에 넘깁니다.</p>
+<details><summary>자세히</summary>
+<div class="crit" id="C3-1"><!-- EDIT C3-1 --><span class="id">C3-1</span><span class="none">판정 없음 · 계산 단계</span>
+<p>90% CI → <a href="step-5.html">⑤</a> 90% CI ⊂ (−Δ, +Δ) · <a href="step-6.html">⑥</a> CI가 통째로 ±Δ 밖</p>
+<p>b → <a href="step-6.html">⑥</a> Cand 중심 = Ref 중앙값 + b</p>
+<p class="nl"><span class="badge-n">원문 확인 필요 · N3</span> "Binomial(61, 0.5)", "d(24), d(38)", "92.8%", "die 61개"는 die 61개 기준. 다른 die 수에서 순위가 어떻게 바뀌는지 원문에 설명이 없음.</p></div>
+</details>
+</section>
+
+<section id="formula">
+<h2>수식</h2>
+<p class="key">d를 크기순으로 놓고 24번째 ~ 38번째 값이 90% CI입니다.</p>
+<details><summary>자세히</summary>
+<div class="formula">
+<div>d<sub>j</sub> = Cand<sub>j</sub> − (Ref1<sub>j</sub> + Ref2<sub>j</sub> + Ref3<sub>j</sub>)/3   <span class="c">die j마다</span></div>
+<div>편향 b = median(d)</div>
+<div>B ~ Binomial(61, 0.5): P(B ≤ 23) = 3.6% ≤ 5% &lt; P(B ≤ 24) = 6.2%</div>
+<div>90% CI = [ d<sub>(24)</sub> , d<sub>(38)</sub> ]   <span class="c">크기순 24번째 ~ 38번째. 실제 포함 확률 92.8%</span></div>
+</div>
+</details>
+</section>
+
+<section id="pass">
+<h2>통과 조건</h2>
+<p class="key">b, 90% 신뢰구간, 상대 이동을 다음 단계로 넘깁니다.</p>
+<details><summary>자세히</summary>
+<div class="crit" id="C3-2"><!-- EDIT C3-2 --><span class="id">C3-2</span><h3>다음 단계로 넘기는 값</h3>
+<p>center · ci_low · ci_high 편향 b = median(d), 90% 신뢰구간</p>
+<p>rel_shift b / |Ref 중앙값|</p></div>
+</details>
+</section>
+
+<section id="exceptions">
+<h2>흔한 예외</h2>
+<p class="key">이상치 die가 있어도 구간은 움직이지 않습니다.</p>
+<details><summary>자세히</summary>
+<ul>
+<li>이상치 die: 값의 크기가 아니라 순서만 쓰므로 이상치가 얼마나 커도 구간이 움직이지 않습니다.</li>
+<li>die 수: die 61개 전제 <span class="badge-n">원문 확인 필요 · N3</span></li>
+</ul>
+</details>
+</section>
+
+<section id="derivation">
+<h2>유도·설명</h2>
+<p class="key">왜 24번째와 38번째인가.</p>
+<details><summary>자세히</summary>
+<p><b>목적</b> · 편향 b = die별 (비교 조건 − 기준 조건 평균)의 중앙값과 그 90% 신뢰구간을 구합니다.</p>
+<h3>왜 24번째와 38번째인가</h3>
+<p>진짜 중앙값보다 작은 die 수는 동전 61번 던지기와 같습니다. 23개 이하일 확률 3.6%, 38개 이상일 확률 3.6%. 그래서 두 순서 값 사이에 진짜 중앙값이 있을 확률이 92.8%(≥ 90%)입니다. 값의 크기가 아니라 순서만 쓰므로 이상치가 얼마나 커도 구간이 움직이지 않습니다.</p>
+</details>
+</section>
+
+<section id="basis">
+<h2>근거</h2>
+<p class="key">NIST e-Handbook, ASTM E2935-21, NIST Dataplot, Hollander &amp; Wolfe(2차), Schuirmann(1987)</p>
+<details><summary>자세히</summary>
+<ul class="basis"><li>대응 차이 d: NIST/SEMATECH e-Handbook · 7.3.1.1 Analysis of paired observations · <a href="https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm" rel="noopener" target="_blank">링크</a> / ASTM E2935-21 · 4.2.1, 4.2.1.1 · <a href="https://store.astm.org/e2935-21.html" rel="noopener" target="_blank">링크</a></li>
+<li>부호검정 신뢰구간: NIST Dataplot Reference Manual · MEDIAN CONFIDENCE LIMITS · <a href="https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/mediancl.htm" rel="noopener" target="_blank">링크</a> / SIGN TEST · <a href="https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/signtest.htm" rel="noopener" target="_blank">링크</a> / Hollander &amp; Wolfe, Nonparametric Statistical Methods · 3장 예 3.5, 3.6 (2차: Geyer 강의 페이지) · <a href="https://www.stat.umn.edu/geyer/5601/examp/sign.html" rel="noopener" target="_blank">링크</a></li>
+<li>90%인 이유: Schuirmann (1987) J. Pharmacokinet. Biopharm. 15:657-680 · 초록 · <a href="https://link.springer.com/article/10.1007/BF01068419" rel="noopener" target="_blank">링크</a></li></ul>
+</details>
+</section>
+
+<footer class="pager"><a href="step-2.html">← 이전 · ② LoQ로 구간 나누기</a><a href="step-4.html">다음 · ④ 동등 한계 정하기 →</a></footer>
+</div></main></body></html>

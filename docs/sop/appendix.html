@@ -1,0 +1,96 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>부록 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="appendix.html" aria-current="page">부록</a></nav>
+<main><div class="wrap">
+<h1>부록</h1>
+
+<section id="A">
+<h2>A 용어집</h2>
+<p class="key">이 문서의 기호는 기준 조건을 Ref, 비교 조건을 Cand로 씁니다.</p>
+<details><summary>자세히</summary>
+<!-- EDIT: 정의 문장 --><p>기준 조건(Reference)은 기존 조건, 비교 조건(Candidate)은 바뀐 쪽입니다. 프로그램, 장비, 프로브카드, 측정 조건 등 무엇이 바뀌었든 같은 die를 양쪽에서 측정해 비교합니다.</p><!-- /EDIT -->
+<div class="tw"><table>
+<tr><th>용어</th><th>기호</th><th>뜻</th></tr>
+<tr><td>기준 조건 (Reference, 원문 POR)</td><td>Ref</td><td>Ref1, Ref2, Ref3 = 3회 측정; U<sub>Ref</sub>; |Ref| = |Ref 중앙값|</td></tr>
+<tr><td>비교 조건 (Candidate, 원문 DOE)</td><td>Cand</td><td>Cand<sub>j</sub>, U<sub>Cand</sub>, Cand 중심 = 비교 조건 중심</td></tr>
+<tr><td>반복성 표준편차 <span class="s">repeatability SD</span></td><td>σ<sub>r</sub></td><td>같은 die를 다시 잰 1회 측정의 표준편차 (robust 추정)</td></tr>
+<tr><td>회차 간 정밀도 <span class="s">between-run precision</span></td><td>σ<sub>run</sub></td><td>측정 회차마다 전체 값이 같이 움직이는 크기</td></tr>
+<tr><td>정량한계 <span class="s">LoQ</span></td><td>10σ</td><td>1회 측정값을 숫자로 믿을 수 있는 최소 크기</td></tr>
+<tr><td>편향 <span class="s">bias</span></td><td>b</td><td>die별 (비교 조건 − 기준 조건 평균)의 중앙값</td></tr>
+<tr><td>동등 한계 <span class="s">equivalence margin</span></td><td>±Δ</td><td>실용 한계(5%) + 회차 예측 한계. 이 안이면 같다고 봄</td></tr>
+</table></div>
+</details>
+</section>
+
+<section id="B">
+<h2>B 파라미터 기본값</h2>
+<p class="key">판정에 쓰는 기본값과, 그중 사내 정책·설계로 정한 값입니다.</p>
+<details><summary>자세히</summary>
+<div class="tw"><table>
+<tr><th>파라미터</th><th>기본값</th><th>쓰는 단계</th><th>성격</th></tr>
+<tr><td>기준 조건 회차 수</td><td>J = 3, 비교 조건 1회</td><td>①④</td><td></td></tr>
+<tr><td>r (실용 한계)</td><td>5%</td><td>④</td><td>사내 정책</td></tr>
+<tr><td>회차 예측 한계 배수</td><td>t<sub>0.95,2</sub> = 2.920, √(1+1/3) = 1.155 → 3.37</td><td>④</td><td></td></tr>
+<tr><td>두 한계를 더하는 구성</td><td>Δ = 실용 한계 + 회차 예측 한계</td><td>④</td><td>설계</td></tr>
+<tr><td>신뢰수준</td><td>90% CI (TOST 한쪽 5% 두 개)</td><td>③⑤</td><td></td></tr>
+<tr><td>die 수</td><td>61 → Binomial(61, 0.5), d<sub>(24)</sub>~d<sub>(38)</sub>, 실제 포함 확률 92.8%</td><td>③</td><td><a class="badge-n" href="#N3">N3</a></td></tr>
+<tr><td>MAD 상수</td><td>1.4826</td><td>①</td><td></td></tr>
+<tr><td>LoD · LoQ</td><td>LoD = 3.29·σ, LoQ = 10·σ</td><td>②</td><td></td></tr>
+<tr><td>분해능</td><td>Δx/√12</td><td>②</td><td></td></tr>
+<tr><td>blank</td><td>LoQ<sub>blank</sub> = |평균| + 10·SD</td><td>②</td><td></td></tr>
+<tr><td>장비 정확도 한계 계수</td><td>1.645, /3</td><td>④</td><td></td></tr>
+<tr><td>⑥ 두 조건의 조합</td><td>[CI가 통째로 ±Δ 밖]  AND  [|Cand 중심| ≥ LoQ]</td><td>⑥</td><td>설계</td></tr>
+<tr><td>이상치 die</td><td>|d − median(d)| &gt; 5·robustσ(d)</td><td>참고</td><td></td></tr>
+<tr><td>level_check</td><td>1.15배 여유</td><td>참고</td><td></td></tr>
+</table></div>
+</details>
+</section>
+
+<section id="C">
+<h2>C 원문 확인 필요</h2>
+<p class="key">원문 안에서 표기나 전제가 서로 맞지 않는 다섯 곳입니다.</p>
+<details><summary>자세히</summary>
+<div class="crit" id="N1"><span class="id">N1</span><h3><span class="badge-n">원문 확인 필요 · N1</span> 경계 포함 여부 · <a href="step-5.html#C5-1">⑤</a></h3><p>⑤ 공식은 "90% CI ⊂ (−Δ, +Δ)", "H₁: −Δ &lt; b &lt; +Δ"(열린 구간)인데, 판정 표의 동등 조건은 "−Δ ≤ CI 아래, CI 위 ≤ +Δ"(닫힌 구간). CI 끝이 정확히 ±Δ일 때 판정이 문서 안에서 갈림.</p></div>
+<div class="crit" id="N2"><span class="id">N2</span><h3><span class="badge-n">원문 확인 필요 · N2</span> 절댓값 표기 · <a href="step-6.html#C6-1">⑥</a> · <a href="reading.html#map">판정 지도</a></h3><p>⑥ 공식은 "|Cand 중심| ≥ LoQ"인데, 판정 흐름 d4와 판정 지도 머리글은 "Cand 중심 ≥ LoQ" / "Cand 중심 &lt; LoQ"(절댓값 없음).</p></div>
+<div class="crit" id="N3"><span class="id">N3</span><h3><span class="badge-n">원문 확인 필요 · N3</span> die 수 전제 · <a href="step-3.html#C3-1">③</a></h3><p>"Binomial(61, 0.5)", "d(24), d(38)", "92.8%", "die 61개"는 die 61개 기준. 다른 die 수에서 순위가 어떻게 바뀌는지 원문에 설명이 없음.</p></div>
+<div class="crit" id="N4"><span class="id">N4</span><h3><span class="badge-n">원문 확인 필요 · N4</span> 원문 예시 반올림 · <a href="step-6.html">⑥</a></h3><p>원문의 실데이터 예시 하나에서 표시된 중심값이 "기준 조건 중앙값 + b" 표시값과 반올림이 맞지 않음. 실데이터 예시는 이 문서에서 뺐으므로 원문에서 확인.</p></div>
+<div class="crit" id="N5"><span class="id">N5</span><h3><span class="badge-n">원문 확인 필요 · N5</span> 표기 · <a href="step-2.html#C2-2">②</a> · <a href="reading.html#flow">판정 흐름</a></h3><p>구간 표는 "|Ref| ≥ LoQ", 판정 흐름은 "|Ref 중앙값| ≥ LoQ". 같은 뜻으로 보이나 표기가 다름.</p></div>
+</details>
+</section>
+
+<section id="D">
+<h2>D 참고문헌</h2>
+<p class="key">근거 블록에 쓴 출처 전체. references.md 대조표 기준</p>
+<details><summary>자세히</summary>
+<ol class="basis"><li>NIST/SEMATECH e-Handbook of Statistical Methods · <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda356.htm" rel="noopener" target="_blank">1.3.5.6</a> · <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm" rel="noopener" target="_blank">1.3.5.17</a> · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section4/mpc4.htm" rel="noopener" target="_blank">2.4</a> · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section4/mpc44.htm" rel="noopener" target="_blank">2.4.4</a> · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section5/mpc54.htm" rel="noopener" target="_blank">2.5.4</a> · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section5/mpc541.htm" rel="noopener" target="_blank">2.5.4.1</a> · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section6/mpc61.htm" rel="noopener" target="_blank">2.6.1</a> · <a href="https://www.itl.nist.gov/div898/handbook/pmd/section5/pmd512.htm" rel="noopener" target="_blank">4.5.1.2</a> · <a href="https://www.itl.nist.gov/div898/handbook/prc/section2/prc222.htm" rel="noopener" target="_blank">7.2.2.2</a> · <a href="https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm" rel="noopener" target="_blank">7.3.1.1</a></li>
+<li>NIST Dataplot Reference Manual · <a href="https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/mediancl.htm" rel="noopener" target="_blank">MEDIAN CONFIDENCE LIMITS</a> · <a href="https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/signtest.htm" rel="noopener" target="_blank">SIGN TEST</a> · <a href="https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/predlimi.htm" rel="noopener" target="_blank">PREDICTION LIMITS</a></li>
+<li>JCGM 100:2008 (GUM) · 4.3.7, 5.1.2, F.2.2.1 · <a href="https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf" rel="noopener" target="_blank">링크</a></li>
+<li>JCGM 200:2012 (VIM) · 2.20~2.23 · <a href="https://www.bipm.org/documents/20126/2071204/JCGM_200_2012.pdf" rel="noopener" target="_blank">링크</a></li>
+<li>ISO 5725-3:2023 (1994판 폐지, 본문 미열람) · <a href="https://www.iso.org/standard/69420.html" rel="noopener" target="_blank">링크</a></li>
+<li>ASTM E2935-21 · 1.1, 1.2, 4.1.1, 4.2.1 · <a href="https://store.astm.org/e2935-21.html" rel="noopener" target="_blank">링크</a></li>
+<li>Eurachem Guide "Fitness for Purpose of Analytical Methods" 2판 (2014) · 6.2.4, Quick Reference 2·3, Annex B · <a href="https://www.eurachem.org/images/stories/Guides/pdf/MV_guide_2nd_ed_EN.pdf" rel="noopener" target="_blank">링크</a></li>
+<li>ICH Q2(R2) (2023) · 3.2.3.3 · <a href="https://database.ich.org/sites/default/files/ICH_Q2%28R2%29_Guideline_2023_1130.pdf" rel="noopener" target="_blank">링크</a></li>
+<li>ICH Q2(R1) · 7.2, 7.3, 7.3.1 · <a href="https://database.ich.org/sites/default/files/Q2%28R1%29%20Guideline.pdf" rel="noopener" target="_blank">링크</a></li>
+<li>EPA MARLAP Manual Vol. III · 20.2.7, 20.3, 20.4.3 · <a href="https://www.epa.gov/sites/default/files/2015-05/documents/402-b-04-001c-20_final.pdf" rel="noopener" target="_blank">링크</a></li>
+<li>Schuirmann (1987) J. Pharmacokinet. Biopharm. 15:657-680 · <a href="https://link.springer.com/article/10.1007/BF01068419" rel="noopener" target="_blank">링크</a></li>
+<li>FDA "Statistical Approaches to Establishing Bioequivalence" (2001) · IV, VI.B.1.a, VII.C · <a href="https://www.gmp-compliance.org/files/guidemgr/3616fnl.pdf" rel="noopener" target="_blank">링크</a></li>
+<li>Meeker, Hahn, Escobar, Statistical Intervals 2판 (Wiley 2017) · §4.7 (목차만 확인) · <a href="https://www.oreilly.com/library/view/statistical-intervals-2nd/9780471687177/c04.xhtml" rel="noopener" target="_blank">링크</a></li>
+<li>Hollander &amp; Wolfe, Nonparametric Statistical Methods · 3장 예 3.5, 3.6 (2차: Geyer 강의 페이지) · <a href="https://www.stat.umn.edu/geyer/5601/examp/sign.html" rel="noopener" target="_blank">링크</a></li>
+<li>NCSS PASS "One-Sample Z-Tests for Equivalence" · 517장 Example 2 (Chow, Shao, Wang, Lokhnygina 2018 예 재현) · <a href="https://www.ncss.com/wp-content/themes/ncss/pdf/Procedures/PASS/One-Sample_Z-Tests_for_Equivalence.pdf" rel="noopener" target="_blank">링크</a></li>
+<li>Keysight P9001A 제품 페이지 · <a href="https://www.keysight.com/us/en/product/P9001A/massively-parallel-parametric-test-system.html" rel="noopener" target="_blank">링크</a></li>
+<li>Wikipedia (2차) · <a href="https://en.wikipedia.org/wiki/Median_absolute_deviation" rel="noopener" target="_blank">Median absolute deviation</a> · <a href="https://en.wikipedia.org/wiki/Median" rel="noopener" target="_blank">Median</a> · <a href="https://en.wikipedia.org/wiki/Efficiency_(statistics)" rel="noopener" target="_blank">Efficiency (statistics)</a> · <a href="https://en.wikipedia.org/wiki/Sign_test" rel="noopener" target="_blank">Sign test</a></li>
+<li>원문을 확인하지 못한 문헌 (근거로 쓰지 않음): Currie (1968) Anal. Chem. 40, 586 · Currie (1995) IUPAC Recommendations, Pure Appl. Chem. 67, 1699 · ISO 11843</li></ol>
+</details>
+</section>
+
+<section id="basis">
+<h2>근거</h2>
+<p class="key">references.md 대조표 기준. 각 단계 근거는 해당 페이지 근거 블록</p>
+<details><summary>자세히</summary>
+<ul class="basis"><li>출처 대조표: references.md (Sec, 2026-11-18 23:29 KST 작성)</li>
+<li>근거 없는 5개 항목은 내부 기준 배지로 표시: MIN_DIE=10, 5% 허용 폭, 동등/차이/미결 3분류, 흔들림 여유 ≤ 5%와 J 구간, LoQ 미만 보고 방식</li>
+<li>상태 '부분' 항목: 개념 근거, 세부 방식은 자체 변형</li></ul>
+</details>
+</section>
+
+<footer class="pager"><a href="reading.html">← 이전 · 결과 읽는 법</a><a href="index.html">개요로 →</a></footer>
+</div></main></body></html>

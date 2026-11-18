@@ -1,0 +1,78 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>⑤ TOST로 판정 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html" aria-current="page">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="appendix.html">부록</a></nav>
+<main><div class="wrap">
+<h1>⑤ TOST로 판정</h1>
+<p class="key">정량 구간 |Ref| ≥ LoQ의 항목을 동등 · 차이 · 미결로 판정합니다.</p>
+
+<section id="criteria">
+<h2>판정 기준</h2>
+<p class="key">90% CI가 ±Δ 안이면 <span class="pill ok">동등</span>, 통째로 밖이면 <span class="pill bad">차이</span>, 걸치면 <span class="pill hold">미결</span>입니다.</p>
+<details><summary>자세히</summary>
+<div class="crit" id="C5-1"><!-- EDIT C5-1 --><span class="id">C5-1</span><h3><span class="pill ok">동등</span></h3>
+<p>−Δ ≤ CI 아래, CI 위 ≤ +Δ</p><p>편향이 동등 한계 안이라고 증명됨</p>
+<p class="nl"><span class="badge-n">원문 확인 필요 · N1</span> ⑤ 공식은 "90% CI ⊂ (−Δ, +Δ)", "H₁: −Δ &lt; b &lt; +Δ"(열린 구간)인데, 판정 표의 동등 조건은 "−Δ ≤ CI 아래, CI 위 ≤ +Δ"(닫힌 구간). CI 끝이 정확히 ±Δ일 때 판정이 문서 안에서 갈림.</p></div>
+<div class="crit" id="C5-2"><!-- EDIT C5-2 --><span class="id">C5-2</span><h3><span class="pill bad">차이</span></h3>
+<p>CI 아래 &gt; +Δ 또는 CI 위 &lt; −Δ</p><p>편향이 동등 한계보다 크다고 증명됨</p></div>
+<div class="crit" id="C5-3"><!-- EDIT C5-3 --><span class="id">C5-3</span><h3><span class="pill hold">미결 · 해상도 부족</span></h3>
+<p>걸침, CI 반폭 ≥ Δ</p><p>b가 0이어도 ±Δ 안에 못 들어감. 정밀도 부족</p></div>
+<div class="crit" id="C5-4"><!-- EDIT C5-4 --><span class="id">C5-4</span><h3><span class="pill hold">미결 · 경계</span></h3>
+<p>걸침, CI 반폭 &lt; Δ</p><p>정밀도는 충분, b가 Δ 근처</p></div>
+</details>
+</section>
+
+<section id="formula">
+<h2>수식</h2>
+<p class="key">두 검정 모두 기각  ⇔  90% CI ⊂ (−Δ, +Δ).</p>
+<details><summary>자세히</summary>
+<div class="formula">
+<div>H<sub>0</sub>: |b| ≥ Δ     H<sub>1</sub>: −Δ &lt; b &lt; +Δ</div>
+<div>검정 1: H<sub>0</sub>: b ≤ −Δ 기각 (5%)    검정 2: H<sub>0</sub>: b ≥ +Δ 기각 (5%)</div>
+<div>두 검정 모두 기각  ⇔  90% CI ⊂ (−Δ, +Δ)</div>
+<div class="c">평균판: t₁ = (d̄ + Δ)/(s/√n) &gt; t<sub>0.95,n−1</sub>, t₂ = (d̄ − Δ)/(s/√n) &lt; −t<sub>0.95,n−1</sub>. 여기서는 d̄ 대신 중앙값, t 구간 대신 부호검정 구간</div>
+</div>
+</details>
+</section>
+
+<section id="pass">
+<h2>통과 조건</h2>
+<p class="key">90% CI ⊂ ±Δ이면 TOST 통과, 동등입니다.</p>
+<details><summary>자세히</summary>
+<div class="crit" id="C5-5"><!-- EDIT C5-5 --><span class="id">C5-5</span><h3>TOST 통과</h3>
+<p>d2  90% CI ⊂ ±Δ ?  예 → 동등</p>
+<p class="nl"><span class="badge-n">원문 확인 필요 · N1</span> CI 끝이 정확히 ±Δ일 때 판정이 문서 안에서 갈림.</p></div>
+<div class="crit" id="C5-6"><!-- EDIT C5-6 --><span class="id">C5-6</span><h3>기록되는 값</h3>
+<p>zone · verdict · reason 구간, 판정(동등/차이/미결), 사유</p></div>
+</details>
+</section>
+
+<section id="exceptions">
+<h2>흔한 예외</h2>
+<p class="key">미결은 CI 반폭 ≥ Δ면 해상도 부족, 아니면 경계입니다.</p>
+<details><summary>자세히</summary>
+<ul><li>미결은 CI 반폭 ≥ Δ면 해상도 부족, 아니면 경계입니다.</li></ul>
+</details>
+</section>
+
+<section id="derivation">
+<h2>유도·설명</h2>
+<p class="key">판정 흐름과 90%인 이유.</p>
+<details><summary>자세히</summary>
+<p><b>목적</b> · 정량 구간 |Ref| ≥ LoQ의 판정. 두 검정 모두 기각  ⇔  90% CI ⊂ (−Δ, +Δ).</p>
+<ul>
+<li>d2 "90% CI ⊂ ±Δ ?" 예 → 동등 "TOST 통과"; 아니오 → d3 "CI 통째로 ±Δ 밖 ?" 예 → 차이 "|b| &gt; Δ 증명"; 아니오 → 미결 "반폭 ≥ Δ: 해상도 부족" / "반폭 &lt; Δ: 경계".</li>
+<li>90%인 이유: TOST는 한쪽 5% 검정 두 개 = 90% 신뢰구간 (Schuirmann 1987)</li>
+</ul>
+</details>
+</section>
+
+<section id="basis">
+<h2>근거</h2>
+<p class="key">Schuirmann(1987), FDA(2001), ASTM E2935-21. 3분류는 내부 기준</p>
+<details><summary>자세히</summary>
+<ul class="basis"><li>TOST, 90% 신뢰구간: Schuirmann (1987) J. Pharmacokinet. Biopharm. 15:657-680 · 초록 · <a href="https://link.springer.com/article/10.1007/BF01068419" rel="noopener" target="_blank">링크</a> / FDA "Statistical Approaches to Establishing Bioequivalence" (2001) · IV, VI.B.1.a · <a href="https://www.gmp-compliance.org/files/guidemgr/3616fnl.pdf" rel="noopener" target="_blank">링크</a> / ASTM E2935-21 · 1.1, 1.2 · <a href="https://store.astm.org/e2935-21.html" rel="noopener" target="_blank">링크</a></li>
+<li>동등/차이/미결 3분류 <span class="badge-int">내부 기준</span> 출처 없음 (설계)</li></ul>
+</details>
+</section>
+
+<footer class="pager"><a href="step-4.html">← 이전 · ④ 동등 한계 정하기</a><a href="step-6.html">다음 · ⑥ LoQ 미만 판정 →</a></footer>
+</div></main></body></html>
