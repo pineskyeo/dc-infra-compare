@@ -26,10 +26,10 @@ EXPECT = {
     "VT_SHIFT": "차이",
     "RON_CONTACT": "t-test 유의차, TOST 동등 (회차 평균 흔들림 안)",
     "IOFF_FLOOR": "동등 (LoQ 미만)",
-    "IOFF_LEAK": "동등 (<LoQ 보고 일치: DOE 중심 14 pA < LoQ 16.5 pA). verdict_strict 차이, 튀는 die 20개로 표시",
-    "ION_OUTLIER": "동등 (튀는 die 4개. Hodges–Lehmann이라 끌려가지 않음)",
+    "IOFF_LEAK": "동등 (<LoQ 보고 일치: DOE 중심 14 pA < LoQ 16.5 pA). 튀는 die 20개로 표시",
+    "ION_OUTLIER": "동등 (튀는 die 4개. 중앙값이라 끌려가지 않음)",
     "IDSAT_SPEC": "동등 (가짜 스펙 10 µA는 무시. shift 8 µA < |POR| 5% = 30 µA)",
-    "VOS_OFFSET": "차이 (+3.7 µV > |POR| 5% = 1.5 µV). --level level.csv --accuracy: 동등 (2 V range 정확도 안)",
+    "VOS_OFFSET": "차이 (+3.7 µV > |POR| 5% = 1.5 µV). --level level.csv 를 주면 동등 (2 V range 정확도 안)",
     "IOFF_RUNWOBBLE": "동등 또는 미결, 차이 아님 (POR 회차마다 바닥 offset이 크게 다름. DOE offset은 그 범위 안)",
 }
 run_offset = {k: rng.normal(0, v[3], 4) for k, v in ITEMS.items()}

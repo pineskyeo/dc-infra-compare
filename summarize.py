@@ -2,8 +2,10 @@
 
   python summarize.py 결과/items.csv
   → 결과/summary.txt   : 붙여 넣어 공유할 요약 (ITEM 이름 없음)
-  → 결과/item_map.csv  : 익명 번호 ↔ 실제 ITEM 대응표 (공유하지 말 것)
+  → 결과/item_map.csv  : 익명 번호 ↔ 실제 ITEM (공유하지 말 것)
   → 결과/items.csv     : ITEM 옆에 같은 익명 번호(ID 열)를 넣어 다시 저장
+
+익명 번호는 ITEM 이름 순서로 매기므로 같은 ITEM 목록이면 실행마다 같은 번호가 나온다.
 """
 from __future__ import annotations
 
@@ -14,32 +16,34 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from por_doe_compare import reason_group
+
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("items", help="por_doe_compare.py 가 만든 items.csv")
     ap.add_argument("--family-regex", default=r"^([A-Za-z]+)", help="항목군을 뽑는 정규식 (기본: 앞쪽 영문자)")
     ap.add_argument("--keep-family", action="store_true", help="항목군 이름(VT, ION 등)은 그대로 둠")
-    ap.add_argument("--list", type=int, default=60, help="차이·미결 목록 최대 행 수 (기본 60)")
+    ap.add_argument("--list", type=int, default=60, help="표 최대 행 수 (기본 60)")
     a = ap.parse_args()
 
     path = Path(a.items)
-    d = pd.read_csv(path).drop(columns=["ID"], errors="ignore")
-    raw = d.copy()
-    d["FAMILY"] = d["ITEM"].astype(str).str.extract(a.family_regex, expand=False).fillna("?")
-    fam_ids = {f: f"F{i + 1:02d}" for i, f in enumerate(pd.unique(d["FAMILY"]))}
-    d["ID"] = [f"I{i + 1:04d}" for i in range(len(d))]
-    if not a.keep_family:
-        d["FAMILY"] = d["FAMILY"].map(fam_ids)
-    d["ID"] = d["FAMILY"] + "_" + d["ID"]
+    raw = pd.read_csv(path).drop(columns=["ID"], errors="ignore")
+    d = raw.copy()
+    fam = d["ITEM"].astype(str).str.extract(a.family_regex, expand=False).fillna("?")
+    fam_ids = {f: f"F{i + 1:02d}" for i, f in enumerate(sorted(fam.unique()))}
+    item_no = {it: i + 1 for i, it in enumerate(sorted(d["ITEM"].astype(str)))}
+    d["FAMILY"] = fam if a.keep_family else fam.map(fam_ids)
+    d["ID"] = d["FAMILY"] + "_" + d["ITEM"].astype(str).map(lambda it: f"I{item_no[it]:04d}")
     d[["ID", "ITEM"]].to_csv(path.parent / "item_map.csv", index=False, encoding="utf-8-sig")
     raw.insert(raw.columns.get_loc("ITEM") + 1, "ID", d["ID"])
     raw.to_csv(path, index=False, encoding="utf-8-sig")
-    if "UNIT" not in d:
-        d["UNIT"] = "?"
-    q = d[d["zone"] == "정량"]
-    bad = d[d["verdict"] != "동등"]
 
+    q = d[d["zone"] == "정량"]
+    low = d[d["zone"].isin(["검출한계 이하", "검출~정량"])]
+    bad = d[d["verdict"] != "동등"]
+    runs = sorted(c for c in d.columns if c.startswith("POR") and c.endswith("_mean"))
+    f4 = lambda v: f"{v:.4g}"
     buf = io.StringIO()
     pd.set_option("display.width", 250)
     pd.set_option("display.max_columns", 40)
@@ -48,120 +52,94 @@ def main() -> None:
     def sec(title: str, body) -> None:
         buf.write(f"\n== {title}\n{body if isinstance(body, str) else body.to_string()}\n")
 
-    def ct(rows, cols) -> pd.DataFrame:
-        return pd.crosstab(rows, cols, margins=True, margins_name="합계")
+    buf.write(f"ITEM {len(d):,}개, die 중앙값 {d['n_die'].median():.0f}개, POR 회차 {len(runs)}회\n"
+              f"판정: 중앙값 TOST, 허용폭 = r × |POR| + POR 회차 흔들림, LoQ 미만은 '<LoQ 보고 일치'\n")
 
-    n_die = d["n_die"].median()
-    buf.write(f"ITEM {len(d):,}개, die 중앙값 {n_die:.0f}개, POR 회차 {int(d['n_por_runs'].max())}회\n")
-    sec("구간 x 판정", ct(d["zone"], d["verdict"]))
-    sec("구간 x 방법 x 판정", pd.crosstab([d["zone"], d["method"]], d["verdict"]))
-    if len(q):
-        sec("정량: t-test x TOST", ct(q["ttest"], q["verdict"]))
-        sec("정량: POR끼리 t-test 유의차 쌍 수", q["por_ttest_sig"].value_counts().sort_index())
-        ratio = (q["sigma_run"] / q["sigma_die"]).replace([np.inf, -np.inf], np.nan)
-        sec("정량: sigma_run / sigma_die", ratio.describe(percentiles=[.1, .25, .5, .75, .9]))
-    for zname, zz in (("정량", q), ("LoQ 미만", d[d["zone"].isin(["검출한계 이하", "검출~정량"])])):
-        if len(zz):
-            run_dom = zz[zz["run_margin"] > zz["policy_margin"]]
-            sec(f"{zname}: 허용폭 구성", pd.Series({
-                "정책 몫 / Δ (중앙값)": round((zz["policy_margin"] / zz["delta"]).median(), 3),
-                "회차 흔들림 몫 / Δ (중앙값)": round((zz["run_margin"] / zz["delta"]).median(), 3),
-                "신뢰구간 반폭 / Δ (중앙값)": round((zz["h"] / zz["delta"]).median(), 3),
-                "회차 흔들림 몫 > 정책 몫인 ITEM": len(run_dom),
-                "  그중 동등": int((run_dom["verdict"] == "동등").sum()),
-            }, dtype=object).to_string())
-    if "verdict_no_blank" in d:
-        hb = d[d["verdict_no_blank"].notna()]
-        st = hb["blank_status"].value_counts().to_dict() if "blank_status" in hb else {}
-        sec(f"blank: 연결 {len(hb)}개 {st}, blank가 한계를 정한 ITEM {int((hb['limit_source'] == 'blank').sum())}개",
-            pd.crosstab(hb["verdict_no_blank"].rename("blank 없이"), hb["verdict"].rename("blank 적용"),
-                        margins=True, margins_name="합계"))
-        changed = hb[hb["verdict_no_blank"] != hb["verdict"]]
-        if len(changed):
-            sec("blank로 판정이 바뀐 ITEM", changed[["ID", "UNIT", "zone_no_blank", "zone", "verdict_no_blank", "verdict",
-                                              "sigma_die", "LoQ", "blank_LoQ_item"]].to_string(
-                index=False, float_format=lambda v: f"{v:.4g}"))
-    if "doe_outside_por_runs" in d:
-        lr = d[d["reason"].astype(str).str.startswith("<LoQ 보고 일치")]
-        if len(lr):
-            sec(f"<LoQ 보고 일치로 동등이 된 ITEM {len(lr)}개 중 DOE 평균이 POR 회차 평균들의 범위 밖인 ITEM "
-                f"{int(lr['doe_outside_por_runs'].sum())}개", pd.crosstab(lr["FAMILY"], lr["doe_outside_por_runs"].map(
-                    {True: "DOE가 POR 범위 밖", False: "POR 범위 안"})))
-    if "limit_source" in d:
-        sec("LoQ를 정한 쪽", d["limit_source"].value_counts())
-    if "판정 경로" in d and d["판정 경로"].astype(str).str.startswith("보조").any():
-        sec("판정 경로 x 판정 (보조 = 주 방식 미결 + 튀는 die → 중앙값·부호검정)", ct(d["판정 경로"], d["verdict"]))
-    if "spec_status" in d:
-        sec("장비 사양 환산 방식 (level.csv)", d["spec_status"].fillna("level.csv 없음").value_counts())
-    if "level_check" in d:
-        bad_lv = d[d["level_check"].astype(str).str.startswith("불일치")]
-        if len(bad_lv):
-            sec(f"CALCVAL로 환산한 실제 값이 LEVEL 자릿수와 다른 ITEM {len(bad_lv)}개 (CALCVAL·LEVEL 확인)",
-                bad_lv[["ID", "level_check"]].head(30).to_string(index=False))
-    if "verdict_no_accuracy" in d and d.get("delta_source").eq("장비 정확도").any():
-        qa = d[d["zone"] == "정량"]
-        sec(f"장비 정확도 하한: 허용폭을 정한 ITEM {int(qa['delta_source'].eq('장비 정확도').sum())}개",
-            pd.crosstab(qa["verdict_no_accuracy"].rename("정확도 없이"), qa["verdict"].rename("정확도 적용"),
-                        margins=True, margins_name="합계"))
-    if "range_changed" in d:
-        sec("POR과 DOE의 auto range가 다른 정량 ITEM (판정별)",
-            pd.crosstab(d["range_changed"].eq(True).rename("range 다름"), d["verdict"]))
-    sec("이상 신호", pd.Series({
-        "sigma_die = 0 (계단값 의심)": int((d["sigma_die"] == 0).sum()),
-        "sigma_run = 0": int((d["sigma_run"] == 0).sum()),
-        "sigma_run > 2 x sigma_die": int((d["sigma_run"] > 2 * d["sigma_die"]).sum()),
-        "튀는 die가 있는 ITEM (|d − 중앙값| > 5 robust σ)": int((d["n_outlier_die"] > 0).sum()),
-    }))
-    fam = pd.crosstab(d["FAMILY"], d["verdict"])
-    fam["동등 아님 비율"] = (1 - fam.get("동등", 0) / fam.sum(axis=1)).round(3)
-    sec("항목군별 판정 (동등 아님이 있는 항목군)", fam[fam["동등 아님 비율"] > 0].sort_values("동등 아님 비율", ascending=False))
-    sec("동등 아닌 사유", bad["reason"].str.replace(r"shift .*가", "shift가", regex=True).value_counts())
-
-    runs = sorted(c for c in d.columns if c.startswith("POR") and c.endswith("_mean"))
+    # 1. 결과
+    sec("구간 x 판정", pd.crosstab(d["zone"], d["verdict"], margins=True, margins_name="합계"))
+    if len(bad):
+        sec("동등 아닌 사유", reason_group(bad["reason"]).value_counts())
     qb = bad[bad["zone"] == "정량"]
     if len(qb):
-        rel = pd.DataFrame({"ID": qb["ID"], "UNIT": qb["UNIT"], "verdict": qb["verdict"],
-                            "POR 값": qb["por_median"].map(lambda v: f"{v:.3g}")})
         base = qb[runs].mean(axis=1).abs().replace(0, np.nan)
+        lv = qb["por_median"].abs().replace(0, np.nan)
+        t = pd.DataFrame({"ID": qb["ID"], "UNIT": qb["UNIT"], "verdict": qb["verdict"], "POR 값": qb["por_median"].map(f4)})
         for c in runs + ["DOE_mean"]:
-            rel[c.replace("_mean", "")] = ((qb[c] - qb[runs].mean(axis=1)) / base * 100).map(lambda v: f"{v:+.2f}%")
-        rel["shift %"] = (qb["rel_shift"] * 100).map(lambda v: f"{v:+.2f}")
-        rel["Δ %"] = (qb["delta"] / qb["por_median"].abs() * 100).map(lambda v: f"{v:.2f}")
-        rel["CI %"] = [f"[{lo / abs(m) * 100:+.2f}, {hi / abs(m) * 100:+.2f}]"
-                       for lo, hi, m in zip(qb["ci_low"], qb["ci_high"], qb["por_median"])]
-        rel["튀는 die"] = qb["n_outlier_die"]
+            t[c.replace("_mean", "")] = ((qb[c] - qb[runs].mean(axis=1)) / base * 100).map(lambda v: f"{v:+.2f}%")
+        t["shift %"] = (qb["center"] / lv * 100).map(lambda v: f"{v:+.2f}")
+        t["CI %"] = [f"[{lo / m * 100:+.2f}, {hi / m * 100:+.2f}]" for lo, hi, m in zip(qb["ci_low"], qb["ci_high"], lv)]
+        t["Δ %"] = (qb["delta"] / lv * 100).map(lambda v: f"{v:.2f}")
+        t["튀는 die"] = qb["n_outlier_die"]
         if "range_por" in qb:
-            rel["range POR→DOE"] = qb["range_por"].fillna("").astype(str) + "→" + qb["range_doe"].fillna("").astype(str)
-        if "delta_source" in qb:
-            rel["Δ 출처"] = qb["delta_source"]
-        sec("정량 차이·미결: 회차별 평균 (POR 평균 대비 %). DOE가 POR 회차들의 퍼짐 밖에 있나", rel.head(a.list).to_string(index=False))
+            t["range"] = qb["range_por"].fillna("").astype(str)
+        sec("정량 차이·미결: 회차별 평균 (POR 평균 대비 %). DOE만 POR 회차들 밖인가", t.head(a.list).to_string(index=False))
     lb = bad[bad["zone"].isin(["검출한계 이하", "검출~정량"])]
     if len(lb):
         t = lb[["ID", "UNIT", "verdict", "por_median", "LoQ"] + runs + ["DOE_mean", "center", "ci_low", "ci_high", "delta",
                                                                          "doe_center"]].copy()
         t.columns = ["ID", "UNIT", "verdict", "POR 값", "LoQ"] + [c.replace("_mean", "") for c in runs] + \
-                    ["DOE", "shift", "CI low", "CI high", "Δ(회차 흔들림)", "DOE 중심"]
-        sec("LoQ 미만 차이·미결: 회차별 평균과 중심 이동", t.head(a.list).to_string(index=False, float_format=lambda v: f"{v:.3g}"))
+                    ["DOE", "shift", "CI low", "CI high", "Δ", "DOE 중심"]
+        sec("LoQ 미만 차이·미결: 회차별 평균과 중심 이동", t.head(a.list).to_string(index=False, float_format=f4))
+    fm = pd.crosstab(d["FAMILY"], d["verdict"])
+    fm = fm[fm.drop(columns="동등", errors="ignore").sum(axis=1) > 0]
+    if len(fm):
+        sec("항목군별 판정 (동등 아님이 있는 항목군)", fm)
+
+    # 2. 설득용
+    if len(q):
+        n_por = int((q["por_ttest_sig"].astype(str).str.split("/").str[0].astype(int) > 0).sum())
+        sec("t-test로 판정했다면 (정량 구간)", pd.Series({
+            "DOE vs POR t-test 유의차": f"{int((q['ttest'] == '유의차').sum()):,} / {len(q):,}",
+            "  그중 TOST 동등": f"{int(((q['ttest'] == '유의차') & (q['verdict'] == '동등')).sum()):,}",
+            "POR끼리 t-test 유의차 (1쌍 이상)": f"{n_por:,} / {len(q):,}",
+        }).to_string())
+
+    # 3. 판정 근거 점검
+    rows = {}
+    for name, z in (("정량", q), ("LoQ 미만", low)):
+        if len(z):
+            wide = z["run_margin"] > z["policy_margin"]
+            rows[f"{name}: POR 회차 흔들림 몫이 정책 몫보다 큰 ITEM"] = \
+                f"{int(wide.sum()):,} (그중 동등 {int((wide & (z['verdict'] == '동등')).sum()):,})"
+    for k, v in d["limit_source"].value_counts().items():
+        rows[f"LoQ를 정한 쪽 · {k}"] = int(v)
+    if "verdict_no_blank" in d:
+        hb = d[d["verdict_no_blank"].notna()]
+        rows["blank 때문에 판정이 바뀐 ITEM"] = f"{int((hb['verdict_no_blank'] != hb['verdict']).sum())} / 연결 {len(hb):,}"
+    if "verdict_no_accuracy" in d:
+        qa = q[q["verdict_no_accuracy"].notna()]
+        rows["장비 정확도 때문에 판정이 바뀐 ITEM"] = int((qa["verdict_no_accuracy"] != qa["verdict"]).sum())
+    sec("판정 근거 점검", pd.Series(rows).to_string())
+
+    # 4. 입력 점검
+    rows = {}
+    if "spec_status" in d:
+        for k, v in d["spec_status"].fillna("item_info 없음").value_counts().items():
+            rows[f"장비 사양 · {k}"] = int(v)
+    if "blank_status" in d:
+        for k, v in d["blank_status"].dropna().value_counts().items():
+            rows[f"blank · {k}"] = int(v)
+    rows["sigma_die = 0 (계단값 의심)"] = int((d["sigma_die"] == 0).sum())
+    rows["튀는 die가 있는 ITEM"] = int((d["n_outlier_die"] > 0).sum())
+    sec("입력 점검", pd.Series(rows).to_string())
+    if "level_check" in d:
+        lvbad = d[d["level_check"].astype(str).str.startswith("불일치")]
+        if len(lvbad):
+            sec(f"CALCVAL로 환산한 실제 값이 LEVEL 자릿수와 다른 ITEM {len(lvbad)}개 (앞 10개)",
+                lvbad[["ID", "level_check"]].head(10).to_string(index=False))
     od_path = path.parent / "outlier_dies.csv"
     if od_path.exists():
         od = pd.read_csv(od_path)
         if len(od):
             die_cols = [c for c in od.columns if c not in ("ITEM", "DOE") and not c.startswith("POR")]
-            top = od.groupby(die_cols).size().sort_values(ascending=False)
-            sec(f"튀는 die: 여러 ITEM에서 반복되는 die (상위 15, ITEM {len(d):,}개 중 몇 개에서 튀었나)",
-                top.head(15).rename("ITEM 수"))
-    cols = ["ID", "UNIT", "zone", "verdict", "reason", "ttest", "por_ttest_sig", "por_median",
-            "center", "delta", "ci_low", "ci_high", "sigma_die", "sigma_run", "n_outlier_die"]
-    cols = [c for c in cols if c in d]
-    sec(f"차이·미결 ITEM (최대 {a.list}개)",
-        bad[cols].head(a.list).to_string(index=False, float_format=lambda v: f"{v:.4g}") if len(bad) else "없음")
+            sec(f"여러 ITEM에서 반복해서 튀는 die (상위 10, ITEM {len(d):,}개 중)",
+                od.groupby(die_cols).size().sort_values(ascending=False).head(10).rename("ITEM 수"))
 
     text = buf.getvalue()
     (path.parent / "summary.txt").write_text(text, encoding="utf-8")
     print(text)
     print(f"공유용 요약: {path.parent / 'summary.txt'}")
-    print(f"익명 번호 대응표 (공유하지 마세요): {path.parent / 'item_map.csv'}")
-    print(f"items.csv 에 ID 열 추가: {path}")
+    print(f"익명 번호 대응표 (공유하지 마세요): {path.parent / 'item_map.csv'}  (items.csv 에도 ID 열 추가)")
 
 
 if __name__ == "__main__":
