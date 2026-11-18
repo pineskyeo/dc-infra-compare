@@ -108,7 +108,7 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 
 - t(0.95, J−1) × √(1 + 1/J) × `sigma_run`은 같은 프로그램으로 다시 재도 생기는 회차 간 차이입니다. DOE 1회가 POR J회 평균에서 벗어날 수 있는 90% 예측구간의 한쪽 폭이고, `sigma_run`을 회차 J개로만 추정해서 자유도가 J − 1이라 1.645 대신 t를 씁니다(J = 3이면 2.92, 5면 2.13, 10이면 1.83). 회차마다 중심이 크게 움직이는 항목은 이 몫이 커집니다. 그 안의 차이는 프로그램 차이로 보지 않습니다. 회차를 늘리면 t가 작아지고 `sigma_run`도 정확해집니다.
 - 90% 신뢰구간이 ±Δ 안이면 동등, 통째로 밖이면 차이, 걸치면 미결(신뢰구간 반폭 ≥ Δ면 해상도 부족, 아니면 경계).
-- **LoQ 미만은 "<LoQ 보고 일치".** LoQ 미만 값은 숫자가 아니라 "<LoQ"로 보고하므로(IUPAC), 신뢰구간이 통째로 ±Δ 밖일 때만 차이이고 그 밖은 동등입니다. die 61개로는 비율 차이 ±5%p 안을 증명하기 어려워서, 차이의 증거가 있을 때만 차이로 봅니다. TOST 그대로의 판정은 `verdict_tost_low`, DOE 비율이 POR 회차 범위 밖인지는 `doe_det_outside_por` 열에 남습니다. TOST 그대로 판정하려면 `--strict-low-tost`.
+- **LoQ 미만은 "<LoQ 보고 일치".** LoQ 미만 값은 숫자가 아니라 "<LoQ"로 보고하므로(IUPAC), 두 조건이 모두 맞을 때만 차이이고 그 밖은 동등입니다. ① LoQ 넘는 die 비율 차이의 신뢰구간이 통째로 ±Δ 밖. ② die 중심 이동(값 척도 Hodges–Lehmann)의 신뢰구간이 POR 회차 흔들림 예측구간(r × \|POR\| + t × √(1 + 1/J) × `sigma_run`) 밖. 문턱 근처에서는 중심이 조금만 움직여도 넘는 비율이 크게 바뀌어서, 비율만 보면 POR 회차끼리의 이동보다 작은 차이도 크게 보이기 때문입니다. 값 척도 결과는 `value_center`, `value_ci_low`, `value_ci_high`, `value_delta`, `value_beyond_run` 열. die 61개로는 비율 차이 ±5%p 안을 증명하기 어려워서, 차이의 증거가 있을 때만 차이로 봅니다. TOST 그대로의 판정은 `verdict_tost_low`, DOE 비율이 POR 회차 범위 밖인지는 `doe_det_outside_por` 열에 남습니다. TOST 그대로 판정하려면 `--strict-low-tost`.
 - Hodges–Lehmann은 die별 차이의 모든 두 개 평균(Walsh 평균)의 중앙값입니다. 분포 가정이 없고 튀는 die에 끌려가지 않아서, 평균과 robust 방식을 데이터로 골라 쓰는 문턱값이 필요 없습니다.
 - t-test(`ttest`, `ttest_p`)는 참고용이며 판정에 쓰지 않습니다. `por_ttest_sig`는 POR 회차끼리 t-test를 했을 때 유의차가 나온 쌍의 수입니다.
 

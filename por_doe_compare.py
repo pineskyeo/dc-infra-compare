@@ -24,7 +24,8 @@
                          허용폭 Δ = det_margin + t(0.95, J−1) × √(1 + 1/J) × sigma_run(여부)
   t(0.95, J−1) × √(1 + 1/J) × sigma_run : 같은 프로그램으로 다시 재도 생기는 회차 간 차이 (DOE 1회 vs POR J회 평균의
   90% 예측구간 한쪽). sigma_run 의 자유도가 J − 1이라 t를 쓴다 (J = 3: 2.92, J = 5: 2.13).
-  LoQ 미만은 값을 "<LoQ"로 보고하므로(IUPAC), 신뢰구간이 통째로 ±Δ 밖일 때만 차이, 그 밖은 동등 ("<LoQ 보고 일치").
+  LoQ 미만은 값을 "<LoQ"로 보고하므로(IUPAC), 넘는 비율의 신뢰구간이 통째로 ±Δ 밖이고 die 중심 이동(값 척도,
+  Hodges–Lehmann)도 POR 회차 흔들림 예측구간(r × |POR| + t × √(1 + 1/J) × sigma_run) 밖일 때만 차이. 그 밖은 동등.
   TOST 그대로의 판정은 verdict_tost_low 열. --strict-low-tost 면 TOST 그대로 판정.
 
 90% 신뢰구간 (shift)
@@ -291,10 +292,21 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
                    verdict_tost_low=v)
         if "range_doe" in out:
             out.update(range_doe="", range_changed=None)   # 바닥 값은 DOE/POR 비가 의미 없어 range를 정하지 않음
-        if v == "미결" and not a.strict_low_tost:
-            # LoQ 미만 값은 숫자가 아니라 "<LoQ"로 보고한다 (IUPAC). 차이의 증거(신뢰구간이 통째로 ±Δ 밖)가 없으면 보고가 같다.
-            return {**out, "verdict": "동등", "reason": f"<LoQ 보고 일치 (TOST: {why})"}, outlier
-        return {**out, "verdict": v, "reason": f"LoQ 넘는 die 비율: {why}"}, outlier
+        # 같은 비교를 값 척도로도 한다. die 61개의 중심(Hodges–Lehmann)은 개별 값보다 훨씬 정밀하고, 문턱(LoQ) 근처에서
+        # 중심이 조금만 움직여도 넘는 비율은 크게 바뀌므로, 비율만 보면 POR 회차 흔들림보다 작은 이동도 차이로 보인다.
+        vc, vlo, vhi = ci_hl(d) if d.std() > 0 else (float(d.mean()),) * 3
+        v_delta = a.r * level + run_factor(J) * s_run
+        v_out = vlo > v_delta or vhi < -v_delta
+        out.update(value_center=vc, value_ci_low=vlo, value_ci_high=vhi, value_delta=v_delta,
+                   value_beyond_run=bool(v_out))
+        if a.strict_low_tost:
+            return {**out, "verdict": v, "reason": f"LoQ 넘는 die 비율: {why}"}, outlier
+        if v == "차이" and v_out:
+            return {**out, "verdict": "차이", "reason": f"LoQ 넘는 die 비율: {why}, 중심 이동도 POR 회차 흔들림 밖"}, outlier
+        # LoQ 미만 값은 숫자가 아니라 "<LoQ"로 보고한다 (IUPAC). 차이는 넘는 비율과 중심 이동이 둘 다 POR 회차 흔들림을
+        # 넘을 때만. 그 밖은 보고가 같다고 본다.
+        note = "비율은 다르지만 중심 이동이 POR 회차 흔들림 안" if v == "차이" else f"TOST: {why}"
+        return {**out, "verdict": "동등", "reason": f"<LoQ 보고 일치 ({note})"}, outlier
 
     policy = a.r * level
     run_term = run_factor(J) * s_run
