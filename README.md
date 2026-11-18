@@ -111,6 +111,7 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 |---|---|
 | `--blank`, `--blank-map` | blank 데이터와 연결표. 형식은 아래 "blank 넣기"와 같음 |
 | `--accuracy` | 정량 구간 허용폭의 하한으로 장비 사양 정확도를 씀 (아래) |
+| `--exclude-units` | 판정에서 뺄 단위, 쉼표로 구분 (예: `nA/um,pA/cell,Kohm/set`). 정규화 계수가 잘못 들어간 ITEM처럼 값 자체를 쓸 수 없을 때. 뺀 ITEM은 `excluded_items.csv` |
 
 **장비 사양 (Keysight P9001A Per-pin SMU, auto range).** 단위가 측정 단위(A, pA, nA, uA, mA, V, mV, uV)인 ITEM은 값의 크기로 auto range를 정합니다. measure_i/measure_v에 range 0을 주면 값이 들어가는 가장 작은 range를 쓰기 때문입니다(Programming Reference Table 2-19/2-22). 정규화·유도 단위(ohm, nA/um, pA/cell, F 등)는 range를 알 수 없어 적용하지 않습니다.
 

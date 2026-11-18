@@ -237,6 +237,8 @@ def main() -> None:
                     help="LoQ 미만 구간 허용폭: LoQ 넘는 die 비율 차이 (기본 0.05 = 5%%p)")
     ap.add_argument("--strict-low-tost", action="store_true",
                     help="LoQ 미만도 동등을 증명해야 동등 (기본: 차이 증거가 없으면 '<LoQ 보고 일치'로 동등)")
+    ap.add_argument("--exclude-units", default="",
+                    help="판정에서 뺄 단위, 쉼표로 구분 (예: nA/um,pA/cell,Kohm/set). 뺀 ITEM은 excluded_items.csv")
     ap.add_argument("--estimator", choices=["hl", "mean"], default="hl",
                     help="정량 구간 신뢰구간: hl = Hodges–Lehmann/Wilcoxon (기본), mean = 평균/t")
     ap.add_argument("--accuracy", action="store_true",
@@ -262,6 +264,14 @@ def main() -> None:
     doe = load_side(a.doe, "DOE", a.encoding).groupby(key)["DATA"].median().rename("DOE")
     wide = pd.concat(runs + [doe], axis=1, join="inner").reset_index()
     por_cols = [f"POR{i + 1}" for i in range(len(a.por))]
+    excl = {u.strip() for u in a.exclude_units.split(",") if u.strip()}
+    excluded = pd.DataFrame(columns=["ITEM", "UNIT"])
+    if excl:
+        unit_of = wide["ITEM"].map(units)
+        excluded = (pd.DataFrame({"ITEM": wide.loc[unit_of.isin(excl), "ITEM"].unique()})
+                    .assign(UNIT=lambda x: x["ITEM"].map(units), reason="--exclude-units"))
+        wide = wide[~unit_of.isin(excl)]
+        print(f"단위 {sorted(excl)} ITEM {len(excluded):,}개 제외")
     print(f"POR {len(por_cols)}회 + DOE, 모든 회차에 있는 die·ITEM {len(wide):,}개, ITEM {wide['ITEM'].nunique():,}개")
 
     blank = load_blank(a.blank, a.encoding) if a.blank else pd.DataFrame(columns=["BLANK_ITEM"])
@@ -297,6 +307,8 @@ def main() -> None:
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     res.to_csv(out / "items.csv", index=False, encoding="utf-8-sig")
+    if len(excluded):
+        excluded.to_csv(out / "excluded_items.csv", index=False, encoding="utf-8-sig")
     od = pd.concat(outl) if outl else pd.DataFrame(columns=die_cols + ["ITEM"])
     od.to_csv(out / "outlier_dies.csv", index=False, encoding="utf-8-sig")
 
