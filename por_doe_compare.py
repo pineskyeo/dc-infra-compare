@@ -179,6 +179,17 @@ def robust_noise(Y: np.ndarray) -> tuple[float, float]:
     return s_die, s_run
 
 
+def unstable_dies(Y: np.ndarray, cut: float = 3.5) -> np.ndarray:
+    """POR끼리도 재현되지 않는 die. die 평균과 회차 몫을 뺀 POR 잔차의 수정 Z = 0.6745 (e − 중앙값) / MAD가
+    어느 회차에서든 |M| > 3.5 (NIST e-Handbook 1.3.5.17, Iglewicz & Hoaglin). DOE 값은 보지 않는다."""
+    e = Y - Y.mean(axis=1, keepdims=True)
+    e = e - np.median(e, axis=0, keepdims=True)
+    mad = np.median(np.abs(e - np.median(e)))
+    if mad == 0:
+        return np.zeros(len(Y), bool)
+    return (np.abs(0.6745 * (e - np.median(e)) / mad) > cut).any(axis=1)
+
+
 def run_factor(J: int) -> float:
     """DOE 1회가 POR J회 평균과 같은 프로그램 안에서 다를 수 있는 폭의 배수 (90% 예측구간 한쪽).
     sigma_run 은 회차 J개로 추정해서 자유도가 J − 1뿐이라 1.645 대신 t(0.95, J − 1)를 쓴다 (J = 3이면 2.92)."""
@@ -342,6 +353,9 @@ def main() -> None:
     ap.add_argument("--r", type=float, default=0.05, help="정량 구간 허용폭 = r × |POR| (기본 0.05)")
     ap.add_argument("--strict-low-tost", action="store_true",
                     help="LoQ 미만도 정량과 같은 TOST로 판정 (기본: '<LoQ 보고 일치')")
+    ap.add_argument("--drop-unstable-dies", action="store_true",
+                    help="POR 회차끼리도 재현되지 않는 die(POR 잔차의 수정 Z > 3.5, NIST 1.3.5.17)를 ITEM마다 빼고 판정. "
+                         "DOE 값은 보지 않음. 뺀 die는 dropped_dies.csv")
     ap.add_argument("--estimator", choices=["hl", "median", "mean"], default="hl",
                     help="shift 신뢰구간: hl = Hodges–Lehmann/Wilcoxon (기본), median = 중앙값/부호검정 "
                          "(튀는 die가 많아도 버팀), mean = 평균/t")
@@ -409,11 +423,17 @@ def main() -> None:
     elif a.accuracy:
         sys.exit("--accuracy 는 --level 이 필요합니다")
 
-    rows, outl = [], []
+    rows, outl, dropped = [], [], []
     for item, g in wide.groupby("ITEM", sort=False):
         Y, z = g[por_cols].to_numpy(float), g["DOE"].to_numpy(float)
         bitem = bmap.get(item, item)
         extra, lim = {}, None
+        if a.drop_unstable_dies:
+            bad = unstable_dies(Y)
+            extra["n_dropped_die"] = int(bad.sum())
+            if bad.any():
+                dropped.append(g.loc[bad, die_cols + ["ITEM"] + por_cols + ["DOE"]])
+                g, Y, z = g[~bad], Y[~bad], z[~bad]
         if bitem in blank.index:
             lim3 = blank_limits(blank.loc[bitem])
             if lim3:
@@ -434,6 +454,12 @@ def main() -> None:
     res.to_csv(out / "items.csv", index=False, encoding="utf-8-sig")
     od = pd.concat(outl) if outl else pd.DataFrame(columns=die_cols + ["ITEM"])
     od.to_csv(out / "outlier_dies.csv", index=False, encoding="utf-8-sig")
+    if a.drop_unstable_dies:
+        (pd.concat(dropped) if dropped else pd.DataFrame(columns=die_cols + ["ITEM"])).to_csv(
+            out / "dropped_dies.csv", index=False, encoding="utf-8-sig")
+        nd = res["n_dropped_die"]
+        print(f"\nPOR끼리도 재현되지 않아 뺀 die: ITEM {int((nd > 0).sum()):,}개에서 총 {int(nd.sum()):,}개 "
+              f"(ITEM당 최대 {int(nd.max())}개). 목록: {out / 'dropped_dies.csv'}")
 
     print(f"\n판정 (허용폭 ±{a.r:.0%} + POR 회차 흔들림, 신뢰구간 {a.estimator}, LoQ 미만은 '<LoQ 보고 일치')")
     print(pd.crosstab(res["zone"], res["verdict"], margins=True, margins_name="합계").to_string())
