@@ -113,6 +113,22 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 
 **UNIT은 판정에 쓰지 않습니다.** DCNORMAL의 UNIT 값이 잘못 들어간 경우가 많아서, 판정은 값과 POR 반복 흔들림만으로 합니다. 판정이 모두 비율 기준(허용폭은 POR 값의 r배, LoQ는 그 ITEM 흔들림의 10배)이라 값의 단위나 정규화 계수가 무엇이든 결과가 같습니다. UNIT 열은 결과 표시용으로만 옮깁니다.
 
+**실제 측정값 자릿수 (`--level`, 선택).** ITEM마다 실제로 잰 값의 자릿수를 CSV로 주면 장비 사양(Keysight P9001A Per-pin SMU)을 씁니다. UNIT은 여전히 보지 않습니다.
+
+```
+ITEM,LEVEL
+IOFF_N1,10fA        ← 실제 값이 10~100 fA (예: 중앙값 -7.7e-14 A)
+ION_N1,100nA        ← 100 nA~1 µA (예: 2.8e-07 A)
+VOS_P1,10uV
+```
+
+- 표기: 1fA … 100mA, 1uV … 1V (A, V는 사양 적용), 100fF … 100pF, 10kHz … 1MHz (아직 사양 없음, 기록만).
+- 실제 값은 자릿수 상한 10L로 둡니다(허용폭을 가장 작게 잡는 쪽). 파일 값 / 실제 값 = |POR 중앙값| / 10L이라서 파일의 UNIT이나 정규화 계수가 틀려도 됩니다.
+- auto range: `measure_i`/`measure_v`에 range 0을 주면 값이 들어가는 가장 작은 range를 씁니다(Programming Reference Table 2-19, 2-22). `range_por`, `range_doe`, `range_changed` 열. 바닥(LoQ 미만) ITEM은 DOE range를 정하지 않습니다.
+- 분해능 하한: σ ≥ range 측정 분해능 / √12 (GUM F.2.2.1). `limit_source` = 장비 분해능.
+- `--accuracy`: 두 측정이 각자 사양 정확도 ±(a × |값| + b × range + c) 안에 있을 때 생길 수 있는 차이 1.645 × √((U_POR² + U_DOE²) / 3) (균일분포, GUM 4.3.7)를 정량 구간 허용폭 하한으로 씁니다. 사양의 Vo, Rres × Io 항은 0으로 둡니다. 정확도 없이 낸 판정은 `verdict_no_accuracy`, 허용폭을 정한 쪽은 `delta_source`.
+- 사양 값은 `por_doe_compare.py`의 `I_RANGES`, `V_RANGES` 표 (P9001 Data sheet p.6-7). 원본과 대조해서 쓰세요.
+
 **결과 파일**
 
 | 파일 | 내용 |

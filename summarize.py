@@ -84,6 +84,14 @@ def main() -> None:
                     {True: "DOE가 POR 범위 밖", False: "POR 범위 안"})))
     if "limit_source" in d:
         sec("LoQ를 정한 쪽", d["limit_source"].value_counts())
+    if "verdict_no_accuracy" in d and d.get("delta_source").eq("장비 정확도").any():
+        qa = d[d["zone"] == "정량"]
+        sec(f"장비 정확도 하한: 허용폭을 정한 ITEM {int(qa['delta_source'].eq('장비 정확도').sum())}개",
+            pd.crosstab(qa["verdict_no_accuracy"].rename("정확도 없이"), qa["verdict"].rename("정확도 적용"),
+                        margins=True, margins_name="합계"))
+    if "range_changed" in d:
+        sec("POR과 DOE의 auto range가 다른 정량 ITEM (판정별)",
+            pd.crosstab(d["range_changed"].eq(True).rename("range 다름"), d["verdict"]))
     sec("이상 신호", pd.Series({
         "sigma_die = 0 (계단값 의심)": int((d["sigma_die"] == 0).sum()),
         "sigma_run = 0": int((d["sigma_run"] == 0).sum()),
@@ -108,6 +116,10 @@ def main() -> None:
         rel["CI %"] = [f"[{lo / abs(m) * 100:+.2f}, {hi / abs(m) * 100:+.2f}]"
                        for lo, hi, m in zip(qb["ci_low"], qb["ci_high"], qb["por_median"])]
         rel["튀는 die"] = qb["n_outlier_die"]
+        if "range_por" in qb:
+            rel["range POR→DOE"] = qb["range_por"].fillna("").astype(str) + "→" + qb["range_doe"].fillna("").astype(str)
+        if "delta_source" in qb:
+            rel["Δ 출처"] = qb["delta_source"]
         sec("정량 차이·미결: 회차별 평균 (POR 평균 대비 %). DOE가 POR 회차들의 퍼짐 밖에 있나", rel.head(a.list).to_string(index=False))
     dets = sorted(c for c in d.columns if c.startswith("POR") and c.endswith("_det"))
     lb = bad[bad["zone"].isin(["검출한계 이하", "검출~정량"])]
