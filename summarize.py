@@ -68,13 +68,15 @@ def main() -> None:
             }, dtype=object).to_string())
     if "verdict_no_blank" in d:
         hb = d[d["verdict_no_blank"].notna()]
-        sec(f"blank: 연결 {len(hb)}개, blank가 한계를 정한 ITEM {int((hb['limit_source'] == 'blank').sum())}개",
+        n_app = int(hb["blank_status"].eq("적용").sum()) if "blank_status" in hb else len(hb)
+        sec(f"blank: 연결 {len(hb)}개 (SCALE로 단위 맞춰 적용 {n_app}개), blank가 한계를 정한 ITEM "
+            f"{int((hb['limit_source'] == 'blank').sum())}개",
             pd.crosstab(hb["verdict_no_blank"].rename("blank 없이"), hb["verdict"].rename("blank 적용"),
                         margins=True, margins_name="합계"))
         changed = hb[hb["verdict_no_blank"] != hb["verdict"]]
         if len(changed):
             sec("blank로 판정이 바뀐 ITEM", changed[["ID", "UNIT", "zone_no_blank", "zone", "verdict_no_blank", "verdict",
-                                              "sigma_die", "LoQ", "blank_LoQ"]].to_string(
+                                              "sigma_die", "LoQ", "blank_LoQ_item"]].to_string(
                 index=False, float_format=lambda v: f"{v:.4g}"))
     if "verdict_tost_low" in d:
         lr = d[d["reason"].astype(str).str.startswith("<LoQ 보고 일치")]

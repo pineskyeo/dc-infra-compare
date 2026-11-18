@@ -11,8 +11,10 @@
   σ = max(sigma_die, 분해능 / √12). 분해능 = 측정값 사이의 가장 작은 간격 (계단값, GUM F.2.2.1)
   UNIT 열은 판정에 쓰지 않는다 (결과 표시용으로만 옮긴다).
   --level ITEM,LEVEL (실제 측정값 자릿수, 예 10fA = 10~100 fA)이 있으면 P9001A Per-pin SMU 사양을 ITEM 단위로 바꿔 쓴다.
-  실제 값 = 자릿수 상한 10L, 파일 값 / 실제 값 = |POR 중앙값| / 10L. 분해능 하한은 항상, 정확도 하한은 --accuracy 일 때.
-  --blank 를 주면 blank 한계(|μ| + 3.29 SD, |μ| + 10 SD)가 더 클 때 그쪽을 씀 (하한).
+  SCALE이 있으면 실제 값 = |POR 중앙값| / SCALE. 없으면 실제 값 = 자릿수 상한 10L, 파일 값 / 실제 값 = |POR 중앙값| / 10L.
+  분해능 하한은 항상, 정확도 하한은 --accuracy 일 때.
+  --blank 를 주면 blank 한계(|μ| + 3.29 SD, |μ| + 10 SD)가 더 클 때 그쪽을 씀 (하한). blank는 실제 측정값이라
+  --level 의 SCALE(파일 값 / 실제 값)이 있는 ITEM에만 ITEM 단위로 바꿔 쓴다.
 
 두 구간 모두 같은 TOST 규칙. 비교하는 양만 다르다.
   정량 (|POR| ≥ LoQ)  : die별 d = DOE − POR 회차 평균
@@ -106,9 +108,12 @@ def spec_terms(lvl, level: float, doe_level: float) -> dict:
     파일 값 / 실제 값 = level / 10L 이라서 UNIT이나 정규화 계수를 몰라도 된다."""
     if lvl is None or level <= 0:
         return {}
-    L, kind = lvl
-    phys = 10 * L
-    k = level / phys
+    L, kind, scale = lvl
+    if scale:                       # 파일 값 = 실제 값 × SCALE 을 알면 정확히 바꾼다
+        k, phys = scale, level / scale
+    else:
+        phys = 10 * L
+        k = level / phys
     phys_d = phys * doe_level / level
     rp, rd = smu_row(kind, phys), smu_row(kind, phys_d)
     out = {"level_kind": kind, "range_por": range_name(rp, kind), "range_doe": range_name(rd, kind),
@@ -191,7 +196,9 @@ def tost(center: float, lo: float, hi: float, delta: float, fmt=lambda v: f"{v:+
 
 def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
           blank_lim: tuple[float, float] | None = None, lvl=None) -> tuple[dict, np.ndarray]:
-    """blank_lim = blank로 구한 (LoD, LoQ). 반복으로 구한 한계보다 크면 그쪽을 쓴다. (결과, 튀는 die 표시)"""
+    """blank_lim = blank 원측정값으로 구한 (LoD, LoQ). blank는 실제 측정값(A, V)이고 결과 값은 가공됐을 수 있어서
+    level.csv 의 SCALE(파일 값 = 실제 값 × SCALE)로 ITEM 단위로 바꾼 뒤 반복으로 구한 한계보다 크면 그쪽을 쓴다.
+    SCALE이 없으면 자릿수만으로는 최대 10배까지 틀릴 수 있어 blank를 쓰지 않는다. (결과, 튀는 die 표시)"""
     n, J = Y.shape
     R = Y.mean(axis=1)
     level = abs(float(np.median(R)))
@@ -204,8 +211,16 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
              (sp.get("spec_resolution", 0.0) / np.sqrt(12), "장비 분해능")]
     s_lim, src = max(cands, key=lambda t: t[0])
     lod, loq = K_LOD * s_lim, K_LOQ * s_lim
-    if blank_lim and blank_lim[1] > loq:
-        lod, loq, src = max(lod, blank_lim[0]), blank_lim[1], "blank"
+    blank_info = {}
+    if blank_lim:
+        if lvl is None or not lvl[2]:
+            blank_info = {"blank_status": "SCALE 없음: 미적용"}
+        else:
+            k = lvl[2]
+            b_lod, b_loq = blank_lim[0] * k, blank_lim[1] * k
+            blank_info = {"blank_status": "적용", "blank_LoD_item": b_lod, "blank_LoQ_item": b_loq}
+            if b_loq > loq:
+                lod, loq, src = max(lod, b_lod), b_loq, "blank"
     d = z - R
     rs = robust_sigma(d)
     outlier = np.abs(d - np.median(d)) > OUTLIER_K * rs if rs > 0 else np.zeros(n, bool)
@@ -220,6 +235,7 @@ def judge(Y: np.ndarray, z: np.ndarray, a: argparse.Namespace,
         "ttest_p": p_t, "ttest": "유의차" if p_t < 0.05 else "유의차 없음",
         "por_ttest_sig": f"{sum(p < 0.05 for p in por_pairs)}/{len(por_pairs)}",
         **{f"POR{k + 1}_mean": float(Y[:, k].mean()) for k in range(J)}, "DOE_mean": float(z.mean()), **sp,
+        **blank_info,
     }
     if n < MIN_DIE:
         return {**out, "zone": "die 부족", "verdict": "미결", "reason": f"die {n}개 (< {MIN_DIE})"}, outlier
@@ -273,7 +289,8 @@ def main() -> None:
                     help="LoQ 미만도 동등을 증명해야 동등 (기본: 차이 증거가 없으면 '<LoQ 보고 일치'로 동등)")
     ap.add_argument("--estimator", choices=["hl", "mean"], default="hl",
                     help="정량 구간 신뢰구간: hl = Hodges–Lehmann/Wilcoxon (기본), mean = 평균/t")
-    ap.add_argument("--level", help="CSV ITEM,LEVEL. ITEM별 실제 측정값 자릿수 (예: 10fA = 10~100 fA, 100nA, 10uV, 1pF, 1MHz)")
+    ap.add_argument("--level", help="CSV ITEM,LEVEL[,SCALE]. LEVEL = 실제 측정값 자릿수 (예: 10fA = 10~100 fA, 100nA, 10uV, "
+                                    "1pF, 1MHz). SCALE = 파일 값 / 실제 값 (CALCVAL 배율). SCALE이 있어야 blank를 씀")
     ap.add_argument("--accuracy", action="store_true",
                     help="--level 이 있는 A·V ITEM에서 정량 구간 허용폭 하한으로 장비 사양 정확도를 씀")
     ap.add_argument("--blank", nargs="*", default=[],
@@ -312,13 +329,15 @@ def main() -> None:
         lv = read_csv_auto(Path(a.level), a.encoding)
         lv.columns = [c.strip().upper() for c in lv.columns]
         bad = []
-        for it, txt in zip(lv["ITEM"].astype(str).str.strip(), lv["LEVEL"]):
+        scales = pd.to_numeric(lv["SCALE"], errors="coerce") if "SCALE" in lv else pd.Series(np.nan, index=lv.index)
+        for it, txt, sc in zip(lv["ITEM"].astype(str).str.strip(), lv["LEVEL"], scales):
             parsed = parse_level(txt)
             if parsed:
-                levels[it] = parsed
+                levels[it] = (*parsed, float(sc) if np.isfinite(sc) and sc != 0 else None)
             else:
                 bad.append(f"{it}={txt}")
-        kinds = pd.Series([k for _, k in levels.values()]).value_counts().to_dict()
+        kinds = pd.Series([k for _, k, _ in levels.values()]).value_counts().to_dict()
+        print(f"  SCALE 있는 ITEM {sum(1 for *_, sc in levels.values() if sc):,}개")
         print(f"LEVEL 표: ITEM {len(levels):,}개 {kinds}" + (f", 읽지 못한 행 {len(bad)}개: {bad[:5]}" if bad else ""))
         no_spec = {k: n for k, n in kinds.items() if k not in ("A", "V")}
         if no_spec:
@@ -335,7 +354,7 @@ def main() -> None:
             lim3 = blank_limits(blank.loc[bitem])
             if lim3:
                 lim = lim3[1:]
-                extra = {"blank_item": bitem, "blank_LoD": lim[0], "blank_LoQ": lim[1]}
+                extra = {"blank_item": bitem, "blank_LoD_raw": lim[0], "blank_LoQ_raw": lim[1]}
         res, mask = judge(Y, z, a, lim, levels.get(item))
         if lim:
             base, _ = judge(Y, z, a, None, levels.get(item))
@@ -363,7 +382,9 @@ def main() -> None:
               f"  (같은 프로그램인데 t-test가 '차이'라고 한 수)")
     if "verdict_no_blank" in res:
         hb = res[res["verdict_no_blank"].notna()]
-        print(f"\nblank 연결 ITEM {len(hb):,}개 중 blank가 한계를 정한 ITEM {int((hb['limit_source'] == 'blank').sum()):,}개")
+        print(f"\nblank 연결 ITEM {len(hb):,}개: SCALE로 단위 맞춰 적용 {int(hb['blank_status'].eq('적용').sum()):,}개, "
+              f"SCALE 없어 미적용 {int(hb['blank_status'].ne('적용').sum()):,}개, "
+              f"blank가 한계를 정한 ITEM {int((hb['limit_source'] == 'blank').sum()):,}개")
         print("blank 없이 → blank 하한 적용 (행: 없이, 열: 적용)")
         print(pd.crosstab(hb["verdict_no_blank"], hb["verdict"], margins=True, margins_name="합계").to_string())
     if a.accuracy and len(q):

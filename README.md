@@ -94,7 +94,10 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 
 분산분석(평균·제곱합) 값은 튀는 die 몇 개에도 몇 배로 부풀어서 비교용으로만 `sigma_die_anova`, `sigma_run_anova` 열에 남깁니다. LoQ 미만 구간의 0/1 여부 데이터는 MAD가 0이 되므로 분산분석을 씁니다.
 
-**구간.** σ = max(`sigma_die`, 분해능 / √12)로 LoD = 3.29σ, LoQ = 10σ를 정합니다(Currie, IUPAC). 분해능은 데이터에서 측정값 사이의 가장 작은 간격입니다. 계단값 항목은 반복해도 같은 값이 나와 `sigma_die`가 0이 되므로, 분해능의 표준불확도(GUM F.2.2.1, 간격 / √12)를 하한으로 씁니다. `limit_source` 열에 한계를 정한 쪽(POR 반복 / 데이터 분해능 / blank)이 나옵니다.
+**구간.** σ = max(`sigma_die`, 데이터 분해능 / √12, 장비 분해능 / √12)로 LoD = 3.29σ, LoQ = 10σ를 정합니다(Currie, IUPAC). blank LoQ가 더 크면 blank 쪽을 씁니다. `limit_source` 열에 한계를 정한 쪽(POR 반복 / 데이터 분해능 / 장비 분해능 / blank)이 나옵니다.
+
+- 데이터 분해능: 결과 파일 값 사이의 가장 작은 간격. 계단값 항목은 반복해도 같은 값이 나와 `sigma_die`가 0이 되므로 간격 / √12(GUM F.2.2.1)를 하한으로 씁니다. 가공된 값(CALCVAL)이라도 비교하는 숫자 자체의 눈금이라 그대로 쓸 수 있고, 값이 계단으로 찍히지 않은 ITEM은 간격이 아주 작아 영향이 없습니다.
+- 장비 분해능, blank: 아래 `--level`, `--blank`.
 
 **판정.** 두 구간 모두 같은 TOST 규칙이고 비교하는 양만 다릅니다.
 
@@ -113,19 +116,22 @@ python por_doe_compare.py --por run1/ --por run2/ --por run3/ --doe doe/ --out �
 |---|---|
 | `--blank`, `--blank-map` | blank 데이터와 연결표. 형식은 아래 "blank 넣기"와 같음 |
 
+**blank.** blank는 실제 측정값(A, V)이고 결과 값은 가공(CALCVAL 배율, 정규화)됐을 수 있습니다. 그래서 `--level`에 SCALE이 있는 ITEM만 blank 한계(LoD = \|μ\| + 3.29 SD, LoQ = \|μ\| + 10 SD)에 SCALE을 곱해 ITEM 단위로 바꿔 쓰고, 나머지 ITEM은 쓰지 않습니다(`blank_status`). 바꾼 한계(`blank_LoQ_item`)가 POR 반복으로 구한 한계보다 크면 blank 쪽을 씁니다. blank 값은 A, V 기본 단위여야 합니다.
+
 **UNIT은 판정에 쓰지 않습니다.** DCNORMAL의 UNIT 값이 잘못 들어간 경우가 많아서, 판정은 값과 POR 반복 흔들림만으로 합니다. 판정이 모두 비율 기준(허용폭은 POR 값의 r배, LoQ는 그 ITEM 흔들림의 10배)이라 값의 단위나 정규화 계수가 무엇이든 결과가 같습니다. UNIT 열은 결과 표시용으로만 옮깁니다.
 
 **실제 측정값 자릿수 (`--level`, 선택).** ITEM마다 실제로 잰 값의 자릿수를 CSV로 주면 장비 사양(Keysight P9001A Per-pin SMU)을 씁니다. UNIT은 여전히 보지 않습니다.
 
 ```
-ITEM,LEVEL
-IOFF_N1,10fA        ← 실제 값이 10~100 fA (예: 중앙값 -7.7e-14 A)
-ION_N1,100nA        ← 100 nA~1 µA (예: 2.8e-07 A)
-VOS_P1,10uV
+ITEM,LEVEL,SCALE
+IOFF_N1,10fA,1e12   ← 실제 값이 10~100 fA (예: 중앙값 -7.7e-14 A). 파일에 pA로 찍혀 있으면 SCALE 1e12
+ION_N1,100nA,       ← 100 nA~1 µA (예: 2.8e-07 A). SCALE을 모르면 비워 둠
+VOS_P1,10uV,1
 ```
 
 - 표기: 1fA … 100mA, 1uV … 1V (A, V는 사양 적용), 100fF … 100pF, 10kHz … 1MHz (아직 사양 없음, 기록만).
-- 실제 값은 자릿수 상한 10L로 둡니다(허용폭을 가장 작게 잡는 쪽). 파일 값 / 실제 값 = |POR 중앙값| / 10L이라서 파일의 UNIT이나 정규화 계수가 틀려도 됩니다.
+- SCALE(선택) = 파일 값 / 실제 값 (CALCVAL 배율, 단위 환산 포함). 있으면 실제 값 = \|POR 중앙값\| / SCALE로 정확히 바꿉니다. blank는 SCALE이 있어야 씁니다.
+- SCALE이 없으면 실제 값을 자릿수 상한 10L로 둡니다(허용폭을 가장 작게 잡는 쪽). 파일 값 / 실제 값 = \|POR 중앙값\| / 10L이라 최대 10배까지 어긋날 수 있지만, 장비 분해능·정확도를 실제보다 작게 잡는 쪽이라 판정이 느슨해지지는 않습니다.
 - auto range: `measure_i`/`measure_v`에 range 0을 주면 값이 들어가는 가장 작은 range를 씁니다(Programming Reference Table 2-19, 2-22). `range_por`, `range_doe`, `range_changed` 열. 바닥(LoQ 미만) ITEM은 DOE range를 정하지 않습니다.
 - 분해능 하한: σ ≥ range 측정 분해능 / √12 (GUM F.2.2.1). `limit_source` = 장비 분해능.
 - `--accuracy`: 두 측정이 각자 사양 정확도 ±(a × |값| + b × range + c) 안에 있을 때 생길 수 있는 차이 1.645 × √((U_POR² + U_DOE²) / 3) (균일분포, GUM 4.3.7)를 정량 구간 허용폭 하한으로 씁니다. 사양의 Vo, Rres × Io 항은 0으로 둡니다. 정확도 없이 낸 판정은 `verdict_no_accuracy`, 허용폭을 정한 쪽은 `delta_source`.
@@ -138,7 +144,7 @@ VOS_P1,10uV
 | `items.csv` | ITEM별 판정, 신뢰구간, 허용폭 구성(`policy_margin`, `run_margin`), 회차별 평균(`POR1_mean` … `DOE_mean`), LoQ 미만은 회차별 LoQ 넘는 die 비율(`POR1_det` … `DOE_det`) |
 | `outlier_dies.csv` | ITEM마다 \|d − 중앙값\| > 5 robust σ인 die (확인용. 판정에는 쓰지 않음) |
 
-예제: `python examples/make_por3_data.py p3` 후 `python por_doe_compare.py --por p3/por_run1 --por p3/por_run2 --por p3/por_run3 --doe p3/doe --blank p3/blank --blank-map p3/blank_map.csv --out p3/out`
+예제: `python examples/make_por3_data.py p3` 후 `python por_doe_compare.py --por p3/por_run1 --por p3/por_run2 --por p3/por_run3 --doe p3/doe --blank p3/blank --blank-map p3/blank_map.csv --level p3/level.csv --out p3/out`
 
 ### 결과 요약 (공유용, ITEM 이름 익명화)
 

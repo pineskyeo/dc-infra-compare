@@ -78,8 +78,8 @@ for r in range(3):
 write(out / "doe" / "DOE", {**measure(3), "IOFF_STEP": step_item(3)})
 write(out / "blank" / "BLANK", {"OPEN_I": ("A", rng.normal(0, 1.5e-12, N), None)})
 (out / "blank_map.csv").write_text("ITEM,BLANK_ITEM\nIOFF_STEP,OPEN_I\nIOFF_FLOOR,OPEN_I\nIOFF_LEAK,OPEN_I\n")
-(out / "level.csv").write_text("ITEM,LEVEL\nVT_SAME,100mV\nVT_SHIFT,100mV\nVOS_OFFSET,10uV\nION_OUTLIER,100uA\n"
-                               "IDSAT_SPEC,100uA\nIOFF_FLOOR,1pA\nIOFF_LEAK,1pA\nIOFF_STEP,1pA\nIOFF_RUNWOBBLE,10pA\n")
+(out / "level.csv").write_text("ITEM,LEVEL,SCALE\nVT_SAME,100mV,1\nVT_SHIFT,100mV,1\nVOS_OFFSET,10uV,1\nION_OUTLIER,100uA,1\n"
+                               "IDSAT_SPEC,100uA,1\nIOFF_FLOOR,100fA,1\nIOFF_LEAK,10fA,1\nIOFF_STEP,1pA,\nIOFF_RUNWOBBLE,1pA,1\n")
 EXPECT["IOFF_STEP"] = "blank 없이: 미결(해상도 부족, sigma_die = 0). blank 하한 적용: 동등 (LoQ 미만)"
 print("기대 판정:")
 for k, v in EXPECT.items():
