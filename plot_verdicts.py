@@ -451,9 +451,10 @@ def select_detail_items(
     return list(dict.fromkeys(selected))
 
 
-def detail_text(res: dict) -> tuple[str, str]:
+def detail_text(res: dict, item: str | None = None) -> tuple[str, str]:
     """상세 그림 제목과 items.csv reason에 해당하는 판정 사유 문자열을 돌려준다."""
-    title = f"ITEM {res['ITEM']} - {res['verdict']} ({res['zone']})"
+    code = item if item is not None else res.get("ITEM")
+    title = f"ITEM {code} - {res['verdict']} ({res.get('zone', '')})"
     return title, str(res["reason"])
 
 
@@ -478,8 +479,8 @@ def _detail_worker(payload: dict) -> Path:
     mask = payload["outlier"]
     por_cols = payload["por_cols"]
     n, n_por = por.shape
-    title, reason = detail_text(res)
-    path = payload["out"] / f"{safe_item_name(res['ITEM'])}.png"
+    title, reason = detail_text(res, payload["item"])
+    path = payload["out"] / f"{safe_item_name(payload['item'])}.png"
 
     fig, (left, right) = plt.subplots(figsize=(14, 6.5), ncols=2)
     try:
@@ -632,6 +633,7 @@ def plot_details(items: pd.DataFrame, raw: tuple, args: argparse.Namespace) -> l
         res, mask = judge_item(item, group, por_cols, units, args.r, levels, blank, bmap)
         payloads.append({
             "res": res,
+            "item": item,
             "por": group[por_cols].to_numpy(float),
             "doe": group["DOE"].to_numpy(float),
             "outlier": np.asarray(mask, dtype=bool),
