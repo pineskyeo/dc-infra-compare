@@ -61,7 +61,7 @@ V_RANGES = [
     (10.0, 10.0, 10e-6, 0.0004, 0.0004, 0.0),
     (20.0, 22.0, 1e-3, np.nan, np.nan, np.nan),     # 10 V 넘으면 Shared SMU. 정확도는 표에 넣지 않음
     (40.0, 44.0, 2e-3, np.nan, np.nan, np.nan),
-    (100.0, 115.0, 5e-3, np.nan, np.nan, np.nan),
+    (100.0, 100.0, 5e-3, np.nan, np.nan, np.nan),
 ]
 PREFIX = {"f": 1e-15, "p": 1e-12, "n": 1e-9, "u": 1e-6, "µ": 1e-6, "m": 1e-3, "": 1.0, "k": 1e3, "K": 1e3, "M": 1e6}
 LEVEL_RE = re.compile(r"^\s*([0-9.]+)\s*([fpnuµmkKM]?)\s*(A|V|F|HZ)\s*$", re.I)
