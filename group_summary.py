@@ -10,6 +10,8 @@
 출력:
   group_summary.csv   그룹별 표 (맨 위 '전체' 행)
   verdict_by_group.csv 그룹별 판정 변화 표
+  stability_by_group.csv 그룹별 안정성 (기존끼리·개선끼리 σ%, 순위)
+  stability_panel.png 그룹별 안정성 그림
   ratio_hist.png      σ_die 비(개선/기존) 히스토그램, 로그 축
   density_die.png     σ_die 기존 vs 개선 밀도 산점도, 로그 축
   group_panel.png     그룹별 비교 (σ_die 비 중앙값·사분위, 감소 %), 그룹 10~20개용
@@ -213,9 +215,78 @@ def main():
     fig.savefig(out / "group_panel.png", dpi=160)
     plt.close(fig)
 
+    # 안정성 비교: 기존끼리, 개선끼리 (중앙값 대비 σ %)
+    for side in ("before", "after"):
+        for k in ("die", "run"):
+            col = f"sigma_{k}_pct_{side}"
+            if col in used.columns:
+                used[col] = pd.to_numeric(used[col], errors="coerce")
+            else:
+                mc = f"por_median_{side}"
+                med_ = pd.to_numeric(used[mc], errors="coerce") if mc in used.columns else pd.Series(np.nan, index=used.index)
+                used[col] = 100 * used[f"sigma_{k}_{side}"] / med_.abs().replace(0, np.nan)
+    SIDE = {"before": "기존", "after": "개선"}
+
+    def stab(d):
+        r = {"ITEM 수": len(d)}
+        for side in ("before", "after"):
+            dd = d[f"sigma_die_pct_{side}"].dropna()
+            rr = d[f"sigma_run_pct_{side}"].dropna()
+            r[f"{SIDE[side]} σ_die% 중앙값"] = round(float(dd.median()), 3) if len(dd) else np.nan
+            r[f"{SIDE[side]} σ_die% 25%"] = round(float(dd.quantile(0.25)), 3) if len(dd) else np.nan
+            r[f"{SIDE[side]} σ_die% 75%"] = round(float(dd.quantile(0.75)), 3) if len(dd) else np.nan
+            r[f"{SIDE[side]} σ_run% 중앙값"] = round(float(rr.median()), 3) if len(rr) else np.nan
+            r[f"{SIDE[side]} σ_run=0 %"] = round(100 * float((d[f"sigma_run_{side}"] == 0).mean()), 1) if len(d) else np.nan
+        return r
+
+    srows = [{"그룹": "전체", **stab(used)}] + [{"그룹": n, **stab(used[used["group"] == n])} for n in order]
+    st = pd.DataFrame(srows)
+    for side in ("기존", "개선"):  # 같은 조건 안에서 순위 (1 = 가장 안정)
+        st[f"{side} 안정 순위"] = st[f"{side} σ_die% 중앙값"].where(st["그룹"] != "전체").rank(method="min").astype("Int64")
+    st.to_csv(out / "stability_by_group.csv", index=False, encoding="utf-8-sig")
+
+    # 그림 4: 그룹별 안정성 (기존끼리 / 개선끼리)
+    has_pct = st[["기존 σ_die% 중앙값", "개선 σ_die% 중앙값"]].gt(0).any().all()
+    if not has_pct:
+        print("compare.csv에 por_median/σ% 열이 없어 stability_panel.png는 건너뜁니다.")
+    else:
+        sg = st[st["그룹"] != "전체"].sort_values("기존 σ_die% 중앙값").reset_index(drop=True)
+        tot = st.iloc[0]
+        G = len(sg)
+        yy = np.arange(G)
+        fig, axs = plt.subplots(1, 2, figsize=(11, 0.38 * G + 1.9), sharey=True)
+        colors = {"기존": "#8a8a8a", "개선": "#2f6db5"}
+        off = {"기존": -0.15, "개선": 0.15}
+        ax = axs[0]
+        for side in ("기존", "개선"):
+            m = sg[f"{side} σ_die% 중앙값"].values
+            ax.hlines(yy + off[side], sg[f"{side} σ_die% 25%"], sg[f"{side} σ_die% 75%"], color=colors[side], lw=3, alpha=0.45)
+            ax.scatter(m, yy + off[side], color=colors[side], s=26, zorder=3, label=side)
+            ax.axvline(tot[f"{side} σ_die% 중앙값"], color=colors[side], lw=1, ls="--")
+        ax.set_xscale("log")
+        from matplotlib.ticker import FuncFormatter, LogLocator
+        ax.xaxis.set_major_locator(LogLocator(base=10, subs=(1, 2, 5)))
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+        ax.xaxis.set_minor_formatter(FuncFormatter(lambda v, _: ""))
+        ax.set_title("σ_die / |중앙값| (%), 왼쪽일수록 안정\n점=그룹 중앙값, 막대=가운데 50%, 점선=전체")
+        ax.legend(frameon=False, loc="lower right")
+        ax.set_yticks(yy); ax.set_yticklabels([f"{g} (n={n})" for g, n in zip(sg["그룹"], sg["ITEM 수"])]); ax.invert_yaxis()
+        ax = axs[1]
+        for side in ("기존", "개선"):
+            ax.barh(yy + off[side], sg[f"{side} σ_run% 중앙값"], height=0.3, color=colors[side], label=side)
+            ax.axvline(tot[f"{side} σ_run% 중앙값"], color=colors[side], lw=1, ls="--")
+        ax.set_title("σ_run / |중앙값| (%) 그룹 중앙값\n짧을수록 안정, 점선=전체")
+        ax.legend(frameon=False, loc="lower right")
+        fig.suptitle("그룹별 안정성: 기존끼리(회색), 개선끼리(파랑) 비교", fontsize=11)
+        fig.tight_layout()
+        fig.savefig(out / "stability_panel.png", dpi=160)
+        plt.close(fig)
+
     print(f"전체 {total}행 중 사용 {len(used)}행, 그룹 {len(order)}개")
     print(f"그룹 파일에 없는 ITEM: {int((used['group'] == UNGROUPED).sum())}개 → '{UNGROUPED}'")
     print(tab.to_string(index=False))
+    print("\n안정성 (σ / |중앙값| %)")
+    print(st.to_string(index=False))
     print(f"\n출력: {out.resolve()}")
 
 
