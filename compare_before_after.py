@@ -454,7 +454,7 @@ def compare_tables(before: pd.DataFrame, after: pd.DataFrame) -> pd.DataFrame:
             )
         rec["sigma_die_status"] = change_status(rec.get("sigma_die_before"), rec.get("sigma_die_after"))
         rec["sigma_run_status"] = change_status(rec.get("sigma_run_before"), rec.get("sigma_run_after"))
-        if rec["presence"] == "matched" and not rec["misaligned"]:
+        if rec["presence"] == "matched" and (INCLUDE_MISALIGNED or not rec["misaligned"]):
             rec["both_lower"] = both_lower_flag(rec["sigma_die_status"], rec["sigma_run_status"])
         return rec
 
@@ -480,8 +480,18 @@ def compare_tables(before: pd.DataFrame, after: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=COMPARE_COLS)
 
 
+# 기본: 정렬 의심(POR 중앙값이 크게 움직인 ITEM)도 비교에 포함한다. --exclude-misaligned 로 뺄 수 있다.
+INCLUDE_MISALIGNED = True
+
+
 def _valid_matched(cmp_df: pd.DataFrame) -> pd.DataFrame:
+    if INCLUDE_MISALIGNED:
+        return cmp_df[cmp_df["presence"] == "matched"].copy()
     return cmp_df[(cmp_df["presence"] == "matched") & (~cmp_df["misaligned"])].copy()
+
+
+def _scope_label() -> str:
+    return "공통 전체, 정렬 의심 포함" if INCLUDE_MISALIGNED else "공통·정렬 정상"
 
 
 def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> str:
@@ -521,7 +531,7 @@ def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> 
             + (f"  ({', '.join(suspect.ID)})" if len(suspect) else "")
         ),
         "",
-        f"σ 변화 (공통·정렬 정상 {n_ok}건)",
+        f"σ 변화 ({_scope_label()} {n_ok}건)",
         f"- σ_die 하락: {die_lower}/{n_ok}",
         f"- σ_run 하락: {run_lower}/{n_ok}",
         f"- 둘 다 하락: {both_yes}",
@@ -529,7 +539,7 @@ def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> 
         f"- σ_run 둘 다 0: {run_same0}",
         f"- σ_die 중앙값 비 (개선/기존): {med_ratio:.6g}" if _finite(med_ratio) else "- σ_die 중앙값 비 (개선/기존): (해당 없음)",
         "",
-        "판정 전이 (공통·정렬 정상)",
+        f"판정 전이 ({_scope_label()})",
     ]
     if n_ok:
         trans = pd.crosstab(ok["verdict_before"], ok["verdict_after"], margins=True, margins_name="합계")
@@ -655,8 +665,12 @@ def main(argv: list[str] | None = None) -> int:
     p_cmp.add_argument("before")
     p_cmp.add_argument("after")
     p_cmp.add_argument("-o", required=True, dest="out")
+    p_cmp.add_argument("--exclude-misaligned", action="store_true",
+                       help="정렬 의심(POR 중앙값 상대차 > 20%%) ITEM을 비교에서 뺀다 (기본: 포함)")
 
     args = parser.parse_args(argv)
+    global INCLUDE_MISALIGNED
+    INCLUDE_MISALIGNED = not getattr(args, "exclude_misaligned", False)
     if args.cmd == "evidence":
         run_evidence(args.result, args.out)
     else:

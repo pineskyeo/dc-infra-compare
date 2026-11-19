@@ -15,7 +15,7 @@
   ratio_hist.png      σ_die 비(개선/기존) 히스토그램, 로그 축
   density_die.png     σ_die 기존 vs 개선 밀도 산점도, 로그 축
   group_panel.png     그룹별 비교 (σ_die 비 중앙값·사분위, 감소 %), 그룹 10~20개용
-사용하는 행: presence=matched 이고 misaligned=False 인 행만.
+사용하는 행: presence=matched 인 행 전부 (정렬 의심 포함). --exclude-misaligned 를 주면 정렬 의심은 뺀다.
 """
 import argparse
 import sys
@@ -94,6 +94,8 @@ def main():
     ap.add_argument("--compare", required=True, help="compare_before_after.py compare가 만든 compare.csv")
     ap.add_argument("--groups", required=True, help="ITEM,그룹 두 열 파일")
     ap.add_argument("--out", default="group_out", help="출력 폴더")
+    ap.add_argument("--exclude-misaligned", action="store_true",
+                    help="정렬 의심(POR 중앙값 상대차 > 20%%) ITEM을 뺀다 (기본: 포함)")
     a = ap.parse_args()
 
     set_font()
@@ -129,7 +131,11 @@ def main():
     if c["group"].isna().all():
         print("예) compare.csv ITEM:", list(c["ITEM"].head(3)), " / 그룹 파일 ITEM:", list(g["ITEM"].head(3)))
     c["group"] = c["group"].fillna(UNGROUPED)
-    used = c[(c["presence"].astype(str).str.strip() == "matched") & ~as_bool(c["misaligned"])].copy()
+    keep = c["presence"].astype(str).str.strip() == "matched"
+    if a.exclude_misaligned:
+        keep &= ~as_bool(c["misaligned"])
+    used = c[keep].copy()
+    print(f"분석 ITEM: {len(used)}개 (정렬 의심 {'제외' if a.exclude_misaligned else '포함'})")
 
     # 그룹별 표
     rows = [{"그룹": "전체", **summarize(used)}]
@@ -138,7 +144,7 @@ def main():
         rows.append({"그룹": name, **summarize(used[used["group"] == name])})
     excluded = c[~c.index.isin(used.index)].groupby("group").size()
     tab = pd.DataFrame(rows)
-    tab["제외(정렬 의심 등)"] = tab["그룹"].map(lambda x: int(excluded.sum()) if x == "전체" else int(excluded.get(x, 0)))
+    tab["제외(짝 없음"+(", 정렬 의심" if a.exclude_misaligned else "")+")"] = tab["그룹"].map(lambda x: int(excluded.sum()) if x == "전체" else int(excluded.get(x, 0)))
     tab.to_csv(out / "group_summary.csv", index=False, encoding="utf-8-sig")
 
     vt = pd.crosstab(used["group"], used["verdict_before"] + "→" + used["verdict_after"])
@@ -284,9 +290,14 @@ def main():
         ax.set_yticks(yy); ax.set_yticklabels([f"{g} (n={n})" for g, n in zip(sg["그룹"], sg["ITEM 수"])]); ax.invert_yaxis()
         ax = axs[1]
         for side in ("기존", "개선"):
-            ax.barh(yy + off[side], sg[f"{side} σ_run% 중앙값"], height=0.3, color=colors[side], label=side)
+            vals = sg[f"{side} σ_run% 중앙값"]
+            ax.barh(yy + off[side], vals, height=0.3, color=colors[side], label=side)
+            for y_, v_, z_ in zip(yy + off[side], vals, sg[f"{side} σ_run=0 %"]):
+                # 중앙값 0이면 막대가 안 보이므로 숫자로 표시 (σ_run=0 ITEM이 절반 이상)
+                txt = f"0 (σ_run=0 {z_:g}%)" if v_ == 0 else (f"{v_:g}" if pd.notna(v_) else "값 없음")
+                ax.text(v_ if pd.notna(v_) else 0, y_, " " + txt, va="center", fontsize=7, color=colors[side])
             ax.axvline(tot[f"{side} σ_run% 중앙값"], color=colors[side], lw=1, ls="--")
-        ax.set_title("σ_run / |중앙값| (%) 그룹 중앙값\n짧을수록 안정, 점선=전체")
+        ax.set_title("σ_run / |중앙값| (%) 그룹 중앙값\n짧을수록 안정, 점선=전체, 0은 σ_run=0 ITEM이 절반 이상")
         ax.legend(frameon=False, loc="lower right")
         fig.suptitle("그룹별 안정성: 기존끼리(회색), 개선끼리(파랑) 비교", fontsize=11)
         fig.tight_layout()

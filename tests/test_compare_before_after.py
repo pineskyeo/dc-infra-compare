@@ -66,3 +66,23 @@ def test_compare_presence_misalign_both_lower_and_counts(tmp_path):
     summary = (out / "summary.txt").read_text(encoding="utf-8")
     assert "정렬 의심" in summary
     assert "SYNTH_A4" in summary
+
+
+def test_misaligned_included_by_default_and_excluded_with_flag(tmp_path):
+    # 기본: 정렬 의심(SYNTH_A4)도 σ 집계에 포함 → 공통 5건, both_lower 계산됨
+    out = tmp_path / "default"
+    assert _run_compare(out) == 0
+    df = pd.read_csv(out / "compare.csv", encoding="utf-8-sig").set_index("ITEM")
+    assert bool(df.loc["SYNTH_A4", "misaligned"]) is True  # 표시용 열은 그대로
+    assert df.loc["SYNTH_A4", "both_lower"] == "yes"
+    summary = (out / "summary.txt").read_text(encoding="utf-8")
+    assert "σ 변화 (공통 전체, 정렬 의심 포함 5건)" in summary
+
+    # --exclude-misaligned: SYNTH_A4를 σ 집계에서 뺌 → 4건, both_lower 비움
+    out2 = tmp_path / "excluded"
+    assert main(["compare", str(BEFORE), str(AFTER), "-o", str(out2), "--exclude-misaligned"]) == 0
+    df2 = pd.read_csv(out2 / "compare.csv", encoding="utf-8-sig").set_index("ITEM")
+    assert bool(df2.loc["SYNTH_A4", "misaligned"]) is True
+    assert pd.isna(df2.loc["SYNTH_A4", "both_lower"])
+    summary2 = (out2 / "summary.txt").read_text(encoding="utf-8")
+    assert "σ 변화 (공통·정렬 정상 4건)" in summary2
