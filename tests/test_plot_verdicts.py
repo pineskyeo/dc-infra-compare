@@ -173,7 +173,7 @@ def test_detail_reason_text_equals_items_csv_reason(por3_results: tuple[Path, Pa
     expected = pd.read_csv(items_csv, encoding="utf-8-sig").set_index("ITEM")
 
     for item, row in actual.iterrows():
-        title, reason = detail_text(row.to_dict())
+        title, reason = detail_text(row.to_dict(), str(item))
         assert str(item) in title
         assert reason == expected.at[item, "reason"]
 
