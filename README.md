@@ -221,6 +221,10 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 verdict와 규칙 결과가 어긋나면 note에 'verdict와 다름'을 적습니다.
 
+## 기존·개선 비교 (`compare_before_after.py`)
+
+`python compare_before_after.py compare <기존.tsv> <개선.tsv> -o <폴더>` — por_doe_compare.py 결과 표 두 개를 ID로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`, `summary.txt`, σ 짝 비교 그림으로 냅니다. 한쪽에만 있는 ID와 정렬 의심 행(같은 ID인데 por_median 상대차 > 20%, 내부 기준)은 따로 표시하고 σ 집계에서 뺍니다. `evidence <결과.tsv> -o <폴더>` 모드도 있습니다.
+
 ## infra_compare.py (이전 방식)
 
 POR 1회(+ 일부 재측정)와 DOE 1회를 비교하던 첫 버전입니다. `python infra_compare.py --ref ref/ --new new/ --blank ... --blank-map ... --out 결과`. 새 분석에는 `por_doe_compare.py`를 쓰세요. `por_doe_compare.py`가 파일 읽기와 blank 읽기 함수를 여기서 가져다 씁니다.

@@ -1,0 +1,8 @@
+# SYNTHETIC test file — not real measurement data. For compare_before_after.py only.
+ID	zone	verdict	reason	n_die	por_median	POR1_mean	POR2_mean	DOE_mean	center	ci_low	ci_high	delta	policy_margin	run_margin	sigma_die	sigma_run	LoQ	LoD	limit_source
+SYNTH_A1	정량	차이	shift 밖	10	100	101	99	90	-10	-12	-8	5	5	0	8.0	2.0	80.0	26.666666666666668	SYNTH
+SYNTH_A2	정량	미결	경계	10	200	201	199	208	8	2	14	10	10	0	12.0	0.0	120.0	40.0	SYNTH
+SYNTH_A3	정량	동등		10	50	50.2	49.8	50.5	0.5	-1	2	2.5	2.5	0	1.5	0.4	15.0	5.0	SYNTH
+SYNTH_A4	정량	미결	경계	10	100	100	100	106	6	1	11	5	5	0	7.0	1.0	70.0	23.333333333333332	SYNTH
+SYNTH_A5	정량	미결	경계	10	80	81	79	84	4	1	7	4	4	0	6.0	0.5	60.0	20.0	SYNTH
+SYNTH_B1	정량	차이	shift 밖	10	30	30	30	26	-4	-5	-3	1.5	1.5	0	3.0	0.8	30.0	10.0	SYNTH
