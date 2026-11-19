@@ -58,7 +58,7 @@ RUN_MEAN_RE = re.compile(r"^.+_mean$")
 def read_table(path: str | Path) -> pd.DataFrame:
     """결과 표를 읽는다. 탭·쉼표 구분 모두 받는다(por_doe_compare.py items.csv는 쉼표).
 
-    ITEM 열은 ID로 바꾼다. POR1_mean이 없으면 DOE_mean을 뺀 '<이름>_mean' 열을
+    ITEM 열을 키(내부 이름 ID)로 쓰고, 익명 ID 열이 같이 있으면 ANON_ID로 남긴다. POR1_mean이 없으면 DOE_mean을 뺀 '<이름>_mean' 열을
     나온 순서대로 POR1_mean, POR2_mean, ...으로 바꾼다.
     """
     with open(path, encoding="utf-8-sig") as f:
@@ -66,7 +66,13 @@ def read_table(path: str | Path) -> pd.DataFrame:
     sep = "\t" if header.count("\t") >= header.count(",") else ","
     df = pd.read_csv(path, sep=sep, dtype=str, keep_default_na=False, encoding="utf-8-sig")
     df.columns = [str(c).strip().strip('"') for c in df.columns]
-    if "ID" not in df.columns:
+    # 키는 실제 ITEM 이름이다. summarize.py가 넣은 익명 ID 열이 같이 있으면 ANON_ID로 따로 남긴다.
+    item_col = next((c for c in df.columns if c.upper() == "ITEM"), None)
+    if item_col is not None:
+        if "ID" in df.columns:
+            df = df.rename(columns={"ID": "ANON_ID"})
+        df = df.rename(columns={item_col: "ID"})
+    elif "ID" not in df.columns:
         for c in df.columns:
             if c.upper() in KEY_NAMES:
                 df = df.rename(columns={c: "ID"})
@@ -75,6 +81,16 @@ def read_table(path: str | Path) -> pd.DataFrame:
         runs = [c for c in df.columns if RUN_MEAN_RE.match(c) and c != "DOE_mean"]
         df = df.rename(columns={c: f"POR{k}_mean" for k, c in enumerate(runs, 1)})
     return df
+
+
+def with_anon(table: pd.DataFrame, src: pd.DataFrame) -> pd.DataFrame:
+    """출력용: 키(ID)를 ITEM 열로 쓰고, 익명 ID가 있으면 바로 옆 ID 열로 붙인다."""
+    out = table.rename(columns={"ID": "ITEM"})
+    if "ANON_ID" in src.columns:
+        anon = {str(k).strip(): str(v).strip() for k, v in zip(src["ID"], src["ANON_ID"]) if str(v).strip()}
+        if anon:
+            out.insert(1, "ID", out["ITEM"].map(anon).fillna(""))
+    return out
 
 
 def parse_value(text) -> tuple[float | None, str | None]:
@@ -333,12 +349,13 @@ def main(argv: list[str] | None = None) -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     try:
-        table = evidence_table(read_table(args.input))
+        src = read_table(args.input)
+        table = evidence_table(src)
     except ValueError as e:
         print(f"오류: {e}", file=sys.stderr)
         return 2
 
-    table.rename(columns={"ID": "ITEM"}).to_csv(out / "fail_evidence.csv", index=False, encoding="utf-8-sig")
+    with_anon(table, src).to_csv(out / "fail_evidence.csv", index=False, encoding="utf-8-sig")
     summary = summary_text(table, Path(args.input).name)
     (out / "summary.txt").write_text(summary, encoding="utf-8")
 

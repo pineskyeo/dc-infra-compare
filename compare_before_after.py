@@ -135,8 +135,13 @@ def read_result(path: str | Path) -> pd.DataFrame:
         keep_default_na=False,
     )
     df.columns = [str(c).strip().strip('"') for c in df.columns]
-    # por_doe_compare.py items.csv는 ITEM 열로 시작한다. ID로 통일한다.
-    if "ID" not in df.columns:
+    # 비교 키는 실제 ITEM 이름이다. summarize.py가 넣은 익명 ID 열이 같이 있으면 ANON_ID로 따로 남긴다.
+    item_col = next((c for c in df.columns if c.upper() == "ITEM"), None)
+    if item_col is not None:
+        if "ID" in df.columns:
+            df = df.rename(columns={"ID": "ANON_ID"})
+        df = df.rename(columns={item_col: "ID"})
+    elif "ID" not in df.columns:
         for c in df.columns:
             if c.upper() in KEY_NAMES:
                 df = df.rename(columns={c: "ID"})
@@ -338,8 +343,9 @@ def run_evidence(result_path: str, out_dir: str) -> pd.DataFrame:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     configure_font()
-    ev = evidence_table(read_result(result_path))
-    ev[EVIDENCE_COLS].rename(columns={"ID": "ITEM"}).to_csv(out / "evidence.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
+    df_src = read_result(result_path)
+    ev = evidence_table(df_src)
+    _with_anon(ev[EVIDENCE_COLS], df_src).to_csv(out / "evidence.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
     plot_forest(ev, out / "forest.png")
     plot_strips(ev, out)
     counts = ev["group"].value_counts()
@@ -602,12 +608,27 @@ def _scatter_plot(ok: pd.DataFrame, path: Path) -> None:
     plt.close(fig)
 
 
+def _with_anon(df: pd.DataFrame, *sources: pd.DataFrame) -> pd.DataFrame:
+    """출력용: 키(ID)를 ITEM 이름으로 쓰고, 익명 ID가 있으면 바로 옆 ID 열로 붙인다."""
+    out = df.rename(columns={"ID": "ITEM"})
+    anon = {}
+    for src in sources:
+        if "ANON_ID" in src.columns:
+            for k, v in zip(src["ID"], src["ANON_ID"]):
+                if str(v).strip():
+                    anon.setdefault(k, str(v).strip())
+    if anon:
+        out.insert(1, "ID", out["ITEM"].map(anon).fillna(""))
+    return out
+
+
 def run_compare(before_path: str, after_path: str, out_dir: str) -> pd.DataFrame:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     configure_font()
     cmp_df = compare_tables(read_result(before_path), read_result(after_path))
-    cmp_df.rename(columns={"ID": "ITEM"}).to_csv(out / "compare.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
+    _with_anon(cmp_df, read_result(before_path), read_result(after_path)).to_csv(
+        out / "compare.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
     text = compare_summary(cmp_df, before_path, after_path)
     (out / "summary.txt").write_text(text, encoding="utf-8")
     print(text)

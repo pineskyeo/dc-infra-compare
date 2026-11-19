@@ -203,7 +203,7 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 ## Fail ITEM 근거 (`fail_evidence.py`)
 
-`python fail_evidence.py --input <items.csv> --out <폴더> [--items ID,...]` — por_doe_compare.py 결과 표(`--out` 폴더의 `items.csv`, 탭 구분 표도 됨. `ITEM` 열과 `<이름>_mean` 회차 열은 compare_before_after.py와 같은 방식으로 읽음)에서 verdict가 '차이'·'미결'인 ITEM의 근거를 규칙으로 계산해 `fail_evidence.csv`, `forest.png`, `items/<ID>.png`, `summary.txt`를 만듭니다. `fail_evidence.csv` 첫 열은 `ITEM`입니다. `--items`를 주면 그 ID만 ITEM 그림을 그립니다(CSV·forest는 전체).
+`python fail_evidence.py --input <items.csv> --out <폴더> [--items ID,...]` — por_doe_compare.py 결과 표(`--out` 폴더의 `items.csv`, 탭 구분 표도 됨. `ITEM` 열과 `<이름>_mean` 회차 열은 compare_before_after.py와 같은 방식으로 읽음)에서 verdict가 '차이'·'미결'인 ITEM의 근거를 규칙으로 계산해 `fail_evidence.csv`, `forest.png`, `items/<ID>.png`, `summary.txt`를 만듭니다. `fail_evidence.csv` 첫 열은 실제 `ITEM` 이름이고, 익명 `ID` 열이 있으면 그 옆에 붙습니다. `--items`를 주면 그 ID만 ITEM 그림을 그립니다(CSV·forest는 전체).
 
 열은 이름으로 찾습니다(`POR{k}_mean`은 2개 이상, k 가변). 대상 행에서 `por_median DOE_mean center ci_low ci_high delta LoQ` 열이 없거나 값이 빈칸·숫자 아님(엑셀 넘침 `####`, `***` 등)이면, 또는 값이 있는 POR 회차가 2개 미만이면 judgement='계산 불가'로 쓰고 사유를 note에 남깁니다. 빈 `POR{k}_mean`은 그 회차가 없는 것으로 봅니다. 대상이 아닌 행은 '대상 아님'으로 CSV에만 남깁니다.
 
@@ -223,11 +223,11 @@ verdict와 규칙 결과가 어긋나면 note에 'verdict와 다름'을 적습�
 
 ## 기존·개선 비교 (`compare_before_after.py`)
 
-`python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더>` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. 첫 열 `ITEM`은 ID로 읽고(탭 구분 표의 `ID` 열도 됨), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`, `summary.txt`, σ 짝 비교 그림으로 냅니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 `ITEM`입니다. 한쪽에만 있는 ITEM과 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 따로 표시하고 σ 집계에서 뺍니다. `evidence <items.csv> -o <폴더>` 모드도 있습니다.
+`python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더>` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. 첫 열 `ITEM`은 ID로 읽고(탭 구분 표의 `ID` 열도 됨), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`, `summary.txt`, σ 짝 비교 그림으로 냅니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 실제 `ITEM` 이름이고, 입력에 summarize.py의 익명 `ID` 열이 같이 있으면 그 옆에 `ID` 열로 붙습니다. 비교 키는 항상 실제 ITEM입니다. 한쪽에만 있는 ITEM과 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 따로 표시하고 σ 집계에서 뺍니다. `evidence <items.csv> -o <폴더>` 모드도 있습니다.
 
 ## 그룹별 요약 (`group_summary.py`)
 
-`python group_summary.py --compare compare.csv --groups 그룹.csv --out group_out` — `compare_before_after.py compare`가 만든 `compare.csv`를 ITEM 그룹별로 요약합니다. 그룹 파일은 첫 열 ITEM, 둘째 열 그룹(쉼표 또는 탭, 헤더는 있어도 없어도 됨)이고, 그룹 파일에 없는 ITEM은 '미지정'으로 묶습니다. presence=matched이고 misaligned=False인 행만 씁니다. 출력은 `group_summary.csv`(맨 위 '전체' 행), `verdict_by_group.csv`(그룹별 판정 변화), `ratio_hist.png`(σ_die 개선/기존 비 히스토그램), `density_die.png`(σ_die 기존 대 개선 산점도), `group_panel.png`(그룹별 비교, 그룹 10~20개 기준), `stability_by_group.csv`(그룹별 안정성: 기존끼리·개선끼리 σ_die%·σ_run% 중앙값과 사분위, σ_run=0 비율, 안정 순위), `stability_panel.png`(그룹별 안정성 그림)입니다. 안정성은 compare.csv의 `sigma_*_pct_*` 열을 쓰고, 없으면 σ와 `por_median_*`로 계산하며, 둘 다 없으면 그림을 건너뜁니다.
+`python group_summary.py --compare compare.csv --groups 그룹.csv --out group_out` — `compare_before_after.py compare`가 만든 `compare.csv`를 ITEM 그룹별로 요약합니다. 그룹 파일은 첫 열 ITEM, 둘째 열 그룹(쉼표 또는 탭, 헤더는 있어도 없어도 됨)이고, 그룹 파일 ITEM은 이름 그대로 먼저 맞추고, 안 맞으면 앞의 `F<숫자>_` 접두어를 떼고 다시 맞춥니다. 그래도 없는 ITEM은 '미지정'으로 묶습니다. presence=matched이고 misaligned=False인 행만 씁니다. 출력은 `group_summary.csv`(맨 위 '전체' 행), `verdict_by_group.csv`(그룹별 판정 변화), `ratio_hist.png`(σ_die 개선/기존 비 히스토그램), `density_die.png`(σ_die 기존 대 개선 산점도), `group_panel.png`(그룹별 비교, 그룹 10~20개 기준), `stability_by_group.csv`(그룹별 안정성: 기존끼리·개선끼리 σ_die%·σ_run% 중앙값과 사분위, σ_run=0 비율, 안정 순위), `stability_panel.png`(그룹별 안정성 그림)입니다. 안정성은 compare.csv의 `sigma_*_pct_*` 열을 쓰고, 없으면 σ와 `por_median_*`로 계산하며, 둘 다 없으면 그림을 건너뜁니다.
 
 ## infra_compare.py (이전 방식)
 

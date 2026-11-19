@@ -116,7 +116,18 @@ def main():
 
     g = read_groups(a.groups)
     total = len(c)
-    c = c.merge(g, on="ITEM", how="left")
+    # ITEM 이름 맞추기: 그대로 먼저, 안 맞으면 앞의 'F31_' 같은 접두어를 떼고 다시
+    def bare(x):
+        return x.str.replace(r"^F\d+_", "", regex=True).str.upper()
+    exact = dict(zip(g["ITEM"], g["group"]))
+    loose = dict(zip(bare(g["ITEM"]), g["group"]))
+    c["group"] = c["ITEM"].map(exact)
+    miss_mask = c["group"].isna()
+    c.loc[miss_mask, "group"] = bare(c.loc[miss_mask, "ITEM"]).map(loose)
+    n_exact = int((~miss_mask).sum()); n_loose = int(c["group"].notna().sum()) - n_exact
+    print(f"그룹 매칭: 이름 그대로 {n_exact}개, 접두어(F..._) 떼고 {n_loose}개, 못 찾음 {int(c['group'].isna().sum())}개")
+    if c["group"].isna().all():
+        print("예) compare.csv ITEM:", list(c["ITEM"].head(3)), " / 그룹 파일 ITEM:", list(g["ITEM"].head(3)))
     c["group"] = c["group"].fillna(UNGROUPED)
     used = c[(c["presence"].astype(str).str.strip() == "matched") & ~as_bool(c["misaligned"])].copy()
 

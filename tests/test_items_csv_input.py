@@ -56,3 +56,49 @@ def test_fail_evidence_reads_items_csv(tmp_path):
     assert "ID" in df.columns and "POR1_mean" in df.columns and "POR2_mean" in df.columns
     got = fail_evidence.evidence_table(df)
     pd.testing.assert_frame_equal(got, want)
+
+
+def _to_items_csv_with_anon(src: Path, dst: Path) -> Path:
+    """summarize.py를 거친 items.csv 형식: 실제 ITEM 열 + 익명 ID 열(SYNTH 접두어 + 번호)이 둘 다 있다."""
+    df = pd.read_csv(src, sep="\t", dtype=str, keep_default_na=False, comment="#")
+    df = df.rename(columns={"POR1_mean": "run_a_mean", "POR2_mean": "run_b_mean"})
+    df.insert(0, "ITEM", df["ID"])
+    df["ID"] = [f"ANON_{i:04d}" for i in range(len(df))]
+    df.to_csv(dst, index=False, encoding="utf-8-sig")
+    return dst
+
+
+def test_compare_before_after_item_and_anon_id(tmp_path):
+    ref = tmp_path / "ref"
+    assert cba_main(["compare", str(DATA / "compare_ba_before.tsv"),
+                     str(DATA / "compare_ba_after.tsv"), "-o", str(ref)]) == 0
+    b = _to_items_csv_with_anon(DATA / "compare_ba_before.tsv", tmp_path / "b.csv")
+    a = _to_items_csv_with_anon(DATA / "compare_ba_after.tsv", tmp_path / "a.csv")
+    out = tmp_path / "out"
+    assert cba_main(["compare", str(b), str(a), "-o", str(out)]) == 0
+    got = pd.read_csv(out / "compare.csv", dtype=str, keep_default_na=False)
+    want = pd.read_csv(ref / "compare.csv", dtype=str, keep_default_na=False)
+    assert list(got.columns[:2]) == ["ITEM", "ID"]
+    assert set(got["ITEM"]) == set(want["ITEM"])  # 키는 실제 ITEM, 익명 ID가 아님
+    assert got["ID"].str.startswith("ANON_").any()
+    pd.testing.assert_frame_equal(got.drop(columns=["ID"]), want)
+
+    ev = tmp_path / "ev"
+    assert cba_main(["evidence", str(b), "-o", str(ev)]) == 0
+    evd = pd.read_csv(ev / "evidence.csv", dtype=str, keep_default_na=False)
+    assert list(evd.columns[:2]) == ["ITEM", "ID"]
+    assert not evd["ITEM"].str.startswith("ANON_").any()
+
+
+def test_fail_evidence_item_and_anon_id(tmp_path):
+    src = DATA / "fail_evidence_synth.tsv"
+    want = fail_evidence.evidence_table(fail_evidence.read_table(src))
+    p = _to_items_csv_with_anon(src, tmp_path / "items.csv")
+    got = fail_evidence.evidence_table(fail_evidence.read_table(p))
+    pd.testing.assert_frame_equal(got, want)  # 키가 실제 ITEM
+    out = tmp_path / "out"
+    assert fail_evidence.main(["--input", str(p), "--out", str(out)]) == 0
+    csv = pd.read_csv(out / "fail_evidence.csv", dtype=str, keep_default_na=False)
+    assert list(csv.columns[:2]) == ["ITEM", "ID"]
+    assert list(csv["ITEM"]) == list(want["ID"])
+    assert csv["ID"].str.startswith("ANON_").all()
