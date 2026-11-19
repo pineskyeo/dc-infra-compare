@@ -60,7 +60,11 @@ TOOL_VERDICT_COLORS = {
 SUMMARY_TITLE = "ITEM 판정 요약"
 SUMMARY_XLABEL = "차이 / Δ (가로선: 90% 신뢰구간, 점: 중심)"
 SUMMARY_YLABEL = "ITEM (정렬: 판정 → center/Δ)"
-PAGE_LEGEND_TITLE = "장별 판정 개수"
+PAGE_LEGEND_TITLE = "판정 개수 (이 장 / LoQ 패널)"
+CLIPPED_LABEL = "x축 범위 밖 (끝에서 자름)"
+NO_MAIN_ITEMS = "정량 zone ITEM 없음 (LoQ 미만은 summary_loq.png)"
+LOQ_ZONES = ("검출한계 이하", "검출~정량")
+DEFAULT_XLIM = 3.0
 LOQ_TITLE = "LoQ 미만: DOE 중심과 이동"
 LOQ_XLABEL = "|DOE 중심| / LoQ"
 LOQ_YLABEL = "|center| / Δ"
@@ -92,6 +96,8 @@ KOREAN_TEXTS = tuple(dict.fromkeys(
         SUMMARY_XLABEL,
         SUMMARY_YLABEL,
         PAGE_LEGEND_TITLE,
+        CLIPPED_LABEL,
+        NO_MAIN_ITEMS,
         LOQ_TITLE,
         LOQ_XLABEL,
         LOQ_YLABEL,
@@ -166,6 +172,13 @@ def safe_item_name(item: object) -> str:
     return name or "ITEM"
 
 
+def _positive_float(text: str) -> float:
+    value = float(text)
+    if not np.isfinite(value) or value <= 0:
+        raise argparse.ArgumentTypeError("양수여야 합니다")
+    return value
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--items-csv", default="por_doe_out/items.csv", help="판정 결과 items.csv")
@@ -182,6 +195,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--dpi", type=int, default=100, help="PNG 해상도 (기본 100)")
     ap.add_argument("--font", metavar="PATH", help="한글 폰트 파일 경로")
     ap.add_argument("--per-page", type=int, default=1200, help="요약 한 장의 최대 ITEM 수 (기본 1200)")
+    ap.add_argument("--xlim", type=_positive_float, default=DEFAULT_XLIM, metavar="X",
+                    help=f"요약 본 패널 x축 범위 ±X (차이/Δ, 기본 {DEFAULT_XLIM:g}). 밖은 끝에서 잘라 화살표로 표시")
 
     # 원시 데이터는 재계산/상세 그림에서만 필요하므로 요약 전용 실행에서는 선택 사항이다.
     add_common_args(ap)
@@ -274,13 +289,51 @@ def _normalized_summary(items: pd.DataFrame) -> pd.DataFrame:
     ).reset_index(drop=True)
 
 
-def plot_summary(items: pd.DataFrame, out: Path, dpi: int = 100, per_page: int = 1200) -> list[Path]:
-    """전체 ITEM을 판정/center-delta 비율 순으로 정렬해 여러 요약 PNG로 저장한다."""
+def split_summary(items: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """정렬한 요약 행을 (본 패널 행, LoQ 미만 zone 행)으로 나눈다. LoQ 미만 행은 summary_loq.png에만 그린다."""
+    work = _normalized_summary(items)
+    in_loq = work["zone"].isin(LOQ_ZONES) if "zone" in work else pd.Series(False, index=work.index)
+    return work.loc[~in_loq].reset_index(drop=True), work.loc[in_loq].reset_index(drop=True)
+
+
+def clip_summary(page: pd.DataFrame, xlim: float) -> pd.DataFrame:
+    """유효한 행의 center/CI를 ±xlim으로 자른 좌표와, 왼쪽·오른쪽 끝에서 잘렸는지 표시를 더한다."""
+    clipped = page.copy()
+    valid = clipped["_valid"]
+    clipped["_cut_low"] = valid & (clipped["_low"] < -xlim)
+    clipped["_cut_high"] = valid & (clipped["_high"] > xlim)
+    clipped["_center_in"] = valid & (clipped["_center"].abs() <= xlim)
+    for column in ("_center", "_low", "_high"):
+        clipped[f"{column}_x"] = clipped[column].clip(-xlim, xlim)
+    return clipped
+
+
+def summary_legend_labels(
+    page: pd.DataFrame, loq: pd.DataFrame, clipped_count: int, xlim: float,
+) -> list[str]:
+    """판정 범주별 '이 장 / LoQ 패널' 개수와, 범위 밖으로 잘린 ITEM 개수 라벨."""
+    page_counts = page["_category"].value_counts()
+    loq_counts = loq["_category"].value_counts()
+    labels = [
+        f"{category}: {int(page_counts.get(category, 0)):,} / {int(loq_counts.get(category, 0)):,}"
+        for category in CATEGORY_ORDER
+    ]
+    labels.append(f"{CLIPPED_LABEL} ±{xlim:g}: {clipped_count:,}")
+    return labels
+
+
+def plot_summary(
+    items: pd.DataFrame, out: Path, dpi: int = 100, per_page: int = 1200, xlim: float = DEFAULT_XLIM,
+) -> list[Path]:
+    """정량 zone ITEM을 판정/center-delta 비율 순으로 정렬해 x축 ±xlim 고정 요약 PNG 여러 장으로 저장한다.
+    LoQ 미만 zone ITEM은 여기서 빼고 plot_loq()에만 그린다."""
     if per_page < 1:
         raise ValueError("--per-page는 1 이상이어야 합니다.")
     if dpi < 1:
         raise ValueError("--dpi는 1 이상이어야 합니다.")
-    work = _normalized_summary(items)
+    if not np.isfinite(xlim) or xlim <= 0:
+        raise ValueError("--xlim은 양수여야 합니다.")
+    work, loq = split_summary(items)
     omitted = int((~work["_valid"]).sum())
     if omitted:
         warnings.warn(
@@ -294,53 +347,67 @@ def plot_summary(items: pd.DataFrame, out: Path, dpi: int = 100, per_page: int =
     paths = []
     for page_number, page in enumerate(pages, 1):
         count = len(page)
+        page = clip_summary(page, xlim)
         height = max(3.5, min(30.0, 1.8 + 0.018 * max(count, 1)))
         fig, ax = plt.subplots(figsize=(10, height))
         try:
             y = np.arange(count)[::-1]
             for category in CATEGORY_ORDER:
-                mask = ((page["_category"] == category) & page["_valid"]).to_numpy()
+                in_category = (page["_category"] == category) & page["_valid"]
+                mask = in_category.to_numpy()
                 if not mask.any():
                     continue
                 color = CATEGORY_COLORS[category]
                 ax.hlines(
-                    y[mask], page.loc[mask, "_low"], page.loc[mask, "_high"],
+                    y[mask], page.loc[mask, "_low_x"], page.loc[mask, "_high_x"],
                     color=color, linewidth=0.55, alpha=0.8, zorder=2,
                 )
+                center = (in_category & page["_center_in"]).to_numpy()
                 ax.scatter(
-                    page.loc[mask, "_center"], y[mask], s=12, color=color,
+                    page.loc[center, "_center"], y[center], s=12, color=color,
                     edgecolors="white", linewidths=0.25, zorder=3,
                 )
+                for side, x, marker in (("_cut_low", -xlim, "<"), ("_cut_high", xlim, ">")):
+                    cut = (in_category & page[side]).to_numpy()
+                    if cut.any():
+                        ax.scatter(
+                            np.full(int(cut.sum()), x), y[cut], s=14, marker=marker,
+                            color=color, linewidths=0, zorder=4, clip_on=False,
+                        )
 
             ax.axvspan(-1, 1, color="#0072B2", alpha=0.07, zorder=0)
             ax.axvline(-1, color="#666666", linewidth=0.7, linestyle="--", zorder=1)
             ax.axvline(1, color="#666666", linewidth=0.7, linestyle="--", zorder=1)
             ax.axvline(0, color="#999999", linewidth=0.5, zorder=1)
-            valid_low = page.loc[page["_valid"], "_low"].to_numpy(float)
-            valid_high = page.loc[page["_valid"], "_high"].to_numpy(float)
-            xmin = min(-1.25, float(valid_low.min()) * 1.05) if len(valid_low) else -1.5
-            xmax = max(1.25, float(valid_high.max()) * 1.05) if len(valid_high) else 1.5
-            ax.set_xlim(xmin, xmax)
+            ax.set_xlim(-xlim * 1.03, xlim * 1.03)
             ax.set_ylim(-1, max(count, 1))
             ax.set_yticks([])
             ax.tick_params(axis="y", length=0)
             ax.set_xlabel(SUMMARY_XLABEL)
             ax.set_ylabel(SUMMARY_YLABEL)
             start = (page_number - 1) * per_page
-            ax.set_title(f"{SUMMARY_TITLE} ({start + 1}–{start + count} / {len(work)})")
+            if count:
+                ax.set_title(f"{SUMMARY_TITLE} ({start + 1}–{start + count} / {len(work)})")
+            else:
+                ax.set_title(SUMMARY_TITLE)
+                ax.text(0.5, 0.5, NO_MAIN_ITEMS, transform=ax.transAxes, ha="center", va="center")
             ax.set_axisbelow(True)
             ax.grid(axis="x", color="#DDDDDD", linewidth=0.5)
             for spine in ("top", "right", "left"):
                 ax.spines[spine].set_visible(False)
 
-            counts = page["_category"].value_counts()
+            clipped_count = int((page["_cut_low"] | page["_cut_high"]).sum())
+            labels = summary_legend_labels(page, loq, clipped_count, xlim)
             handles = [
                 Line2D(
                     [0], [0], color=CATEGORY_COLORS[category], marker="o", markersize=4,
-                    linewidth=1.2, label=f"{category}: {int(counts.get(category, 0)):,}",
+                    linewidth=1.2, label=label,
                 )
-                for category in CATEGORY_ORDER
+                for category, label in zip(CATEGORY_ORDER, labels)
             ]
+            handles.append(Line2D(
+                [0], [0], color="#555555", marker=">", markersize=5, linestyle="none", label=labels[-1],
+            ))
             ax.legend(handles=handles, title=PAGE_LEGEND_TITLE, loc="upper left", bbox_to_anchor=(1.01, 1.0))
             fig.subplots_adjust(left=0.09, right=0.79, top=0.97, bottom=max(0.025, 0.7 / height))
             path = out / f"summary_{page_number:03d}.png"
@@ -658,7 +725,7 @@ def main(argv: list[str] | None = None) -> None:
     out = Path(args.out)
     paths = []
     if args.summary:
-        paths.extend(plot_summary(items, out, dpi=args.dpi, per_page=args.per_page))
+        paths.extend(plot_summary(items, out, dpi=args.dpi, per_page=args.per_page, xlim=args.xlim))
         paths.append(plot_loq(items, out, dpi=args.dpi))
     if args.detail:
         raw = _load_recompute_inputs(args, "상세 그림")

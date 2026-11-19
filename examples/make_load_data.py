@@ -55,8 +55,9 @@ TEMPLATES = {
     "VT_SHIFT": Template("V", 0.45, 0.01, 1e-3, 0.3e-3, 0.03, level="100mV"),
     # A shift exactly at the 5% policy margin: the sign-test CI straddles it.
     "VT_BORDER": Template("V", 0.45, 0.01, 1e-3, 0.0, 0.05 * 0.45, level="100mV"),
-    # A quantifiable 50 pA baseline keeps this out of the <LoQ branch. A minority
-    # of DOE dies moves one 10 pA step, wider than the 2.5 pA policy margin.
+    # A quantifiable 50 pA baseline keeps this out of the <LoQ branch. Only a
+    # minority of DOE dies moves one 10 pA step, so the sign-test CI of the
+    # median shift is [0, 0] and the verdict is 동등 (CI inside ±Δ).
     # DERIVED=Y prevents an instrument accuracy margin from masking the case.
     "IOFF_STEP": Template(
         "A", 50e-12, 0.0, 0.0, 0.0, level="", calcval="", derived="Y", kind="step",
@@ -97,7 +98,7 @@ EXPECTED = {
     "IOFF_RUNWOBBLE": "동등 / <LoQ",
     "VT_SHIFT": "차이",
     "VT_BORDER": "미결 경계",
-    "IOFF_STEP": "미결 해상도 부족 (no blank link)",
+    "IOFF_STEP": "동등 (minority 10 pA step, median CI [0, 0])",
     "IOFF_FLOOR": "동등 / LoQ 미만",
     "IOFF_LEAK": "동등 / 검출~정량, <LoQ 보고 일치",
     "ION_OUTLIER": "동등 + outlier dies",

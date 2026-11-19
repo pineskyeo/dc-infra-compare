@@ -12,7 +12,9 @@ import pytest
 
 # plot_verdicts selects Agg before pyplot is imported.
 from plot_verdicts import (
-    KOREAN_TEXTS, build_parser, configure_font, detail_text, recompute, safe_item_name,
+    CATEGORY_ORDER, KOREAN_TEXTS, build_parser, clip_summary, configure_font, detail_text,
+    plot_summary, recompute, safe_item_name, split_summary, summary_legend_labels,
+    verdict_category,
 )
 import matplotlib.pyplot as plt
 
@@ -108,6 +110,84 @@ def test_summary_and_loq_pngs_are_written(por3_results: tuple[Path, Path], tmp_p
         path = plots / name
         assert path.is_file(), f"만들어지지 않은 그림: {path}"
         assert path.stat().st_size > 0
+
+
+def test_noisy_doe_item_is_undecided_for_resolution(por3_results: tuple[Path, Path]):
+    _, items_csv = por3_results
+    items = pd.read_csv(items_csv, encoding="utf-8-sig").set_index("ITEM")
+    row = items.loc["VT_NOISY_DOE"]
+
+    assert row["zone"] == "정량"
+    assert row["verdict"] == "미결"
+    assert "해상도 부족" in row["reason"]
+    assert (row["ci_high"] - row["ci_low"]) / 2 >= row["delta"]
+    assert verdict_category(row) == "미결-해상도 부족"
+
+
+def summary_frame() -> pd.DataFrame:
+    """정량 3개(하나는 +쪽, 하나는 -쪽 범위 밖)와 LoQ 미만 zone 2개."""
+    return pd.DataFrame({
+        "ITEM": ["Q_IN", "Q_HIGH", "Q_LOW", "L_FLOOR", "L_MID"],
+        "zone": ["정량", "정량", "정량", "검출한계 이하", "검출~정량"],
+        "verdict": ["동등", "차이", "미결", "동등", "동등"],
+        "reason": [
+            "90% 신뢰구간이 ±Δ 안", "shift +5가 ±Δ(1) 밖", "경계 (신뢰구간이 Δ에 걸침)",
+            "<LoQ 보고 일치 (이동이 ±Δ 안)", "<LoQ 보고 일치 (이동이 ±Δ 안)",
+        ],
+        "center": [0.1, 5.0, -0.5, 0.0, 0.2],
+        "ci_low": [-0.2, 4.0, -4.0, -0.1, 0.1],
+        "ci_high": [0.3, 6.0, 0.5, 0.1, 0.3],
+        "delta": [1.0, 1.0, 1.0, 1.0, 1.0],
+    })
+
+
+def test_split_summary_keeps_loq_zone_items_out_of_main_panel():
+    main, loq = split_summary(summary_frame())
+
+    assert set(main["ITEM"]) == {"Q_IN", "Q_HIGH", "Q_LOW"}
+    assert set(loq["ITEM"]) == {"L_FLOOR", "L_MID"}
+
+
+def test_clip_summary_marks_items_beyond_xlim_and_legend_counts_both_panels():
+    main, loq = split_summary(summary_frame())
+    clipped = clip_summary(main, 3.0).set_index("ITEM")
+
+    assert bool(clipped.at["Q_HIGH", "_cut_high"]) and not bool(clipped.at["Q_HIGH", "_center_in"])
+    assert clipped.at["Q_HIGH", "_low_x"] == 3.0 and clipped.at["Q_HIGH", "_high_x"] == 3.0
+    assert bool(clipped.at["Q_LOW", "_cut_low"]) and bool(clipped.at["Q_LOW", "_center_in"])
+    assert clipped.at["Q_LOW", "_low_x"] == -3.0
+    assert not (clipped.loc["Q_IN", ["_cut_low", "_cut_high"]].any())
+    cut = int((clipped["_cut_low"] | clipped["_cut_high"]).sum())
+    assert cut == 2
+
+    labels = summary_legend_labels(main, loq, cut, 3.0)
+    by_category = dict(zip(CATEGORY_ORDER, labels))
+    assert by_category["차이"].endswith(": 1 / 0")
+    assert by_category["미결-경계"].endswith(": 1 / 0")
+    assert by_category["동등"].endswith(": 1 / 0")
+    assert by_category["<LoQ 보고 일치"].endswith(": 0 / 2")
+    assert labels[-1].endswith("±3: 2")
+
+
+def test_xlim_option_defaults_to_three_and_rejects_non_positive():
+    assert build_parser().parse_args([]).xlim == 3.0
+    assert build_parser().parse_args(["--xlim", "5"]).xlim == 5.0
+    for bad in ("0", "-2", "nan"):
+        with pytest.raises(SystemExit):
+            build_parser().parse_args(["--xlim", bad])
+
+
+def test_plot_summary_writes_pngs_with_custom_xlim_and_without_main_items(tmp_path: Path):
+    frame = summary_frame()
+    paths = plot_summary(frame, tmp_path / "mixed", dpi=60, xlim=2.0)
+    assert [path.name for path in paths] == ["summary_001.png"]
+
+    loq_only = frame.loc[frame["zone"] != "정량"]
+    paths = plot_summary(loq_only, tmp_path / "loq_only", dpi=60)
+    assert len(paths) == 1 and paths[0].stat().st_size > 0
+
+    with pytest.raises(ValueError):
+        plot_summary(frame, tmp_path / "bad", xlim=0)
 
 
 def assert_detail_pngs(plots: Path, expected_items) -> None:

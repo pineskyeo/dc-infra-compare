@@ -154,20 +154,21 @@ python summarize.py p3/out/items.csv
 python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots
 ```
 
-상세 그림에는 판정 때 쓴 같은 `--por`, `--doe`, `--level`, `--blank` 입력을 다시 줍니다. 아래는 두 ITEM만 고르는 예이며, `--items VT_SHIFT,VT_BORDER` 대신 `--all`을 쓰면 모든 ITEM을 그립니다.
+상세 그림에는 판정 때 쓴 같은 `--por`, `--doe`, `--level`, `--blank` 입력을 다시 줍니다. 아래는 두 ITEM만 고르는 예이며, `--items VT_SHIFT,VT_NOISY_DOE` 대신 `--all`을 쓰면 모든 ITEM을 그립니다.
 
 ```bash
 python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
-  --detail --items VT_SHIFT,VT_BORDER --jobs 4 \
+  --detail --items VT_SHIFT,VT_NOISY_DOE --jobs 4 \
   --por p3/por_run1 --por p3/por_run2 --por p3/por_run3 --doe p3/doe \
   --level p3/level.csv --blank p3/blank --blank-map p3/blank_map.csv
 ```
 
-예시 그림은 다음과 같습니다. 앞의 세 그림은 `examples/make_por3_data.py`가 만든 데이터에서 나왔습니다.
+예시 그림은 다음과 같습니다. 앞의 네 그림은 `examples/make_por3_data.py`가 만든 데이터에서 나왔습니다.
 
 - [요약](examples/plots/summary_001.png)
 - [LoQ 패널](examples/plots/summary_loq.png)
 - [차이 상세](examples/plots/detail_diff_VT_SHIFT.png)
+- [미결-해상도 부족 상세](examples/plots/detail_resolution_VT_NOISY_DOE.png)
 - [미결-경계 상세](examples/plots/detail_border_IT00025.png) — 6,000 ITEM 부하 데이터에서 만든 그림
 
 6,000 ITEM × die 60 × POR 3회 + DOE, `examples/make_load_data.py OUT --items 6000 --dies 60 --seed 7`; 측정 기계: 공유 박스 Linux, Intel Xeon 8코어, RAM 15 GB, Python 3.13.5, matplotlib 3.11.2, pandas 3.1.1, numpy 2.5.5; `--dpi 100`. 최대 메모리는 가장 큰 단일 프로세스 값(`ru_maxrss`), `--jobs 4`는 작업자 합이 아님.
@@ -183,7 +184,7 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 `--jobs 1` 측정 중에는 다른 짧은 작업(테스트 실행)이 같은 기계에서 잠깐 겹쳐 실제보다 조금 느릴 수 있습니다. 전체 상세는 `--jobs 4` 이상을 쓰고, 보통은 요약과 `--items`로 고른 ITEM만 그립니다.
 
-`examples/make_load_data.py`의 `IOFF_STEP` 템플릿 표시는 "미결 해상도 부족"이지만 현재 판정 결과와 맞지 않습니다. 현재 예제 데이터에서는 미결-해상도 부족 사례가 나오지 않으므로 해상도 부족 샘플 그림은 넣지 않았습니다.
+미결-해상도 부족 사례는 `examples/make_por3_data.py`의 `VT_NOISY_DOE`입니다. DOE die 값이 ±0.3 V로 고르게 퍼져 90% 신뢰구간 반폭이 Δ보다 큽니다. `examples/make_load_data.py`의 `IOFF_STEP` 템플릿은 DOE die 일부만 한 계단 올라가 중앙값 신뢰구간이 [0, 0]이므로 동등으로 판정됩니다.
 
 요약은 `items.csv`만으로 빠르게 만들 수 있습니다.  
 상세는 원시 데이터를 함께 주고, 필요한 ITEM만 골라 만드는 것이 좋습니다.

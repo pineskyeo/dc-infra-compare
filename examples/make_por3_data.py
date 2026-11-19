@@ -73,15 +73,33 @@ def step_item(run: int) -> tuple:
     return ("A", v, None)
 
 
+# 기존 ITEM 값이 바뀌지 않도록 해상도 부족 ITEM은 따로 seed를 고정한 rng를 쓴다.
+noisy_rng = np.random.default_rng(23)
+noisy_base = noisy_rng.normal(0.45, 0.01, N)
+noisy_spread = noisy_rng.permutation(np.linspace(-0.3, 0.3, N))
+
+
+def noisy_item(run: int) -> tuple:
+    """POR은 die 흔들림 1 mV로 정량 zone. DOE만 die마다 -0.3~+0.3 V로 고르게 퍼진다.
+    die 61개의 부호검정 90% CI는 정렬 순번 24~38번째라 약 ±0.07 V: 0을 걸치고 반폭이 Δ(약 0.023 V)보다 커서
+    tost가 '미결, 해상도 부족 (신뢰구간 반폭 ≥ Δ)'을 낸다."""
+    v = noisy_base + noisy_rng.normal(0, 1e-3, N)
+    if run == 3:
+        v = v + noisy_spread
+    return ("V", v, None)
+
+
 for r in range(3):
-    write(out / f"por_run{r + 1}" / "POR", {**measure(r), "IOFF_STEP": step_item(r)})
-write(out / "doe" / "DOE", {**measure(3), "IOFF_STEP": step_item(3)})
+    write(out / f"por_run{r + 1}" / "POR",
+          {**measure(r), "IOFF_STEP": step_item(r), "VT_NOISY_DOE": noisy_item(r)})
+write(out / "doe" / "DOE", {**measure(3), "IOFF_STEP": step_item(3), "VT_NOISY_DOE": noisy_item(3)})
 write(out / "blank" / "BLANK", {"OPEN_I": ("A", rng.normal(0, 1.5e-12, N), None)})
 (out / "blank_map.csv").write_text("ITEM,BLANK_ITEM\nIOFF_STEP,OPEN_I\nIOFF_FLOOR,OPEN_I\nIOFF_LEAK,OPEN_I\n")
 (out / "level.csv").write_text("ITEM,LEVEL,CALCVAL,DERIVED\nVT_SAME,100mV,1,N\nVT_SHIFT,100mV,1,N\nVOS_OFFSET,10uV,1,N\n"
                                "ION_OUTLIER,100uA,1,N\nIDSAT_SPEC,100uA,1,N\nIOFF_FLOOR,100fA,1,N\nIOFF_LEAK,10fA,1,N\n"
                                "IOFF_STEP,1pA,,N\nIOFF_RUNWOBBLE,1pA,1,N\nRON_CONTACT,,,Y\n")
 EXPECT["IOFF_STEP"] = "blank 없이: 미결(해상도 부족, sigma_die = 0). blank 하한 적용: 동등 (LoQ 미만)"
+EXPECT["VT_NOISY_DOE"] = "미결 (해상도 부족: DOE die 퍼짐 ±0.3 V, 90% CI 반폭 약 0.07 V ≥ Δ 약 0.023 V)"
 print("기대 판정:")
 for k, v in EXPECT.items():
     print(f"  {k:12s} {v}")
