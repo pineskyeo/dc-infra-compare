@@ -11,7 +11,9 @@ import pandas as pd
 import pytest
 
 # plot_verdicts selects Agg before pyplot is imported.
-from plot_verdicts import KOREAN_TEXTS, build_parser, configure_font, recompute
+from plot_verdicts import (
+    KOREAN_TEXTS, build_parser, configure_font, detail_text, recompute, safe_item_name,
+)
 import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -106,6 +108,74 @@ def test_summary_and_loq_pngs_are_written(por3_results: tuple[Path, Path], tmp_p
         path = plots / name
         assert path.is_file(), f"만들어지지 않은 그림: {path}"
         assert path.stat().st_size > 0
+
+
+def assert_detail_pngs(plots: Path, expected_items) -> None:
+    expected = {safe_item_name(item) for item in expected_items}
+    paths = list((plots / "detail").glob("*.png"))
+    assert {path.stem for path in paths} == expected
+    assert len(paths) == len(expected)
+    for path in paths:
+        assert path.stat().st_size > 0, f"빈 상세 그림: {path}"
+
+
+def test_detail_default_writes_exactly_difference_and_undecided_items(
+    por3_results: tuple[Path, Path], tmp_path: Path,
+):
+    data, items_csv = por3_results
+    items = pd.read_csv(items_csv, encoding="utf-8-sig")
+    expected = items.loc[items["verdict"].isin(["차이", "미결"]), "ITEM"].astype(str)
+    assert not expected.empty
+    plots = tmp_path / "plots"
+
+    run_script(ROOT / "plot_verdicts.py", [
+        "--items-csv", items_csv, "--no-summary", "--detail",
+        "--out", plots, "--dpi", "80", *raw_args(data),
+    ])
+
+    assert_detail_pngs(plots, expected)
+
+
+def test_detail_items_writes_only_requested_codes(
+    por3_results: tuple[Path, Path], tmp_path: Path,
+):
+    data, items_csv = por3_results
+    requested = ["VT_SHIFT", "VT_SAME"]
+    plots = tmp_path / "plots"
+
+    run_script(ROOT / "plot_verdicts.py", [
+        "--items-csv", items_csv, "--no-summary", "--detail",
+        "--items", ",".join(requested), "--out", plots, "--dpi", "80", *raw_args(data),
+    ])
+
+    assert_detail_pngs(plots, requested)
+
+
+def test_detail_all_jobs_two_writes_one_png_per_item(
+    por3_results: tuple[Path, Path], tmp_path: Path,
+):
+    data, items_csv = por3_results
+    items = pd.read_csv(items_csv, encoding="utf-8-sig")
+    plots = tmp_path / "plots"
+
+    run_script(ROOT / "plot_verdicts.py", [
+        "--items-csv", items_csv, "--no-summary", "--detail", "--all", "--jobs", "2",
+        "--out", plots, "--dpi", "80", *raw_args(data),
+    ])
+
+    assert_detail_pngs(plots, items["ITEM"].astype(str))
+
+
+def test_detail_reason_text_equals_items_csv_reason(por3_results: tuple[Path, Path]):
+    data, items_csv = por3_results
+    args = build_parser().parse_args([str(arg) for arg in raw_args(data)])
+    actual = recompute(args).set_index("ITEM")
+    expected = pd.read_csv(items_csv, encoding="utf-8-sig").set_index("ITEM")
+
+    for item, row in actual.iterrows():
+        title, reason = detail_text(row.to_dict())
+        assert str(item) in title
+        assert reason == expected.at[item, "reason"]
 
 
 def test_chosen_font_renders_all_korean_labels_without_glyph_warnings(tmp_path: Path):

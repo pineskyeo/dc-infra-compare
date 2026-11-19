@@ -1,11 +1,12 @@
 """items.csv로 ITEM 판정 요약 그림을 만들고, 필요하면 같은 판정 함수로 결과를 다시 계산한다.
 
-요약 그림에는 item_map의 실제 항목 이름을 사용하지 않는다. 상세 그림을 추가할 때에도
-파일명은 safe_item_name()을 거친 ITEM 코드만 사용해야 한다.
+요약·상세 그림에는 item_map의 실제 항목 이름을 사용하지 않는다. 상세 그림 파일명은
+safe_item_name()을 거친 ITEM 코드만 사용해야 한다.
 """
 from __future__ import annotations
 
 import argparse
+import multiprocessing as mp
 import re
 import warnings
 from pathlib import Path
@@ -22,7 +23,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Rectangle
 
 from infra_compare import load_blank, read_csv_auto
-from por_doe_compare import ORDER, add_common_args, judge_item, load_levels, load_wide
+from por_doe_compare import ORDER, add_common_args, ci_rank, judge_item, load_levels, load_wide
 
 FONT_CANDIDATES = (
     "Apple SD Gothic Neo",
@@ -66,6 +67,21 @@ LOQ_YLABEL = "|center| / Δ"
 LOQ_FOOTNOTE = "도구의 차이 규칙: CI가 통째로 ±Δ 밖(lo > Δ 또는 hi < -Δ); |center|/Δ ≥ 1이 아님."
 NO_LOQ_ITEMS = "해당 ITEM 없음"
 NO_VALID_POINTS = "표시할 유효한 좌표 없음"
+DETAIL_LEFT_TITLE = "POR 회차별 / DOE die 값"
+DETAIL_RIGHT_TITLE = "d = DOE - POR 평균 (정렬)"
+DETAIL_LEFT_YLABEL = "측정값"
+DETAIL_RIGHT_XLABEL = "die 순번 (오름차순)"
+DETAIL_RIGHT_YLABEL = "d = DOE - POR 평균"
+DETAIL_BAR_LABEL = "die별 d"
+DETAIL_CI_LABEL = "90% CI 순번 구간"
+DETAIL_OUTLIER_LABEL = "튀는 die (judge mask)"
+DETAIL_LOQ_LABEL = "LoQ (참고)"
+DETAIL_POLICY_LABEL = "±Δ 정책"
+DETAIL_TOTAL_LABEL = "±Δ 정책 + 회차"
+DETAIL_RUN_BAND_LABEL = "회차 margin 누적"
+DETAIL_ACCURACY_LABEL = "±Δ 장비 정확도"
+DETAIL_REFERENCE_LABEL = "±Δ 정책 + 회차 (참고)"
+DETAIL_LOQ_FOOTNOTE = "LoQ 선은 측정 수준 참고선입니다. 정량 zone이 아니면 값을 <LoQ로 보고합니다."
 
 # 한글 렌더 테스트는 그림에 넣는 모든 고정 문자열을 이 목록에서 가져간다.
 KOREAN_TEXTS = tuple(dict.fromkeys(
@@ -84,6 +100,25 @@ KOREAN_TEXTS = tuple(dict.fromkeys(
         LOQ_FOOTNOTE,
         NO_LOQ_ITEMS,
         NO_VALID_POINTS,
+        DETAIL_LEFT_TITLE,
+        DETAIL_RIGHT_TITLE,
+        DETAIL_LEFT_YLABEL,
+        DETAIL_RIGHT_XLABEL,
+        DETAIL_RIGHT_YLABEL,
+        DETAIL_BAR_LABEL,
+        DETAIL_CI_LABEL,
+        DETAIL_OUTLIER_LABEL,
+        DETAIL_LOQ_LABEL,
+        DETAIL_POLICY_LABEL,
+        DETAIL_TOTAL_LABEL,
+        DETAIL_RUN_BAND_LABEL,
+        DETAIL_ACCURACY_LABEL,
+        DETAIL_REFERENCE_LABEL,
+        DETAIL_LOQ_FOOTNOTE,
+        "정량",
+        "검출한계 이하",
+        "검출~정량",
+        "die 부족",
     )
 ))
 
@@ -138,6 +173,11 @@ def build_parser() -> argparse.ArgumentParser:
     summary.add_argument("--summary", dest="summary", action="store_true", help="요약 그림 작성 (기본)")
     summary.add_argument("--no-summary", dest="summary", action="store_false", help="요약 그림 생략")
     ap.set_defaults(summary=True)
+    ap.add_argument("--detail", action="store_true", help="ITEM별 상세 그림 작성 (기본 끔)")
+    detail_selection = ap.add_mutually_exclusive_group()
+    detail_selection.add_argument("--items", metavar="A,B", help="상세 그림을 그릴 ITEM 코드 (쉼표 구분)")
+    detail_selection.add_argument("--all", action="store_true", help="모든 ITEM의 상세 그림 작성")
+    ap.add_argument("--jobs", type=int, default=1, help="상세 그림 multiprocessing worker 수 (기본 1)")
     ap.add_argument("--out", default="por_doe_out/plots/", help="PNG output directory")
     ap.add_argument("--dpi", type=int, default=100, help="PNG 해상도 (기본 100)")
     ap.add_argument("--font", metavar="PATH", help="한글 폰트 파일 경로")
@@ -157,10 +197,10 @@ def _require_columns(df: pd.DataFrame, columns: set[str]) -> None:
         raise ValueError(f"items.csv에 필요한 열이 없습니다: {', '.join(missing)}")
 
 
-def _load_recompute_inputs(args: argparse.Namespace):
-    """재계산과 이후 상세 그림이 공유할 원시 데이터/level/blank 연결."""
+def _load_recompute_inputs(args: argparse.Namespace, purpose: str = "재계산"):
+    """재계산과 상세 그림이 공유할 원시 데이터/level/blank 연결."""
     if not args.por or not args.doe:
-        raise ValueError("재계산에는 --por(회차별)와 --doe가 필요합니다.")
+        raise ValueError(f"{purpose}에는 --por(회차별)와 --doe가 필요합니다.")
     if len(args.por) < 2:
         raise ValueError("POR은 2회 이상 필요합니다 (--por를 회차마다 따로).")
 
@@ -388,15 +428,239 @@ def plot_loq(items: pd.DataFrame, out: Path, dpi: int = 100) -> Path:
         plt.close(fig)
 
 
+def select_detail_items(
+    items: pd.DataFrame, item_arg: str | None = None, select_all: bool = False,
+) -> list[str]:
+    """상세 그림 대상 ITEM 코드를 기본(차이/미결), --items, --all 규칙으로 고른다."""
+    _require_columns(items, {"ITEM", "verdict"})
+    codes = items["ITEM"].astype(str).tolist()
+    if select_all:
+        return list(dict.fromkeys(codes))
+    if item_arg is not None:
+        requested = [part.strip() for part in item_arg.split(",")]
+        if any(not code for code in requested):
+            raise ValueError("--items는 비어 있지 않은 ITEM 코드를 쉼표로 구분해 주세요.")
+        missing = sorted(set(requested) - set(codes))
+        if missing:
+            raise ValueError(f"items.csv에 없는 ITEM 코드입니다: {', '.join(missing)}")
+        return list(dict.fromkeys(requested))
+    selected = [
+        code for code, verdict in zip(codes, items["verdict"].astype(str))
+        if verdict in {"차이", "미결"}
+    ]
+    return list(dict.fromkeys(selected))
+
+
+def detail_text(res: dict) -> tuple[str, str]:
+    """상세 그림 제목과 items.csv reason에 해당하는 판정 사유 문자열을 돌려준다."""
+    title = f"ITEM {res['ITEM']} - {res['verdict']} ({res['zone']})"
+    return title, str(res["reason"])
+
+
+def _detail_worker_init(font_path: str | None) -> None:
+    """spawn/fork 어느 쪽에서도 worker마다 Agg와 한글 폰트를 설정한다."""
+    matplotlib.use("Agg", force=True)
+    configure_font(font_path)
+
+
+def _strip_offsets(n: int) -> np.ndarray:
+    """난수 없이 고정한 strip 가로 오프셋."""
+    if n < 2:
+        return np.zeros(n)
+    return np.linspace(-0.18, 0.18, n)
+
+
+def _detail_worker(payload: dict) -> Path:
+    """선택 ITEM 하나의 원시 die와 judge 결과만 받아 상세 PNG를 저장한다."""
+    res = payload["res"]
+    por = payload["por"]
+    doe = payload["doe"]
+    mask = payload["outlier"]
+    por_cols = payload["por_cols"]
+    n, n_por = por.shape
+    title, reason = detail_text(res)
+    path = payload["out"] / f"{safe_item_name(res['ITEM'])}.png"
+
+    fig, (left, right) = plt.subplots(figsize=(14, 6.5), ncols=2)
+    try:
+        positions = np.arange(1, n_por + 2)
+        values = [por[:, index] for index in range(n_por)] + [doe]
+        series_colors = ["#0072B2"] * n_por + ["#009E73"]
+        boxes = left.boxplot(
+            values, positions=positions, widths=0.55, showfliers=False,
+            patch_artist=True, medianprops={"color": "#333333", "linewidth": 1.2},
+            whiskerprops={"color": "#777777"}, capprops={"color": "#777777"},
+        )
+        for box, color in zip(boxes["boxes"], series_colors):
+            box.set_facecolor(color)
+            box.set_alpha(0.12)
+            box.set_edgecolor(color)
+        for position, vals, color in zip(positions, values, series_colors):
+            offsets = _strip_offsets(n)
+            left.scatter(
+                np.full(n, position) + offsets, vals, s=18, color=color,
+                alpha=0.55, linewidths=0, zorder=3,
+            )
+            if mask.any():
+                left.scatter(
+                    np.full(int(mask.sum()), position) + offsets[mask], vals[mask],
+                    s=58, facecolors="none", edgecolors="#D55E00", linewidths=1.2, zorder=4,
+                )
+        left.set_xticks(positions)
+        left.set_xticklabels([*por_cols, "DOE"])
+        left.set_title(DETAIL_LEFT_TITLE)
+        unit = res.get("UNIT")
+        unit = "" if unit is None or pd.isna(unit) else str(unit)
+        left.set_ylabel(DETAIL_LEFT_YLABEL + (f" ({unit})" if unit else ""))
+        left.legend(
+            handles=[
+                Line2D([0], [0], color="#0072B2", marker="o", linewidth=0, label="POR"),
+                Line2D([0], [0], color="#009E73", marker="o", linewidth=0, label="DOE"),
+                Line2D(
+                    [0], [0], color="#D55E00", marker="o", markerfacecolor="none",
+                    linewidth=0, label=f"{DETAIL_OUTLIER_LABEL}: {int(mask.sum())}",
+                ),
+            ],
+            loc="upper left", fontsize=8,
+        )
+
+        d = doe - por.mean(axis=1)
+        order = np.argsort(d, kind="mergesort")
+        sorted_d = d[order]
+        sorted_mask = mask[order]
+        ranks = np.arange(1, n + 1)
+        k = ci_rank(n)
+        right.axvspan(
+            k + 0.5, n - k + 0.5, color="#0072B2", alpha=0.09,
+            label=f"{DETAIL_CI_LABEL} ({k + 1}-{n - k})", zorder=0,
+        )
+        right.bar(
+            ranks, sorted_d, width=0.82, color="#56B4E9", alpha=0.85,
+            label=DETAIL_BAR_LABEL, zorder=2,
+        )
+        if sorted_mask.any():
+            right.scatter(
+                ranks[sorted_mask], sorted_d[sorted_mask], s=58, facecolors="none",
+                edgecolors="#D55E00", linewidths=1.2, label=DETAIL_OUTLIER_LABEL, zorder=4,
+            )
+        right.axhline(0, color="#999999", linewidth=0.6, zorder=1)
+
+        policy = float(res["policy_margin"])
+        run_margin = float(res["run_margin"])
+        reference_delta = policy + run_margin
+        delta = float(res["delta"])
+        if res.get("delta_source") == "장비 정확도":
+            for sign, label in ((-1, DETAIL_ACCURACY_LABEL), (1, "_nolegend_")):
+                right.axhline(
+                    sign * delta, color="#D55E00", linewidth=1.4, linestyle="-", label=label,
+                )
+            for sign, label in ((-1, DETAIL_REFERENCE_LABEL), (1, "_nolegend_")):
+                right.axhline(
+                    sign * reference_delta, color="#666666", linewidth=1.0,
+                    linestyle="--", label=label,
+                )
+        else:
+            right.axhspan(
+                policy, reference_delta, color="#E69F00", alpha=0.12,
+                label=DETAIL_RUN_BAND_LABEL, zorder=0,
+            )
+            right.axhspan(-reference_delta, -policy, color="#E69F00", alpha=0.12, zorder=0)
+            for sign, label in ((-1, DETAIL_POLICY_LABEL), (1, "_nolegend_")):
+                right.axhline(
+                    sign * policy, color="#666666", linewidth=1.0, linestyle="--", label=label,
+                )
+            for sign, label in ((-1, DETAIL_TOTAL_LABEL), (1, "_nolegend_")):
+                right.axhline(
+                    sign * delta, color="#D55E00", linewidth=1.4, linestyle="-", label=label,
+                )
+
+        loq = float(res["LoQ"])
+        if np.isfinite(loq):
+            right.axhline(
+                loq, color="#CC79A7", linewidth=1.1, linestyle=":", label=DETAIL_LOQ_LABEL,
+            )
+        right.set_xlim(0.5, n + 0.5)
+        right.set_title(DETAIL_RIGHT_TITLE)
+        right.set_xlabel(DETAIL_RIGHT_XLABEL)
+        right.set_ylabel(DETAIL_RIGHT_YLABEL)
+        right.legend(loc="upper left", bbox_to_anchor=(1.01, 1.0), fontsize=8)
+
+        for ax in (left, right):
+            ax.set_axisbelow(True)
+            ax.grid(axis="y", color="#E2E2E2", linewidth=0.5)
+            for spine in ("top", "right"):
+                ax.spines[spine].set_visible(False)
+
+        fig.suptitle(title, fontsize=14)
+        fig.text(0.06, 0.025, reason, fontsize=9, ha="left", wrap=True)
+        below_quant = str(res["zone"]) != "정량"
+        if below_quant:
+            fig.text(0.06, 0.065, DETAIL_LOQ_FOOTNOTE, fontsize=9, ha="left", color="#555555")
+        fig.subplots_adjust(
+            left=0.06, right=0.82, top=0.86, bottom=0.20 if below_quant else 0.15, wspace=0.30,
+        )
+        fig.savefig(path, dpi=payload["dpi"], facecolor="white", bbox_inches="tight")
+        return path
+    finally:
+        plt.close(fig)
+
+
+def plot_details(items: pd.DataFrame, raw: tuple, args: argparse.Namespace) -> list[Path]:
+    """선택 ITEM을 judge_item으로 판정하고 ITEM당 detail/<safe code>.png 한 장을 저장한다."""
+    if args.dpi < 1:
+        raise ValueError("--dpi는 1 이상이어야 합니다.")
+    if args.jobs < 1:
+        raise ValueError("--jobs는 1 이상이어야 합니다.")
+    selected = select_detail_items(items, args.items, args.all)
+    names = [safe_item_name(item) for item in selected]
+    if len(set(names)) != len(names):
+        raise ValueError("ITEM 코드를 파일시스템 안전 문자로 바꾼 이름이 중복됩니다.")
+    if not selected:
+        return []
+
+    wide, por_cols, units, levels, blank, bmap = raw
+    groups = {str(item): group for item, group in wide.groupby("ITEM", sort=False)}
+    missing = [item for item in selected if item not in groups]
+    if missing:
+        raise ValueError(f"원시 데이터에서 찾지 못한 ITEM 코드입니다: {', '.join(missing)}")
+
+    out = Path(args.out) / "detail"
+    out.mkdir(parents=True, exist_ok=True)
+    payloads = []
+    for item in selected:
+        group = groups[item]
+        res, mask = judge_item(item, group, por_cols, units, args.r, levels, blank, bmap)
+        payloads.append({
+            "res": res,
+            "por": group[por_cols].to_numpy(float),
+            "doe": group["DOE"].to_numpy(float),
+            "outlier": np.asarray(mask, dtype=bool),
+            "por_cols": por_cols,
+            "out": out,
+            "dpi": args.dpi,
+        })
+
+    if args.jobs == 1:
+        _detail_worker_init(args.font)
+        return [_detail_worker(payload) for payload in payloads]
+    with mp.Pool(processes=args.jobs, initializer=_detail_worker_init, initargs=(args.font,)) as pool:
+        return pool.map(_detail_worker, payloads)
+
+
 def main(argv: list[str] | None = None) -> None:
     args = build_parser().parse_args(argv)
     configure_font(args.font)
-    if not args.summary:
+    if not args.summary and not args.detail:
         return
     items = pd.read_csv(args.items_csv, encoding="utf-8-sig")
     out = Path(args.out)
-    paths = plot_summary(items, out, dpi=args.dpi, per_page=args.per_page)
-    paths.append(plot_loq(items, out, dpi=args.dpi))
+    paths = []
+    if args.summary:
+        paths.extend(plot_summary(items, out, dpi=args.dpi, per_page=args.per_page))
+        paths.append(plot_loq(items, out, dpi=args.dpi))
+    if args.detail:
+        raw = _load_recompute_inputs(args, "상세 그림")
+        paths.extend(plot_details(items, raw, args))
     for path in paths:
         print(path)
 
