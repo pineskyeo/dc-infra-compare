@@ -338,7 +338,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"오류: {e}", file=sys.stderr)
         return 2
 
-    table.to_csv(out / "fail_evidence.csv", index=False, encoding="utf-8-sig")
+    table.rename(columns={"ID": "ITEM"}).to_csv(out / "fail_evidence.csv", index=False, encoding="utf-8-sig")
     summary = summary_text(table, Path(args.input).name)
     (out / "summary.txt").write_text(summary, encoding="utf-8")
 

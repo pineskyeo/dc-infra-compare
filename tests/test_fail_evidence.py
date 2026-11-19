@@ -154,9 +154,9 @@ def test_main_writes_outputs(tmp_path: Path, capsys):
     assert sorted(p.stem for p in (out / "items").glob("*.png")) == PLOTTED
 
     csv = pd.read_csv(out / "fail_evidence.csv", encoding="utf-8-sig",
-                      dtype={"ID": str}, keep_default_na=False, na_values=[""])
-    assert list(csv.columns) == fe.csv_columns([1, 2, 3])
-    assert dict(zip(csv["ID"], csv["judgement"])) == EXPECTED
+                      dtype={"ITEM": str}, keep_default_na=False, na_values=[""])
+    assert list(csv.columns) == ["ITEM"] + fe.csv_columns([1, 2, 3])[1:]
+    assert dict(zip(csv["ITEM"], csv["judgement"])) == EXPECTED
 
     summary = (out / "summary.txt").read_text(encoding="utf-8")
     for line in ("차이: 2", "미결-정상: 5", "미결-기준 흔들림: 4", "계산 불가: 2",

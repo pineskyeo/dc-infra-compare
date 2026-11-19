@@ -42,7 +42,7 @@ def test_compare_presence_misalign_both_lower_and_counts(tmp_path):
 
     # compare_tables가 쓰는 열: presence(matched/only_before/only_after), misaligned(bool)
     df = pd.read_csv(out / "compare.csv", encoding="utf-8-sig")
-    by_id = df.set_index("ID")
+    by_id = df.set_index("ITEM")
 
     # 존재 여부
     assert by_id.loc["SYNTH_B1", "presence"] == "only_before"
