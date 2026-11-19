@@ -117,9 +117,10 @@ def configure_font(font_path: str | None = None) -> str | None:
             stacklevel=2,
         )
         return None
-    # matplotlib >= 3.6 falls back per glyph: Korean glyphs come from the chosen
-    # font, and glyphs it lacks (e.g. Greek Δ) come from DejaVu Sans.
-    rcParams["font.family"] = "sans-serif"
+    # matplotlib falls back per glyph only across the font.family list itself, so
+    # the chosen font and DejaVu Sans must both be listed there (e.g. Greek Δ
+    # comes from DejaVu Sans when the Korean font lacks it).
+    rcParams["font.family"] = [selected, "DejaVu Sans"]
     rcParams["font.sans-serif"] = [selected, "DejaVu Sans"]
     return selected
 
