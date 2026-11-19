@@ -70,11 +70,25 @@
 <li>LoQ 미만 값을 '&lt;LoQ'로 보고하는 방식 <span class="badge-int">내부 기준(문헌 근거 없음)</span>. 실제 값을 그대로 보고하라는 반대 방향 권고도 있음<sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li>
 </ul></details></section>
 
+<section id="derive"><h2>10배는 어디서 나오나: 상대표준편차에서 LoQ까지</h2>
+<ol class="calc">
+<li>흔들림 σ는 값의 크기와 거의 상관없이 일정(같은 장비, 같은 die를 다시 잼). 예시 ITEM σ<sub>die</sub> 0.98965</li>
+<li>같은 σ라도 값이 작으면 값에 비해 크게 흔들림. 값 100이면 ±0.98965는 값의 약 1%, 값 2면 약 49%<span class="from">0.98965 ÷ 100 = 0.0099, 0.98965 ÷ 2 = 0.4948</span></li>
+<li>이 '값 대비 흔들림 비율'이 <a class="g" href="glossary.html#rsd"><abbr title="상대표준편차 · 흔들림 σ를 값의 크기로 나눈 비율">상대표준편차(RSD, Relative Standard Deviation)</abbr></a>: RSD = σ ÷ 값. 값이 작을수록 RSD가 커짐 → 숫자를 믿기 어려워짐</li>
+<li>기준을 하나 정함: RSD ≤ 10%이면 숫자로 믿음. 국제순수·응용화학연합(IUPAC, International Union of Pure and Applied Chemistry)의 기본값<sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup></li>
+<li>그 기준을 겨우 만족하는 가장 작은 값이 LoQ: σ ÷ LoQ = 0.1<span class="cl">→ LoQ = σ ÷ 0.1 = 10 × σ</span><span class="from">예시: 10 × 0.98965 = 9.8965</span></li>
+<li>일반식: LoQ = k<sub>Q</sub> × σ, k<sub>Q</sub> = 1 ÷ (정한 RSD). RSD 10% → k<sub>Q</sub> = 10. RSD 20%로 정하면 5, 약 17%면 6을 쓰는 곳도 있음 → 10은 통계에서 저절로 나온 수가 아니라 '10% 정밀도면 믿는다'는 선택<sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup></li>
+</ol>
+<p class="look"><b>한 줄 요약</b> · LoQ = 흔들림이 값의 10% 이하가 되는 가장 작은 값 = 10σ</p>
+</section>
+
 <section id="formula"><h2>수식</h2>
-<div class="formula"><div>LoQ = 10 · σ · LoD = 3.29 · σ</div><div>σ = max(σ<sub>die</sub>, Δx/√12, …)</div><div>|기준 조건 중앙값| ≥ LoQ → 정량 · 미만 → LoQ 미만</div><div class="c">값 = LoQ이면 σ / 값 = 10%</div></div>
+<div class="formula"><div>LoQ = 10 · σ · LoD = 3.29 · σ</div><div>σ = max(σ<sub>die</sub>, Δx/√12, …)</div><div>|기준 조건 중앙값| ≥ LoQ → 정량 · 미만 → LoQ 미만</div><div>RSD = σ ÷ 값 ≤ 0.1 → 값 ≥ σ ÷ 0.1 = 10σ</div><div class="c">값 = LoQ이면 σ / 값 = 10% (RSD 10%)</div></div>
 <div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
 <tr><td>LoQ</td><td>정량한계. 이 크기 이상이면 숫자로 비교</td><td>9.8965 (≈ 9.90)</td></tr>
 <tr><td>LoD</td><td>검출한계. 0이 아니라고 말할 수 있는 크기</td><td>3.2559</td></tr>
+<tr><td>RSD</td><td>상대표준편차. σ ÷ 값. LoQ에서 10%</td><td>0.98965 ÷ 9.8965 = 10%</td></tr>
+<tr><td>k<sub>Q</sub></td><td>LoQ 배수 = 1 ÷ (정한 RSD)</td><td>1 ÷ 0.1 = 10</td></tr>
 <tr><td>σ</td><td>LoQ 계산에 쓰는 흔들림. 세 후보 중 가장 큰 값</td><td>0.98965</td></tr>
 <tr><td>σ<sub>die</sub></td><td>반복성. 같은 die를 다시 잴 때의 흔들림</td><td>0.98965</td></tr>
 <tr><td>Δx/√12</td><td>데이터 분해능 몫 (Δx = 분해능)</td><td>0.000289</td></tr>
@@ -122,6 +136,7 @@
 <li id="fn1">LoQ = 10σ, LoD = 3.29σ: Eurachem Guide "Fitness for Purpose of Analytical Methods" 2판 (2014) · 6.2.4 Estimating LOQ, Quick Reference 3 · <a href="https://www.eurachem.org/images/stories/Guides/pdf/MV_guide_2nd_ed_EN.pdf" rel="noopener" target="_blank">링크</a> / 같은 문서 · Annex B Statistical basis of limit of detection calculations · <a href="https://www.eurachem.org/images/stories/Guides/pdf/MV_guide_2nd_ed_EN.pdf" rel="noopener" target="_blank">링크</a> / ICH Q2(R2) (2023) · 3.2.3.3 Based on the Standard Deviation of a Linear Response and a Slope · <a href="https://database.ich.org/sites/default/files/ICH_Q2%28R2%29_Guideline_2023_1130.pdf" rel="noopener" target="_blank">링크</a></li>
 <li id="fn2"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 정량 / LoQ 미만으로 나누는 기준, σ 후보 중 큰 값 규칙, '&lt;LoQ'로 보고하는 방식 · 반대 방향 권고: EPA MARLAP Manual Vol. III · 20.3 Recommendations · <a href="https://www.epa.gov/sites/default/files/2015-05/documents/402-b-04-001c-20_final.pdf" rel="noopener" target="_blank">링크</a></li>
 <li id="fn3"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 쉬운 말 설명과 그림</li>
+<li id="fn4">LoQ = k<sub>Q</sub>σ<sub>Q</sub>, k<sub>Q</sub> = 1 ÷ RSD, IUPAC 기본값 k<sub>Q</sub> = 10: Currie, L. A. "Nomenclature in evaluation of analytical methods including detection and quantification capabilities (IUPAC Recommendations 1995)", Pure and Applied Chemistry 67(10), 1699–1723 · 3.7.7 Minimum Quantifiable Value · <a href="https://old.iupac.org/publications/pac/1995/pdf/6710x1699.pdf" rel="noopener" target="_blank">링크</a> / RSD 10%와 배수 5 · 6: Eurachem Guide 2판 (2014) · 6.2.4 · <a href="https://www.eurachem.org/images/stories/Guides/pdf/MV_guide_2nd_ed_EN.pdf" rel="noopener" target="_blank">링크</a> / 배수 5 · 6 · 10을 명시하라는 권고: IUPAC Gold Book · limit of quantification (08022), Note 4 · <a href="https://goldbook.iupac.org/terms/view/08022" rel="noopener" target="_blank">링크</a></li>
 </ol></section>
 
 <nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-resolution.html">분해능과 √12</a></li><li><a href="c-mad.html">표준편차 σ와 MAD</a></li><li><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a></li><li><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a></li><li><a href="step-6.html">⑥ 판정</a></li></ul></nav>
