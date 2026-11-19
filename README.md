@@ -201,6 +201,26 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 허용폭의 정책 몫 r(기본 5%)은 표준이 정하지 않는 사내 정책 값입니다.
 
+## Fail ITEM 근거 (`fail_evidence.py`)
+
+`python fail_evidence.py --input <결과.tsv> --out <폴더> [--items ID,...]` — por_doe_compare.py 결과 표에서 verdict가 '차이'·'미결'인 ITEM의 근거를 규칙으로 계산해 `fail_evidence.csv`, `forest.png`, `items/<ID>.png`, `summary.txt`를 만듭니다. `--items`를 주면 그 ID만 ITEM 그림을 그립니다(CSV·forest는 전체).
+
+열은 이름으로 찾습니다(`POR{k}_mean`은 2개 이상, k 가변). 대상 행에서 `por_median DOE_mean center ci_low ci_high delta LoQ` 열이 없거나 값이 빈칸·숫자 아님(엑셀 넘침 `####`, `***` 등)이면, 또는 값이 있는 POR 회차가 2개 미만이면 judgement='계산 불가'로 쓰고 사유를 note에 남깁니다. 빈 `POR{k}_mean`은 그 회차가 없는 것으로 봅니다. 대상이 아닌 행은 '대상 아님'으로 CSV에만 남깁니다.
+
+| 상수 | 값 | 뜻 |
+|---|---|---|
+| `POR_GAP_OVER_DELTA` | 0.25 | (max POR_mean − min POR_mean)/Δ |
+| `MEDIAN_OUT_OVER_DELTA` | 0.10 | por_median이 POR·DOE 평균들의 [min, max] 밖으로 벗어난 거리/Δ |
+| `ITEM_AXIS_OVER_DELTA` | 3 | ITEM 그림 x축 범위 ±3·Δ% (밖은 화살표+숫자) |
+
+내부 기준 값이며 비율은 소수 9자리로 반올림한 뒤 비교합니다. 분류(위에서부터 먼저 맞는 것):
+
+1. **차이**: CI 전체가 ±Δ 밖 (ci_high < −Δ 또는 ci_low > Δ)
+2. **미결-기준 흔들림**: por_gap/Δ ≥ `POR_GAP_OVER_DELTA` 또는 median_out/Δ ≥ `MEDIAN_OUT_OVER_DELTA`
+3. **미결-정상**: 나머지 (POR 일치, CI가 Δ 경계에 걸림)
+
+verdict와 규칙 결과가 어긋나면 note에 'verdict와 다름'을 적습니다.
+
 ## infra_compare.py (이전 방식)
 
 POR 1회(+ 일부 재측정)와 DOE 1회를 비교하던 첫 버전입니다. `python infra_compare.py --ref ref/ --new new/ --blank ... --blank-map ... --out 결과`. 새 분석에는 `por_doe_compare.py`를 쓰세요. `por_doe_compare.py`가 파일 읽기와 blank 읽기 함수를 여기서 가져다 씁니다.
