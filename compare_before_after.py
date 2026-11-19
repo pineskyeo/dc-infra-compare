@@ -53,7 +53,8 @@ NUMERIC_COLS = frozenset((
     "n_die", "por_median", "center", "ci_low", "ci_high", "delta",
     "policy_margin", "run_margin", "sigma_die", "sigma_run", "LoQ", "LoD",
 ))
-MEAN_RE = re.compile(r"^\w+_mean$")
+MEAN_RE = re.compile(r"^.+_mean$")
+KEY_NAMES = ("ID", "ITEM")
 POR_RE = re.compile(r"^POR(\d+)_mean$")
 
 # 비교 CSV 열 순서
@@ -108,10 +109,10 @@ def _read_text(path: Path) -> str:
 
 def _header_index(lines: list[str]) -> int:
     for i, line in enumerate(lines):
-        stripped = line.lstrip("\ufeff")
-        if stripped.startswith("ID\t") or stripped.startswith("ID,"):
+        first = re.split(r"[\t,]", line.lstrip("\ufeff"), maxsplit=1)[0].strip().strip('"').upper()
+        if first in KEY_NAMES:
             return i
-    raise ValueError(f"ID로 시작하는 헤더 줄이 없습니다: 파일을 확인하세요.")
+    raise ValueError("ITEM 또는 ID로 시작하는 헤더 줄이 없습니다: por_doe_compare.py의 items.csv인지 확인하세요.")
 
 
 def _detect_sep(header: str) -> str:
@@ -133,7 +134,17 @@ def read_result(path: str | Path) -> pd.DataFrame:
         dtype=str,
         keep_default_na=False,
     )
-    df.columns = [str(c).strip() for c in df.columns]
+    df.columns = [str(c).strip().strip('"') for c in df.columns]
+    # por_doe_compare.py items.csv는 ITEM 열로 시작한다. ID로 통일한다.
+    if "ID" not in df.columns:
+        for c in df.columns:
+            if c.upper() in KEY_NAMES:
+                df = df.rename(columns={c: "ID"})
+                break
+    # 회차 평균 열 이름은 POR 입력 이름을 따른다(<이름>_mean). POR1_mean/POR2_mean이 없으면 순서대로 붙인다.
+    if "POR1_mean" not in df.columns:
+        runs = [c for c in df.columns if MEAN_RE.match(c) and c != "DOE_mean"]
+        df = df.rename(columns={c: f"POR{k}_mean" for k, c in enumerate(runs[:2], 1)})
     if "ID" not in df.columns:
         raise ValueError(f"{path}: ID 열이 없습니다.")
     if "verdict" not in df.columns:

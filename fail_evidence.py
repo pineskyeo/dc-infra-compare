@@ -1,7 +1,7 @@
 """Fail(차이·미결) ITEM별 근거를 규칙으로 계산해 CSV·차트·요약을 낸다.
 
-입력은 por_doe_compare.py 결과 표(탭 구분, 헤더 1행)이다.
-    python fail_evidence.py --input <결과.tsv> --out <폴더> [--items ID,...]
+입력은 por_doe_compare.py 결과 표(--out 폴더의 items.csv, 쉼표 구분) 또는 같은 열의 탭 구분 표이다.
+    python fail_evidence.py --input <items.csv> --out <폴더> [--items ID,...]
 """
 from __future__ import annotations
 
@@ -51,9 +51,29 @@ NAN = math.nan
 
 # ---------------------------------------------------------------- 읽기
 
+KEY_NAMES = ("ID", "ITEM")
+RUN_MEAN_RE = re.compile(r"^.+_mean$")
+
+
 def read_table(path: str | Path) -> pd.DataFrame:
-    df = pd.read_csv(path, sep="\t", dtype=str, keep_default_na=False, encoding="utf-8-sig")
-    df.columns = [str(c).strip() for c in df.columns]
+    """결과 표를 읽는다. 탭·쉼표 구분 모두 받는다(por_doe_compare.py items.csv는 쉼표).
+
+    ITEM 열은 ID로 바꾼다. POR1_mean이 없으면 DOE_mean을 뺀 '<이름>_mean' 열을
+    나온 순서대로 POR1_mean, POR2_mean, ...으로 바꾼다.
+    """
+    with open(path, encoding="utf-8-sig") as f:
+        header = f.readline()
+    sep = "\t" if header.count("\t") >= header.count(",") else ","
+    df = pd.read_csv(path, sep=sep, dtype=str, keep_default_na=False, encoding="utf-8-sig")
+    df.columns = [str(c).strip().strip('"') for c in df.columns]
+    if "ID" not in df.columns:
+        for c in df.columns:
+            if c.upper() in KEY_NAMES:
+                df = df.rename(columns={c: "ID"})
+                break
+    if "POR1_mean" not in df.columns:
+        runs = [c for c in df.columns if RUN_MEAN_RE.match(c) and c != "DOE_mean"]
+        df = df.rename(columns={c: f"POR{k}_mean" for k, c in enumerate(runs, 1)})
     return df
 
 
