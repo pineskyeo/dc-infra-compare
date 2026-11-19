@@ -1,47 +1,128 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>중앙값 효율 1.25 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
-<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="page">개념 익히기</a><a href="appendix.html">부록</a></nav>
-<main><div class="wrap">
-<p class="s"><a href="concepts.html">개념 익히기</a> · 10 / 11</p>
+<!doctype html><html lang="ko" data-d41><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>중앙값 효율 1.25 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
+<details class="fp-fold"><summary>흐름도 ⓪~⑦</summary>
+<nav aria-label="흐름도">
+<div class="fp">
+<ol class="fp-top">
+<li><a href="step-0.html" data-step="0" class="rel">⓪ 표본 크기 정하기</a></li>
+<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
+<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
+<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
+</ol>
+<div class="fp-fork">
+<div class="fp-col"><span class="fp-lab">정량</span><ol>
+<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
+<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
+</ol></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+</div>
+<ol class="fp-join"><li><a href="step-6.html" data-step="6">⑥ 판정</a></li></ol>
+<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
+<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
+</div>
+</nav>
+</details><nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 구하기</a><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a><a href="step-6.html">⑥ 판정</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="true">개념 익히기</a><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></nav>
+<nav class="fp-wide" aria-label="흐름도">
+<div class="fp">
+<p class="fp-h">흐름도 ⓪~⑦</p>
+<ol class="fp-top">
+<li><a href="step-0.html" data-step="0" class="rel">⓪ 표본 크기 정하기</a></li>
+<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
+<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
+<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
+</ol>
+<div class="fp-fork">
+<div class="fp-col"><span class="fp-lab">정량</span><ol>
+<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
+<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
+</ol></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+</div>
+<ol class="fp-join"><li><a href="step-6.html" data-step="6">⑥ 판정</a></li></ol>
+<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
+<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
+</div>
+</nav><main><div class="wrap">
+<p class="loc"><a href="concepts.html">개념 익히기</a> › 중앙값 효율 1.25 (개념 11 / 14) · 쓰는 단계 <a href="step-0.html">⓪</a></p>
 <h1>중앙값 효율 1.25</h1>
-<p class="key" id="def">흩어짐이 정규분포일 때 중앙값의 흔들림은 평균의 약 1.25배(√(π/2))</p>
-<section id="why"><h2>왜 쓰나</h2><p class="key">중앙값을 쓰는 대가로 die가 더 필요함을 표본 크기 식에 넣음</p>
- <details><summary>자세히</summary><ul>
-  <li>중앙값은 튀는 die에 강하지만, 튀는 die가 없으면 평균보다 조금 더 흔들림</li>
-  <li>같은 정밀도를 얻으려면 die가 π/2배 필요. 효율 = 2/π</li>
-  <li>⓪ 최소 여유 식의 1.25가 이 값(근사값)</li>
- </ul></details></section>
-<section id="figure"><h2>그림</h2><p class="key">같은 die 수에서 중앙값의 흔들림은 평균의 1.2533배, 필요한 die 수는 1.5708배</p>
- <details open><summary>자세히</summary>
- <figure class="cfig" id="fig-efficiency">
-  <svg viewBox="0 0 640 170" role="img" aria-labelledby="fig-efficiency-t">
-   <title id="fig-efficiency-t">같은 die 수에서 중앙값의 흔들림은 평균의 1.2533배, 필요한 die 수는 1.5708배</title>
-   <text x="8.0" y="30.0">흔들림</text>
-   <text x="8.0" y="100.0">필요한 die 수</text>
-   <rect class="bar" x="160.0" y="36.0" width="240.0" height="16.0"/>
-   <rect class="barhi" x="160.0" y="60.0" width="300.8" height="16.0"/>
-   <rect class="bar" x="160.0" y="106.0" width="240.0" height="16.0"/>
-   <rect class="barhi" x="160.0" y="130.0" width="377.0" height="16.0"/>
-   <text x="152.0" y="48.0" text-anchor="end">평균</text>
-   <text x="152.0" y="72.0" text-anchor="end">중앙값</text>
-   <text x="152.0" y="118.0" text-anchor="end">평균</text>
-   <text x="152.0" y="142.0" text-anchor="end">중앙값</text>
-   <text x="408.0" y="48.0">1</text>
-   <text x="468.8" y="72.0">1.2533</text>
-   <text x="408.0" y="118.0">1</text>
-   <text x="545.0" y="142.0">1.5708</text>
-  </svg>
-  <figcaption class="s">평균을 1로 둔 중앙값 비교 · 합성 예시</figcaption>
- </figure>
- </details></section>
-<section id="example"><h2>예시 숫자</h2><p class="key">√(π/2) = 1.2533, SOP 식에서는 1.25로 씀</p>
- <details><summary>자세히</summary><div class="formula"><div>√(π/2) = 1.2533, π/2 = 1.5708, 효율 2/π = 0.6366</div></div>
- <p class="s">합성 예시이며 실행 결과가 아닙니다.</p></details></section>
-<section id="basis"><h2>출처</h2><p class="key">근거 대조표 #14b</p>
- <details><summary>자세히</summary><ul class="basis">
-  <li>#14b 1.25 = √(π/2), 중앙값 효율 2/π — 부분(2차 출처) · Wikipedia Efficiency, Median, Sign test</li>
- </ul>
- <p class="s">문헌 이름 · 위치 · 링크는 관련 단계의 '근거' 절에 있음</p></details></section>
-<section id="steps"><h2>관련 단계</h2><p class="key"><a href="step-0.html">⓪ 표본 크기 정하기</a></p>
- <details><summary>자세히</summary><ul><li>⓪ 최소 여유 식의 1.25</li></ul></details></section>
+
+<section id="q"><h2>이 쪽이 답하는 질문</h2>
+<p class="q" id="def">⓪ 최소 여유 식 맨 앞의 1.25는 어디서 오나 · 평균 대신 중앙값을 쓰면 <a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a>가 얼마나 더 필요한가</p></section>
+
+<section id="plain"><h2>쉬운 말로</h2>
+<ul id="why">
+<li>④에서 편향 b를 die별 차이 d의 평균이 아니라 중앙값으로 냄 → 튀는 die 몇 개에 끌려가지 않음 (<a href="c-signci.html">부호검정과 중앙값 90% 신뢰구간</a>)</li>
+<li>대가: 튀는 die가 없고 흩어짐이 정규분포 모양이면 중앙값이 평균보다 더 흔들림. 흔들림(<a class="g" href="glossary.html#sd"><abbr title="표준편차 · 값이 평균 둘레로 퍼진 보통 크기">표준편차(SD, Standard Deviation)</abbr></a>)이 √(π/2) = 1.2533배 <span class="from">중앙값 분산의 배율 π/2 = 1.5708의 제곱근</span><sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup><sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li>
+<li>같은 정밀도를 얻으려면 die가 π/2 = 1.5708배 필요. 거꾸로 본 비 2/π를 중앙값 효율이라 부름<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li>
+<li>⓪ 최소 여유 식 맨 앞의 1.25 = 1.2533을 줄여 쓴 값 → 중앙값을 쓰는 몫을 die 수 계산에 미리 넣음<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li>
+<li>예시: die 60개, J 3이면 최소 여유 0.6067 <span class="from">예시 계산 3줄</span></li>
+</ul>
+<details><summary>보충</summary><ul>
+<li>같은 π/2가 ② 흔들림 구하기에도 나옴: 회차 중앙값에 섞인 die 잡음 몫 (π/2)·σ<sub>die</sub>²/n → <a href="c-sigma-split.html">σ<sub>die</sub>와 σ<sub>run</sub> 나누기</a></li>
+<li>흩어짐이 정규분포 모양이 아니면 1.2533배라는 값도 달라짐 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
+<li>최소 여유가 판정에서 어떻게 쓰이는지는 <a href="c-power.html">검정력 90%와 표본 크기</a></li>
+</ul></details></section>
+
+<section id="formula"><h2>수식</h2>
+<div class="formula"><div>평균의 분산 = σ²/n</div><div>중앙값의 분산 ≈ (π/2)·σ²/n → 흔들림 비 √(π/2) = 1.2533 ≈ 1.25</div><div>최소 여유 = 1.25 × (z<sub>0.95</sub> + z<sub>0.95</sub>) × σ<sub>die</sub> × √(1+1/J) / √n</div><div class="c">위 줄 = 중앙값이 평균보다 더 흔들리는 배율, 아래 줄 = 그 배율을 ⓪ 식 맨 앞에 곱함</div></div>
+<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
+<tr><td>σ</td><td>값 하나의 흔들림(정규분포 모양)</td><td>—</td></tr>
+<tr><td>n</td><td>die 수</td><td>60</td></tr>
+<tr><td>π/2</td><td>중앙값 분산이 평균 분산보다 큰 배율</td><td>1.5708</td></tr>
+<tr><td>√(π/2)</td><td>중앙값 흔들림이 평균 흔들림보다 큰 배율</td><td>1.2533</td></tr>
+<tr><td>z<sub>0.95</sub></td><td>정규분포 한쪽 95% 값</td><td>1.6449</td></tr>
+<tr><td>σ<sub>die</sub></td><td>반복성. 같은 die를 다시 잴 때 흔들리는 크기</td><td>0.98965</td></tr>
+<tr><td>√(1+1/J)</td><td>새 회차 하나와 J회 평균의 차이를 넓히는 배율(J 3)</td><td>1.1547</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="figure"><h2>그림</h2>
+<figure class="cfig" id="fig-efficiency">
+ <svg viewBox="0 0 640 180" role="img" aria-labelledby="fig-efficiency-t" font-size="12">
+  <title id="fig-efficiency-t">같은 die 수에서 중앙값의 흔들림은 평균의 1.2533배, 같은 정밀도에 필요한 die 수는 1.5708배</title>
+  <text x="8" y="22">흔들림 (같은 die 수)</text>
+  <rect class="bar" x="160" y="30" width="240" height="16"/>
+  <rect class="barhi" x="160" y="54" width="300.8" height="16"/>
+  <line class="okl" x1="460" y1="50" x2="460" y2="74" stroke-dasharray="3 3"/>
+  <text x="152" y="42" text-anchor="end">평균</text>
+  <text x="152" y="66" text-anchor="end">중앙값</text>
+  <text x="408" y="42" class="val">1</text>
+  <text x="468.8" y="66" class="val">1.2533 = √(π/2)</text>
+  <text x="460" y="88" text-anchor="middle">점선 1.25 = ⓪ 식에서 쓰는 값</text>
+  <text x="8" y="112">필요한 die 수 (같은 정밀도)</text>
+  <rect class="bar" x="160" y="120" width="240" height="16"/>
+  <rect class="barhi" x="160" y="144" width="377" height="16"/>
+  <text x="152" y="132" text-anchor="end">평균</text>
+  <text x="152" y="156" text-anchor="end">중앙값</text>
+  <text x="408" y="132" class="val">1</text>
+  <text x="545" y="156" class="val">1.5708 = π/2</text>
+ </svg>
+ <figcaption class="s">평균을 1로 둔 비교 · 흩어짐이 정규분포 모양이고 튀는 die가 없을 때 · 막대 길이 = 배율 <span class="badge-int">내부 기준(문헌 근거 없음)</span></figcaption>
+</figure>
+<p class="look"><b>여기서 볼 것</b> · 중앙값은 흔들림이 1/4쯤 더 크고(1.2533), 그만큼 줄이려면 die가 절반쯤 더 필요(1.5708). ⓪ 식은 1.25를 곱해 이 몫을 미리 넣음</p>
+</section>
+
+<section id="example"><h2>예시 계산</h2>
+<p class="s">예시 데이터: <a href="step-2.html#ex-data">합성 예시 die 6개 표</a></p>
+<ol class="calc">
+<li>π/2 = 1.5708 <span class="from">중앙값의 분산 (π/2)·σ²/n의 배율</span></li>
+<li>√(π/2) = √1.5708 = 1.2533 → ⓪ 식에서는 1.25로 줄여 씀</li>
+<li>최소 여유 = 1.25 × (1.6449 + 1.6449) × 0.98965 × 1.1547 / √60 = 0.6067 <span class="from">1.6449 = z<sub>0.95</sub>, 0.98965 = ② 흔들림 구하기의 σ<sub>die</sub>, 1.1547 = √(1+1/3), 60 = 합성 예시 <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>의 die 수</span></li>
+<li>같은 식에 σ<sub>die</sub> 1.0을 넣으면 0.613 <span class="from">1.0 = 예시 ITEM을 만들 때 넣은 반복 흔들림</span></li>
+<li>같은 π/2가 ②에서: die 잡음 몫 (π/2)·σ<sub>die</sub>²/n = 1.5708 × 0.98965² / 60 = 0.025641</li>
+</ol></section>
+
+<section id="sources"><h2>출처</h2>
+<ol class="fn">
+<li id="fn1">1.25 = √(π/2), 중앙값 효율 2/π: Wikipedia "Efficiency (statistics)" · Efficiency of the median 절 · <a href="https://en.wikipedia.org/wiki/Efficiency_(statistics)" rel="noopener" target="_blank">링크</a> / Wikipedia "Median" · <a href="https://en.wikipedia.org/wiki/Median" rel="noopener" target="_blank">링크</a> / Wikipedia "Sign test" · 검정력 비교 절 · <a href="https://en.wikipedia.org/wiki/Sign_test" rel="noopener" target="_blank">링크</a></li>
+<li id="fn2">중앙값의 분산 (π/2)·σ²/n: Wikipedia "Median" · Sampling distribution 절 · <a href="https://en.wikipedia.org/wiki/Median" rel="noopener" target="_blank">링크</a></li>
+<li id="fn3">표본 크기 식 n ≈ (1.25·(z + z)·σ/(Δ − |b|))²: NCSS PASS "One-Sample Z-Tests for Equivalence" · 517장 Example 2 · <a href="https://www.ncss.com/wp-content/themes/ncss/pdf/Procedures/PASS/One-Sample_Z-Tests_for_Equivalence.pdf" rel="noopener" target="_blank">링크</a> / NIST/SEMATECH e-Handbook · 7.2.2.2 Sample sizes required · <a href="https://www.itl.nist.gov/div898/handbook/prc/section2/prc222.htm" rel="noopener" target="_blank">링크</a></li>
+<li id="fn4"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 쉬운 말 설명과 그림</li>
+</ol></section>
+
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-signci.html">부호검정과 중앙값 90% 신뢰구간</a></li><li><a href="c-sigma-split.html">σ<sub>die</sub>와 σ<sub>run</sub> 나누기</a></li><li><a href="c-power.html">검정력 90%와 표본 크기</a></li><li><a href="step-0.html">⓪ 표본 크기 정하기</a></li></ul></nav>
 <footer class="pager"><a href="c-tost.html">← 이전 · TOST와 동등 · 차이 · 미결</a><a href="c-power.html">다음 · 검정력 90%와 표본 크기 →</a></footer>
 </div></main></body></html>

@@ -1,20 +1,129 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LoQ와 10배 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
-<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="page">개념 익히기</a><a href="appendix.html">부록</a></nav>
-<main><div class="wrap">
-<p class="s"><a href="concepts.html">개념 익히기</a> · 5 / 11</p>
+<!doctype html><html lang="ko" data-d41><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LoQ와 10배 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"><script src="assets/concepts.js" defer></script></head><body>
+<details class="fp-fold"><summary>흐름도 ⓪~⑦</summary>
+<nav aria-label="흐름도">
+<div class="fp">
+<ol class="fp-top">
+<li><a href="step-0.html" data-step="0">⓪ 표본 크기 정하기</a></li>
+<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
+<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
+<li><a href="step-3.html" data-step="3" class="rel">③ LoQ로 구간 나누기</a></li>
+</ol>
+<div class="fp-fork">
+<div class="fp-col"><span class="fp-lab">정량</span><ol>
+<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
+<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
+</ol></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+</div>
+<ol class="fp-join"><li><a href="step-6.html" data-step="6">⑥ 판정</a></li></ol>
+<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
+<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
+</div>
+</nav>
+</details><nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 구하기</a><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a><a href="step-6.html">⑥ 판정</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="true">개념 익히기</a><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></nav>
+<nav class="fp-wide" aria-label="흐름도">
+<div class="fp">
+<p class="fp-h">흐름도 ⓪~⑦</p>
+<ol class="fp-top">
+<li><a href="step-0.html" data-step="0">⓪ 표본 크기 정하기</a></li>
+<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
+<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
+<li><a href="step-3.html" data-step="3" class="rel">③ LoQ로 구간 나누기</a></li>
+</ol>
+<div class="fp-fork">
+<div class="fp-col"><span class="fp-lab">정량</span><ol>
+<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
+<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
+</ol></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+</div>
+<ol class="fp-join"><li><a href="step-6.html" data-step="6">⑥ 판정</a></li></ol>
+<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
+<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
+</div>
+</nav><main><div class="wrap">
+<p class="loc"><a href="concepts.html">개념 익히기</a> › LoQ와 10배 (개념 5 / 14) · 쓰는 단계 <a href="step-3.html">③</a></p>
 <h1>LoQ와 10배</h1>
-<p class="key" id="def">LoQ(정량한계) = 1회 측정값을 숫자로 믿을 수 있는 가장 작은 크기. LoQ = 10·σ</p>
-<section id="why"><h2>왜 쓰나</h2><p class="key">흔들림에 묻히는 작은 값으로 동등 · 차이를 가리지 않게 함</p>
- <details><summary>자세히</summary><ul><li>값이 10σ면 1회 측정의 흔들림이 값의 10%. 10은 IUPAC 기본값(Eurachem 6.2.4 인용)</li><li>값이 LoQ보다 작을수록 흔들림 몫이 커짐(값 10 → 20%, 값 5 → 40%)</li><li>|기준 조건 중앙값| ≥ LoQ면 ⑤ TOST, 미만이면 ⑥으로 보냄</li></ul></details></section>
-<section id="figure"><h2>그림</h2><p class="key">같은 흔들림(σ 2.0)도 값이 작으면 값에 비해 크게 보임</p>
- <details open><summary>자세히</summary><figure class="cfig" id="fig-loq" data-anim="loq"><svg viewBox="0 0 640 150" role="img" aria-labelledby="loq-t"><title id="loq-t">같은 흔들림(σ 2.0)도 값이 작으면 값에 비해 크게 보임</title><line class="ax" x1="60" y1="110" x2="580" y2="110"/><line class="ax" x1="60" y1="105" x2="60" y2="115"/><line class="ax" x1="320" y1="105" x2="320" y2="115"/><line class="ax" x1="580" y1="105" x2="580" y2="115"/><text id="loq-a0" x="60" y="128" text-anchor="middle">0</text><text id="loq-a1" x="320" y="128" text-anchor="middle">20</text><text id="loq-a2" x="580" y="128" text-anchor="middle">40</text><rect id="loq-band" class="band" x="294" y="60" width="52" height="40"/><text x="320" y="52" text-anchor="middle">±σ 2.0</text><line class="tx" x1="320" y1="60" x2="320" y2="100"/><circle id="loq-dot" class="hi" cx="320" cy="80" r="6"/></svg><figcaption class="s">축은 실제 값의 두 배까지. 띠 = ±σ · 합성 예시</figcaption><div class="ctl" hidden><button id="loq-play" type="button" aria-pressed="false">흔들어 보기</button><input id="loq-ctl" type="range" min="0" max="4" step="1" value="2" aria-label="실제 값"></div><p class="s" id="loq-out" aria-live="polite">실제 값 20 · σ 2.0 · 상대 흔들림 10% <span class="pill ok">LoQ, 정량 시작</span></p></figure><div class="tw"><table><thead><tr><th>실제 값</th><th>상대 흔들림</th><th>구간</th></tr></thead><tbody><tr><td>5</td><td>40%</td><td><span class="pill hold">LoD 6.58 미만</span></td></tr><tr><td>10</td><td>20%</td><td><span class="pill hold">LoQ 20.0 미만</span></td></tr><tr><td>20</td><td>10%</td><td><span class="pill ok">LoQ, 정량 시작</span></td></tr><tr><td>50</td><td>4%</td><td><span class="pill ok">정량</span></td></tr><tr><td>100</td><td>2%</td><td><span class="pill ok">정량</span></td></tr></tbody></table></div></details></section>
-<section id="example"><h2>예시 숫자</h2><p class="key">σ 2.0이면 LoD 6.58, LoQ 20.0</p>
- <details><summary>자세히</summary><div class="formula"><div>σ = 2.0 → LoD = 3.29 × 2.0 = 6.58, LoQ = 10 × 2.0 = 20.0, 값 20.0에서 상대 흔들림 10%</div></div>
- <p class="s">합성 예시이며 실행 결과가 아닙니다.</p></details></section>
-<section id="basis"><h2>출처</h2><p class="key">근거 대조표 #5 · #6 · #15 <span class="badge-int">내부 기준</span></p>
- <details><summary>자세히</summary><ul class="basis"><li>#5 LoQ = 10σ, LoD = 3.29σ — 확인(2차 문헌) · Eurachem 2014 6.2.4, Annex B · ICH Q2(R2) 3.2.3.3 · MARLAP 20.2.7</li><li>#6 blank 항 — 부분 · ICH Q2(R2) 3.2.3.3 · Eurachem 2014 Quick Reference 2, 3</li><li>#15 LoQ 미만 보고 방식 — 출처 없음. 반대 방향 권고 있음(MARLAP 20.3) <span class="badge-int">내부 기준</span></li></ul>
- <p class="s">문헌 이름 · 위치 · 링크는 관련 단계의 '근거' 절에 있음</p></details></section>
-<section id="steps"><h2>관련 단계</h2><p class="key"><a href="step-2.html">② LoQ로 구간 나누기</a> · <a href="step-6.html">⑥ LoQ 미만 판정</a></p>
- <details><summary>자세히</summary><ul><li><a href="step-2.html">② LoQ로 구간 나누기</a> — LoQ 계산과 구간 나누기</li><li><a href="step-6.html">⑥ LoQ 미만 판정</a></li></ul></details></section>
+
+<section id="q"><h2>이 쪽이 답하는 질문</h2>
+<p class="q" id="def">어느 크기부터 값을 숫자로 믿고 비교하나 · <a class="g" href="glossary.html#loq"><abbr title="정량한계 · 믿고 숫자로 비교할 수 있는 가장 작은 크기">정량한계(LoQ, Limit of Quantitation)</abbr></a> = 10 × σ에서 10배는 무슨 뜻이고, 합성 예시 <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>은 왜 정량 구간인가</p></section>
+
+<section id="plain"><h2>쉬운 말로</h2>
+<ul id="why">
+<li>LoQ: 믿고 숫자로 비교할 수 있는 가장 작은 크기. LoQ = 10 × σ<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li>
+<li>10배의 뜻: 값이 LoQ이면 1회 측정의 흔들림 σ가 값의 10%. 값이 작을수록 흔들림 몫이 커짐(예시 ITEM σ<sub>die</sub> 0.98965: 값 5<ul class="chain"><li>→ 19.79%, 값 2</li><li>→ 49.48%) <span class="from">0.98965 ÷ 5 = 0.1979, 0.98965 ÷ 2 = 0.4948</span></li></ul></li>
+<li><a class="g" href="glossary.html#lod"><abbr title="검출한계 · 0이 아니라고 말할 수 있는 가장 작은 크기">검출한계(LoD, Limit of Detection)</abbr></a> = 3.29 × σ: 0이 아니라고 말할 수 있는 가장 작은 크기<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup>. 구간을 나누는 기준은 LoQ</li>
+<li>σ = 세 후보 중 가장 큰 값: 반복성 σ<sub>die</sub> · 데이터 분해능 몫 Δx/√12 · 장비 분해능 ÷ √12. blank로 구한 LoQ가 더 크면 blank LoQ로 바꿈<ul class="chain"><li>→ <a href="c-resolution.html">분해능과 √12</a>. 예시 σ = 0.98965 <span class="from">σ<sub>die</sub> 0.98965 &gt; 분해능 몫 0.000289</span></li></ul></li>
+<li data-e="1">LoQ의 근거 항목(<a href="reading.html#columns">결과 표의 'LoQ를 정한 쪽'</a>)은 허용 범위 Δ의 출처가 아니라 LoQ를 정한 σ의 출처: 반복성 σ<sub>die</sub> · 데이터 분해능 ÷ √12 · 장비 분해능 ÷ √12 중 가장 큰 값, blank를 넣고 blank로 구한 LoQ가 더 크면 blank <span class="from">예시: σ<sub>die</sub> 0.98965 &gt; 데이터 분해능 0.001 ÷ √12 = 0.000289 → 기준 조건 반복</span></li>
+<li>갈래: |<a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> 중앙값| ≥ LoQ<ul class="chain"><li>→ 정량</li><li>→ ④ ⑤ ⑥ <a class="g" href="glossary.html#tost"><abbr title="두 번의 한쪽 검정 · '차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등">두 번의 한쪽 검정(TOST, Two One-Sided Tests)</abbr></a>. 미만</li><li>→ ⑥ '&lt;LoQ 보고 일치' <span class="badge-int">내부 기준(문헌 근거 없음)</span><sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li></ul></li>
+
+</ul>
+<p class="s">더 자세한 쉬운 말은 아래 <a href="#plain-more">쉬운 말 더 보기</a></p>
+
+<details><summary>보충</summary><ul>
+<li>3.29 = z<sub>0.95</sub> 1.6449의 두 배: 없는데 '있다'고 할 확률 5%와 있는데 '없다'고 할 확률 5%를 함께 묶은 값<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li>
+<li>LoQ 미만 갈래도 ④의 신뢰구간과 ⑤의 Δ를 씀 → <a href="step-6.html">⑥ 판정</a></li>
+<li>LoQ 미만 값을 '&lt;LoQ'로 보고하는 방식 <span class="badge-int">내부 기준(문헌 근거 없음)</span>. 실제 값을 그대로 보고하라는 반대 방향 권고도 있음<sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li>
+</ul></details></section>
+
+<section id="formula"><h2>수식</h2>
+<div class="formula"><div>LoQ = 10 · σ · LoD = 3.29 · σ</div><div>σ = max(σ<sub>die</sub>, Δx/√12, …)</div><div>|기준 조건 중앙값| ≥ LoQ → 정량 · 미만 → LoQ 미만</div><div class="c">값 = LoQ이면 σ / 값 = 10%</div></div>
+<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
+<tr><td>LoQ</td><td>정량한계. 이 크기 이상이면 숫자로 비교</td><td>9.8965 (≈ 9.90)</td></tr>
+<tr><td>LoD</td><td>검출한계. 0이 아니라고 말할 수 있는 크기</td><td>3.2559</td></tr>
+<tr><td>σ</td><td>LoQ 계산에 쓰는 흔들림. 세 후보 중 가장 큰 값</td><td>0.98965</td></tr>
+<tr><td>σ<sub>die</sub></td><td>반복성. 같은 die를 다시 잴 때의 흔들림</td><td>0.98965</td></tr>
+<tr><td>Δx/√12</td><td>데이터 분해능 몫 (Δx = 분해능)</td><td>0.000289</td></tr>
+<tr><td>기준 조건 중앙값</td><td>기준 조건 die별 3회 평균의 중앙값</td><td>100.000</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="figure"><h2>그림</h2>
+<figure class="cfig" id="fig-loq" data-anim="loq"><svg viewBox="0 0 640 150" role="img" aria-labelledby="loq-t"><title id="loq-t">예시 ITEM σ_die 0.98965: 같은 흔들림도 값이 작으면 값에 비해 크게 보임</title><line class="ax" x1="60" y1="110" x2="580" y2="110"/><line class="ax" x1="60" y1="105" x2="60" y2="115"/><line class="ax" x1="320" y1="105" x2="320" y2="115"/><line class="ax" x1="580" y1="105" x2="580" y2="115"/><text id="loq-a0" x="60" y="128" text-anchor="middle">0</text><text id="loq-a1" x="320" y="128" text-anchor="middle">9.8965</text><text id="loq-a2" x="580" y="128" text-anchor="middle">19.793</text><rect id="loq-band" class="band" x="294" y="60" width="52" height="40"/><text x="320" y="52" text-anchor="middle">±σ_die 0.98965</text><line class="tx" x1="320" y1="60" x2="320" y2="100"/><circle id="loq-dot" class="hi" cx="320" cy="80" r="6"/></svg><figcaption class="s">예시 ITEM σ<sub>die</sub> 0.98965 · LoD 3.29 × 0.98965 = 3.2559, LoQ 10 × 0.98965 = 9.8965 · 축은 실제 값의 두 배까지(9.8965 × 2 = 19.793), 띠 = ±σ<sub>die</sub> · 슬라이더로 실제 값 2 · 5 · 9.8965 · 50 · 100을 고름(100 = 예시 ITEM 중앙값)</figcaption><div class="ctl" hidden><button id="loq-play" type="button" aria-pressed="false">흔들어 보기</button><input id="loq-ctl" type="range" min="0" max="4" step="1" value="2" aria-label="실제 값"></div><p class="s" id="loq-out" aria-live="polite">실제 값 9.8965 · σ_die 0.98965 · 상대 흔들림 0.98965 ÷ 9.8965 = 10% <span class="pill ok">LoQ, 정량 시작</span></p></figure>
+<div class="tw"><table><thead><tr><th>실제 값</th><th>상대 흔들림</th><th>구간</th></tr></thead><tbody><tr><td>2</td><td>0.98965 ÷ 2 = 49.48%</td><td><span class="pill hold">LoD 3.2559 미만</span></td></tr><tr><td>5</td><td>0.98965 ÷ 5 = 19.79%</td><td><span class="pill hold">LoQ 9.8965 미만</span></td></tr><tr><td>9.8965</td><td>0.98965 ÷ 9.8965 = 10%</td><td><span class="pill ok">LoQ, 정량 시작</span></td></tr><tr><td>50</td><td>0.98965 ÷ 50 = 1.98%</td><td><span class="pill ok">정량</span></td></tr><tr><td>100</td><td>0.98965 ÷ 100 = 0.99%</td><td><span class="pill ok">정량 · 예시 ITEM 중앙값</span></td></tr></tbody></table></div>
+<p class="look"><b>여기서 볼 것</b> · 같은 σ<sub>die</sub> 0.98965 띠가 값 5에서는 값의 19.79%, 값 9.8965(= LoQ)에서 10%, 값 100(예시 ITEM 중앙값)에서 0.99% · 값이 LoQ보다 작을수록 흔들림이 값을 덮어 숫자 비교를 믿기 어려움<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></p>
+<figure class="cfig" id="floqex"><svg viewBox="0 0 640 150" role="img" aria-labelledby="floqex-t"><title id="floqex-t">예시 측정 항목: LoD 3.2559, LoQ 9.8965, 기준 조건 중앙값 100 → 정량 구간</title>
+<text x="188" y="20" text-anchor="middle">LoQ 미만</text><text x="468" y="20" text-anchor="middle">정량 구간</text>
+<rect class="bandhold" x="40" y="30" width="296.9" height="50"/><rect class="band" x="336.9" y="30" width="263.1" height="50"/>
+<line class="tx" x1="137.7" y1="30" x2="137.7" y2="96" stroke-dasharray="4 4"/><line class="tx" x1="336.9" y1="30" x2="336.9" y2="96"/>
+<text x="238" y="60" text-anchor="middle">⑥ '&lt;LoQ 보고 일치'</text><text x="430" y="60" text-anchor="middle">④ ⑤ ⑥ TOST</text>
+<circle class="hi" cx="540" cy="60" r="6"/><text x="540" y="46" text-anchor="middle">중앙값 100</text>
+<line class="ax" x1="40" y1="96" x2="600" y2="96"/>
+<g class="ax"><line x1="40" y1="96" x2="40" y2="100"/><line x1="137.7" y1="96" x2="137.7" y2="100"/><line x1="336.9" y1="96" x2="336.9" y2="100"/><line x1="540" y1="96" x2="540" y2="100"/></g>
+<text x="430" y="100" text-anchor="middle">≈</text>
+<text x="40" y="114" text-anchor="middle">0</text><text x="137.7" y="114" text-anchor="middle">LoD 3.2559</text><text x="336.9" y="114" text-anchor="middle">LoQ 9.8965</text><text x="540" y="114" text-anchor="middle">100</text>
+<text x="40" y="140">≈ = 가로축 가운데를 줄여 그림 · 단위 Ω</text>
+</svg><figcaption>합성 예시 ITEM · σ 0.98965로 구한 LoD, LoQ와 기준 조건 중앙값</figcaption></figure>
+<p class="look"><b>여기서 볼 것</b> · 기준 조건 중앙값 100이 LoQ 9.8965보다 훨씬 오른쪽 → 정량 구간 → ④ ⑤ ⑥ TOST로 감</p>
+</section>
+
+<section id="plain-more"><h2>쉬운 말 더 보기</h2>
+<ul>
+<li>예시: 기준 조건 <a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a>별 3회 평균의 중앙값 |100| ≥ LoQ 9.8965 → 정량 <span class="from">예시 계산 2·4줄</span></li>
+</ul></section>
+
+<section id="example"><h2>예시 계산</h2>
+<p class="s">예시 데이터: <a href="step-2.html#ex-data">합성 예시 die 6개 표</a></p>
+<ol class="calc">
+<li>σ = 0.98965 <span class="from">후보 σ<sub>die</sub> 0.98965, 데이터 분해능 몫 0.001/√12 = 0.000289 → 큰 쪽 σ<sub>die</sub></span></li>
+<li>LoQ = 10 × 0.98965 = 9.8965 ≈ 9.90</li>
+<li>LoD = 3.29 × 0.98965 = 3.2559</li>
+<li>|기준 조건 중앙값| = |100| ≥ 9.8965 → 정량 구간 <span class="from">100 = die 60개 전체 기준 평균의 중앙값</span></li>
+<li>상대 흔들림 = 0.98965 ÷ 100 = 0.98965% (LoQ에서는 10%)</li>
+<li>다음: ④ b 0.786 · 90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a> [0.610, 1.102]<span class="cl">→ ⑤ Δ 6.699</span><span class="cl">→ ⑥ TOST: [0.610, 1.102] ⊂ (−6.699, +6.699)</span><span class="cl">→ 동등 <span class="from">④ ⑤ ⑥ 단계 쪽 예시 계산</span></span></li>
+</ol></section>
+
+<section id="sources"><h2>출처</h2>
+<ol class="fn">
+<li id="fn1">LoQ = 10σ, LoD = 3.29σ: Eurachem Guide "Fitness for Purpose of Analytical Methods" 2판 (2014) · 6.2.4 Estimating LOQ, Quick Reference 3 · <a href="https://www.eurachem.org/images/stories/Guides/pdf/MV_guide_2nd_ed_EN.pdf" rel="noopener" target="_blank">링크</a> / 같은 문서 · Annex B Statistical basis of limit of detection calculations · <a href="https://www.eurachem.org/images/stories/Guides/pdf/MV_guide_2nd_ed_EN.pdf" rel="noopener" target="_blank">링크</a> / ICH Q2(R2) (2023) · 3.2.3.3 Based on the Standard Deviation of a Linear Response and a Slope · <a href="https://database.ich.org/sites/default/files/ICH_Q2%28R2%29_Guideline_2023_1130.pdf" rel="noopener" target="_blank">링크</a></li>
+<li id="fn2"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 정량 / LoQ 미만으로 나누는 기준, σ 후보 중 큰 값 규칙, '&lt;LoQ'로 보고하는 방식 · 반대 방향 권고: EPA MARLAP Manual Vol. III · 20.3 Recommendations · <a href="https://www.epa.gov/sites/default/files/2015-05/documents/402-b-04-001c-20_final.pdf" rel="noopener" target="_blank">링크</a></li>
+<li id="fn3"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 쉬운 말 설명과 그림</li>
+</ol></section>
+
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-resolution.html">분해능과 √12</a></li><li><a href="c-mad.html">표준편차 σ와 MAD</a></li><li><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a></li><li><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a></li><li><a href="step-6.html">⑥ 판정</a></li></ul></nav>
 <footer class="pager"><a href="c-resolution.html">← 이전 · 분해능과 √12</a><a href="c-signci.html">다음 · 부호검정과 중앙값 90% 신뢰구간 →</a></footer>
-</div></main><script src="assets/concepts.js" defer></script></body></html>
+</div></main></body></html>

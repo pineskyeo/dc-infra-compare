@@ -1,17 +1,97 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>σ_die와 σ_run · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
-<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="page">개념 익히기</a><a href="appendix.html">부록</a></nav>
-<main><div class="wrap">
-<p class="s"><a href="concepts.html">개념 익히기</a> · 3 / 11</p>
+<!doctype html><html lang="ko" data-d41><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>σ_die와 σ_run · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"><script src="assets/concepts.js" defer></script></head><body>
+<details class="fp-fold"><summary>흐름도 ⓪~⑦</summary>
+<nav aria-label="흐름도">
+<div class="fp">
+<ol class="fp-top">
+<li><a href="step-0.html" data-step="0">⓪ 표본 크기 정하기</a></li>
+<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
+<li><a href="step-2.html" data-step="2" class="rel">② 흔들림 구하기</a></li>
+<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
+</ol>
+<div class="fp-fork">
+<div class="fp-col"><span class="fp-lab">정량</span><ol>
+<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
+<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
+</ol></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+</div>
+<ol class="fp-join"><li><a href="step-6.html" data-step="6">⑥ 판정</a></li></ol>
+<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
+<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
+</div>
+</nav>
+</details><nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 구하기</a><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a><a href="step-6.html">⑥ 판정</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="true">개념 익히기</a><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></nav>
+<nav class="fp-wide" aria-label="흐름도">
+<div class="fp">
+<p class="fp-h">흐름도 ⓪~⑦</p>
+<ol class="fp-top">
+<li><a href="step-0.html" data-step="0">⓪ 표본 크기 정하기</a></li>
+<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
+<li><a href="step-2.html" data-step="2" class="rel">② 흔들림 구하기</a></li>
+<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
+</ol>
+<div class="fp-fork">
+<div class="fp-col"><span class="fp-lab">정량</span><ol>
+<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
+<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
+</ol></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+</div>
+<ol class="fp-join"><li><a href="step-6.html" data-step="6">⑥ 판정</a></li></ol>
+<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
+<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
+</div>
+</nav><main><div class="wrap">
+<p class="loc"><a href="concepts.html">개념 익히기</a> › σ<sub>die</sub>와 σ<sub>run</sub> (개념 3 / 14) · 쓰는 단계 <a href="step-2.html">②</a> <a href="step-0.html">⓪</a> <a href="step-3.html">③</a> <a href="step-5.html">⑤</a></p>
 <h1>σ<sub>die</sub>와 σ<sub>run</sub></h1>
-<p class="key" id="def">σ<sub>die</sub> = 같은 die를 다시 잴 때 die마다 따로 흔들리는 크기. σ<sub>run</sub> = 측정 회차마다 모든 die가 같이 움직이는 크기</p>
-<section id="why"><h2>왜 쓰나</h2><p class="key">두 흔들림은 줄어드는 방식이 달라 따로 다룸</p>
-<details><summary>자세히</summary><ul>
-<li>σ<sub>die</sub>: die를 많이 모으면 서로 상쇄됨 → 표본 크기(⓪)와 LoQ(②)에 씀</li>
-<li>σ<sub>run</sub>: 모든 die가 같이 움직여 die를 늘려도 줄지 않음 → 허용 범위 Δ의 회차 예측 한계(④)에 씀</li>
-<li>하나로 합쳐 &#xBCF4;&#xBA74; die 수를 늘린 효과를 잘못 계산함</li>
+
+<section id="q"><h2>이 쪽이 답하는 질문</h2>
+<p class="q" id="def">같은 <a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a>를 다시 잴 때의 흔들림과 회차마다 전체가 함께 움직이는 크기를 왜 나누고, 각각 어떻게 구하나</p></section>
+
+<section id="plain"><h2>쉬운 말로</h2>
+<ul id="why">
+<li>σ<sub>die</sub>(반복성) = 같은 die를 다시 잴 때 die마다 따로 흔들리는 크기</li>
+<li>σ<sub>run</sub>(회차 이동) = 측정 회차마다 모든 die가 함께 움직이는 크기</li>
+<li>σ<sub>die</sub>: die를 많이 모으면 서로 상쇄됨<ul class="chain"><li>→ 표본 크기(⓪)와 <a class="g" href="glossary.html#loq"><abbr title="정량한계 · 믿고 숫자로 비교할 수 있는 가장 작은 크기">정량한계(LoQ, Limit of Quantitation)</abbr></a>(③)에 씀 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li></ul></li>
+<li>σ<sub>run</sub>: 모든 die가 함께 움직여 die를 늘려도 줄지 않음 → 허용 범위 Δ의 회차 예측 한계(⑤)에 씀 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
+<li>둘을 하나로 합치면 die 수를 늘린 효과를 잘못 계산함</li>
+<li>둘 다 <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>당 1개: die마다 값 3개로는 σ를 믿을 수 없음<ul class="chain"><li>→ 모든 die를 모아 하나로 추정 <span class="from">3 = 기준 조건 반복 회차 수 J</span></li></ul></li>
+</ul>
+<details><summary>보충</summary><ul>
+<li>die 사이 퍼짐(die마다 다른 고정 수준)은 σ<sub>die</sub>도 σ<sub>run</sub>도 아님. 기준 조건과 비교 조건에 똑같이 들어가 die별 차이 d에서 빠짐 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
+<li>σ와 MAD의 관계는 <a href="c-mad.html">표준편차 σ와 MAD</a>, 중앙값이 평균보다 덜 효율적인 정도(π/2)는 <a href="c-efficiency.html">중앙값 효율 1.25</a></li>
 </ul></details></section>
-<section id="figure"><h2>그림</h2><p class="key">회차가 바뀌면 점 전체가 같이 움직이고(σ<sub>run</sub>), 그 안에서 점이 따로 흔들림(σ<sub>die</sub>)</p>
-<details open><summary>자세히</summary>
+
+<section id="formula"><h2>수식</h2>
+<div class="formula"><div>d<sub>ik</sub> = x<sub>i,k+1</sub> − x<sub>ik</sub>, σ<sub>die</sub> = 1.4826·MAD(d<sub>ik</sub> − median<sub>i</sub> d<sub>ik</sub>) / √2</div><div>e<sub>ij</sub> = x<sub>ij</sub> − (die i의 회차 평균), r<sub>j</sub> = median<sub>i</sub>(e<sub>ij</sub>)</div><div>σ<sub>run</sub> = √max(0, Var(r<sub>j</sub>) − (π/2)·σ<sub>die</sub>²/n)</div><div class="c">σ<sub>die</sub> = 이웃 회차 차이의 퍼짐. σ<sub>run</sub> = 회차 중앙값의 퍼짐에서 die 잡음 몫을 뺀 것</div></div>
+<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
+<tr><td>σ<sub>die</sub></td><td>반복성. 같은 die를 다시 잴 때의 흔들림</td><td>0.98965 ≈ 0.990</td></tr>
+<tr><td>σ<sub>run</sub></td><td>회차 이동. 회차마다 모든 die가 함께 움직이는 크기</td><td>0.50389 ≈ 0.504</td></tr>
+<tr><td>x<sub>ij</sub></td><td>die i의 기준 조건 j회차 값</td><td>96.104 (die 1, 1회)</td></tr>
+<tr><td>d<sub>ik</sub></td><td>die i의 이웃 회차 차이(k+1회 − k회). ④의 d(비교 − 기준 평균)와 다른 값</td><td>0.786 (die 1, 2회 − 1회)</td></tr>
+<tr><td>median<sub>i</sub></td><td>die 전체에 걸친 중앙값</td><td>0.674, 0.586 (회차 쌍별)</td></tr>
+<tr><td>MAD</td><td><a class="g" href="glossary.html#mad"><abbr title="중앙값 절대편차 · 중앙값에서 떨어진 거리들의 중앙값">중앙값 절대편차(MAD, Median Absolute Deviation)</abbr></a></td><td>0.944</td></tr>
+<tr><td>1.4826</td><td>MAD를 표준편차 크기로 바꾸는 배수(정규분포 기준)</td><td>—</td></tr>
+<tr><td>√2</td><td>차이 하나에 흔들림 두 번이 들어 있어 나눔</td><td>—</td></tr>
+<tr><td>e<sub>ij</sub></td><td>x<sub>ij</sub>에서 die i의 회차 평균을 뺀 값</td><td>—</td></tr>
+<tr><td>r<sub>j</sub></td><td>j회차 e<sub>ij</sub>의 die 전체 중앙값</td><td>−0.45117, 0.04633, 0.60567</td></tr>
+<tr><td>Var(r<sub>j</sub>)</td><td>r<sub>j</sub> 3개의 분산</td><td>0.279543</td></tr>
+<tr><td>(π/2)·σ<sub>die</sub>²/n</td><td>die 잡음 몫. 회차 이동이 0이어도 r<sub>j</sub>가 흔들리는 크기</td><td>0.025641</td></tr>
+<tr><td>n</td><td>die 수</td><td>60</td></tr>
+</tbody></table></div>
+<h3>도구 계산 순서</h3>
+<ol>
+<li>σ<sub>die</sub>: ① die마다 이웃 회차 차이(2−1, 3−2) ② 회차 쌍마다 die 전체 중앙값을 뺌 ③ 모든 die의 차이를 모아 1.4826·MAD ④ ÷√2<ul class="chain"><li>→ ITEM당 1개<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup><sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup><sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li></ul></li>
+<li>σ<sub>run</sub>: die마다 회차 평균을 뺀 값 e<sub>ij</sub>의 회차별 중앙값 r<sub>j</sub> → r<sub>j</sub>의 분산에서 die 잡음 몫을 뺌<sup class="fnref"><a href="#fn5" aria-label="출처 5">5</a></sup><sup class="fnref"><a href="#fn6" aria-label="출처 6">6</a></sup><sup class="fnref"><a href="#fn7" aria-label="출처 7">7</a></sup><sup class="fnref"><a href="#fn8" aria-label="출처 8">8</a></sup></li>
+<li>die 잡음 몫: 회차 이동이 0이어도 회차 중앙값 r<sub>j</sub>는 die 잡음 때문에 움직임. 평균이면 분산 σ<sub>die</sub>²/n, 중앙값은 그 π/2배<sup class="fnref"><a href="#fn9" aria-label="출처 9">9</a></sup> · <a href="c-efficiency.html">중앙값 효율 1.25</a></li>
+<li>뺀 값이 0보다 작으면 σ<sub>run</sub> = 0 (식의 max)</li>
+</ol></section>
+
+<section id="figure"><h2>그림</h2>
 <figure class="cfig" id="fig-split" data-anim="split"><svg viewBox="0 0 640 260" role="img" aria-labelledby="split-t"><title id="split-t">회차가 바뀌면 점 전체가 같이 움직이고(σ_run), 그 안에서 점이 따로 흔들림(σ_die)</title>
 <line class="ax" x1="40" y1="130" x2="560" y2="130"/>
 <g id="split-r1" class="r1"><line x1="60" y1="147.5" x2="548" y2="147.5" stroke-dasharray="4 4"/>
@@ -29,17 +109,92 @@
 <text x="80" y="252" text-anchor="middle">die 1</text><text x="144" y="252" text-anchor="middle">die 2</text><text x="208" y="252" text-anchor="middle">die 3</text><text x="272" y="252" text-anchor="middle">die 4</text><text x="336" y="252" text-anchor="middle">die 5</text><text x="400" y="252" text-anchor="middle">die 6</text><text x="464" y="252" text-anchor="middle">die 7</text><text x="528" y="252" text-anchor="middle">die 8</text>
 </svg><figcaption class="s">점선 = 회차 전체 이동(σ<sub>run</sub>). 점이 점선에서 떨어진 정도 = die별 흔들림(σ<sub>die</sub>) · 합성 예시</figcaption></figure>
 <div class="ctl" hidden><button id="split-play" type="button" aria-pressed="false">재생</button><input id="split-ctl" type="range" min="0" max="3" step="1" value="0" aria-label="회차 상태"></div>
-<p class="s" id="split-out" aria-live="polite">세 회차 모두 · σ<sub>die</sub> 1.0 · σ<sub>run</sub> 0.5</p>
-</details></section>
-<section id="example"><h2>예시 숫자</h2><p class="key">σ<sub>die</sub> 1.0, σ<sub>run</sub> 0.5, 기준 조건 3회</p>
-<details><summary>자세히</summary><div class="formula"><div>σ<sub>die</sub> = 1.0, σ<sub>run</sub> = 0.5, J = 3. 그림의 회차 이동 −0.5, 0, +0.5의 표준편차 = 0.5 = σ<sub>run</sub></div></div>
-<p class="s">합성 예시이며 실행 결과가 아닙니다.</p></details></section>
-<section id="basis"><h2>출처</h2><p class="key">근거 대조표 #3 · #2</p>
-<details><summary>자세히</summary><ul class="basis">
-<li>#3 σ<sub>run</sub> 분리 — 부분 · NIST e-Handbook 2.4.4 · VIM 2.20~2.23. 중앙값과 (π/2)/n 보정은 SOP 고유 변형</li>
-<li>#2 MAD와 1.4826, /√2 — 확인 · NIST e-Handbook 1.3.5.6, 1.3.5.17 · GUM 5.1.2</li>
-</ul><p class="s">문헌 이름 · 위치 · 링크는 관련 단계의 '근거' 절에 있음</p></details></section>
-<section id="steps"><h2>관련 단계</h2><p class="key"><a href="step-1.html">① 반복성 확인</a> · <a href="step-4.html">④ 동등 한계 정하기</a> · <a href="step-0.html">⓪ 표본 크기 정하기</a></p>
-<details><summary>자세히</summary><ul><li>① σ<sub>r</sub>와 σ<sub>run</sub> 계산</li><li>④ 회차 예측 한계</li><li>⓪ 최소 여유 식의 σ<sub>die</sub></li></ul></details></section>
+<p class="s" id="split-out" aria-live="polite">모형: 예시 ITEM을 만든 값 σ<sub>die</sub> 1.0 · σ<sub>run</sub> 0.5 (도구 추정 0.990 · 0.504)</p>
+<p class="look"><b>여기서 볼 것</b> · 회차가 바뀌면 점 전체가 함께 움직이고(σ<sub>run</sub>), 그 안에서 점이 따로 흔들림(σ<sub>die</sub>)</p>
+
+<h3 id="basis-1">σ<sub>die</sub> 1.0의 근거</h3>
+<ul>
+<li>그림의 σ<sub>die</sub> 1.0 · σ<sub>run</sub> 0.5 = 예시 ITEM을 만든 값 <span class="from">합성 예시를 만들 때 넣은 반복 흔들림 1.0, 회차 이동 −0.5 / 0 / +0.5</span></li>
+<li>회차 이동 −0.5, 0, +0.5의 표준편차 = 0.5 = σ<sub>run</sub></li>
+<li>도구가 그 예시 데이터에서 거꾸로 추정한 값 = σ<sub>die</sub> 0.990 · σ<sub>run</sub> 0.504 <span class="from">아래 예시 계산의 0.98965, 0.50389</span></li>
+<li>만든 값과 추정 값이 조금 다른 것은 die 60개, 회차 3번으로 추정하기 때문 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
+</ul>
+
+<h3>두 회차를 마주 놓고 보기</h3>
+<figure class="cfig" id="fig-sxy"><svg viewBox="0 0 640 320" role="img" aria-labelledby="sxy-t"><title id="sxy-t">σ_die가 크면 점이 대각선 둘레로 둥글게 퍼지고, σ_run이 크면 점 구름이 통째로 대각선과 평행하게 이동함</title>
+<g>
+<line class="ax" x1="40" y1="280" x2="280" y2="280"/><line class="ax" x1="40" y1="40" x2="40" y2="280"/>
+<line class="ax" x1="40" y1="280" x2="280" y2="40" stroke-dasharray="4 4"/>
+<text x="160" y="16" text-anchor="middle">σ<tspan baseline-shift="sub">die</tspan> 큼: 대각선 둘레로 둥글게 퍼짐</text>
+<text x="48" y="56">상관 0.219 · 평균 차이 0.0</text>
+<text x="40" y="296" text-anchor="middle">90</text><text x="160" y="296" text-anchor="middle">101</text><text x="280" y="296" text-anchor="middle">112</text>
+<text x="34" y="284" text-anchor="end">90</text><text x="34" y="164" text-anchor="end">101</text><text x="34" y="44" text-anchor="end">112</text>
+<text x="160" y="314" text-anchor="middle">1회차</text><text x="44" y="34">2회차</text>
+<g class="hi"><circle cx="130.3" cy="232.0" r="3"/><circle cx="142.1" cy="203.7" r="3"/><circle cx="132.5" cy="211.8" r="3"/><circle cx="121.2" cy="206.0" r="3"/><circle cx="132.3" cy="163.5" r="3"/><circle cx="122.0" cy="202.9" r="3"/><circle cx="146.4" cy="184.7" r="3"/><circle cx="175.5" cy="163.5" r="3"/><circle cx="136.5" cy="194.4" r="3"/><circle cx="134.8" cy="183.0" r="3"/><circle cx="160.0" cy="177.1" r="3"/><circle cx="158.1" cy="177.2" r="3"/><circle cx="153.6" cy="204.4" r="3"/><circle cx="131.9" cy="175.1" r="3"/><circle cx="152.5" cy="146.1" r="3"/><circle cx="169.2" cy="208.7" r="3"/><circle cx="125.6" cy="155.3" r="3"/><circle cx="145.8" cy="170.5" r="3"/><circle cx="115.3" cy="186.2" r="3"/><circle cx="129.7" cy="127.5" r="3"/><circle cx="118.5" cy="153.6" r="3"/><circle cx="154.7" cy="195.3" r="3"/><circle cx="133.3" cy="166.4" r="3"/><circle cx="168.1" cy="154.2" r="3"/><circle cx="166.9" cy="169.6" r="3"/><circle cx="160.8" cy="149.2" r="3"/><circle cx="111.7" cy="163.8" r="3"/><circle cx="156.9" cy="145.7" r="3"/><circle cx="170.5" cy="126.1" r="3"/><circle cx="179.2" cy="166.9" r="3"/></g>
+</g>
+<g transform="translate(330,0)">
+<line class="ax" x1="40" y1="280" x2="280" y2="280"/><line class="ax" x1="40" y1="40" x2="40" y2="280"/>
+<line class="ax" x1="40" y1="280" x2="280" y2="40" stroke-dasharray="4 4"/>
+<line class="r3" x1="40" y1="258.2" x2="258.2" y2="40" stroke-dasharray="2 3"/>
+<text x="160" y="16" text-anchor="middle">σ<tspan baseline-shift="sub">run</tspan> 큼: 점 구름이 통째로 평행 이동</text>
+<text x="48" y="56">상관 0.994 · 평균 차이 2.0</text>
+<text x="40" y="296" text-anchor="middle">90</text><text x="160" y="296" text-anchor="middle">101</text><text x="280" y="296" text-anchor="middle">112</text>
+<text x="34" y="284" text-anchor="end">90</text><text x="34" y="164" text-anchor="end">101</text><text x="34" y="44" text-anchor="end">112</text>
+<text x="160" y="314" text-anchor="middle">1회차</text><text x="44" y="34">2회차</text>
+<g class="hi"><circle cx="80.0" cy="218.8" r="3"/><circle cx="93.7" cy="200.7" r="3"/><circle cx="104.1" cy="195.5" r="3"/><circle cx="106.1" cy="184.5" r="3"/><circle cx="113.2" cy="183.0" r="3"/><circle cx="118.9" cy="176.7" r="3"/><circle cx="126.3" cy="178.9" r="3"/><circle cx="130.8" cy="169.9" r="3"/><circle cx="126.0" cy="173.3" r="3"/><circle cx="130.9" cy="171.3" r="3"/><circle cx="138.5" cy="162.6" r="3"/><circle cx="132.8" cy="161.7" r="3"/><circle cx="140.6" cy="155.4" r="3"/><circle cx="144.6" cy="145.8" r="3"/><circle cx="151.8" cy="153.1" r="3"/><circle cx="152.7" cy="149.7" r="3"/><circle cx="152.0" cy="144.3" r="3"/><circle cx="154.8" cy="140.6" r="3"/><circle cx="157.9" cy="139.9" r="3"/><circle cx="166.7" cy="137.1" r="3"/><circle cx="163.3" cy="131.1" r="3"/><circle cx="166.8" cy="128.6" r="3"/><circle cx="172.2" cy="130.3" r="3"/><circle cx="174.3" cy="123.7" r="3"/><circle cx="177.9" cy="119.4" r="3"/><circle cx="179.3" cy="118.5" r="3"/><circle cx="188.0" cy="109.2" r="3"/><circle cx="192.8" cy="106.5" r="3"/><circle cx="206.7" cy="92.0" r="3"/><circle cx="220.8" cy="78.7" r="3"/></g>
+</g>
+</svg><figcaption class="s">가로 = 1회차, 세로 = 2회차의 같은 die 값(30개). 긴 점선 = 대각선(두 회차 같음), 오른쪽 짧은 점선 = 대각선 +2.0 · 합성 예시</figcaption></figure>
+<p class="look"><b>여기서 볼 것</b> · 왼쪽은 점이 대각선 둘레로 둥글게 퍼짐(σ<sub>die</sub> 큼), 오른쪽은 점 구름이 대각선과 평행하게 통째로 옮겨짐(σ<sub>run</sub> 큼)</p>
+</section>
+
+<section id="example"><h2>예시 계산</h2>
+<div class="exdata" id="ex-data">
+<p class="s">합성 예시 · ITEM 하나, 단위 Ω · 기준 조건 3회(J = 3) + 비교 조건 1회 · die 60개(n = 60) 중 6개</p>
+<div class="tw"><table class="ex"><thead><tr><th>die</th><th>기준 1회</th><th>기준 2회</th><th>기준 3회</th><th>기준 평균</th><th>비교</th><th>d = 비교 − 기준 평균</th></tr></thead><tbody>
+<tr><td>1</td><td>96.104</td><td>96.890</td><td>96.465</td><td>96.4863</td><td>97.258</td><td>0.7717</td></tr>
+<tr><td>2</td><td>99.194</td><td>98.516</td><td>100.005</td><td>99.2383</td><td>101.005</td><td>1.7667</td></tr>
+<tr><td>3</td><td>94.828</td><td>95.894</td><td>95.134</td><td>95.2853</td><td>96.819</td><td>1.5337</td></tr>
+<tr><td>4</td><td>102.294</td><td>101.657</td><td>102.060</td><td>102.0037</td><td>101.415</td><td>−0.5887</td></tr>
+<tr><td>5</td><td>106.554</td><td>105.866</td><td>108.424</td><td>106.9480</td><td>107.455</td><td>0.5070</td></tr>
+<tr><td>6</td><td>95.385</td><td>95.404</td><td>97.106</td><td>95.9650</td><td>94.915</td><td>−1.0500</td></tr>
+</tbody></table></div>
+<p class="s"><a href="examples/example_wide.csv">합성 예시 · 전체 데이터 examples/example_wide.csv</a></p>
+</div>
+<h3>σ<sub>die</sub> (반복성)</h3>
+<ol class="calc">
+<li>die 1 이웃 회차 차이: 96.890 − 96.104 = 0.786, 96.465 − 96.890 = −0.425 <span class="from">위 표 die 1의 기준 1·2·3회</span></li>
+<li>die 1~6 이웃 회차 차이(2−1, 3−2): [0.786, −0.425], [−0.678, 1.489], [1.066, −0.76], [−0.637, 0.403], [−0.688, 2.558], [0.019, 1.702] <span class="from">위 표에서 같은 방법</span></li>
+<li>회차 쌍별 차이의 중앙값 [0.674, 0.586] → 각 쌍에서 뺌 <span class="from">die 60개 전체의 2−1 차이 중앙값, 3−2 차이 중앙값</span></li>
+<li>모두 모음 120개 (중앙값 0.0) <span class="from">die 60개 × 회차 쌍 2개</span></li>
+<li>MAD = 중앙값에서 떨어진 거리의 중앙값 = 0.944 <span class="from">120개가 0.0에서 떨어진 거리 · <a href="c-mad.html">표준편차 σ와 MAD</a></span></li>
+<li>1.4826 × 0.944 = 1.39957 <span class="from">robust σ: MAD를 표준편차 크기로 바꿈 · <a href="c-mad.html">표준편차 σ와 MAD</a></span></li>
+<li>÷ √2 = 0.98965 ≈ 0.990 = σ<sub>die</sub> <span class="from">이웃 회차 차이 하나에 흔들림 두 번</span></li>
+</ol>
+<h3>σ<sub>run</sub> (회차 이동)</h3>
+<ol class="calc">
+<li>회차 평균 [99.4598, 100.0957, 100.7094] (참고) <span class="from">die 60개 전체의 1·2·3회 평균</span></li>
+<li>e<sub>ij</sub> = x<sub>ij</sub> − die 평균<span class="cl">→ 회차별 중앙값 r<sub>j</sub> = [−0.45117, 0.04633, 0.60567] <span class="from">die 평균 = 위 표 '기준 평균' 열, 중앙값은 die 60개 전체</span></span></li>
+<li>Var(r<sub>j</sub>) = 0.279543 <span class="from">r<sub>j</sub> 3개의 분산</span></li>
+<li>die 잡음 몫 (π/2)·σ<sub>die</sub>²/n = 1.5708 × 0.98965² / 60 = 0.025641 (표준편차 0.16013) <span class="from">1.5708 = π/2, 0.98965 = 위 σ<sub>die</sub>, 60 = die 수 n</span></li>
+<li>σ<sub>run</sub> = √(0.279543 − 0.025641) = 0.50389 ≈ 0.504</li>
+</ol>
+<p class="s">합성 예시 · 실행 결과 아님 · 손계산과 도구 출력이 같은 값</p>
+</section>
+
+<section id="sources"><h2>출처</h2>
+<ol class="fn">
+<li id="fn1"><a class="g" href="glossary.html#nist"><abbr title="NIST · 미국 국립표준기술연구소">NIST(National Institute of Standards and Technology)</abbr></a>/SEMATECH e-Handbook · 1.3.5.6 Measures of Scale · <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda356.htm" rel="noopener" target="_blank">링크</a></li>
+<li id="fn2">NIST e-Handbook · 1.3.5.17 Detection of Outliers ("Z-Scores and Modified Z-Scores") · <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm" rel="noopener" target="_blank">링크</a></li>
+<li id="fn3">JCGM 100:2008 (<a class="g" href="glossary.html#gum"><abbr title="GUM · 측정 불확도 표현 지침(JCGM 100:2008)">GUM(Guide to the Expression of Uncertainty in Measurement)</abbr></a>) · 5.1.2 · <a href="https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf" rel="noopener" target="_blank">링크</a></li>
+<li id="fn4">Wikipedia "Median absolute deviation" · <a href="https://en.wikipedia.org/wiki/Median_absolute_deviation" rel="noopener" target="_blank">링크</a></li>
+<li id="fn5">NIST e-Handbook · 2.4.4 Analysis of variability · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section4/mpc44.htm" rel="noopener" target="_blank">링크</a></li>
+<li id="fn6">NIST e-Handbook · 2.4 Gauge R &amp; R studies · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section4/mpc4.htm" rel="noopener" target="_blank">링크</a> · 2.6.1 Gauge study of resistivity probes · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section6/mpc61.htm" rel="noopener" target="_blank">링크</a></li>
+<li id="fn7">JCGM 200:2012 (<a class="g" href="glossary.html#vim"><abbr title="VIM · 국제 계량 용어집(JCGM 200:2012)">VIM(International Vocabulary of Metrology)</abbr></a>) · 2.20, 2.21 · <a href="https://www.bipm.org/documents/20126/2071204/JCGM_200_2012.pdf" rel="noopener" target="_blank">링크</a></li>
+<li id="fn8"><a class="g" href="glossary.html#iso"><abbr title="ISO · 국제표준화기구">ISO(International Organization for Standardization)</abbr></a> 5725-3 · <a href="https://www.iso.org/standard/69420.html" rel="noopener" target="_blank">링크</a></li>
+<li id="fn9">Wikipedia "Median" · Sampling distribution 절 (Williams 2001 p.165 인용) · <a href="https://en.wikipedia.org/wiki/Median" rel="noopener" target="_blank">링크</a></li>
+<li id="fn10"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 회차 중앙값을 쓰는 것과 (π/2)/n 보정은 이 방법의 변형 · 쉬운 말 설명과 그림</li>
+</ol></section>
+
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="step-2.html">② 흔들림 구하기</a></li><li><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a></li><li><a href="step-0.html">⓪ 표본 크기 정하기</a></li><li><a href="c-mad.html">표준편차 σ와 MAD</a></li><li><a href="c-efficiency.html">중앙값 효율 1.25</a></li></ul></nav>
 <footer class="pager"><a href="c-mad.html">← 이전 · 표준편차 σ와 MAD</a><a href="c-resolution.html">다음 · 분해능과 √12 →</a></footer>
-</div></main><script src="assets/concepts.js" defer></script></body></html>
+</div></main></body></html>
