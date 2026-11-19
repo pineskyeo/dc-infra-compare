@@ -1,0 +1,61 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TOST와 동등 · 차이 · 미결 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="page">개념 익히기</a><a href="appendix.html">부록</a></nav>
+<main><div class="wrap">
+<p class="s"><a href="concepts.html">개념 익히기</a> · 9 / 11</p>
+<h1>TOST와 동등 · 차이 · 미결</h1>
+<p class="key" id="def">TOST = 한쪽 5% 검정 두 번. '편향 &gt; −Δ'와 '편향 &lt; +Δ'를 둘 다 보이면 동등. 90% 신뢰구간이 ±Δ 안에 드는 것과 같음</p>
+<section id="why"><h2>왜 쓰나</h2><p class="key">'차이를 못 찾음'을 '같음'으로 잘못 읽지 않게 함</p>
+ <details><summary>자세히</summary><ul>
+  <li>보통 검정은 차이를 보이는 도구. die가 적으면 차이가 있어도 '차이 없음'이 나옴</li>
+  <li>TOST는 같음을 직접 보여야 동등. 보이지 못하면 미결</li>
+  <li>구간이 ±Δ 안이면 동등, 통째로 밖이면 차이, 걸치면 미결 <span class="badge-int">내부 기준</span></li>
+ </ul></details></section>
+<section id="figure"><h2>그림</h2><p class="key">구간을 옮기면 판정이 동등 → 미결 → 차이로 바뀜</p>
+ <details open><summary>자세히</summary>
+ <figure class="cfig" id="fig-tost" data-anim="tost">
+  <svg viewBox="0 0 640 170" role="img" aria-labelledby="fig-tost-t">
+   <title id="fig-tost-t">구간을 옮기면 판정이 동등 → 미결 → 차이로 바뀜</title>
+   <rect class="band" x="159.5" y="40.0" width="321.0" height="80.0"/>
+   <line class="okl" x1="159.5" y1="40.0" x2="159.5" y2="120.0"/>
+   <line class="okl" x1="480.5" y1="40.0" x2="480.5" y2="120.0"/>
+   <text x="159.5" y="32.0" text-anchor="middle">−Δ −6.686</text>
+   <text x="480.5" y="32.0" text-anchor="middle">+Δ 6.686</text>
+   <line class="ax" x1="80.0" y1="130.0" x2="560.0" y2="130.0"/>
+   <line class="ax" x1="80.0" y1="125.0" x2="80.0" y2="135.0"/>
+   <line class="ax" x1="200.0" y1="125.0" x2="200.0" y2="135.0"/>
+   <line class="ax" x1="320.0" y1="125.0" x2="320.0" y2="135.0"/>
+   <line class="ax" x1="440.0" y1="125.0" x2="440.0" y2="135.0"/>
+   <line class="ax" x1="560.0" y1="125.0" x2="560.0" y2="135.0"/>
+   <text x="80.0" y="150.0" text-anchor="middle">−10</text>
+   <text x="200.0" y="150.0" text-anchor="middle">−5</text>
+   <text x="320.0" y="150.0" text-anchor="middle">0</text>
+   <text x="440.0" y="150.0" text-anchor="middle">5</text>
+   <text x="560.0" y="150.0" text-anchor="middle">10</text>
+   <line id="tost-ci" class="ok" x1="296.0" y1="80.0" x2="368.0" y2="80.0" stroke-width="4"/>
+   <line id="tost-c0" class="ok" x1="296.0" y1="72.0" x2="296.0" y2="88.0"/>
+   <line id="tost-c1" class="ok" x1="368.0" y1="72.0" x2="368.0" y2="88.0"/>
+   <text id="tost-lab" x="332.0" y="66.0" text-anchor="middle">90% CI [−1.0, 2.0]</text>
+  </svg>
+  <figcaption class="s">90% 신뢰구간과 ±Δ의 위치에 따른 판정 · 합성 예시</figcaption>
+ </figure>
+ <div class="ctl" hidden><input id="tost-ctl" type="range" min="1" max="3" step="1" value="1" aria-label="판정 상태"><span class="s">동등 · 미결 · 차이</span></div>
+ <p class="s" id="tost-out" aria-live="polite"><span class="pill ok">동등</span> 구간 전체가 ±Δ 안</p>
+ <div class="tw"><table><thead><tr><th>90% 신뢰구간</th><th>판정</th><th>이유</th></tr></thead><tbody>
+  <tr><td>[−1.0, 2.0]</td><td><span class="pill ok">동등</span></td><td>구간 전체가 ±Δ 안</td></tr>
+  <tr><td>[5.5, 8.0]</td><td><span class="pill hold">미결</span></td><td>구간이 +Δ 6.686에 걸침</td></tr>
+  <tr><td>[7.5, 9.5]</td><td><span class="pill bad">차이</span></td><td>구간 전체가 +Δ 6.686 밖</td></tr>
+ </tbody></table></div>
+ </details></section>
+<section id="example"><h2>예시 숫자</h2><p class="key">Δ 6.686에서 구간 [−1.0, 2.0] 동등, [5.5, 8.0] 미결, [7.5, 9.5] 차이</p>
+ <details><summary>자세히</summary><div class="formula"><div>Δ = 6.686<br>[−1.0, 2.0] ⊂ (−6.686, +6.686) → 동등<br>5.5 &lt; 6.686 &lt; 8.0 → 미결<br>7.5 &gt; 6.686 → 차이</div></div>
+ <p class="s">합성 예시이며 실행 결과가 아닙니다.</p></details></section>
+<section id="basis"><h2>출처</h2><p class="key">근거 대조표 #12 · #13 <span class="badge-int">&#45236;&#48512; 기준</span></p>
+ <details><summary>자세히</summary><ul class="basis">
+  <li>#12 TOST = 90% 신뢰구간이 ±Δ 안 — 확인 · Schuirmann 1987 · FDA 2001 IV, VI.B.1.a · ASTM E2935-21 1.1, 1.2</li>
+  <li>#13 동등 / 차이 / 미결 3분 판정 — 출처 없음(설계) <span class="badge-int">&#45236;&#48512; 기준</span></li>
+ </ul>
+ <p class="s">문헌 이름 · 위치 · 링크는 관련 단계의 '근거' 절에 있음</p></details></section>
+<section id="steps"><h2>관련 단계</h2><p class="key"><a href="step-5.html">⑤ TOST로 판정</a> · <a href="step-6.html">⑥ LoQ 미만 판정</a></p>
+ <details><summary>자세히</summary><ul><li>⑤ 정량 항목 판정</li><li>⑥ 구간이 통째로 ±Δ 밖인지 확인</li></ul></details></section>
+<footer class="pager"><a href="c-delta.html">← 이전 · 허용 범위 Δ</a><a href="c-efficiency.html">다음 · 중앙값 효율 1.25 →</a></footer>
+</div></main><script src="assets/concepts.js" defer></script></body></html>

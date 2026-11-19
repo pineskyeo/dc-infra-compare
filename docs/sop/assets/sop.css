@@ -97,3 +97,29 @@ main{margin-left:0;padding:24px 20px}
 .fork::before,.fork::after{display:none}
 .box{width:100%}}
 .badge-int{display:inline-block;background:#FEF3C7;color:#92400E;border:1px solid #F5D58A;border-radius:999px;font-size:var(--fs-sub);font-weight:600;padding:0 8px;white-space:nowrap}
+
+/* concepts */
+.cfig{margin:0 0 12px}
+.cfig svg{display:block;width:100%;max-width:640px;height:auto}
+.cfig text{font-family:var(--font-sans);font-size:12px;fill:var(--tx2)}
+.cfig .ax{stroke:var(--bd);fill:none}
+.cfig .tx{stroke:var(--tx);fill:var(--tx)}
+.cfig .dot{fill:var(--tx2);stroke:var(--tx2)}
+.cfig .hi{fill:#2563EB;stroke:#2563EB}
+.cfig .ring{fill:none;stroke:#2563EB;stroke-width:2}
+.cfig .bad{fill:#D93A3A;stroke:#D93A3A}
+.cfig .ok{fill:#1A8754;stroke:#1A8754}
+.cfig .hold{fill:#92400E;stroke:#92400E}
+.cfig .okl{stroke:#1A8754}
+.cfig .bar{fill:var(--ln);stroke:var(--tx2)}
+.cfig .barhi{fill:#2563EB;fill-opacity:.15;stroke:#2563EB}
+.cfig .barbad{fill:#FDECEC;stroke:#D93A3A}
+.cfig .band{fill:#E7F5EE}
+.cfig .bandhold{fill:#FEF3C7}
+.cfig .r1{fill:#2563EB;stroke:#2563EB}
+.cfig .r2{fill:#1A8754;stroke:#1A8754}
+.cfig .r3{fill:#92400E;stroke:#92400E}
+.ctl{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0;font-size:var(--fs-sub);color:var(--tx2)}
+.ctl[hidden]{display:none}
+.ctl button{font:inherit;font-size:var(--fs-sub);color:var(--tx);background:#FFFFFF;border:1px solid var(--bd);border-radius:999px;padding:2px 12px;cursor:pointer}
+.ctl input[type=range]{width:220px}

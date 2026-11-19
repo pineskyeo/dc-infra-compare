@@ -1,5 +1,5 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>④ 동등 한계 정하기 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
-<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html" aria-current="page">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="appendix.html">부록</a></nav>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html" aria-current="page">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html">개념 익히기</a><a href="appendix.html">부록</a></nav>
 <main><div class="wrap">
 <h1>④ 동등 한계 정하기</h1>
 <p class="key">편향이 이 안이면 같다고 봅니다.</p>
@@ -15,7 +15,7 @@
 
 <section id="formula">
 <h2>수식</h2>
-<p class="key">실용 한계와 회차 예측 한계의 합입니다.</p>
+<p class="key"><a href="c-delta.html#def">실용 한계와 회차 예측 한계의 합</a>입니다.</p>
 <details><summary>자세히</summary>
 <div class="formula">
 <div>Δ = r·|Ref 중앙값|  +  t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub></div>
@@ -43,7 +43,7 @@
 <details><summary>자세히</summary>
 <ul>
 <li>A·V ITEM (item_info): Δ = max(Δ, 장비 정확도 한계)</li>
-<li>기준 조건 회차 수 J가 바뀌면 배수가 바뀝니다. 회차를 늘리면 배수가 1.645·√(1+1/J)에 가까워집니다.</li>
+<li>기준 조건 회차 수 J가 바뀌면 <a href="c-tfactor.html#def">배수</a>가 바뀝니다. 회차를 늘리면 배수가 1.645·√(1+1/J)에 가까워집니다.</li>
 </ul>
 </details>
 </section>
@@ -54,7 +54,7 @@
 <details><summary>자세히</summary>
 <p><b>목적</b> · 편향이 이 안이면 같다고 봅니다. 실용 한계와 회차 예측 한계의 합입니다.</p>
 <h3>기준 조건 회차 수와 회차 예측 한계 배수</h3>
-<p>σ<sub>run</sub>을 회차 J개로만 추정하므로 1.645 대신 t를 씁니다. 회차를 늘리면 배수가 1.645·√(1+1/J)에 가까워집니다.</p>
+<p><a href="c-sigma-split.html#def">σ<sub>run</sub></a>을 회차 J개로만 추정하므로 1.645 대신 t를 씁니다. 회차를 늘리면 배수가 1.645·√(1+1/J)에 가까워집니다.</p>
 <p>동등 한계 equivalence margin ±Δ: 실용 한계(5%) + 회차 예측 한계. 이 안이면 같다고 봄</p>
 </details>
 </section>

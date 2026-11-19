@@ -1,0 +1,69 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>검정력 90%와 표본 크기 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="page">개념 익히기</a><a href="appendix.html">부록</a></nav>
+<main><div class="wrap">
+<p class="s"><a href="concepts.html">개념 익히기</a> · 11 / 11</p>
+<h1>검정력 90%와 표본 크기</h1>
+<p class="key" id="def">검정력 = 실제로 같을 때 '동등'으로 나올 확률. 표본 크기 = 그 확률에 필요한 die 수와 회차 수 J</p>
+<section id="why"><h2>왜 쓰나</h2><p class="key">실제로 같은데 die가 모자라 미결이 나오는 일을 미리 막음</p>
+ <details><summary>자세히</summary><ul>
+  <li>die 수가 정해져 있으면 판별 가능한 최소 여유 (Δ−|b|)min을 먼저 계산</li>
+  <li>Δ−|b|가 이 값보다 작으면 실제로 같아도 미결이 나오기 쉬움 → wafer 2장 이상 또는 J 증가 검토</li>
+  <li>z0.95 두 개: 하나는 TOST 한쪽 5%, 하나는 검정력 90%. 예전 z0.90은 실제 검정력 80%</li>
+ </ul></details></section>
+<section id="figure"><h2>그림</h2><p class="key">die가 늘면 판별 가능한 최소 여유가 줄어듦(J = 3, σ<sub>die</sub> 단위)</p>
+ <details open><summary>자세히</summary>
+ <figure class="cfig" id="fig-power">
+  <svg viewBox="0 0 640 220" role="img" aria-labelledby="fig-power-t">
+   <title id="fig-power-t">die가 늘면 판별 가능한 최소 여유가 줄어듦(J = 3, σ_die 단위)</title>
+   <line class="ax" x1="60.0" y1="180.0" x2="600.0" y2="180.0"/>
+   <line class="ax" x1="60.0" y1="10.0" x2="60.0" y2="180.0"/>
+   <line class="ax" x1="105.0" y1="180.0" x2="105.0" y2="186.0"/>
+   <line class="ax" x1="150.0" y1="180.0" x2="150.0" y2="186.0"/>
+   <line class="ax" x1="195.0" y1="180.0" x2="195.0" y2="186.0"/>
+   <line class="ax" x1="330.0" y1="180.0" x2="330.0" y2="186.0"/>
+   <line class="ax" x1="600.0" y1="180.0" x2="600.0" y2="186.0"/>
+   <line class="ax" x1="54.0" y1="180.0" x2="60.0" y2="180.0"/>
+   <line class="ax" x1="54.0" y1="130.0" x2="60.0" y2="130.0"/>
+   <line class="ax" x1="54.0" y1="80.0" x2="60.0" y2="80.0"/>
+   <line class="ax" x1="54.0" y1="30.0" x2="60.0" y2="30.0"/>
+   <text x="105.0" y="201.0" text-anchor="middle">10</text>
+   <text x="150.0" y="201.0" text-anchor="middle">20</text>
+   <text x="195.0" y="201.0" text-anchor="middle">30</text>
+   <text x="330.0" y="201.0" text-anchor="middle">60</text>
+   <text x="600.0" y="201.0" text-anchor="middle">120</text>
+   <text x="330.0" y="217.0" text-anchor="middle">die 수</text>
+   <text x="50.0" y="184.0" text-anchor="end">0</text>
+   <text x="50.0" y="134.0" text-anchor="end">0.5</text>
+   <text x="50.0" y="84.0" text-anchor="end">1.0</text>
+   <text x="50.0" y="34.0" text-anchor="end">1.5</text>
+   <text x="14.0" y="100.0" text-anchor="middle" transform="rotate(-90 14.0 100.0)">최소 여유(σ<tspan baseline-shift="sub">die</tspan> 단위)</text>
+   <polyline class="ax" points="105.0,29.8 150.0,73.8 195.0,93.3 330.0,118.7 600.0,136.7"/>
+   <circle class="dot" cx="105.0" cy="29.8" r="4.0"/>
+   <circle class="dot" cx="150.0" cy="73.8" r="4.0"/>
+   <circle class="dot" cx="195.0" cy="93.3" r="4.0"/>
+   <circle class="hi" cx="330.0" cy="118.7" r="6.0"/>
+   <circle class="dot" cx="600.0" cy="136.7" r="4.0"/>
+   <text x="105.0" y="19.8" text-anchor="middle">1.502</text>
+   <text x="150.0" y="63.8" text-anchor="middle">1.062</text>
+   <text x="195.0" y="83.3" text-anchor="middle">0.867</text>
+   <text x="330.0" y="104.7" text-anchor="middle">die 60개 → 0.613·σ<tspan baseline-shift="sub">die</tspan></text>
+   <text x="600.0" y="126.7" text-anchor="middle">0.433</text>
+  </svg>
+  <figcaption class="s">J = 3, 검정력 90% · 합성 예시</figcaption>
+ </figure>
+ </details></section>
+<section id="example"><h2>예시 숫자</h2><p class="key">die 60개, J = 3이면 최소 여유 0.613·σ<sub>die</sub></p>
+ <details><summary>자세히</summary><div class="formula"><div>(Δ−|b|)min ≈ 1.25 × (1.645 + 1.645) × √(1+1/3) / √60 × σ<sub>die</sub> = 0.613·σ<sub>die</sub><br>검정력: 예전 식 80.02%, 지금 식 90%</div></div>
+ <p class="s">⓪ 본문은 ≈ 0.61·σ<sub>die</sub>로 표기</p>
+ <p class="s">합성 예시이며 실행 결과가 아닙니다.</p></details></section>
+<section id="basis"><h2>출처</h2><p class="key">근거 대조표 #14a · #14b · #7 <span class="badge-int">&#45236;&#48512; 기준</span></p>
+ <details><summary>자세히</summary><ul class="basis">
+  <li>#14a 표본 크기 식 — 부분 · NCSS PASS 517장 Example 2 · NIST e-Handbook 7.2.2.2</li>
+  <li>#14b 1.25 = √(π/2), 중앙값 효율 2/π — 부분(2차 출처) · Wikipedia Efficiency, Median, Sign test</li>
+  <li>#7 최소 die 10개 — 출처 없음(코드 MIN_DIE = 10) <span class="badge-int">&#45236;&#48512; 기준</span></li>
+ </ul>
+ <p class="s">문헌 이름 · 위치 · 링크는 관련 단계의 '근거' 절에 있음</p></details></section>
+<section id="steps"><h2>관련 단계</h2><p class="key"><a href="step-0.html">⓪ 표본 크기 정하기</a></p>
+ <details><summary>자세히</summary><ul><li>⓪ 판별 가능한 최소 여유, 최소 die 10개</li></ul></details></section>
+<footer class="pager"><a href="c-efficiency.html">← 이전 · 중앙값 효율 1.25</a><a href="concepts.html">다음 · 개념 익히기 →</a></footer>
+</div></main></body></html>

@@ -1,0 +1,47 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>중앙값 효율 1.25 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="page">개념 익히기</a><a href="appendix.html">부록</a></nav>
+<main><div class="wrap">
+<p class="s"><a href="concepts.html">개념 익히기</a> · 10 / 11</p>
+<h1>중앙값 효율 1.25</h1>
+<p class="key" id="def">흩어짐이 정규분포일 때 중앙값의 흔들림은 평균의 약 1.25배(√(π/2))</p>
+<section id="why"><h2>왜 쓰나</h2><p class="key">중앙값을 쓰는 대가로 die가 더 필요함을 표본 크기 식에 넣음</p>
+ <details><summary>자세히</summary><ul>
+  <li>중앙값은 튀는 die에 강하지만, 튀는 die가 없으면 평균보다 조금 더 흔들림</li>
+  <li>같은 정밀도를 얻으려면 die가 π/2배 필요. 효율 = 2/π</li>
+  <li>⓪ 최소 여유 식의 1.25가 이 값(근사값)</li>
+ </ul></details></section>
+<section id="figure"><h2>그림</h2><p class="key">같은 die 수에서 중앙값의 흔들림은 평균의 1.2533배, 필요한 die 수는 1.5708배</p>
+ <details open><summary>자세히</summary>
+ <figure class="cfig" id="fig-efficiency">
+  <svg viewBox="0 0 640 170" role="img" aria-labelledby="fig-efficiency-t">
+   <title id="fig-efficiency-t">같은 die 수에서 중앙값의 흔들림은 평균의 1.2533배, 필요한 die 수는 1.5708배</title>
+   <text x="8.0" y="30.0">흔들림</text>
+   <text x="8.0" y="100.0">필요한 die 수</text>
+   <rect class="bar" x="160.0" y="36.0" width="240.0" height="16.0"/>
+   <rect class="barhi" x="160.0" y="60.0" width="300.8" height="16.0"/>
+   <rect class="bar" x="160.0" y="106.0" width="240.0" height="16.0"/>
+   <rect class="barhi" x="160.0" y="130.0" width="377.0" height="16.0"/>
+   <text x="152.0" y="48.0" text-anchor="end">평균</text>
+   <text x="152.0" y="72.0" text-anchor="end">중앙값</text>
+   <text x="152.0" y="118.0" text-anchor="end">평균</text>
+   <text x="152.0" y="142.0" text-anchor="end">중앙값</text>
+   <text x="408.0" y="48.0">1</text>
+   <text x="468.8" y="72.0">1.2533</text>
+   <text x="408.0" y="118.0">1</text>
+   <text x="545.0" y="142.0">1.5708</text>
+  </svg>
+  <figcaption class="s">평균을 1로 둔 중앙값 비교 · 합성 예시</figcaption>
+ </figure>
+ </details></section>
+<section id="example"><h2>예시 숫자</h2><p class="key">√(π/2) = 1.2533, SOP 식에서는 1.25로 씀</p>
+ <details><summary>자세히</summary><div class="formula"><div>√(π/2) = 1.2533, π/2 = 1.5708, 효율 2/π = 0.6366</div></div>
+ <p class="s">합성 예시이며 실행 결과가 아닙니다.</p></details></section>
+<section id="basis"><h2>출처</h2><p class="key">근거 대조표 #14b</p>
+ <details><summary>자세히</summary><ul class="basis">
+  <li>#14b 1.25 = √(π/2), 중앙값 효율 2/π — 부분(2차 출처) · Wikipedia Efficiency, Median, Sign test</li>
+ </ul>
+ <p class="s">문헌 이름 · 위치 · 링크는 관련 단계의 '근거' 절에 있음</p></details></section>
+<section id="steps"><h2>관련 단계</h2><p class="key"><a href="step-0.html">⓪ 표본 크기 정하기</a></p>
+ <details><summary>자세히</summary><ul><li>⓪ 최소 여유 식의 1.25</li></ul></details></section>
+<footer class="pager"><a href="c-tost.html">← 이전 · TOST와 동등 · 차이 · 미결</a><a href="c-power.html">다음 · 검정력 90%와 표본 크기 →</a></footer>
+</div></main></body></html>

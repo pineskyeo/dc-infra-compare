@@ -1,8 +1,8 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>① 반복성 확인 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
-<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html" aria-current="page">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="appendix.html">부록</a></nav>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html" aria-current="page">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html">개념 익히기</a><a href="appendix.html">부록</a></nav>
 <main><div class="wrap">
 <h1>① 반복성 확인</h1>
-<p class="key">기준 조건 3회로 반복성 σ<sub>r</sub>와 회차 간 정밀도 σ<sub>run</sub>을 구합니다.</p>
+<p class="key">기준 조건 3회로 반복성 σ<sub>r</sub>와 <a href="c-sigma-split.html#def">회차 간 정밀도</a> σ<sub>run</sub>을 구합니다.</p>
 
 <section id="criteria">
 <h2>판정 기준</h2>
@@ -38,7 +38,7 @@
 
 <section id="exceptions">
 <h2>흔한 예외</h2>
-<p class="key">이상치 die → robust(중앙값·MAD) 추정.</p>
+<p class="key">이상치 die → robust(<a href="c-median.html#def">중앙값</a>·<a href="c-mad.html#def">MAD</a>) 추정.</p>
 <details><summary>자세히</summary>
 <ul><li>이상치 die → robust(중앙값·MAD) 추정. 이상치 die에 끌려가지 않도록 합니다.</li></ul>
 </details>
@@ -50,7 +50,7 @@
 <details><summary>자세히</summary>
 <p><b>목적</b> · 기준 조건 3회만 씁니다. die마다 다른 값(공정 산포)을 빼고 남는 측정 정밀도를 두 성분으로 나눕니다. 이상치 die에 끌려가지 않도록 robust(중앙값·MAD)로 추정합니다.</p>
 <ul>
-<li>반복성 표준편차 repeatability SD σ<sub>r</sub>: 같은 die를 다시 잰 1회 측정의 표준편차 (robust 추정)</li>
+<li>반복성 <a href="c-mad.html#def">표준편차</a> repeatability SD σ<sub>r</sub>: 같은 die를 다시 잰 1회 측정의 표준편차 (robust 추정)</li>
 <li>회차 간 정밀도 between-run precision σ<sub>run</sub>: 측정 회차마다 전체 값이 같이 움직이는 크기</li>
 <li>1.4826 = 정규분포에서 MAD를 σ로 바꾸는 상수</li>
 </ul>

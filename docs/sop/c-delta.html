@@ -1,0 +1,46 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>허용 범위 Δ · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="page">개념 익히기</a><a href="appendix.html">부록</a></nav>
+<main><div class="wrap">
+<p class="s"><a href="concepts.html">개념 익히기</a> · 8 / 11</p>
+<h1>허용 범위 Δ</h1>
+<p class="key" id="def">편향이 이 안이면 같다고 보는 폭. Δ = |기준 조건 중앙값|의 5% + 회차 예측 한계</p>
+<section id="why"><h2>왜 쓰나</h2><p class="key">실무상 괜찮은 차이와 기준 조건을 다시 재도 생기는 차이를 함께 허용함</p>
+ <details><summary>자세히</summary><ul>
+  <li>5%(실용 한계): 이만큼은 달라도 실무상 같다고 봄 <span class="badge-int">내부 기준</span></li>
+  <li>회차 예측 한계: 기준 조건을 다시 재기만 &#54644;도 생기는 차이. 이보다 작은 차이를 '차이'로 부르지 않게 함</li>
+  <li>장비 정확도 한계를 쓰는 항목(A·V ITEM)은 둘 중 큰 값</li>
+ </ul></details></section>
+<section id="figure"><h2>그림</h2><p class="key">5.0 + 1.686 = 6.686, 0을 가&#50868;데 두고 ±6.686이 허용 범위</p>
+ <details open><summary>자세히</summary>
+ <figure class="cfig" id="fig-delta">
+  <svg viewBox="0 0 640 170" role="img" aria-labelledby="fig-delta-t">
+   <title id="fig-delta-t">5.0 + 1.686 = 6.686, 0을 가&#50868;데 두고 ±6.686이 허용 범위</title>
+   <rect class="bar" x="320.0" y="30.0" width="180.0" height="20.0"/>
+   <rect class="barhi" x="500.0" y="30.0" width="60.7" height="20.0"/>
+   <text x="410.0" y="44.0" text-anchor="middle">실용 한계 5.0</text>
+   <text x="530.3" y="64.0" text-anchor="middle">회차 예측 한계 1.686</text>
+   <rect class="band" x="79.3" y="100.0" width="481.4" height="40.0"/>
+   <line class="ax" x1="32.0" y1="120.0" x2="608.0" y2="120.0"/>
+   <line class="okl" x1="79.3" y1="100.0" x2="79.3" y2="140.0"/>
+   <line class="okl" x1="560.7" y1="100.0" x2="560.7" y2="140.0"/>
+   <text x="79.3" y="156.0" text-anchor="middle">−Δ = −6.686</text>
+   <text x="320.0" y="156.0" text-anchor="middle">0</text>
+   <text x="560.7" y="156.0" text-anchor="middle">+Δ = 6.686</text>
+  </svg>
+  <figcaption class="s">실용 한계와 회차 예측 한계를 더한 허용 범위 · 합성 예시</figcaption>
+ </figure>
+ </details></section>
+<section id="example"><h2>예시 숫자</h2><p class="key">기준 조건 중앙값 100.0이면 Δ = 6.686</p>
+ <details><summary>자세히</summary><div class="formula"><div>5% × 100.0 = 5.0<br>3.3717 × 0.5 = 1.686 (J = 3, σ<sub>run</sub> 0.5)<br>Δ = 5.0 + 1.686 = 6.686</div></div>
+ <p class="s">합성 예시이며 실행 결과가 아닙니다.</p></details></section>
+<section id="basis"><h2>출처</h2><p class="key">근거 대조표 #10a <span class="badge-int">&#45236;&#48512; 기준</span> · #10b · #11</p>
+ <details><summary>자세히</summary><ul class="basis">
+  <li>#10a 실용 한계 5% — 5%라는 값은 출처 없음. 한계를 미리 전문가 합의로 정하는 절차만 ASTM E2935-21 4.1.1 <span class="badge-int">&#45236;&#48512; 기준</span></li>
+  <li>#10b 회차 예측 한계 t·√(1+1/J)·σ<sub>run</sub> — 부분 · NIST Dataplot PREDICTION LIMITS · NIST e-Handbook 4.5.1.2 · Meeker, Hahn, Escobar 4.7</li>
+  <li>#11 장비 정확도 한계 — 부분 · GUM 4.3.7, 5.1.2 · NIST e-Handbook 2.5.4.1</li>
+ </ul>
+ <p class="s">문헌 이름 · 위치 · 링크는 관련 단계의 '근거' 절에 있음</p></details></section>
+<section id="steps"><h2>관련 단계</h2><p class="key"><a href="step-4.html">④ 동등 한계 정하기</a> · <a href="step-5.html">⑤ TOST로 판정</a></p>
+ <details><summary>자세히</summary><ul><li>④ Δ 계산</li><li>⑤ ±Δ와 신뢰구간 비교</li></ul></details></section>
+<footer class="pager"><a href="c-tfactor.html">← 이전 · t 값과 √(1+1/J)</a><a href="c-tost.html">다음 · TOST와 동등 · 차이 · 미결 →</a></footer>
+</div></main></body></html>

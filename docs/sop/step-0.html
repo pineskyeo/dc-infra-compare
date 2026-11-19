@@ -1,16 +1,16 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>⓪ 표본 크기 정하기 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
-<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html" aria-current="page">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="appendix.html">부록</a></nav>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html" aria-current="page">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html">개념 익히기</a><a href="appendix.html">부록</a></nav>
 <main><div class="wrap">
 <h1>⓪ 표본 크기 정하기 <span class="badge-int">내부 기준</span></h1>
 <p class="s">내부 기준: 원문(method.html·README)에 없는 기준</p>
-<p class="key">흔들림 여유 = 허용 범위 중 측정 흔들림 몫. 이 몫이 5% 몫을 넘지 않게 J를 정함</p>
+<p class="key"><a href="c-tfactor.html#def">흔들림 여유</a> = <a href="c-delta.html#def">허용 범위</a> 중 측정 흔들림 몫. 이 몫이 5% 몫을 넘지 않게 J를 정함</p>
 
 <section id="criteria">
 <h2>판정 기준</h2>
-<p class="key">J를 정하고, 주어진 die 수로 판별 가능한 최소 여유 확인</p>
+<p class="key">J를 정하고, 주어진 die 수로 <a href="c-power.html#def">판별 가능한 최소 여유</a> 확인</p>
 <details><summary>자세히</summary>
 <div class="crit" id="C0-1"><!-- EDIT C0-1 --><span class="id">C0-1</span> <span class="badge-int">내부 기준</span>
-<p>σ_run/|기준 중앙값| 기준: 1.48% 이하 J=3, 1.48~1.90% J=4, 1.90~2.13% J=5, 2.13% 초과면 반복 대신 프로브카드 접촉·측정 조건 점검. J=5는 비용상 상한(내부 기준). J를 더 늘리면 J=6은 2.30%, J=10은 2.60%까지 가능</p></div>
+<p><a href="c-sigma-split.html#def">σ_run</a>/|기준 중앙값| 기준: 1.48% 이하 J=3, 1.48~1.90% J=4, 1.90~2.13% J=5, 2.13% 초과면 반복 대신 프로브카드 접촉·측정 조건 점검. J=5는 비용상 상한(내부 기준). J를 더 늘리면 J=6은 2.30%, J=10은 2.60%까지 가능</p></div>
 <div class="crit" id="C0-2"><!-- EDIT C0-2 --><span class="id">C0-2</span> <span class="badge-int">내부 기준</span>
 <p>die 수: wafer당 die가 제한적이므로 die 수를 정하는 대신, 주어진 die 수로 판별 가능한 최소 여유 확인. 최소 10개(MIN_DIE, 내부 기준)</p></div>
 </details>
@@ -48,8 +48,8 @@
 <h2>유도·설명</h2>
 <p class="key">원문에 없는 제안</p>
 <details><summary>자세히</summary>
-<ul class="basis"><li>1.25: √(π/2)≈1.25, 중앙값 사용 시 평균 대비 필요한 die 수 보정(근사값)</li><li>z값 근거: z<sub>0.95</sub> 하나는 90% 신뢰구간 TOST의 한쪽 5% 기준, 다른 하나는 실제로 같을 때 '동등'으로 나올 확률(검정력) 90% 목표. 기존 z<sub>0.90</sub>(1.282)은 실제로는 검정력 80%</li>
-<li>√(1+1/J): d = 비교 조건 − 기준 조건 J회 평균이라 die별 차이의 흔들림은 σ<sub>die</sub>·√(1+1/J)</li></ul>
+<ul class="basis"><li>1.25: <a href="c-efficiency.html#def">√(π/2)≈1.25</a>, 중앙값 사용 시 평균 대비 필요한 die 수 보정(근사값)</li><li>z값 근거: z<sub>0.95</sub> 하나는 <a href="c-signci.html#def">90% 신뢰구간</a> <a href="c-tost.html#def">TOST</a>의 한쪽 5% 기준, 다른 하나는 실제로 같을 때 '동등'으로 나올 확률(<a href="c-power.html#why">검정력</a>) 90% 목표. 기존 z<sub>0.90</sub>(1.282)은 실제로는 검정력 80%</li>
+<li><a href="c-tfactor.html#why">√(1+1/J)</a>: d = 비교 조건 − 기준 조건 J회 평균이라 die별 차이의 흔들림은 σ<sub>die</sub>·√(1+1/J)</li></ul>
 </details>
 </section>
 

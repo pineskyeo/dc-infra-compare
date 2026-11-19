@@ -1,8 +1,8 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>③ 편향과 신뢰구간 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
-<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html" aria-current="page">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="appendix.html">부록</a></nav>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html" aria-current="page">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html">개념 익히기</a><a href="appendix.html">부록</a></nav>
 <main><div class="wrap">
 <h1>③ 편향과 신뢰구간</h1>
-<p class="key">편향 b = die별 (비교 조건 − 기준 조건 평균)의 중앙값과 그 90% 신뢰구간을 구합니다.</p>
+<p class="key">편향 b = die별 (비교 조건 − 기준 조건 평균)의 <a href="c-median.html#def">중앙값</a>과 그 <a href="c-signci.html#def">90% 신뢰구간</a>을 구합니다.</p>
 
 <section id="criteria">
 <h2>판정 기준</h2>
@@ -64,7 +64,7 @@
 <p class="key">NIST e-Handbook, ASTM E2935-21, NIST Dataplot, Hollander &amp; Wolfe(2차), Schuirmann(1987)</p>
 <details><summary>자세히</summary>
 <ul class="basis"><li>대응 차이 d: NIST/SEMATECH e-Handbook · 7.3.1.1 Analysis of paired observations · <a href="https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm" rel="noopener" target="_blank">링크</a> / ASTM E2935-21 · 4.2.1, 4.2.1.1 · <a href="https://store.astm.org/e2935-21.html" rel="noopener" target="_blank">링크</a></li>
-<li>부호검정 신뢰구간: NIST Dataplot Reference Manual · MEDIAN CONFIDENCE LIMITS · <a href="https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/mediancl.htm" rel="noopener" target="_blank">링크</a> / SIGN TEST · <a href="https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/signtest.htm" rel="noopener" target="_blank">링크</a> / Hollander &amp; Wolfe, Nonparametric Statistical Methods · 3장 예 3.5, 3.6 (2차: Geyer 강의 페이지) · <a href="https://www.stat.umn.edu/geyer/5601/examp/sign.html" rel="noopener" target="_blank">링크</a></li>
+<li><a href="c-signci.html#why">부호검정</a> 신뢰구간: NIST Dataplot Reference Manual · MEDIAN CONFIDENCE LIMITS · <a href="https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/mediancl.htm" rel="noopener" target="_blank">링크</a> / SIGN TEST · <a href="https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/signtest.htm" rel="noopener" target="_blank">링크</a> / Hollander &amp; Wolfe, Nonparametric Statistical Methods · 3장 예 3.5, 3.6 (2차: Geyer 강의 페이지) · <a href="https://www.stat.umn.edu/geyer/5601/examp/sign.html" rel="noopener" target="_blank">링크</a></li>
 <li>90%인 이유: Schuirmann (1987) J. Pharmacokinet. Biopharm. 15:657-680 · 초록 · <a href="https://link.springer.com/article/10.1007/BF01068419" rel="noopener" target="_blank">링크</a></li></ul>
 </details>
 </section>

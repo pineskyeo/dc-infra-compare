@@ -1,12 +1,12 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>⑥ LoQ 미만 판정 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
-<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html" aria-current="page">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="appendix.html">부록</a></nav>
+<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html" aria-current="page">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html">개념 익히기</a><a href="appendix.html">부록</a></nav>
 <main><div class="wrap">
 <h1>⑥ LoQ 미만 판정</h1>
-<p class="key">LoQ 미만 항목은 &lt;LoQ 보고가 일치하는지로 동등 · 차이를 판정합니다.</p>
+<p class="key"><a href="c-loq.html#def">LoQ</a> 미만 항목은 &lt;LoQ 보고가 일치하는지로 동등 · 차이를 판정합니다.</p>
 
 <section id="criteria">
 <h2>판정 기준</h2>
-<p class="key">CI가 통째로 ±Δ 밖이고 |Cand 중심| ≥ LoQ일 때만 <span class="pill bad">차이</span>, 아니면 <span class="pill ok">동등</span>입니다.</p>
+<p class="key"><a href="c-tost.html#figure">CI가 통째로 ±Δ 밖</a>이고 |Cand 중심| ≥ LoQ일 때만 <span class="pill bad">차이</span>, 아니면 <span class="pill ok">동등</span>입니다.</p>
 <details><summary>자세히</summary>
 <div class="crit" id="C6-1"><!-- EDIT C6-1 --><span class="id">C6-1</span><h3><span class="pill bad">차이</span> <span class="s">보고가 숫자로 바뀜</span></h3>
 <p>차이  ⇔  [CI가 통째로 ±Δ 밖]  AND  [|Cand 중심| ≥ LoQ]</p>
@@ -18,7 +18,7 @@
 
 <section id="formula">
 <h2>수식</h2>
-<p class="key">Cand 중심 = Ref 중앙값 + b</p>
+<p class="key">Cand 중심 = Ref <a href="c-median.html#def">중앙값</a> + b</p>
 <details><summary>자세히</summary>
 <div class="formula">
 <div>Cand 중심 = Ref 중앙값 + b</div>
@@ -48,7 +48,7 @@
 
 <section id="derivation">
 <h2>유도·설명</h2>
-<p class="key">die 61개의 중심은 die 하나보다 정밀해서 LoQ 미만에서도 비교 가능</p>
+<p class="key">die 61개의 중심은 <a href="c-signci.html#figure">die 하나보다 정밀해서</a> LoQ 미만에서도 비교 가능</p>
 <details><summary>자세히</summary>
 <p><b>목적</b> · LoQ 미만 값은 측정값을 그대로 기록하고 &lt;LoQ 표시를 붙임(내부 기준). 비교 조건 중심도 LoQ 미만이면 둘 다 &lt;LoQ 표시라 보고가 같음.</p>
 <div class="formula"><div>LoQ 미만 합성 예시: Ref 30, LoQ 100, 편향 +55, CI [+47, +63], Δ 20 → CI는 밖이지만 Cand 중심 85 &lt; LoQ → 동등 (&lt;LoQ 보고 일치)</div></div>
