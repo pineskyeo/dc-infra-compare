@@ -140,6 +140,54 @@ python por_doe_compare.py --por p3/por_run1 --por p3/por_run2 --por p3/por_run3 
 python summarize.py p3/out/items.csv
 ```
 
+## 판정 그림 만들기
+
+`plot_verdicts.py`는 `items.csv`로 요약 그림을 만들고, 원시 측정 데이터를 함께 주면 ITEM별 상세 그림도 만듭니다.
+
+- **요약**은 기본으로 만듭니다. `summary_001.png`부터 장을 나누어 저장하며, 한 장에는 최대 `--per-page`개의 ITEM을 넣습니다(기본 1200). 점은 차이/Δ의 중심이고 가로선은 90% 신뢰구간입니다. LoQ 미만 ITEM을 모은 `summary_loq.png` 패널도 함께 만듭니다.
+- **상세**는 `--detail`을 줄 때만 만듭니다. 대상을 정하지 않으면 차이와 미결 ITEM을 그리고, `--items A,B`로 ITEM 코드를 고르거나 `--all`로 전체를 고릅니다. `--jobs N`은 상세 그림을 그리는 작업 프로세스 수입니다(기본 1).
+- 그림에는 `item_map.csv`의 실제 항목 이름을 쓰지 않습니다. 상세 파일은 `detail/` 아래에 저장하며, 파일명은 ITEM 코드를 `safe_item_name()`에 통과시켜 만듭니다.
+
+요약만 그릴 때는 판정 결과 `items.csv` 하나면 충분합니다.
+
+```bash
+python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots
+```
+
+상세 그림에는 판정 때 쓴 같은 `--por`, `--doe`, `--level`, `--blank` 입력을 다시 줍니다. 아래는 두 ITEM만 고르는 예이며, `--items VT_SHIFT,VT_BORDER` 대신 `--all`을 쓰면 모든 ITEM을 그립니다.
+
+```bash
+python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
+  --detail --items VT_SHIFT,VT_BORDER --jobs 4 \
+  --por p3/por_run1 --por p3/por_run2 --por p3/por_run3 --doe p3/doe \
+  --level p3/level.csv --blank p3/blank --blank-map p3/blank_map.csv
+```
+
+예시 그림은 다음과 같습니다. 앞의 세 그림은 `examples/make_por3_data.py`가 만든 데이터에서 나왔습니다.
+
+- [요약](examples/plots/summary_001.png)
+- [LoQ 패널](examples/plots/summary_loq.png)
+- [차이 상세](examples/plots/detail_diff_VT_SHIFT.png)
+- [미결-경계 상세](examples/plots/detail_border_IT00025.png) — 6,000 ITEM 부하 데이터에서 만든 그림
+
+6,000 ITEM × die 60 × POR 3회 + DOE, `examples/make_load_data.py OUT --items 6000 --dies 60 --seed 7`; 측정 기계: 공유 박스 Linux, Intel Xeon 8코어, RAM 15 GB, Python 3.13.5, matplotlib 3.11.2, pandas 3.1.1, numpy 2.5.5; `--dpi 100`. 최대 메모리는 가장 큰 단일 프로세스 값(`ru_maxrss`), `--jobs 4`는 작업자 합이 아님.
+
+| 단계 | 명령 | 시간 | 최대 메모리 | 출력 용량 |
+|---|---|---|---|---|
+| 데이터 생성 | `make_load_data.py` | 1.8 s | - | 73 MB |
+| 판정 계산 | `por_doe_compare.py` | 12.0 s | 683 MB | items.csv 등 3.2 MB |
+| 요약 (기본) | `plot_verdicts.py --items-csv` | 2.1 s (5장 + LoQ 1장) | 199 MB | 500 KB |
+| 상세 `--all`, `--jobs 1` | | 2,045 s (ITEM당 평균 0.34 s) | 714 MB | 447 MB (6,000장, 장당 평균 74 KB) |
+| 상세 `--all`, `--jobs 4` | | 329 s (ITEM당 평균 0.055 s) | 714 MB | 447 MB |
+| 요약 + 상세 `--all`, `--jobs 4` | | 330 s | 719 MB | 448 MB |
+
+`--jobs 1` 측정 중에는 다른 짧은 작업(테스트 실행)이 같은 기계에서 잠깐 겹쳐 실제보다 조금 느릴 수 있습니다. 전체 상세는 `--jobs 4` 이상을 쓰고, 보통은 요약과 `--items`로 고른 ITEM만 그립니다.
+
+`examples/make_load_data.py`의 `IOFF_STEP` 템플릿 표시는 "미결 해상도 부족"이지만 현재 판정 결과와 맞지 않습니다. 현재 예제 데이터에서는 미결-해상도 부족 사례가 나오지 않으므로 해상도 부족 샘플 그림은 넣지 않았습니다.
+
+요약은 `items.csv`만으로 빠르게 만들 수 있습니다.  
+상세는 원시 데이터를 함께 주고, 필요한 ITEM만 골라 만드는 것이 좋습니다.
+
 ## 근거
 
 - 반복 측정으로 흔들림 구하기: NIST/SEMATECH e-Handbook 2.4 (Gauge R&R), 2.6.1 (반도체 사례)
