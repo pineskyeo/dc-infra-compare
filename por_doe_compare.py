@@ -161,16 +161,21 @@ def paired_t_p(d: np.ndarray) -> float:
     return float(2 * stats.t.sf(abs(d.mean() / (s / np.sqrt(len(d)))), len(d) - 1))
 
 
+def ci_rank(n: int) -> int:
+    """부호검정 90% 신뢰구간의 0-based 아래 순번. 구간은 1-based로 (k+1)~(n-k)."""
+    k = int(stats.binom.ppf(0.05, n, 0.5))
+    if stats.binom.cdf(k, n, 0.5) > 0.05:
+        k -= 1
+    return max(k, 0)
+
+
 def ci_median(d: np.ndarray) -> tuple[float, float, float]:
     """중앙값과 부호검정 90% 신뢰구간. 튀는 die의 개수만 영향을 주고 크기는 영향이 없다."""
     if d.std() == 0:
         return (float(d.mean()),) * 3
     n = len(d)
     x = np.sort(d)
-    k = int(stats.binom.ppf(0.05, n, 0.5))
-    if stats.binom.cdf(k, n, 0.5) > 0.05:
-        k -= 1
-    k = max(k, 0)
+    k = ci_rank(n)
     return float(np.median(d)), float(x[k]), float(x[n - 1 - k])
 
 
@@ -280,6 +285,52 @@ def load_levels(path: str, encoding: str) -> dict[str, ItemInfo]:
     return levels
 
 
+def add_common_args(ap: argparse.ArgumentParser) -> None:
+    """POR/DOE 판정에 공통으로 쓰는 명령행 인자를 등록한다."""
+    ap.add_argument("--por", nargs="+", action="append", required=True,
+                    help="POR 1회분 (파일이나 폴더). 회차마다 --por 를 따로: --por run1/ --por run2/ --por run3/")
+    ap.add_argument("--doe", nargs="+", required=True, help="DOE 1회분 (파일이나 폴더)")
+    ap.add_argument("--r", type=float, default=0.05, help="허용폭 = r × |POR| + POR 회차 흔들림 (기본 0.05)")
+    ap.add_argument("--level", help="item_info CSV: ITEM,LEVEL,CALCVAL,DERIVED. 장비 분해능·정확도와 blank 환산에 씀")
+    ap.add_argument("--blank", nargs="*", default=[], help="blank 데이터 (README 'blank 넣기'). LoQ 하한으로만 씀")
+    ap.add_argument("--blank-map", help="CSV ITEM,BLANK_ITEM. 없으면 같은 이름끼리 연결")
+    ap.add_argument("--key", default="WAFERID,COORD_X_Y,ITEM")
+    ap.add_argument("--encoding", default="auto")
+
+
+def load_wide(a: argparse.Namespace) -> tuple[pd.DataFrame, list[str], dict]:
+    """POR 회차별·DOE 중앙값을 die/ITEM 키로 맞춘 wide 표와 POR 열, UNIT을 돌려준다."""
+    key = a.key.split(",")
+    runs, units = [], {}
+    for i, paths in enumerate(a.por):
+        df = load_side(paths, f"POR{i + 1}", a.encoding)
+        if i == 0:
+            units = df.groupby("ITEM")["UNIT"].first().to_dict()      # 표시용
+        runs.append(df.groupby(key)["DATA"].median().rename(f"POR{i + 1}"))
+    doe = load_side(a.doe, "DOE", a.encoding).groupby(key)["DATA"].median().rename("DOE")
+    wide = pd.concat(runs + [doe], axis=1, join="inner").reset_index()
+    por_cols = [f"POR{i + 1}" for i in range(len(a.por))]
+    print(f"POR {len(por_cols)}회 + DOE, 모든 회차에 있는 die·ITEM {len(wide):,}개, ITEM {wide['ITEM'].nunique():,}개")
+    return wide, por_cols, units
+
+
+def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: float,
+               levels: dict[str, ItemInfo], blank: pd.DataFrame, bmap: dict) -> tuple[dict, np.ndarray]:
+    """ITEM 하나에 level/blank를 연결해 판정하고, 결과 행과 튀는 die 표시를 돌려준다."""
+    Y, z = g[por_cols].to_numpy(float), g["DOE"].to_numpy(float)
+    info, lim, extra = levels.get(item), None, {}
+    bitem = bmap.get(item, item)
+    if bitem in blank.index:
+        lim3 = blank_limits(blank.loc[bitem])
+        if lim3:
+            lim = lim3[1:]
+            extra["blank_item"] = bitem
+    res, mask = judge(Y, z, r, lim, info)
+    if lim:
+        extra["verdict_no_blank"] = judge(Y, z, r, None, info)[0]["verdict"]
+    return {"ITEM": item, "UNIT": units.get(item), **res, **extra}, mask
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--por", nargs="+", action="append", required=True,
@@ -298,16 +349,7 @@ def main() -> None:
     key = a.key.split(",")
     die_cols = [k for k in key if k != "ITEM"]
 
-    runs, units = [], {}
-    for i, paths in enumerate(a.por):
-        df = load_side(paths, f"POR{i + 1}", a.encoding)
-        if i == 0:
-            units = df.groupby("ITEM")["UNIT"].first().to_dict()      # 표시용
-        runs.append(df.groupby(key)["DATA"].median().rename(f"POR{i + 1}"))
-    doe = load_side(a.doe, "DOE", a.encoding).groupby(key)["DATA"].median().rename("DOE")
-    wide = pd.concat(runs + [doe], axis=1, join="inner").reset_index()
-    por_cols = [f"POR{i + 1}" for i in range(len(a.por))]
-    print(f"POR {len(por_cols)}회 + DOE, 모든 회차에 있는 die·ITEM {len(wide):,}개, ITEM {wide['ITEM'].nunique():,}개")
+    wide, por_cols, units = load_wide(a)
 
     blank = load_blank(a.blank, a.encoding) if a.blank else pd.DataFrame(columns=["BLANK_ITEM"])
     blank = blank.set_index("BLANK_ITEM")
@@ -320,18 +362,8 @@ def main() -> None:
 
     rows, outl = [], []
     for item, g in wide.groupby("ITEM", sort=False):
-        Y, z = g[por_cols].to_numpy(float), g["DOE"].to_numpy(float)
-        info, lim, extra = levels.get(item), None, {}
-        bitem = bmap.get(item, item)
-        if bitem in blank.index:
-            lim3 = blank_limits(blank.loc[bitem])
-            if lim3:
-                lim = lim3[1:]
-                extra["blank_item"] = bitem
-        res, mask = judge(Y, z, a.r, lim, info)
-        if lim:
-            extra["verdict_no_blank"] = judge(Y, z, a.r, None, info)[0]["verdict"]
-        rows.append({"ITEM": item, "UNIT": units.get(item), **res, **extra})
+        res, mask = judge_item(item, g, por_cols, units, a.r, levels, blank, bmap)
+        rows.append(res)
         if mask.any():
             outl.append(g.loc[mask, die_cols + ["ITEM"] + por_cols + ["DOE"]])
 
