@@ -63,7 +63,7 @@ PAGE_LEGEND_TITLE = "장별 판정 개수"
 LOQ_TITLE = "LoQ 미만: DOE 중심과 이동"
 LOQ_XLABEL = "|DOE 중심| / LoQ"
 LOQ_YLABEL = "|center| / Δ"
-LOQ_FOOTNOTE = "도구의 차이 규칙: CI가 통째로 ±Δ 밖(lo > Δ 또는 hi < −Δ); |center|/Δ ≥ 1이 아님."
+LOQ_FOOTNOTE = "도구의 차이 규칙: CI가 통째로 ±Δ 밖(lo > Δ 또는 hi < -Δ); |center|/Δ ≥ 1이 아님."
 NO_LOQ_ITEMS = "해당 ITEM 없음"
 NO_VALID_POINTS = "표시할 유효한 좌표 없음"
 
@@ -117,8 +117,10 @@ def configure_font(font_path: str | None = None) -> str | None:
             stacklevel=2,
         )
         return None
+    # matplotlib >= 3.6 falls back per glyph: Korean glyphs come from the chosen
+    # font, and glyphs it lacks (e.g. Greek Δ) come from DejaVu Sans.
     rcParams["font.family"] = "sans-serif"
-    rcParams["font.sans-serif"] = [selected]
+    rcParams["font.sans-serif"] = [selected, "DejaVu Sans"]
     return selected
 
 
