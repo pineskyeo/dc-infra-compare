@@ -1,69 +1,187 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>검정력 90%와 표본 크기 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
-<nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복성 확인</a><a href="step-2.html">② LoQ로 구간 나누기</a><a href="step-3.html">③ 편향과 신뢰구간</a><a href="step-4.html">④ 동등 한계 정하기</a><a href="step-5.html">⑤ TOST로 판정</a><a href="step-6.html">⑥ LoQ 미만 판정</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="page">개념 익히기</a><a href="appendix.html">부록</a></nav>
-<main><div class="wrap">
-<p class="s"><a href="concepts.html">개념 익히기</a> · 11 / 11</p>
+<!doctype html><html lang="ko" data-d41><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>검정력 90%와 표본 크기 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"><script src="assets/concepts.js" defer></script></head><body>
+<details class="fp-fold"><summary>흐름도 ⓪~⑦</summary>
+<nav aria-label="흐름도">
+<div class="fp">
+<ol class="fp-top">
+<li><a href="step-0.html" data-step="0" class="rel">⓪ 표본 크기 정하기</a></li>
+<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
+<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
+<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
+</ol>
+<div class="fp-fork">
+<div class="fp-col"><span class="fp-lab">정량</span><ol>
+<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
+<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
+</ol></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+</div>
+<ol class="fp-join"><li><a href="step-6.html" data-step="6">⑥ 판정</a></li></ol>
+<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
+<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
+</div>
+</nav>
+</details><nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 구하기</a><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a><a href="step-6.html">⑥ 판정</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="true">개념 익히기</a><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></nav>
+<nav class="fp-wide" aria-label="흐름도">
+<div class="fp">
+<p class="fp-h">흐름도 ⓪~⑦</p>
+<ol class="fp-top">
+<li><a href="step-0.html" data-step="0" class="rel">⓪ 표본 크기 정하기</a></li>
+<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
+<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
+<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
+</ol>
+<div class="fp-fork">
+<div class="fp-col"><span class="fp-lab">정량</span><ol>
+<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
+<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
+</ol></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+</div>
+<ol class="fp-join"><li><a href="step-6.html" data-step="6">⑥ 판정</a></li></ol>
+<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
+<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
+</div>
+</nav><main><div class="wrap">
+<p class="loc"><a href="concepts.html">개념 익히기</a> › 검정력 90%와 표본 크기 (개념 12 / 14) · 쓰는 단계 <a href="step-0.html">⓪</a></p>
 <h1>검정력 90%와 표본 크기</h1>
-<p class="key" id="def">검정력 = 실제로 같을 때 '동등'으로 나올 확률. 표본 크기 = 그 확률에 필요한 die 수와 회차 수 J</p>
-<section id="why"><h2>왜 쓰나</h2><p class="key">실제로 같은데 die가 모자라 미결이 나오는 일을 미리 막음</p>
- <details><summary>자세히</summary><ul>
-  <li>die 수가 정해져 있으면 판별 가능한 최소 여유 (Δ−|b|)min을 먼저 계산</li>
-  <li>Δ−|b|가 이 값보다 작으면 실제로 같아도 미결이 나오기 쉬움 → wafer 2장 이상 또는 J 증가 검토</li>
-  <li>z0.95 두 개: 하나는 TOST 한쪽 5%, 하나는 검정력 90%. 예전 z0.90은 실제 검정력 80%</li>
- </ul></details></section>
-<section id="figure"><h2>그림</h2><p class="key">die가 늘면 판별 가능한 최소 여유가 줄어듦(J = 3, σ<sub>die</sub> 단위)</p>
- <details open><summary>자세히</summary>
- <figure class="cfig" id="fig-power">
-  <svg viewBox="0 0 640 220" role="img" aria-labelledby="fig-power-t">
-   <title id="fig-power-t">die가 늘면 판별 가능한 최소 여유가 줄어듦(J = 3, σ_die 단위)</title>
-   <line class="ax" x1="60.0" y1="180.0" x2="600.0" y2="180.0"/>
-   <line class="ax" x1="60.0" y1="10.0" x2="60.0" y2="180.0"/>
-   <line class="ax" x1="105.0" y1="180.0" x2="105.0" y2="186.0"/>
-   <line class="ax" x1="150.0" y1="180.0" x2="150.0" y2="186.0"/>
-   <line class="ax" x1="195.0" y1="180.0" x2="195.0" y2="186.0"/>
-   <line class="ax" x1="330.0" y1="180.0" x2="330.0" y2="186.0"/>
-   <line class="ax" x1="600.0" y1="180.0" x2="600.0" y2="186.0"/>
-   <line class="ax" x1="54.0" y1="180.0" x2="60.0" y2="180.0"/>
-   <line class="ax" x1="54.0" y1="130.0" x2="60.0" y2="130.0"/>
-   <line class="ax" x1="54.0" y1="80.0" x2="60.0" y2="80.0"/>
-   <line class="ax" x1="54.0" y1="30.0" x2="60.0" y2="30.0"/>
-   <text x="105.0" y="201.0" text-anchor="middle">10</text>
-   <text x="150.0" y="201.0" text-anchor="middle">20</text>
-   <text x="195.0" y="201.0" text-anchor="middle">30</text>
-   <text x="330.0" y="201.0" text-anchor="middle">60</text>
-   <text x="600.0" y="201.0" text-anchor="middle">120</text>
-   <text x="330.0" y="217.0" text-anchor="middle">die 수</text>
-   <text x="50.0" y="184.0" text-anchor="end">0</text>
-   <text x="50.0" y="134.0" text-anchor="end">0.5</text>
-   <text x="50.0" y="84.0" text-anchor="end">1.0</text>
-   <text x="50.0" y="34.0" text-anchor="end">1.5</text>
-   <text x="14.0" y="100.0" text-anchor="middle" transform="rotate(-90 14.0 100.0)">최소 여유(σ<tspan baseline-shift="sub">die</tspan> 단위)</text>
-   <polyline class="ax" points="105.0,29.8 150.0,73.8 195.0,93.3 330.0,118.7 600.0,136.7"/>
-   <circle class="dot" cx="105.0" cy="29.8" r="4.0"/>
-   <circle class="dot" cx="150.0" cy="73.8" r="4.0"/>
-   <circle class="dot" cx="195.0" cy="93.3" r="4.0"/>
-   <circle class="hi" cx="330.0" cy="118.7" r="6.0"/>
-   <circle class="dot" cx="600.0" cy="136.7" r="4.0"/>
-   <text x="105.0" y="19.8" text-anchor="middle">1.502</text>
-   <text x="150.0" y="63.8" text-anchor="middle">1.062</text>
-   <text x="195.0" y="83.3" text-anchor="middle">0.867</text>
-   <text x="330.0" y="104.7" text-anchor="middle">die 60개 → 0.613·σ<tspan baseline-shift="sub">die</tspan></text>
-   <text x="600.0" y="126.7" text-anchor="middle">0.433</text>
-  </svg>
-  <figcaption class="s">J = 3, 검정력 90% · 합성 예시</figcaption>
- </figure>
- </details></section>
-<section id="example"><h2>예시 숫자</h2><p class="key">die 60개, J = 3이면 최소 여유 0.613·σ<sub>die</sub></p>
- <details><summary>자세히</summary><div class="formula"><div>(Δ−|b|)min ≈ 1.25 × (1.645 + 1.645) × √(1+1/3) / √60 × σ<sub>die</sub> = 0.613·σ<sub>die</sub><br>검정력: 예전 식 80.02%, 지금 식 90%</div></div>
- <p class="s">⓪ 본문은 ≈ 0.61·σ<sub>die</sub>로 표기</p>
- <p class="s">합성 예시이며 실행 결과가 아닙니다.</p></details></section>
-<section id="basis"><h2>출처</h2><p class="key">근거 대조표 #14a · #14b · #7 <span class="badge-int">&#45236;&#48512; 기준</span></p>
- <details><summary>자세히</summary><ul class="basis">
-  <li>#14a 표본 크기 식 — 부분 · NCSS PASS 517장 Example 2 · NIST e-Handbook 7.2.2.2</li>
-  <li>#14b 1.25 = √(π/2), 중앙값 효율 2/π — 부분(2차 출처) · Wikipedia Efficiency, Median, Sign test</li>
-  <li>#7 최소 die 10개 — 출처 없음(코드 MIN_DIE = 10) <span class="badge-int">&#45236;&#48512; 기준</span></li>
- </ul>
- <p class="s">문헌 이름 · 위치 · 링크는 관련 단계의 '근거' 절에 있음</p></details></section>
-<section id="steps"><h2>관련 단계</h2><p class="key"><a href="step-0.html">⓪ 표본 크기 정하기</a></p>
- <details><summary>자세히</summary><ul><li>⓪ 판별 가능한 최소 여유, 최소 die 10개</li></ul></details></section>
-<footer class="pager"><a href="c-efficiency.html">← 이전 · 중앙값 효율 1.25</a><a href="concepts.html">다음 · 개념 익히기 →</a></footer>
+
+<section id="q"><h2>이 쪽이 답하는 질문</h2>
+<p class="q" id="def">실제로 같은데 미결이 나올 확률은 얼마이고, 이를 막으려면 <a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a> 수와 여유가 얼마나 있어야 하나</p></section>
+
+<section id="plain"><h2>쉬운 말로</h2>
+<ul id="why">
+<li>검정력 = 실제로 같을 때 '동등'으로 나올 확률</li>
+<li>판정은 동등 / 차이 / 미결 셋<sup class="fnref"><a href="#fn6" aria-label="출처 6">6</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span>. 미결 = 같다고도 다르다고도 말할 수 없음</li>
+<li>die가 모자라거나 σ<sub>die</sub>가 크면 <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a>이 넓어져 실제로 같아도 미결이 나옴</li>
+<li>그래서 die 수가 정해져 있으면 판별 가능한 최소 여유 (Δ−|b|)<sub>min</sub>을 먼저 계산(⓪)</li>
+<li>Δ−|b|가 이 값보다 작으면 실제로 같아도 미결이 나오기 쉬움 → <a class="g" href="glossary.html#wafer"><abbr title="wafer · die가 여러 개 만들어진 원판">wafer</abbr></a> 추가 또는 J 증가 검토</li>
+<li>아래 예시 값은 모두 합성 예시 <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a> 하나의 값</li>
+</ul></section>
+
+<section id="formula"><h2>수식</h2>
+<div class="formula"><div>(Δ−|b|)<sub>min</sub> = 1.25 × (z<sub>0.95</sub> + z<sub>0.95</sub>) × σ<sub>die</sub> × √(1+1/J) / √n</div><div class="c">die n개로 '동등'을 가려낼 수 있는 Δ와 |b| 사이의 최소 간격</div></div>
+<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
+<tr><td>(Δ−|b|)<sub>min</sub></td><td>최소 여유. Δ와 편향 크기 사이에 있어야 하는 최소 간격</td><td>0.6067</td></tr>
+<tr><td>Δ</td><td>허용 범위. 차이가 이 안이면 같다고 봄</td><td>6.699</td></tr>
+<tr><td>b</td><td>편향. die별 차이 d(비교 조건 − 기준 조건 J회 평균)의 중앙값</td><td>0.786</td></tr>
+<tr><td>z<sub>0.95</sub></td><td>정규분포에서 위쪽 5%를 남기는 값</td><td>1.6449</td></tr>
+<tr><td>1.25</td><td>√(π/2). 평균 대신 중앙값을 쓰는 값</td><td>1.2533</td></tr>
+<tr><td>σ<sub>die</sub></td><td>반복성. 같은 die를 다시 잴 때의 흔들림</td><td>0.98965</td></tr>
+<tr><td>J</td><td>기준 조건 반복 회차 수</td><td>3</td></tr>
+<tr><td>n</td><td>die 수</td><td>60</td></tr>
+</tbody></table></div>
+<p>식 근거: 동등성 표본 크기 식<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup><sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup>, z 두 개를 바꿔 쓴 점<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup>, 1.25<sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup><sup class="fnref"><a href="#fn5" aria-label="출처 5">5</a></sup></p>
+</section>
+
+<section id="figure"><h2>그림</h2>
+<h3>실제로 같아도 미결이 나올 확률</h3>
+<figure class="cfig" id="f12" data-anim="steps" data-start="0">
+<svg viewBox="0 0 640 132" role="img" aria-labelledby="f12-t"><title id="f12-t">실제로 같을 때(b 0) σ_die에 따라 바뀌는 판정 비율 (모의실험)</title>
+<text x="0" y="18">Δ 중앙값</text><text id="f12-d" class="val" x="96" y="18">6.409</text><text x="200" y="18">CI 폭 중앙값</text><text id="f12-w" class="val" x="320" y="18">0.613</text>
+<text x="0" y="52">동등</text><svg x="60" y="40" width="440" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="f12-ok" class="pb-ok" width="100.0" height="16"/></svg><text id="f12-okt" class="val" x="512" y="52">100.0%</text>
+<text x="0" y="84">미결</text><svg x="60" y="72" width="440" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="f12-hold" class="pb-hold" width="0.0" height="16"/></svg><text id="f12-holdt" class="val" x="512" y="84">0.0%</text>
+<text x="0" y="116">차이</text><svg x="60" y="104" width="440" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="f12-bad" class="pb-bad" width="0.0" height="16"/></svg><text id="f12-badt" class="val" x="512" y="116">0.0%</text>
+</svg>
+<div class="ctl" hidden><label for="f12-ctl">σ<sub>die</sub></label><input id="f12-ctl" type="range" min="0" max="4" step="1" value="0"><output for="f12-ctl">σ_die 0.98965</output><button type="button" class="play" aria-pressed="false">재생</button></div>
+<div class="tw"><table class="states"><thead><tr><th>σ<sub>die</sub></th><th>동등</th><th>미결</th><th>차이</th><th>Δ 중앙값</th><th>CI 폭 중앙값</th></tr></thead><tbody>
+<tr class="now"><td>0.98965</td><td>100.0%</td><td>0.0%</td><td>0.0%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>2.0</td><td>100.0%</td><td>0.0%</td><td>0.0%</td><td>6.302</td><td>1.24</td></tr>
+<tr><td>4.0</td><td>100.0%</td><td>0.0%</td><td>0.0%</td><td>5.743</td><td>2.479</td></tr>
+<tr><td>6.0</td><td>99.3%</td><td>0.7%</td><td>0.0%</td><td>5.051</td><td>3.719</td></tr>
+<tr><td>8.0</td><td>93.3%</td><td>6.7%</td><td>0.0%</td><td>5.047</td><td>4.959</td></tr>
+</tbody></table></div>
+<script type="application/json" class="states">[
+{"label":"σ_die 0.98965","set":{"f12-d":{"text":"6.409"},"f12-w":{"text":"0.613"},"f12-ok":{"width":"100.0"},"f12-okt":{"text":"100.0%"},"f12-hold":{"width":"0.0"},"f12-holdt":{"text":"0.0%"},"f12-bad":{"width":"0.0"},"f12-badt":{"text":"0.0%"}}},
+{"label":"σ_die 2.0","set":{"f12-d":{"text":"6.302"},"f12-w":{"text":"1.24"},"f12-ok":{"width":"100.0"},"f12-okt":{"text":"100.0%"},"f12-hold":{"width":"0.0"},"f12-holdt":{"text":"0.0%"},"f12-bad":{"width":"0.0"},"f12-badt":{"text":"0.0%"}}},
+{"label":"σ_die 4.0","set":{"f12-d":{"text":"5.743"},"f12-w":{"text":"2.479"},"f12-ok":{"width":"100.0"},"f12-okt":{"text":"100.0%"},"f12-hold":{"width":"0.0"},"f12-holdt":{"text":"0.0%"},"f12-bad":{"width":"0.0"},"f12-badt":{"text":"0.0%"}}},
+{"label":"σ_die 6.0","set":{"f12-d":{"text":"5.051"},"f12-w":{"text":"3.719"},"f12-ok":{"width":"99.3"},"f12-okt":{"text":"99.3%"},"f12-hold":{"width":"0.7"},"f12-holdt":{"text":"0.7%"},"f12-bad":{"width":"0.0"},"f12-badt":{"text":"0.0%"}}},
+{"label":"σ_die 8.0","set":{"f12-d":{"text":"5.047"},"f12-w":{"text":"4.959"},"f12-ok":{"width":"93.3"},"f12-okt":{"text":"93.3%"},"f12-hold":{"width":"6.7"},"f12-holdt":{"text":"6.7%"},"f12-bad":{"width":"0.0"},"f12-badt":{"text":"0.0%"}}}
+]</script>
+<figcaption>모의실험(합성 예시 모형) · 실제로 같음(비교 조건 이동 b 0), σ<sub>run</sub> 0.50389, J 3, die 60개, 값마다 판정 2000회 · 확률 표는 예시 ITEM의 도구 추정값(σ<sub>die</sub> 0.98965, σ<sub>run</sub> 0.50389)을 참값으로 놓고 2000번 다시 만들어 도구 판정을 돌린 결과. Δ 중앙값 6.409가 6.699보다 작은 것은 회차 3번으로 추정한 σ<sub>run</sub>이 매번 달라서 <span class="badge-int">내부 기준(문헌 근거 없음)</span> <span class="from">6.699 = 예시 ITEM의 Δ, <a href="step-5.html">⑤</a></span></figcaption>
+</figure>
+<p class="look"><b>여기서 볼 것</b> · σ<sub>die</sub>가 0.98965에서 8.0으로 커지면 CI 폭 중앙값이 0.613 → 4.959로 넓어지고 미결이 0.0% → 6.7%로 늘어남</p>
+
+<h3>die 수를 바꾸면 (σ<sub>die</sub> 6.0, 실제로 같음)</h3>
+<figure class="cfig" id="f12b">
+<div class="tw"><table><thead><tr><th>die 수 n</th><th>동등</th><th>미결</th><th>차이</th><th>Δ 중앙값</th><th>CI 폭 중앙값</th></tr></thead><tbody>
+<tr><td>30</td><td>90.5%</td><td>9.6%</td><td>0.0%</td><td>5.049</td><td>5.176</td></tr>
+<tr><td>60</td><td>99.3%</td><td>0.7%</td><td>0.0%</td><td>5.051</td><td>3.719</td></tr>
+<tr><td>90</td><td>100.0%</td><td>0.1%</td><td>0.0%</td><td>5.059</td><td>3.251</td></tr>
+<tr><td>120</td><td>100.0%</td><td>0.0%</td><td>0.0%</td><td>5.374</td><td>2.713</td></tr>
+</tbody></table></div>
+<figcaption>모의실험(합성 예시 모형) · σ<sub>die</sub> 6.0, b 0, σ<sub>run</sub> 0.50389, J 3, 값마다 판정 2000회</figcaption>
+</figure>
+<p class="look"><b>여기서 볼 것</b> · 같은 σ<sub>die</sub> 6.0에서 die 30개면 미결 9.6%, die 60개면 0.7%</p>
+
+<h3>편향 b를 바꾸면 (σ<sub>die</sub> 0.98965)</h3>
+<figure class="cfig" id="f12c">
+<div class="tw"><table><thead><tr><th>b</th><th>동등</th><th>미결</th><th>차이</th><th>Δ 중앙값</th><th>CI 폭 중앙값</th></tr></thead><tbody>
+<tr><td>0</td><td>100.0%</td><td>0.0%</td><td>0.0%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>2</td><td>100.0%</td><td>0.0%</td><td>0.0%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>4</td><td>98.0%</td><td>1.8%</td><td>0.1%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>5</td><td>83.8%</td><td>11.7%</td><td>4.5%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>6</td><td>53.3%</td><td>20.6%</td><td>26.1%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>7</td><td>22.1%</td><td>19.1%</td><td>58.9%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>8</td><td>5.1%</td><td>8.8%</td><td>86.0%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>10</td><td>0.1%</td><td>0.4%</td><td>99.6%</td><td>6.409</td><td>0.613</td></tr>
+</tbody></table></div>
+<figcaption>모의실험(합성 예시 모형) · σ<sub>die</sub> 0.98965, σ<sub>run</sub> 0.50389, J 3, die 60개, 값마다 판정 2000회</figcaption>
+</figure>
+<p class="look"><b>여기서 볼 것</b> · b가 Δ 중앙값 6.409 가까이(b 6) 오면 미결 20.6%, 차이 26.1%. 여유 Δ−|b|가 줄수록 미결이 늘어남</p>
+</section>
+
+<section id="example"><h2>예시 계산</h2>
+<p class="s">예시 데이터: <a href="step-2.html#ex-data">합성 예시 die 6개 표</a></p>
+<h3>z<sub>0.95</sub>가 두 번 들어가는 이유</h3>
+<ul>
+<li>z<sub>0.95</sub> = 1.6449 (≈ 1.645): 정규분포에서 한쪽 5%를 남기는 값</li>
+<li>하나: <a class="g" href="glossary.html#tost"><abbr title="두 번의 한쪽 검정 · '차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등">두 번의 한쪽 검정(TOST, Two One-Sided Tests)</abbr></a>의 한쪽 5%<sup class="fnref"><a href="#fn7" aria-label="출처 7">7</a></sup> <span class="from">⑥의 90% 신뢰구간 = 양쪽 끝 5%씩</span></li>
+<li>다른 하나: 실제로 같을 때(b 0) 신뢰구간 끝이 +Δ 쪽이나 −Δ 쪽으로 넘어 미결이 되는 몫을 한쪽 5%로 묶음<ul class="chain"><li>→ 두 쪽 합쳐 검정력 90% <span class="badge-int">내부 기준(문헌 근거 없음)</span></li></ul></li>
+<li>문헌 식과 다른 점은 각주<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li>
+</ul>
+<h3>1.25 = √(π/2)</h3>
+<ul>
+<li>편향 b는 d의 평균이 아니라 중앙값</li>
+<li>중앙값의 분산은 평균의 π/2배 → 중앙값 효율 2/π<sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup><sup class="fnref"><a href="#fn5" aria-label="출처 5">5</a></sup> · <a href="c-efficiency.html">중앙값 효율 1.25</a></li>
+<li>표준편차로는 √(π/2) = 1.2533배 → 식에서 1.25</li>
+</ul>
+<h3>최소 여유 계산</h3>
+<ol class="calc">
+<li>√(1+1/J) = √(1+1/3) = 1.1547 <span class="from">J = 3 = 기준 조건 반복 회차 수</span></li>
+<li>√n = √60 = 7.7460 <span class="from">n = 60 = 예시 die 수</span></li>
+<li>σ<sub>die</sub> = 0.98965 <span class="from"><a href="c-sigma-split.html#example">σ<sub>die</sub>와 σ<sub>run</sub></a> 예시 계산, ② 흔들림 구하기</span></li>
+<li>최소 여유 = 1.25 × (1.6449 + 1.6449) × 0.98965 × 1.1547 / √60 = 0.6067</li>
+<li>σ<sub>die</sub> 1.0이면 0.613 <span class="from">1.0 = 예시 ITEM을 만든 값</span></li>
+<li>예시 ITEM: Δ 6.699, |b| 0.786<span class="cl">→ Δ−|b|가 0.6067보다 큼</span><span class="cl">→ die 60개로 충분 <span class="from">6.699 = ⑤ Δ, 0.786 = ④ 편향 b</span></span></li>
+</ol>
+<div class="tw"><table><thead><tr><th>die 수 n</th><th>√n</th><th>최소 여유</th></tr></thead><tbody>
+<tr><td>10</td><td>3.1623</td><td>1.4860</td></tr>
+<tr><td>20</td><td>4.4721</td><td>1.0508</td></tr>
+<tr><td>30</td><td>5.4772</td><td>0.8579</td></tr>
+<tr><td>45</td><td>6.7082</td><td>0.7005</td></tr>
+<tr class="now"><td>60</td><td>7.7460</td><td>0.6067</td></tr>
+<tr><td>90</td><td>9.4868</td><td>0.4953</td></tr>
+<tr><td>120</td><td>10.9545</td><td>0.4290</td></tr>
+</tbody></table></div>
+<p class="s">σ<sub>die</sub> 0.98965, J 3 고정 · 최소 여유 = 1.25 × (z<sub>0.95</sub> + z<sub>0.95</sub>) × 0.98965 × 1.1547 / √n · 합성 예시</p>
+</section>
+
+<section id="sources"><h2>출처</h2>
+<ol class="fn">
+<li id="fn1">NCSS PASS "One-Sample Z-Tests for Equivalence" · 517장 Example 2 "Validation using Chow, Shao, Wang, and Lokhnygina" · <a href="https://www.ncss.com/wp-content/themes/ncss/pdf/Procedures/PASS/One-Sample_Z-Tests_for_Equivalence.pdf" rel="noopener" target="_blank">링크</a></li>
+<li id="fn2"><a class="g" href="glossary.html#nist"><abbr title="NIST · 미국 국립표준기술연구소">NIST(National Institute of Standards and Technology)</abbr></a> e-Handbook · 7.2.2.2 Sample sizes required · <a href="https://www.itl.nist.gov/div898/handbook/prc/section2/prc222.htm" rel="noopener" target="_blank">링크</a></li>
+<li id="fn3"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 문헌 식은 z0.95 + z0.90, SOP는 z0.95 + z0.95로 바꿔 씀 · 내부 기준(문헌 근거 없음)</li>
+<li id="fn4">Wikipedia "Efficiency (statistics)", "Median" · Efficiency of the median 절 · <a href="https://en.wikipedia.org/wiki/Efficiency_(statistics)" rel="noopener" target="_blank">링크</a> · <a href="https://en.wikipedia.org/wiki/Median" rel="noopener" target="_blank">링크</a></li>
+<li id="fn5">Wikipedia "Sign test" · 검정력 비교 절 · <a href="https://en.wikipedia.org/wiki/Sign_test" rel="noopener" target="_blank">링크</a></li>
+<li id="fn6">동등 / 차이 / 미결 세 가지 판정 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
+<li id="fn7">Schuirmann (1987) J. Pharmacokinet. Biopharm. 15:657-680 · 초록 · <a href="https://link.springer.com/article/10.1007/BF01068419" rel="noopener" target="_blank">링크</a></li>
+<li id="fn8"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 쉬운 말 설명, 모의실험 그림, z<sub>0.95</sub> 두 개 풀이</li>
+</ol></section>
+
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="step-0.html">⓪ 표본 크기 정하기</a></li><li><a href="c-efficiency.html">중앙값 효율 1.25</a></li><li><a href="c-sigma-split.html">σ<sub>die</sub>와 σ<sub>run</sub></a></li><li><a href="c-delta.html">허용 범위 Δ</a></li></ul></nav>
+<footer class="pager"><a href="c-efficiency.html">← 이전 · 중앙값 효율 1.25</a><a href="c-ttest-vs-tost.html">다음 · t-test와 TOST →</a></footer>
 </div></main></body></html>

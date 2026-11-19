@@ -123,3 +123,169 @@ main{margin-left:0;padding:24px 20px}
 .ctl[hidden]{display:none}
 .ctl button{font:inherit;font-size:var(--fs-sub);color:var(--tx);background:#FFFFFF;border:1px solid var(--bd);border-radius:999px;padding:2px 12px;cursor:pointer}
 .ctl input[type=range]{width:220px}
+/* v4 */
+.side a[aria-current="true"]{background:#E5E7EB;color:var(--tx);font-weight:600}
+.loc{font-size:var(--fs-sub);color:var(--tx2);margin:0 0 8px}
+.loc a{color:var(--tx2)}
+.q{font-weight:600;border-left:3px solid #2563EB;padding:2px 0 2px 12px;margin:0 0 10px}
+abbr[title]{text-decoration-line:underline;text-decoration-style:dotted;text-decoration-color:var(--tx2);text-underline-offset:3px;cursor:help}
+a.g{color:inherit;text-decoration:none}
+a.g:hover abbr[title]{text-decoration-color:#2563EB}
+.sym td:first-child{white-space:nowrap;font-weight:600}
+.sym td:last-child,.ex td,.states td{font-variant-numeric:tabular-nums}
+.exdata{margin:0 0 16px}
+.ex th,.ex td{padding:6px 12px 6px 0;text-align:right;white-space:nowrap}
+.ex th:first-child,.ex td:first-child{text-align:left}
+.ex td:last-child{font-weight:600}
+.calc{list-style:none;padding-left:0;margin:0 0 12px}
+.calc li{margin:0 0 10px}
+.calc .from{display:block;font-size:var(--fs-sub);color:var(--tx2)}
+.look{background:var(--fx);border-left:3px solid var(--tx2);border-radius:0 6px 6px 0;padding:8px 12px;margin:8px 0 0}
+.look b{font-weight:600}
+.cfig figcaption{font-size:var(--fs-sub);color:var(--tx2);margin:6px 0 0}
+.cfig .val{fill:var(--tx);font-weight:600}
+.cfig .pb-bg{fill:var(--ln);stroke:none}
+.cfig .pb-ok{fill:#1A8754;stroke:none}
+.cfig .pb-hold{fill:#92400E;stroke:none}
+.cfig .pb-bad{fill:#D93A3A;stroke:none}
+.states{margin:8px 0 0}
+.states th,.states td{font-size:var(--fs-sub);padding:4px 12px 4px 0}
+.states tr.now td{background:var(--fx);color:var(--tx);font-weight:600}
+.ctl output{color:var(--tx);font-weight:600}
+.ctl button[aria-pressed="true"]{background:var(--fx)}
+.fnref a{text-decoration:none;padding:0 1px}
+.fn{font-size:var(--fs-sub);color:var(--tx2)}
+.fn li:target{background:#FEF3C7}
+.self{display:inline-block;font-size:var(--fs-sub);color:var(--tx2);border:1px solid var(--bd);border-radius:999px;padding:0 8px;white-space:nowrap}
+.rel{margin:0 0 44px}
+.rel ul{list-style:none;padding-left:0;display:flex;flex-wrap:wrap;gap:4px 16px}
+.gl dt{font-weight:600;margin:20px 0 4px;scroll-margin-top:16px}
+.gl dd{margin:0}
+.gl dt:target{background:#FEF3C7}
+@media (prefers-reduced-motion:reduce){.ctl .play{display:none}}
+
+/* ===== v4.0 흐름도 · 오른쪽 패널(.fp-*) + 개요 큰 흐름도(.fb-*) ===== */
+:root{--fp-w:248px}
+
+/* 넓은 폭: 오른쪽 고정 세로 패널 */
+.fp-wide{position:fixed;top:0;right:0;bottom:0;width:var(--fp-w);overflow-y:auto;padding:24px 16px 32px;background:#FFFFFF;border-left:1px solid var(--bd)}
+main{margin-right:var(--fp-w)}
+.fp-fold{display:none}
+
+/* 패널 안 흐름 */
+.fp{font-size:var(--fs-sub);line-height:1.5}
+.fp-h{font-weight:600;color:var(--tx);margin:0 0 12px}
+.fp ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.fp li{margin:0}
+.fp li>a{position:relative;display:block;margin:0;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:#FFFFFF;color:var(--tx);text-decoration:none;text-align:center}
+.fp li>a:hover{border-color:var(--tx2)}
+.fp li>a::before{content:"";position:absolute;left:50%;top:-7px;margin-left:-4px;border:4px solid transparent;border-top:6px solid var(--tx2);border-bottom:0}
+.fp-top>li:first-child>a::before{display:none}
+/* 지금 쪽 · 관련 단계 (스크립트가 속성/클래스 넣음) */
+.fp li>a[aria-current="step"]{background:var(--tx);border-color:var(--tx);color:#FFFFFF;font-weight:600}
+.fp li>a.rel{margin:0;background:var(--fx);border-color:var(--tx2);font-weight:600}
+/* 세로 줄기: 상자 뒤로 지나가는 선, 상자·글 배경이 덮음 */
+.fp-top,.fp-col{position:relative}
+.fp-top::before,.fp-col::before{content:"";position:absolute;top:0;bottom:0;left:50%;border-left:1px solid var(--tx2)}
+/* ③ 뒤 두 갈래 */
+.fp-fork{position:relative;display:grid;grid-template-columns:1fr 1fr;padding-top:16px}
+.fp-fork::before{content:"";position:absolute;top:0;left:50%;height:8px;border-left:1px solid var(--tx2)}
+.fp-fork::after{content:"";position:absolute;top:8px;left:25%;right:25%;height:8px;border:1px solid var(--tx2);border-bottom:0}
+.fp-col{display:flex;flex-direction:column;gap:14px;padding:0 3px}
+.fp-lab{position:relative;align-self:center;background:#FFFFFF;color:var(--tx2);padding:2px 4px;text-align:center}
+.fp-pass{position:relative;flex:1;display:flex;align-items:center;justify-content:center;min-height:40px}
+.fp-pass span{background:#FFFFFF;color:var(--tx2);padding:2px 4px;text-align:center}
+/* ⑥에서 합침 */
+.fp-join{position:relative;padding-top:24px}
+.fp-join::before{content:"";position:absolute;top:0;left:25%;right:25%;height:12px;border:1px solid var(--tx2);border-top:0}
+.fp-join::after{content:"";position:absolute;top:12px;left:50%;height:12px;border-left:1px solid var(--tx2)}
+/* ⑥ → ⑦ 점선 */
+.fp-opt{position:relative;padding-top:32px}
+.fp-opt::before{content:"";position:absolute;top:0;left:50%;height:32px;border-left:1px dashed var(--tx2)}
+.fp-opt .fp-lab{position:absolute;top:6px;left:50%;margin-left:6px;padding:0;background:none;white-space:nowrap}
+.fp-opt li>a{border-style:dashed}
+.fp-key{color:var(--tx2);margin:16px 0 0}
+.fp-key+.fp-key{margin-top:4px}
+
+/* 중간 폭(821~1199px): 패널 조금 좁게 */
+@media (min-width:1101px) and (max-width:1199px){
+:root{--fp-w:208px}
+.fp-wide{padding:20px 12px 28px}
+main{padding-left:32px;padding-right:32px}}
+
+/* 좁은 폭(820px 이하, 390px 포함): 쪽 위 접힌 메뉴 */
+/* EDIT: 접힘 기준 1100px(821~1100px 본문 폭 확보) */
+@media (max-width:1100px){
+.fp-wide{display:none}
+main{margin-right:0}
+.fp-fold{display:block;position:sticky;top:0;z-index:10;margin:0;padding:0 20px;background:#FFFFFF;border-bottom:1px solid var(--bd)}
+.fp-fold>summary{padding:10px 0;color:var(--tx);font-weight:600}
+.fp-fold[open]>summary{margin-bottom:4px}
+.fp-fold .fp{max-width:320px;max-height:70vh;overflow-y:auto;margin:0 auto;padding:0 0 16px}}
+
+@media print{.fp-wide,.fp-fold{display:none} main{margin-right:0}}
+
+/* ===== 개요(index) 머리 + 큰 흐름도 ===== */
+.hero{margin:0 0 4px}
+.hero h1{margin:0 0 8px}
+.hero p{margin:0 0 6px}
+.flowbig{container-type:inline-size;margin:8px 0 0}
+.flowbig figcaption{font-size:var(--fs-sub);color:var(--tx2);margin:0 0 10px}
+.fb{display:grid;grid-template-columns:1fr 24px 1fr 24px 1fr 24px 1fr;align-items:stretch}
+.fb-box{position:relative;display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--bd);border-radius:8px;background:#FFFFFF;color:var(--tx);text-decoration:none}
+a.fb-box:hover{border-color:var(--tx2)}
+.fb-box strong{font-weight:600;line-height:1.45}
+.fb-box .d{font-size:var(--fs-sub);color:var(--tx2);line-height:1.5}
+.fb-box .n{margin-top:auto;padding-top:6px;border-top:1px solid var(--ln);font-size:var(--fs-sub);font-weight:600;line-height:1.5;font-variant-numeric:tabular-nums}
+.fb-box.opt{border-style:dashed}
+.fb-box .tag{align-self:flex-start;font-size:var(--fs-sub);color:var(--tx2);border:1px dashed var(--tx2);border-radius:999px;padding:0 8px}
+/* 가로 화살표 칸 */
+.fb-ar{position:relative}
+.fb-ar::before{content:"";position:absolute;top:50%;left:3px;right:6px;border-top:1px solid var(--tx2)}
+.fb-ar::after{content:"";position:absolute;top:50%;right:1px;margin-top:-4px;border-left:6px solid var(--tx2);border-top:4px solid transparent;border-bottom:4px solid transparent}
+.fb-ar.dash::before{border-top-style:dashed}
+/* ③ → 갈림 줄(가운데 줄): ③에서 내려와 왼쪽으로, ④(정량)·⑥(LoQ 미만)으로 내려감 */
+.fb-r{position:relative;height:56px}
+.fb-r::before{content:"";position:absolute;top:50%;left:0;right:0;border-top:1px solid var(--tx2)}
+.fb-rs::before{left:50%}
+.fb-re::before{right:50%}
+.fb-re::after{content:"";position:absolute;top:0;height:50%;left:50%;border-left:1px solid var(--tx2)}
+.fb-rs::after,.fb-rd::after{content:"";position:absolute;top:50%;bottom:0;left:50%;border-left:1px solid var(--tx2)}
+.fb-rl{position:absolute;top:50%;left:50%;margin-left:8px;padding-top:4px;white-space:nowrap;font-size:var(--fs-sub);color:var(--tx2)}
+.fb-in::before{content:"";position:absolute;top:-7px;left:50%;margin-left:-4px;border:4px solid transparent;border-top:6px solid var(--tx2);border-bottom:0}
+/* 글 목록 대체 */
+.fb-alt{margin:10px 0 12px}
+.fb-alt ol{list-style:none;padding-left:0}
+/* 흐름도 폭이 640px 아래(좁은 화면·중간 폭+패널): 한 줄 세로 쌓기 */
+@container (max-width:640px){
+.fb{grid-template-columns:1fr}
+.fb-ar{height:24px}
+.fb-ar::before{top:2px;bottom:8px;left:50%;right:auto;border-top:0;border-left:1px solid var(--tx2)}
+.fb-ar.dash::before{border-left-style:dashed}
+.fb-ar::after{top:auto;bottom:2px;right:auto;left:50%;margin:0 0 0 -4px;border:4px solid transparent;border-top:6px solid var(--tx2);border-bottom:0}
+.fb-r{height:auto}
+.fb-r::before,.fb-r::after,.fb-in::before{display:none}
+.fb-rm,.fb-re{display:none}
+.fb-rs{padding-top:12px}
+.fb-rd{padding:2px 0 12px}
+.fb-rl{position:static;display:block;margin:0;padding:0;white-space:normal;text-align:center}}
+@media (min-width:821px) and (max-width:1100px){.fp-fold{margin-left:232px}}
+/* EDIT: .fp ol{padding:0}보다 세게 — 합침·점선 칸 위 여백 */
+.fp ol.fp-join{padding-top:24px}
+.fp ol.fp-opt{padding-top:32px}
+
+/* EDIT v4.1 글 밀도(정훈님 16:55): 줄 간격 1.8 · 문단/목록 간격 · 본문 폭 68ch · 계산 한 줄에 한 단계 · 흐름도 상자는 제목 + 숫자 하나 */
+body{line-height:1.8}
+.wrap h2{margin:0 0 12px}
+.wrap p{margin:0 0 14px}
+.wrap p,.wrap li,.wrap dd,.wrap dt,.wrap figcaption,.wrap .look,.wrap summary{max-width:68ch}
+.wrap ul,.wrap ol{margin:0 0 18px}
+.wrap li{margin:0 0 10px}
+.wrap ul.chain{list-style:none;margin:6px 0 0;padding-left:14px}
+.wrap ul.chain>li{margin:0 0 4px}
+.wrap .tw li,.wrap table li{max-width:none}
+.calc li{margin:0 0 16px}
+.calc .cl{display:block}
+.formula>div{margin:0 0 4px}
+.wrap section{margin:0 0 52px}
+.fb-box .d{display:none}

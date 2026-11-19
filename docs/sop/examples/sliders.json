@@ -1,0 +1,377 @@
+{
+ "model": "참값 100, die 퍼짐 SD 3, σ_die 0.98965, 각 회차 이동 N(0, σ_run 0.50389), 비교 조건 이동 b, judge() 2000회씩",
+ "base": {
+  "b": 0.8,
+  "s_run": 0.50389,
+  "s_die": 0.98965,
+  "J": 3,
+  "n": 60
+ },
+ "b": {
+  "0": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "2": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "4": {
+   "p_eq": 98.0,
+   "p_hold": 1.8,
+   "p_diff": 0.1,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "5": {
+   "p_eq": 83.8,
+   "p_hold": 11.7,
+   "p_diff": 4.5,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "6": {
+   "p_eq": 53.3,
+   "p_hold": 20.6,
+   "p_diff": 26.1,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "7": {
+   "p_eq": 22.1,
+   "p_hold": 19.1,
+   "p_diff": 58.9,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "8": {
+   "p_eq": 5.1,
+   "p_hold": 8.8,
+   "p_diff": 86.0,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "10": {
+   "p_eq": 0.1,
+   "p_hold": 0.4,
+   "p_diff": 99.6,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  }
+ },
+ "s_run": {
+  "0.25": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 5.654,
+   "ci_width_med": 0.613
+  },
+  "0.50389": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "1.0": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 7.821,
+   "ci_width_med": 0.613
+  },
+  "1.5": {
+   "p_eq": 99.9,
+   "p_hold": 0.1,
+   "p_diff": 0.0,
+   "delta_med": 9.264,
+   "ci_width_med": 0.613
+  },
+  "2.0": {
+   "p_eq": 99.9,
+   "p_hold": 0.0,
+   "p_diff": 0.1,
+   "delta_med": 10.67,
+   "ci_width_med": 0.613
+  },
+  "3.0": {
+   "p_eq": 99.2,
+   "p_hold": 0.4,
+   "p_diff": 0.4,
+   "delta_med": 13.494,
+   "ci_width_med": 0.613
+  }
+ },
+ "J": {
+  "2": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 7.553,
+   "ci_width_med": 0.649
+  },
+  "3": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "4": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 6.14,
+   "ci_width_med": 0.6
+  },
+  "5": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 6.057,
+   "ci_width_med": 0.58
+  },
+  "6": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 6.012,
+   "ci_width_med": 0.57
+  },
+  "8": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 5.959,
+   "ci_width_med": 0.564
+  },
+  "10": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 5.925,
+   "ci_width_med": 0.553
+  }
+ },
+ "n": {
+  "10": {
+   "p_eq": 39.1,
+   "p_hold": 53.2,
+   "p_diff": 7.8,
+   "delta_med": 6.215,
+   "ci_width_med": 2.233
+  },
+  "20": {
+   "p_eq": 53.1,
+   "p_hold": 35.7,
+   "p_diff": 11.2,
+   "delta_med": 6.288,
+   "ci_width_med": 1.32
+  },
+  "30": {
+   "p_eq": 64.5,
+   "p_hold": 23.5,
+   "p_diff": 12.0,
+   "delta_med": 6.367,
+   "ci_width_med": 0.854
+  },
+  "45": {
+   "p_eq": 66.0,
+   "p_hold": 21.0,
+   "p_diff": 13.1,
+   "delta_med": 6.334,
+   "ci_width_med": 0.756
+  },
+  "60": {
+   "p_eq": 70.0,
+   "p_hold": 17.4,
+   "p_diff": 12.6,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "90": {
+   "p_eq": 74.5,
+   "p_hold": 14.3,
+   "p_diff": 11.2,
+   "delta_med": 6.418,
+   "ci_width_med": 0.536
+  },
+  "120": {
+   "p_eq": 75.6,
+   "p_hold": 11.9,
+   "p_diff": 12.5,
+   "delta_med": 6.391,
+   "ci_width_med": 0.447
+  }
+ },
+ "s_run_b55": {
+  "0.25": {
+   "p_eq": 40.9,
+   "p_hold": 33.0,
+   "p_diff": 26.1,
+   "delta_med": 5.654,
+   "ci_width_med": 0.613
+  },
+  "0.50389": {
+   "p_eq": 70.0,
+   "p_hold": 17.4,
+   "p_diff": 12.6,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "1.0": {
+   "p_eq": 86.0,
+   "p_hold": 6.2,
+   "p_diff": 7.8,
+   "delta_med": 7.821,
+   "ci_width_med": 0.613
+  },
+  "1.5": {
+   "p_eq": 89.4,
+   "p_hold": 4.3,
+   "p_diff": 6.3,
+   "delta_med": 9.264,
+   "ci_width_med": 0.613
+  },
+  "2.0": {
+   "p_eq": 91.5,
+   "p_hold": 2.8,
+   "p_diff": 5.8,
+   "delta_med": 10.67,
+   "ci_width_med": 0.613
+  },
+  "3.0": {
+   "p_eq": 93.2,
+   "p_hold": 1.7,
+   "p_diff": 5.1,
+   "delta_med": 13.494,
+   "ci_width_med": 0.613
+  }
+ },
+ "J_b55": {
+  "2": {
+   "p_eq": 75.5,
+   "p_hold": 9.8,
+   "p_diff": 14.6,
+   "delta_med": 7.553,
+   "ci_width_med": 0.649
+  },
+  "3": {
+   "p_eq": 70.0,
+   "p_hold": 17.4,
+   "p_diff": 12.6,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "4": {
+   "p_eq": 64.8,
+   "p_hold": 22.6,
+   "p_diff": 12.6,
+   "delta_med": 6.14,
+   "ci_width_med": 0.6
+  },
+  "5": {
+   "p_eq": 65.3,
+   "p_hold": 24.4,
+   "p_diff": 10.2,
+   "delta_med": 6.057,
+   "ci_width_med": 0.58
+  },
+  "6": {
+   "p_eq": 63.9,
+   "p_hold": 24.9,
+   "p_diff": 11.2,
+   "delta_med": 6.012,
+   "ci_width_med": 0.57
+  },
+  "8": {
+   "p_eq": 60.9,
+   "p_hold": 27.3,
+   "p_diff": 11.8,
+   "delta_med": 5.959,
+   "ci_width_med": 0.564
+  },
+  "10": {
+   "p_eq": 59.8,
+   "p_hold": 29.0,
+   "p_diff": 11.2,
+   "delta_med": 5.925,
+   "ci_width_med": 0.553
+  }
+ },
+ "s_die_b0": {
+  "0.98965": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 6.409,
+   "ci_width_med": 0.613
+  },
+  "2.0": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 6.302,
+   "ci_width_med": 1.24
+  },
+  "4.0": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 5.743,
+   "ci_width_med": 2.479
+  },
+  "6.0": {
+   "p_eq": 99.3,
+   "p_hold": 0.7,
+   "p_diff": 0.0,
+   "delta_med": 5.051,
+   "ci_width_med": 3.719
+  },
+  "8.0": {
+   "p_eq": 93.3,
+   "p_hold": 6.7,
+   "p_diff": 0.0,
+   "delta_med": 5.047,
+   "ci_width_med": 4.959
+  }
+ },
+ "s_die_b0_n": {
+  "30": {
+   "p_eq": 90.5,
+   "p_hold": 9.6,
+   "p_diff": 0.0,
+   "delta_med": 5.049,
+   "ci_width_med": 5.176
+  },
+  "60": {
+   "p_eq": 99.3,
+   "p_hold": 0.7,
+   "p_diff": 0.0,
+   "delta_med": 5.051,
+   "ci_width_med": 3.719
+  },
+  "90": {
+   "p_eq": 100.0,
+   "p_hold": 0.1,
+   "p_diff": 0.0,
+   "delta_med": 5.059,
+   "ci_width_med": 3.251
+  },
+  "120": {
+   "p_eq": 100.0,
+   "p_hold": 0.0,
+   "p_diff": 0.0,
+   "delta_med": 5.374,
+   "ci_width_med": 2.713
+  }
+ },
+ "n_note": "n, s_run_b55, J_b55 표는 b = 5.5 (Δ 가까이). s_die_b0 = 실제로 같을 때(b 0) σ_die를 키움. s_die_b0_n = σ_die 6, b 0에서 die 수"
+}
