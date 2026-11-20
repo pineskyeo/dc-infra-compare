@@ -14,6 +14,39 @@ pip install -r requirements.txt   # Python 3.9+, pandas, numpy, scipy
 
 ## 실행
 
+### run_all.py로 한 번에
+
+판정 → 요약 → Fail 근거 → 판정 요약 그림을 차례로 돌리고, 모든 산출물을 `--out` 폴더 하나에 모읍니다. 입력 옵션은 `por_doe_compare.py`와 같습니다(아래 표).
+
+```bash
+python run_all.py --por POR1/ --por POR2/ --por POR3/ --doe DOE/ \
+  --level item_info.csv --out 결과
+```
+
+- `--before 이전결과/items.csv`: 기존·개선 비교(`compare_before_after.py compare`)를 추가해 `결과/compare/`에 둡니다.
+- `--groups groups.csv`: ITEM,그룹 파일로 그룹별 요약(`group_summary.py`)을 추가해 `결과/groups/`에 둡니다. `--before`가 있어야 합니다.
+
+어느 단계든 실패하면 `[실패] 단계 N/M <이름>: <명령>`, `rc=…`, 그 단계 오류 끝 20줄을 보여 주고 멈춥니다. 출력 형태 예시(실제 실행값이 아님):
+
+```text
+[단계 1/4] por_doe_compare
+[단계 2/4] summarize
+[단계 3/4] fail_evidence
+[단계 4/4] plot_verdicts
+
+생성 파일
+fail_evidence/fail_evidence.csv  Fail 근거
+fail_evidence/forest.png  Fail 근거 전체 그림
+items.csv  ITEM별 판정·상태
+outlier_dies.csv  튀는 die
+plots/summary_01.png  판정 요약 그림
+summary_items.txt  summarize 출력
+```
+
+환경변수 `RUN_ALL_FAIL_STEP=<단계 이름>`은 테스트용입니다(그 단계를 일부러 실패시킴).
+
+단계별로 따로 돌리려면:
+
 ```bash
 python por_doe_compare.py --por POR1/ --por POR2/ --por POR3/ --doe DOE/ \
   --level item_info.csv --blank blank.csv --blank-map blank_map.csv --out 결과
@@ -29,6 +62,7 @@ python summarize.py 결과/items.csv
 | `--blank`, `--blank-map` | blank 데이터와 연결표 (선택, 아래). LoQ 하한으로만 씀 |
 | `--key` | 짝짓기 키. 기본 `WAFERID,COORD_X_Y,ITEM` |
 | `--encoding` | 기본 `auto` (UTF-8, 안 되면 CP949) |
+| `--outlier-k` | Open/Short 의심 기준 k (기본 5). `items.csv`의 `status` 열에만 씀 (아래 '결과') |
 
 UNIT, SPECLOW, SPECHIGH 열은 판정에 쓰지 않습니다(값이 잘못 들어간 경우가 많음). 판정은 모두 비율 기준이라 단위나 정규화 계수가 무엇이든 결과가 같습니다.
 
@@ -128,6 +162,20 @@ VT_N1,SHORT_V
 | `n_outlier_die`, `ttest`, `ttest_p`, `por_ttest_sig` | 참고 지표 |
 | `spec_status`, `level_check`, `range_por`, `range_doe`, `spec_resolution`, `accuracy_margin`, `verdict_no_accuracy` | `--level` 관련 |
 | `blank_item`, `blank_status`, `blank_LoQ_item`, `verdict_no_blank` | `--blank` 관련 |
+| `status`, `status_detail`, `mean_median_ratio` | 데이터 상태 (아래). 항상 마지막 세 열 |
+
+`status`는 판정(동등/차이/미결)과 별개인 데이터 상태 열입니다. 판정 값은 바꾸지 않고, 이상 die를 빼고 다시 판정하지도 않습니다. 여러 개가 해당하면 아래 표 순서대로 `;`로 잇고, `status_detail`도 같은 순서로 `;`로 잇습니다. 하나도 없으면 `정상`, detail은 빈 칸. Δ는 그 ITEM의 최종 `delta`, R은 POR die별 회차 평균, z는 DOE die 값입니다.
+
+| 열 값 | 조건 | detail 예시 | 옵션 |
+|---|---|---|---|
+| `정상` | 아래 어느 것도 해당 없음 | (빈 칸) | |
+| `조건 불안정` | (회차별 die 중앙값의 max − min)/Δ ≥ 1. Δ ≤ 0이나 NaN이면 건너뜀 | `회차 차 1.8Δ` | |
+| `Open/Short 의심` | R과 z 각각: 0인 die를 빼고 l = log10\|값\|, m = 중앙값, σ = 1.4826 × MAD(l). \|l − m\| > k·σ 인 die가 POR·DOE 어느 쪽이든 1개 이상. σ = 0(MAD = 0)인 쪽은 검사를 건너뛰고, 양쪽 다 MAD = 0이면 이 검사 전체를 건너뜀 | `POR 위 8% 아래 0% / DOE 위 3% 아래 0%, 0값 제외 2` | `--outlier-k` (기본 5) |
+| `분해능 부족` | POR·DOE 전체 값의 서로 다른 값 사이 최소 간격 ≥ 0.1·Δ. 값이 1개뿐이거나 Δ ≤ 0·NaN이면 건너뜀 | `간격 0.1 = Δ의 12%` | |
+| `산포 0` | sigma_die = 0, 또는 R이나 z에서 가장 흔한 값의 die 비율 > 50% | `고정값 85%` (R·z 중 큰 최빈 비율) | |
+| `조건 설정 오류` | 예약 값. 판정할 입력이 없어 지금은 판정하지 않음 | | |
+
+`mean_median_ratio` = (mean(R) − median(R)) / |median(R)|. R은 POR die별 회차 평균. median(R) = 0이면 빈 칸. 분포가 한쪽으로 끌려간 정도를 보는 경고 근거로만 쓰고 판정에는 쓰지 않습니다.
 
 `summary.txt` 구성: 구간 × 판정, 동등 아닌 사유, 정량·LoQ 미만 차이·미결 표(회차별 평균), 항목군별 판정, t-test로 판정했다면, 판정 근거 점검(회차 흔들림 몫, LoQ를 정한 쪽, blank·장비 정확도가 바꾼 판정 수), 입력 점검, 반복해서 튀는 die.
 
@@ -204,6 +252,8 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 ## Fail ITEM 근거 (`fail_evidence.py`)
 
 `python fail_evidence.py --input <items.csv> --out <폴더> [--items ID,...]` — por_doe_compare.py 결과 표(`--out` 폴더의 `items.csv`, 탭 구분 표도 됨. `ITEM` 열과 `<이름>_mean` 회차 열은 compare_before_after.py와 같은 방식으로 읽음)에서 verdict가 '차이'·'미결'인 ITEM의 근거를 규칙으로 계산해 `fail_evidence.csv`, `forest.png`, `items/<ID>.png`, `summary.txt`를 만듭니다. `fail_evidence.csv` 첫 열은 실제 `ITEM` 이름이고, 익명 `ID` 열이 있으면 그 옆에 붙습니다. `--items`를 주면 그 ID만 ITEM 그림을 그립니다(CSV·forest는 전체).
+
+입력에 `status`, `status_detail`, `mean_median_ratio` 열이 있으면 `fail_evidence.csv` 맨 끝에 이 순서로 값을 그대로 옮기고, 없으면 빈 칸 열로 둡니다(판정에는 쓰지 않음).
 
 열은 이름으로 찾습니다(`POR{k}_mean`은 2개 이상, k 가변). 대상 행에서 `por_median DOE_mean center ci_low ci_high delta LoQ` 열이 없거나 값이 빈칸·숫자 아님(엑셀 넘침 `####`, `***` 등)이면, 또는 값이 있는 POR 회차가 2개 미만이면 judgement='계산 불가'로 쓰고 사유를 note에 남깁니다. 빈 `POR{k}_mean`은 그 회차가 없는 것으로 봅니다. 대상이 아닌 행은 '대상 아님'으로 CSV에만 남깁니다.
 

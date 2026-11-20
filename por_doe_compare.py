@@ -37,6 +37,10 @@ Z90 = 1.645
 K_LOD, K_LOQ = 3.29, 10.0
 MIN_DIE = 10
 OUTLIER_K = 5.0
+OPEN_SHORT_K = 5.0      # --outlier-k 기본값. OUTLIER_K(튀는 die 표시)와 별개
+STATUS_COLS = ["status", "status_detail", "mean_median_ratio"]
+ST_OK, ST_UNSTABLE, ST_OPEN_SHORT, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "Open/Short 의심", "분해능 부족", "산포 0"
+ST_SETUP_ERROR = "조건 설정 오류"     # 예약 값. 판정에 필요한 입력이 없어 지금은 쓰지 않음
 ORDER = {"차이": 0, "미결": 1, "동등": 2}
 
 # Keysight P9001A Per-pin SMU (P9001 Data sheet p.6-7 측정 분해능·측정 정확도, Programming Reference Table 2-19/2-22
@@ -152,6 +156,68 @@ def robust_noise(Y: np.ndarray) -> tuple[float, float]:
 def run_factor(J: int) -> float:
     """sigma_run 은 회차 J개로 추정해 자유도가 J − 1이라 1.645 대신 t(0.95, J − 1) (J = 3이면 2.92)."""
     return float(stats.t.ppf(0.95, J - 1) * np.sqrt(1 + 1 / J))
+
+
+def _log_tails(v: np.ndarray, k: float) -> tuple[tuple[float, float, int] | None, int]:
+    """0값을 뺀 log10|v|가 중앙값보다 k·robust σ 넘게 위·아래로 튄 비율.
+    ((위 비율, 아래 비율, 이상 die 수) 또는 σ = 0이면 None, 뺀 0값 개수)"""
+    nz = v[v != 0]
+    n_zero = int(v.size - nz.size)
+    if nz.size == 0:
+        return None, n_zero
+    lg = np.log10(np.abs(nz))
+    m, s = np.median(lg), robust_sigma(lg)
+    if s == 0:
+        return None, n_zero
+    up, down = int((lg - m > k * s).sum()), int((m - lg > k * s).sum())
+    return (up / lg.size, down / lg.size, up + down), n_zero
+
+
+def _mode_share(v: np.ndarray) -> float:
+    return float(np.unique(v, return_counts=True)[1].max() / v.size)
+
+
+def item_status(Y: np.ndarray, z: np.ndarray, delta: float, outlier_k: float = OPEN_SHORT_K) -> dict:
+    """판정과 별개인 데이터 상태. 해당하는 것을 모두 ';'로 잇는다 (status와 status_detail 같은 순서).
+    Y: die × 회차 POR 값, z: DOE die 값, delta: 그 ITEM의 최종 Δ. Δ ≤ 0 또는 NaN이면 조건 불안정·분해능 부족은 건너뜀."""
+    Y, z = np.asarray(Y, float), np.asarray(z, float)
+    R = Y.mean(axis=1)
+    has_delta = bool(delta > 0)     # NaN도 False
+    names, details = [], []
+
+    if has_delta:
+        run_med = np.median(Y, axis=0)
+        gap = float(run_med.max() - run_med.min())
+        if gap / delta >= 1:
+            names.append(ST_UNSTABLE)
+            details.append(f"회차 차 {gap / delta:.1f}Δ")
+
+    (por, n0_por), (doe, n0_doe) = _log_tails(R, outlier_k), _log_tails(z, outlier_k)
+    if (por and por[2]) or (doe and doe[2]):
+        def side(name, t):
+            return f"{name} 위 {t[0]:.0%} 아래 {t[1]:.0%}" if t else f"{name} MAD 0 건너뜀"
+        text = f"{side('POR', por)} / {side('DOE', doe)}"
+        if n0_por + n0_doe:
+            text += f", 0값 제외 {n0_por + n0_doe}"
+        names.append(ST_OPEN_SHORT)
+        details.append(text)
+
+    vals = np.unique(np.concatenate([Y.ravel(), z]))
+    if has_delta and vals.size > 1:
+        step = float(np.diff(vals).min())
+        if step >= 0.1 * delta:
+            names.append(ST_RESOLUTION)
+            details.append(f"간격 {step:.4g} = Δ의 {step / delta:.0%}")
+
+    s_die, _ = robust_noise(Y)
+    share = max(_mode_share(R), _mode_share(z))
+    if s_die == 0 or share > 0.5:
+        names.append(ST_FLAT)
+        details.append(f"고정값 {share:.0%}")
+
+    med = float(np.median(R))
+    return {"status": ";".join(names) or ST_OK, "status_detail": ";".join(details),
+            "mean_median_ratio": (float(R.mean()) - med) / abs(med) if med != 0 else np.nan}
 
 
 def paired_t_p(d: np.ndarray) -> float:
@@ -296,6 +362,8 @@ def add_common_args(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--blank-map", help="CSV ITEM,BLANK_ITEM. 없으면 같은 이름끼리 연결")
     ap.add_argument("--key", default="WAFERID,COORD_X_Y,ITEM")
     ap.add_argument("--encoding", default="auto")
+    ap.add_argument("--outlier-k", type=float, default=OPEN_SHORT_K,
+                    help="Open/Short 의심 기준 k: |log10|값| − 중앙값| > k×robust σ")
 
 
 def load_wide(a: argparse.Namespace) -> tuple[pd.DataFrame, list[str], dict]:
@@ -315,8 +383,9 @@ def load_wide(a: argparse.Namespace) -> tuple[pd.DataFrame, list[str], dict]:
 
 
 def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: float,
-               levels: dict[str, ItemInfo], blank: pd.DataFrame, bmap: dict) -> tuple[dict, np.ndarray]:
-    """ITEM 하나에 level/blank를 연결해 판정하고, 결과 행과 튀는 die 표시를 돌려준다."""
+               levels: dict[str, ItemInfo], blank: pd.DataFrame, bmap: dict,
+               outlier_k: float = OPEN_SHORT_K) -> tuple[dict, np.ndarray]:
+    """ITEM 하나에 level/blank를 연결해 판정하고, 결과 행(끝에 데이터 상태 열)과 튀는 die 표시를 돌려준다."""
     Y, z = g[por_cols].to_numpy(float), g["DOE"].to_numpy(float)
     info, lim, extra = levels.get(item), None, {}
     bitem = bmap.get(item, item)
@@ -328,7 +397,8 @@ def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: 
     res, mask = judge(Y, z, r, lim, info)
     if lim:
         extra["verdict_no_blank"] = judge(Y, z, r, None, info)[0]["verdict"]
-    return {"ITEM": item, "UNIT": units.get(item), **res, **extra}, mask
+    status = item_status(Y, z, res["delta"], outlier_k)
+    return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **status}, mask
 
 
 def main() -> None:
@@ -342,6 +412,8 @@ def main() -> None:
     ap.add_argument("--blank-map", help="CSV ITEM,BLANK_ITEM. 없으면 같은 이름끼리 연결")
     ap.add_argument("--key", default="WAFERID,COORD_X_Y,ITEM")
     ap.add_argument("--encoding", default="auto")
+    ap.add_argument("--outlier-k", type=float, default=OPEN_SHORT_K,
+                    help="Open/Short 의심 기준 k: |log10|값| − 중앙값| > k×robust σ")
     ap.add_argument("--out", default="por_doe_out")
     a = ap.parse_args()
     if len(a.por) < 2:
@@ -362,14 +434,14 @@ def main() -> None:
 
     rows, outl = [], []
     for item, g in wide.groupby("ITEM", sort=False):
-        res, mask = judge_item(item, g, por_cols, units, a.r, levels, blank, bmap)
+        res, mask = judge_item(item, g, por_cols, units, a.r, levels, blank, bmap, a.outlier_k)
         rows.append(res)
         if mask.any():
             outl.append(g.loc[mask, die_cols + ["ITEM"] + por_cols + ["DOE"]])
 
     first = ["ITEM", "UNIT", "zone", "verdict", "reason"]
     res = pd.DataFrame(rows)
-    res = res[first + [c for c in res.columns if c not in first]]
+    res = res[first + [c for c in res.columns if c not in first + STATUS_COLS] + STATUS_COLS]
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)

@@ -1,4 +1,5 @@
 """리팩터 전후 동일성과 공용 helper의 회귀 테스트."""
+import csv
 import os
 import subprocess
 import sys
@@ -59,7 +60,13 @@ def test_items_csv_is_byte_identical_to_frozen_legacy(por3_data: Path, tmp_path:
     run_script(LEGACY, compare_args(por3_data, legacy_out))
     run_script(ROOT / "por_doe_compare.py", compare_args(por3_data, refactored_out))
 
-    assert (refactored_out / "items.csv").read_bytes() == (legacy_out / "items.csv").read_bytes()
+    def rows(path: Path) -> list[list[str]]:
+        with open(path, encoding="utf-8-sig", newline="") as f:
+            return list(csv.reader(f))
+
+    new_rows = rows(refactored_out / "items.csv")
+    assert new_rows[0][-3:] == ["status", "status_detail", "mean_median_ratio"]
+    assert [r[:-3] for r in new_rows] == rows(legacy_out / "items.csv")
 
 
 @pytest.mark.parametrize("n", [2, 3, 5, 9, 10, 11, 12, 29, 30, 31, 59, 60, 61, 62, 100])

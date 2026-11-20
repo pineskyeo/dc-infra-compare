@@ -93,6 +93,17 @@ def with_anon(table: pd.DataFrame, src: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+STATUS_COLUMNS = ("status", "status_detail", "mean_median_ratio")
+
+
+def with_status(table: pd.DataFrame, src: pd.DataFrame) -> pd.DataFrame:
+    """입력의 데이터 상태 열을 행 순서 그대로(값은 문자열 그대로) 끝에 붙인다. 입력에 없으면 빈 칸."""
+    out = table.copy()
+    for c in STATUS_COLUMNS:
+        out[c] = src[c].tolist() if c in src.columns else ""
+    return out
+
+
 def parse_value(text) -> tuple[float | None, str | None]:
     """값과 문제(없으면 None)를 돌려준다. 빈칸='빈칸', 엑셀 넘침 등='숫자 아님'."""
     s = "" if text is None else str(text).strip()
@@ -355,7 +366,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"오류: {e}", file=sys.stderr)
         return 2
 
-    with_anon(table, src).to_csv(out / "fail_evidence.csv", index=False, encoding="utf-8-sig")
+    with_status(with_anon(table, src), src).to_csv(out / "fail_evidence.csv", index=False, encoding="utf-8-sig")
     summary = summary_text(table, Path(args.input).name)
     (out / "summary.txt").write_text(summary, encoding="utf-8")
 
