@@ -182,14 +182,6 @@ def robust_noise(Y: np.ndarray) -> tuple[float, float]:
     return s_die, float(np.sqrt(max(0.0, v)))
 
 
-def sigma_run_clipped(Y: np.ndarray) -> bool | float:
-    """robust_noise 의 sigma_run 이 max(0, …) 로 잘렸으면(뺀 값 ≤ 0) True. 회차 < 2·die < 2 이거나 값이 NaN 이면 NaN."""
-    if Y.ndim != 2 or Y.shape[0] < 2 or Y.shape[1] < 2:
-        return np.nan
-    v = _noise_parts(Y)[1]
-    return bool(v <= 0) if np.isfinite(v) else np.nan
-
-
 def run_factor(J: int) -> float:
     """sigma_run 은 회차 J개로 추정해 자유도가 J − 1이라 1.645 대신 t(0.95, J − 1) (J = 3이면 2.92)."""
     return float(stats.t.ppf(0.95, J - 1) * np.sqrt(1 + 1 / J))
@@ -445,7 +437,7 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo
         **{f"POR{k + 1}_mean": float(Y[:, k].mean()) for k in range(J)}, "DOE_mean": float(z.mean()),
         "center": center, "ci_low": lo, "ci_high": hi, "delta": delta,
         "policy_margin": policy, "run_margin": run_term, "sigma_die": s_die, "sigma_run": s_run,
-        "sigma_run_clipped": sigma_run_clipped(Y), "LoQ": loq, "LoD": lod, "limit_source": src, "n_outlier_die": int(outlier.sum()),
+        "LoQ": loq, "LoD": lod, "limit_source": src, "n_outlier_die": int(outlier.sum()),
         "ttest": "유의차" if p_t < 0.05 else "유의차 없음", "ttest_p": p_t,
         "por_ttest_sig": f"{sum(p < 0.05 for p in por_pairs)}/{len(por_pairs)}",
         **sp, **bl,

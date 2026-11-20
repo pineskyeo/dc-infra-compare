@@ -1,5 +1,5 @@
-"""WO-U-A2: log 열 대상 확대(0 없고 부호 하나인 모든 ITEM), log 진단 대상(흔들림 status + verdict≠verdict_log),
-sigma_run_clipped 열. 합성 데이터만, seed 고정."""
+"""WO-U-A2: log 열 대상 확대(0 없고 부호 하나인 모든 ITEM), log 진단 대상(흔들림 status + verdict≠verdict_log).
+합성 데이터만, seed 고정."""
 import math
 import subprocess
 import sys
@@ -160,29 +160,3 @@ def test_x4b_log_compare_verdict_diff_target(tmp_path):
     assert dict(zip(t["ITEM"], t["target_status"])) == {"J1": pdc.ST_SIZE_JITTER, "D1": lc.VERDICT_DIFF}
     assert r["n"] == 2 and r["changed"] == 1
     assert lc.VERDICT_DIFF in lc.MARKER and len(set(lc.MARKER.values())) == len(lc.MARKER)
-
-
-def test_x5_no_run_shift_clipped_true():
-    Y, z = no_run_shift_data()
-    assert bool(pdc.sigma_run_clipped(Y))
-    row = run_item(pdc, Y, z)
-    assert bool(row["sigma_run_clipped"])
-    assert row["sigma_run"] == 0.0
-
-
-def test_x6_large_run_shift_clipped_false():
-    Y, z = run_shift_data()
-    row = run_item(pdc, Y, z)
-    assert not bool(row["sigma_run_clipped"])
-    assert row["sigma_run"] > 1
-
-
-def test_x6b_not_computable_blank():
-    assert math.isnan(pdc.sigma_run_clipped(np.ones((10, 1))))
-
-
-def test_x7_column_right_after_sigma_run():
-    row = run_item(pdc, *far_data())
-    keys = list(row)
-    assert keys[keys.index("sigma_run") + 1] == "sigma_run_clipped"
-    assert "sigma_run_clipped" not in pdc.STATUS_COLS + pdc.LOG_COLS
