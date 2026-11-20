@@ -18,13 +18,15 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from matplotlib import rcParams  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 
+import por_doe_compare  # noqa: E402
 from compare_metrics import safe_group_name  # noqa: E402
 from por_doe_compare import (  # noqa: E402
-    ST_FLAT, ST_OK, ST_RESOLUTION, ST_RUN_JITTER, ST_SETUP_ERROR, ST_SIZE_JITTER, ST_UNSTABLE,
+    POR_GAP_NOISE_K, ST_FLAT, ST_OK, ST_RESOLUTION, ST_RUN_JITTER, ST_SETUP_ERROR, ST_SIZE_JITTER, ST_UNSTABLE,
     add_common_args, load_blank, load_wide, read_csv_auto,
 )
 
@@ -570,6 +572,152 @@ def plot_drill(rows: pd.DataFrame, summary: dict, item: str, path: Path) -> Path
     return path
 
 
+# ---------------------------------------------------------------- status별 패널 (status_<이름>.png)
+
+STATUS_PNG = "status_{}.png"
+
+
+def _por_matrix(rows: pd.DataFrame, por_cols: list[str]) -> pd.DataFrame:
+    """die × POR 회차 숫자 표 (NaN 있는 die 제외)."""
+    return rows[por_cols].apply(pd.to_numeric, errors="coerce").dropna() if por_cols else pd.DataFrame()
+
+
+def _status_unstable(ax, rows: pd.DataFrame, s: dict, por_cols: list[str]) -> None:
+    """조건 불안정: 회차별 짝지은 차 중앙값의 폭(gap)과 K·se 막대, ±Δ. gap·se는 summary 의 GAP_COLS 에서 되돌린다."""
+    delta, over_delta, over_noise = _num(s, "delta"), _num(s, "por_gap_over_delta"), _num(s, "por_gap_over_noise")
+    if not (math.isfinite(delta) and math.isfinite(over_delta)):
+        _no_data(ax, "summary 에 delta·por_gap_over_delta 없음")
+    else:
+        gap = over_delta * delta
+        bars = [("회차 차 중앙값 폭", gap, D_COLOR)]
+        if math.isfinite(over_noise) and over_noise > 0:
+            bars.append((f"{POR_GAP_NOISE_K:g}·se", POR_GAP_NOISE_K * gap / over_noise, POR_COLOR))
+        ax.bar([b[0] for b in bars], [b[1] for b in bars], color=[b[2] for b in bars], alpha=0.7, width=0.5)
+        for sign in (-1, 1):
+            ax.axhline(sign * delta, color="#555555", ls="--", lw=1, label="±Δ" if sign > 0 else None)
+        ax.axhline(0, color="#999999", lw=0.8)
+        ax.legend(fontsize=7, loc="best")
+        ax.grid(axis="y", alpha=0.3)
+    ax.set_title("회차별 짝지은 차 중앙값 폭 vs ±Δ", fontsize=10)
+
+
+def _status_run_jitter(ax, rows: pd.DataFrame, s: dict, por_cols: list[str]) -> None:
+    """회차 흔들림: die별 (회차 max−min)/|회차 평균| 히스토그램 + Δ/|POR 중앙값| 선."""
+    P = _por_matrix(rows, por_cols)
+    m = P.mean(axis=1) if P.shape[1] >= 2 else pd.Series(dtype=float)
+    keep = m != 0
+    rel = ((P.max(axis=1) - P.min(axis=1))[keep] / m[keep].abs()) if not m.empty else m
+    if rel.empty:
+        _no_data(ax, "POR 회차 2개 이상 필요")
+    else:
+        ax.hist(rel, bins=min(30, max(5, len(rel) // 3)), color=POR_COLOR, alpha=0.7)
+        delta, med = _num(s, "delta"), float(m.median())
+        if math.isfinite(delta) and med != 0:
+            ax.axvline(delta / abs(med), color="#333333", ls="--", lw=1.2, label=f"Δ/|POR 중앙값| = {delta / abs(med):.3g}")
+            ax.legend(fontsize=7, loc="best")
+        ax.set_xlabel("(회차 max − min) / |회차 평균|", fontsize=8)
+        ax.set_ylabel("die 수", fontsize=8)
+    ax.set_title("die별 회차 흔들림", fontsize=10)
+
+
+def _status_size_jitter(ax, rows: pd.DataFrame, s: dict, por_cols: list[str]) -> None:
+    """작을수록 흔들림: log10|회차 평균| vs log10|값|의 회차 범위 + ρ(summary 의 spearman_size_jitter)."""
+    P = _por_matrix(rows, por_cols)
+    if P.shape[1] >= 2:
+        m = P.mean(axis=1)
+        P = P[(P != 0).all(axis=1) & (m != 0)]
+    if P.shape[1] < 2 or P.empty:
+        _no_data(ax, "0 아닌 POR 회차 2개 이상 필요")
+    else:
+        lg = np.log10(P.abs())
+        ax.scatter(np.log10(P.mean(axis=1).abs()), lg.max(axis=1) - lg.min(axis=1), s=20, color=POR_COLOR, alpha=0.7)
+        rho = _num(s, "spearman_size_jitter")
+        text = f"ρ = {rho:.2f}".replace("-", "−") if math.isfinite(rho) else "ρ 없음"
+        ax.text(0.97, 0.95, text, transform=ax.transAxes, ha="right", va="top", fontsize=11)
+        ax.set_xlabel("log10 |회차 평균|", fontsize=8)
+        ax.set_ylabel("log10 |값| 의 회차 범위", fontsize=8)
+        ax.grid(alpha=0.3)
+    ax.set_title("크기별 회차 흔들림", fontsize=10)
+
+
+def _status_resolution(ax, rows: pd.DataFrame, s: dict, por_cols: list[str]) -> None:
+    """분해능 부족: 원값(POR 모든 회차·DOE) 계단형 히스토그램."""
+    por = _por_matrix(rows, por_cols).stack()
+    doe = pd.to_numeric(rows.get("DOE", pd.Series(dtype=float)), errors="coerce").dropna()
+    both = pd.concat([por, doe])
+    if both.empty:
+        _no_data(ax)
+    else:
+        lo, hi = float(both.min()), float(both.max())
+        rng = (lo, hi) if hi > lo else (lo - 0.5, hi + 0.5)
+        bins = min(60, max(10, both.nunique() * 2))
+        for v, name, color in ((por, "POR", POR_COLOR), (doe, "DOE", DOE_COLOR)):
+            if not v.empty:
+                ax.hist(v, bins=bins, range=rng, histtype="step", lw=1.5, color=color, label=name)
+        ax.legend(fontsize=7, loc="best")
+        ax.set_xlabel("원값", fontsize=8)
+        ax.set_ylabel("개수", fontsize=8)
+    ax.set_title("원값 분포 (계단형)", fontsize=10)
+
+
+def _status_flat(ax, rows: pd.DataFrame, s: dict, por_cols: list[str]) -> None:
+    """산포 0: POR 회차 평균·DOE 값의 위치(strip)와 Blank·LoD·LoQ 세로선."""
+    P = _por_matrix(rows, por_cols)
+    por = P.mean(axis=1) if not P.empty else pd.Series(dtype=float)
+    doe = pd.to_numeric(rows.get("DOE", pd.Series(dtype=float)), errors="coerce").dropna()
+    off = pd.to_numeric(rows.get("blank_offset", pd.Series(dtype=float)), errors="coerce").dropna()
+    lines = [(v, n, ls) for v, n, ls in ((float(off.iloc[0]) if not off.empty else NAN, "Blank", "-"),
+                                         (_num(s, "LoD"), "LoD", ":"), (_num(s, "LoQ"), "LoQ", "--"))
+             if math.isfinite(v)]
+    if por.empty and doe.empty:
+        _no_data(ax)
+    else:
+        for y, (v, name, color) in enumerate(((doe, "DOE", DOE_COLOR), (por, "POR 회차 평균", POR_COLOR))):
+            jitter = (pd.Series(range(len(v))) % 7 - 3) * 0.04
+            ax.plot(v.to_numpy(), y + jitter.to_numpy(), "o", ms=4, alpha=0.6, color=color, label=name)
+        for v, n, ls in lines:
+            ax.axvline(v, color="#333333", ls=ls, lw=1.2, label=f"{n}={v:.3g}")
+        ax.set_yticks([0, 1])
+        ax.set_yticklabels(["DOE", "POR"], fontsize=8)
+        ax.legend(fontsize=7, loc="best")
+        ax.grid(axis="x", alpha=0.3)
+    ax.set_title("Blank·LoD·LoQ 대비 값 위치", fontsize=10)
+
+
+STATUS_PANELS = {
+    ST_UNSTABLE: _status_unstable,
+    ST_RUN_JITTER: _status_run_jitter,
+    ST_SIZE_JITTER: _status_size_jitter,
+    ST_RESOLUTION: _status_resolution,
+    ST_FLAT: _status_flat,
+}
+if getattr(por_doe_compare, "ST_SIZE_JITTER_POS", None):
+    STATUS_PANELS[por_doe_compare.ST_SIZE_JITTER_POS] = _status_size_jitter
+
+
+def plot_status_panels(rows: pd.DataFrame, summary: dict, item: str, status: str, folder: Path) -> list[Path]:
+    """status(';' 구분, 정상 제외)마다 패널 한 장을 folder/status_<이름>.png 로. 모르는 status는 경고 한 줄만."""
+    rows = rows.reset_index(drop=True)
+    por_cols = [c for c in rows.columns if POR_COL_RE.match(str(c))]
+    text = "" if pd.isna(status) else str(status)
+    names = dict.fromkeys(n.strip() for n in text.split(";") if n.strip() and n.strip() != ST_OK)
+    paths = []
+    for name in names:
+        draw = STATUS_PANELS.get(name)
+        if draw is None:
+            print(f"{item}: 경고: 모르는 status '{name}' — 패널 없음")
+            continue
+        fig, ax = plt.subplots(figsize=(6.5, 4.5))
+        draw(ax, rows, summary, por_cols)
+        fig.suptitle(f"{item} · {name}")
+        fig.tight_layout(rect=(0, 0, 1, 0.95))
+        path = folder / STATUS_PNG.format(safe_group_name(name))
+        fig.savefig(path, dpi=150)
+        plt.close(fig)
+        paths.append(path)
+    return paths
+
+
 def items_dir_blocked(d: Path) -> str | None:
     """표식 없이 파일이 든 items/ 이면 이유 문장, 아니면 None."""
     if d.is_dir() and not (d / ITEMS_MARKER).is_file() and any(d.iterdir()):
@@ -666,6 +814,7 @@ def main(argv: list[str] | None = None) -> int:
             if not rows.empty:
                 srow = isum.iloc[0].to_dict() if not isum.empty else {}
                 plot_drill(rows, srow, rec["ID"], folder / DRILL_PNG)
+                plot_status_panels(rows, srow, rec["ID"], rec["status"], folder)
     index.to_csv(out / ITEMS_INDEX, index=False, encoding="utf-8-sig")
 
     summary = summary_text(table, Path(args.input).name)

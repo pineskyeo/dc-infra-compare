@@ -249,3 +249,52 @@ def test_empty_items_dir_without_marker_is_used(tmp_path):
     (out / fe.ITEMS_DIR).mkdir(parents=True)
     assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out)]) == 0
     assert (out / fe.ITEMS_DIR / fe.ITEMS_MARKER).is_file()
+
+
+# ---------------------------------------------------------------- WO-P (c): status별 패널
+
+def _status_png(folder: Path, name: str) -> Path:
+    return folder / fe.STATUS_PNG.format(safe_group_name(name))
+
+
+def test_status_panels_two_statuses_in_main(tmp_path):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out), *_raw_args(tmp_path)]) == 0
+    a2 = _folder(out, ST_UNSTABLE, "A2")
+    pngs = sorted(p.name for p in a2.glob("status_*.png"))
+    assert pngs == sorted(_status_png(a2, n).name for n in (ST_RUN_JITTER, ST_UNSTABLE))
+    assert not list(_folder(out, "차이", "A1").glob("status_*.png"))      # 정상은 패널 없음
+
+
+@pytest.mark.parametrize("status", [
+    f"{ST_RUN_JITTER};{ST_UNSTABLE}",
+    f"{ST_SIZE_JITTER};{fe.ST_RESOLUTION}",
+    f"{fe.ST_FLAT};{ST_OK}",
+])
+def test_status_panels_each_kind(tmp_path, status):
+    rows = _drill_rows().assign(blank_offset=0.0)
+    s = {**SUMMARY, "status": status, "por_gap_over_delta": "1.4", "por_gap_over_noise": "5",
+         "spearman_size_jitter": "-0.8"}
+    paths = fe.plot_status_panels(rows, s, "Z", status, tmp_path)
+    names = [n for n in status.split(";") if n != ST_OK]
+    assert paths == [_status_png(tmp_path, n) for n in names]
+    assert all(p.is_file() and p.stat().st_size > 0 for p in paths)
+
+
+def test_status_panels_missing_summary_values(tmp_path):
+    status = ";".join(fe.STATUS_PANELS)
+    paths = fe.plot_status_panels(_drill_rows(), {"verdict": "미결"}, "Z", status, tmp_path)
+    assert len(paths) == len(fe.STATUS_PANELS) and all(p.is_file() for p in paths)
+
+
+def test_status_panels_unknown_status_warns(tmp_path, capsys):
+    assert fe.plot_status_panels(_drill_rows(), SUMMARY, "Z", "새 상태", tmp_path) == []
+    assert not list(tmp_path.glob("status_*.png"))
+    lines = [ln for ln in capsys.readouterr().out.splitlines() if "새 상태" in ln]
+    assert len(lines) == 1 and "경고" in lines[0]
+
+
+def test_no_raw_no_status_png(tmp_path):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out)]) == 0
+    assert not list((out / fe.ITEMS_DIR).rglob("status_*.png"))
