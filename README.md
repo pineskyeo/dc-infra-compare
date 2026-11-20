@@ -163,13 +163,14 @@ VT_N1,SHORT_V
 | `n_outlier_die`, `ttest`, `ttest_p`, `por_ttest_sig` | 참고 지표 |
 | `spec_status`, `level_check`, `range_por`, `range_doe`, `spec_resolution`, `accuracy_margin`, `verdict_no_accuracy` | `--level` 관련 |
 | `blank_item`, `blank_status`, `blank_LoQ_item`, `verdict_no_blank` | `--blank` 관련 |
-| `status`, `status_detail`, `mean_median_ratio` | 데이터 상태 (아래). 끝에서 일곱째~아홉째 열 |
-| `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter` | 데이터 상태 근거 값 (아래). 끝에서 넷째~여섯째 열 |
+| `status`, `status_detail`, `mean_median_ratio` | 데이터 상태 (아래). 끝에서 아홉째~열한째 열 |
+| `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter` | 데이터 상태 근거 값 (아래). 끝에서 여섯째~여덟째 열 |
+| `por_gap_over_delta`, `por_gap_over_noise` | 조건 불안정 근거 값 (아래). 끝에서 넷째~다섯째 열 |
 | `sigma_meas` | 측정 산포 = √(`sigma_die`² + `sigma_run`²). 낮을수록 좋음 |
 | `meas_precision_pct` | 측정 정밀도 (%, 상대표준편차, 낮을수록 좋음) = 100 × `sigma_meas` / \|`por_median`\|. `por_median`이 0이면 빈 칸 |
 | `sigma_meas_over_delta` | `sigma_meas` / `delta`. 허용폭 대비 측정 산포. 낮을수록 좋음. `delta`가 0이면 빈 칸 |
 
-`items.csv`의 마지막 아홉 열은 항상 `status`, `status_detail`, `mean_median_ratio`, `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter`, `sigma_meas`, `meas_precision_pct`, `sigma_meas_over_delta` 순서입니다.
+`items.csv`의 마지막 열한 열은 항상 `status`, `status_detail`, `mean_median_ratio`, `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter`, `por_gap_over_delta`, `por_gap_over_noise`, `sigma_meas`, `meas_precision_pct`, `sigma_meas_over_delta` 순서입니다.
 
 `sigma_meas`를 제곱합의 제곱근으로 잡는 이유: die 간 산포와 회차 산포는 서로 독립이므로 분산이 더해집니다. 표준편차를 단순히 더하면 과대 추정이 됩니다.
 
@@ -180,7 +181,7 @@ VT_N1,SHORT_V
 | 열 값 | 조건 | detail 예시 | 기준 상수 |
 |---|---|---|---|
 | `정상` | 아래 어느 것도 해당 없음 | (빈 칸) | |
-| `조건 불안정` | (회차별 die 중앙값의 max − min)/Δ ≥ 1. Δ ≤ 0이나 NaN이면 건너뜀 | `회차 차 1.8Δ` | |
+| `조건 불안정` | 짝지은 회차 차 gap ≥ Δ 이고 gap ≥ 3·se (아래). se가 0이거나 유한하지 않으면 gap ≥ Δ만 봄. Δ ≤ 0이나 NaN이면 건너뜀 | `회차 차 1.8Δ` | `POR_GAP_NOISE_K` = 3 |
 | `회차 흔들림` | `run_jitter_over_delta` ≥ 1. die가 회차마다 다 같이 움직이는 ITEM(short, mA급). Δ가 없으면 열만 쓰고 상태는 붙이지 않음 | `회차 흔들림 40% (1.6Δ)` | `RUN_JITTER_OVER_DELTA` = 1.0 |
 | `작을수록 흔들림` | `spearman_size_jitter` ≤ −0.5이고 유효 die ≥ 10 | `ρ −0.62` | `SIZE_JITTER_RHO` = −0.5, `SIZE_JITTER_MIN_DIE` = 10 |
 | `분해능 부족` | POR·DOE 전체 값의 서로 다른 값 사이 최소 간격 ≥ 0.1·Δ. 값이 1개뿐이거나 Δ ≤ 0·NaN이면 건너뜀 | `간격 0.1 = Δ의 12%` | |
@@ -193,6 +194,21 @@ VT_N1,SHORT_V
 - `run_jitter_pct` = 100 × 중앙값(die별 회차 범위 / \|회차 평균\|). 회차 범위 = max − min, 회차 평균이 0인 die는 뺌
 - `run_jitter_over_delta` = 중앙값(die별 회차 범위) / Δ. Δ가 없거나 ≤ 0, NaN이면 빈 칸
 - `spearman_size_jitter` = Spearman ρ(x, y). x = log10\|회차 평균\|, y = log10\|값\|의 회차 범위. 0값이 있는 die는 뺌. 유효 die < 3이거나 x, y 중 하나가 상수면 빈 칸. 상태와 상관없이 항상 씀
+
+`por_gap_over_delta`, `por_gap_over_noise`는 조건 불안정의 근거 값입니다. Y는 POR 값(die × 회차)입니다. 각 die에서 그 die의 회차 평균을 먼저 빼므로 die 사이 차이는 지워집니다(짝지은 회차 차). POR가 1회뿐이거나 계산할 수 없으면 빈 칸이고, 상태와 상관없이 항상 씁니다.
+- rr = 회차별 중앙값(Y − die별 회차 평균)
+- gap = max(rr) − min(rr)
+- se = 1.2533 × `sigma_die` × √2 / √n. n = die 수. 회차 중앙값 두 개의 차의 표준오차
+- `por_gap_over_delta` = gap / Δ
+- `por_gap_over_noise` = gap / se
+
+예전 규칙은 (회차별 die 중앙값의 max − min)/Δ ≥ 1이었습니다. die 잡음만으로도 붙었습니다.
+
+예 (조건 불안정): n = 25 die, `sigma_die` = 2, Δ = 1 → se = 1.2533 × 2 × 1.414 / 5 = 0.709, 3·se = 2.13.
+- A: rr = (−0.6, +0.1, +0.5) → gap = 1.1. Δ 이상이지만 2.13 미만 → 상태 없음. `por_gap_over_delta` = 1.1, `por_gap_over_noise` = 1.55.
+- B: rr = (−1.5, +0.2, +1.3) → gap = 2.8. Δ 이상이고 2.13 이상 → `조건 불안정`, detail `회차 차 2.8Δ`. `por_gap_over_delta` = 2.8, `por_gap_over_noise` = 3.95.
+
+`examples/make_por3_data.py` 예제에서 조건 불안정은 예전 규칙으로 3 ITEM(VOS_OFFSET, IOFF_FLOOR, IOFF_LEAK), 새 규칙으로 0 ITEM입니다. IOFF_FLOOR는 gap/Δ 21.9지만 gap/se 0.85라 die 잡음입니다.
 
 예 (회차 흔들림): die A 회차 10, 14, 6 → 범위 8, 평균 10 → 80%. die B 20, 26, 14 → 12, 20 → 60%. die C 5, 6, 4 → 2, 5 → 40%. `run_jitter_pct` = 중앙값(80, 60, 40) = 60%. 중앙값(범위) = 중앙값(8, 12, 2) = 8. Δ = 5면 `run_jitter_over_delta` = 8/5 = 1.6 ≥ 1 → `회차 흔들림`, detail `회차 흔들림 60% (1.6Δ)`.
 
@@ -276,15 +292,17 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 `python fail_evidence.py --input <items.csv> --out <폴더> [--items ID,...]` — por_doe_compare.py 결과 표(`--out` 폴더의 `items.csv`, 탭 구분 표도 됨. `ITEM` 열과 `<이름>_mean` 회차 열은 compare_before_after.py와 같은 방식으로 읽음)에서 verdict가 '차이'·'미결'인 ITEM의 근거를 규칙으로 계산해 `fail_evidence.csv`, `forest.png`, `items/<ID>.png`, `summary.txt`를 만듭니다. `fail_evidence.csv` 첫 열은 실제 `ITEM` 이름이고, 익명 `ID` 열이 있으면 그 옆에 붙습니다. `--items`를 주면 그 ID만 ITEM 그림을 그립니다(CSV·forest는 전체).
 
-입력에 `status`, `status_detail`, `mean_median_ratio`, `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter` 열이 있으면 `fail_evidence.csv` 맨 끝에 이 순서로 값을 그대로 옮기고, 없으면 빈 칸 열로 둡니다(판정에는 쓰지 않음).
+입력에 `status`, `status_detail`, `mean_median_ratio`, `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter`, `por_gap_over_noise`, `sigma_meas`, `meas_precision_pct`, `sigma_meas_over_delta` 열이 있으면 `fail_evidence.csv` 맨 끝에 이 순서로 값을 그대로 옮기고, 없으면 빈 칸 열로 둡니다(판정에는 쓰지 않음).
 
 열은 이름으로 찾습니다(`POR{k}_mean`은 2개 이상, k 가변). 대상 행에서 `por_median DOE_mean center ci_low ci_high delta LoQ` 열이 없거나 값이 빈칸·숫자 아님(엑셀 넘침 `####`, `***` 등)이면, 또는 값이 있는 POR 회차가 2개 미만이면 judgement='계산 불가'로 쓰고 사유를 note에 남깁니다. 빈 `POR{k}_mean`은 그 회차가 없는 것으로 봅니다. 대상이 아닌 행은 '대상 아님'으로 CSV에만 남깁니다.
 
 | 상수 | 값 | 뜻 |
 |---|---|---|
-| `POR_GAP_OVER_DELTA` | 0.25 | (max POR_mean − min POR_mean)/Δ |
+| `POR_GAP_OVER_DELTA` | 0.25 | items.csv의 짝지은 회차 차/Δ(`por_gap_over_delta`). 열이 없는 옛 items.csv면 (max POR_mean − min POR_mean)/Δ |
 | `MEDIAN_OUT_OVER_DELTA` | 0.10 | por_median이 POR·DOE 평균들의 [min, max] 밖으로 벗어난 거리/Δ |
 | `ITEM_AXIS_OVER_DELTA` | 3 | ITEM 그림 x축 범위 ±3·Δ% (밖은 화살표+숫자) |
+
+por_gap은 items.csv에 `por_gap_over_delta` 열이 있고 값이 유한하면 그 값을 씁니다(`por_gap_def` = '짝지은 회차 차'). 아니면 POR 회차 평균 열로 옛 방식대로 계산합니다(`por_gap_def` = '옛 정의(회차 평균 차)'). `por_gap_def` 열은 `por_gap_over_delta` 바로 뒤에 있습니다. 옛 정의로 계산한 행이 있으면 `summary.txt`에 `por_gap: 옛 정의(회차 평균 차) n행 (items.csv에 짝지은 회차 차 열 없음)` 줄이 붙습니다.
 
 내부 기준 값이며 비율은 소수 9자리로 반올림한 뒤 비교합니다. 분류(위에서부터 먼저 맞는 것):
 
@@ -298,7 +316,7 @@ verdict가 '판정 제외'인 행은 근거 대상이 아니며, '계산 불가'
 
 ## 기존·개선 비교 (`compare_before_after.py`)
 
-`python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더>` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. 첫 열 `ITEM`은 ID로 읽고(탭 구분 표의 `ID` 열도 됨), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`, `summary.txt`, σ 짝 비교 그림으로 냅니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 실제 `ITEM` 이름이고, 입력에 summarize.py의 익명 `ID` 열이 같이 있으면 그 옆에 `ID` 열로 붙습니다. 비교 키는 항상 실제 ITEM입니다. 한쪽에만 있는 ITEM은 따로 표시하고 σ 집계에서 뺍니다. 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 `misaligned` 열에 표시만 하고 기본으로 σ 집계에 포함합니다. 빼려면 `--exclude-misaligned`를 붙입니다. `compare.csv`에는 측정 정밀도 열 `meas_precision_pct_before`·`meas_precision_pct_after`·`meas_precision_pct_change`(개선−기존)와 `meas_precision_status`(`sigma_die_status`와 같은 규칙: lower/higher/same, 낮을수록 좋음)도 붙습니다. 입력 items.csv에 `meas_precision_pct` 열이 없으면(예전 결과) 100 × √(σ_die² + σ_run²) / |por_median|으로 계산합니다. `evidence <items.csv> -o <폴더>` 모드도 있고, 그 `evidence.csv`에도 같은 방식의 `meas_precision_pct` 열이 붙습니다.
+`python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더>` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. 첫 열 `ITEM`은 ID로 읽고(탭 구분 표의 `ID` 열도 됨), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`, `summary.txt`, σ 짝 비교 그림으로 냅니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 실제 `ITEM` 이름이고, 입력에 summarize.py의 익명 `ID` 열이 같이 있으면 그 옆에 `ID` 열로 붙습니다. 비교 키는 항상 실제 ITEM입니다. 한쪽에만 있는 ITEM은 따로 표시하고 σ 집계에서 뺍니다. 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 `misaligned` 열에 표시만 하고 기본으로 σ 집계에 포함합니다. 빼려면 `--exclude-misaligned`를 붙입니다. `compare.csv`에는 측정 정밀도 열 `meas_precision_pct_before`·`meas_precision_pct_after`·`meas_precision_pct_change`(개선−기존)와 `meas_precision_status`(`sigma_die_status`와 같은 규칙: lower/higher/same, 낮을수록 좋음)도 붙습니다. 입력 items.csv에 `meas_precision_pct` 열이 없으면(예전 결과) 100 × √(σ_die² + σ_run²) / |por_median|으로 계산합니다. `evidence <items.csv> -o <폴더>` 모드도 있고, 그 `evidence.csv`에도 같은 방식의 `meas_precision_pct` 열이 붙습니다. `evidence.csv`의 `por_gap_over_delta`(미결-기준 흔들림 근거)도 fail_evidence.py와 같은 규칙입니다. items.csv의 짝지은 회차 차를 쓰고(`por_gap_def` = '짝지은 회차 차'), 열이 없는 옛 items.csv면 회차 평균의 max − min으로 계산하며(`por_gap_def` = '옛 정의(회차 평균 차)'), 그런 행이 있으면 `summary.txt`에 `por_gap: 옛 정의(회차 평균 차) n행 (items.csv에 짝지은 회차 차 열 없음)` 줄이 붙습니다.
 
 `--plot-top N`(기본 30)은 σ 짝 그림에 |개선−기존| 변화가 큰 ITEM N개만 그리고 제목에 '상위 N / 전체 M'을 적습니다(전체가 N개 이하면 '전체 M'). `run_all.py --plot-top N`으로도 넘길 수 있습니다.
 

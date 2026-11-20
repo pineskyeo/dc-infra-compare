@@ -81,9 +81,11 @@ EVIDENCE_COLS = [
     "center_over_delta", "ci_low_over_delta", "ci_high_over_delta",
     "ci_halfwidth_over_delta", "loq_ratio",
     "sigma_die_pct", "meas_precision_pct", "sigma_run_pct", "delta_pct",
-    "median_outside_runs", "por_gap_over_delta", "median_out_over_delta",
+    "median_outside_runs", "por_gap_over_delta", "por_gap_def", "median_out_over_delta",
     "judgment",
 ]
+GAP_DEF_PAIRED = "짝지은 회차 차"
+GAP_DEF_OLD = "옛 정의(회차 평균 차)"
 
 
 # ---------------------------------------------------------------- 글꼴·읽기
@@ -271,7 +273,13 @@ def evidence_table(df: pd.DataFrame) -> pd.DataFrame:
             por_gap, por_avg = math.nan, math.nan
         all_means = por_ok + ([doe] if _finite(doe) else [])
         med_out = median_out_distance(med, all_means)
-        gap_over_d = por_gap / delta if (_finite(por_gap) and _finite(delta) and delta != 0) else math.nan
+        paired = _num(r, "por_gap_over_delta")  # items.csv의 짝지은 회차 차/Δ. 열이 없거나 빈칸이면 nan
+        if _finite(paired):
+            gap_over_d, gap_def = paired, GAP_DEF_PAIRED
+            por_gap = paired * delta if _finite(delta) else math.nan
+        else:
+            gap_over_d = por_gap / delta if (_finite(por_gap) and _finite(delta) and delta != 0) else math.nan
+            gap_def = GAP_DEF_OLD
         med_over_d = med_out / delta if (_finite(med_out) and _finite(delta) and delta != 0) else math.nan
         rec = {
             "ID": r["ID"],
@@ -294,6 +302,7 @@ def evidence_table(df: pd.DataFrame) -> pd.DataFrame:
             "delta_pct": pct_of_median(delta, med),
             "median_outside_runs": bool(_finite(med_out) and med_out > 0),
             "por_gap_over_delta": gap_over_d,
+            "por_gap_def": gap_def,
             "median_out_over_delta": med_over_d,
             "p1_pct": pct_of_median((_num(r, "POR1_mean") - med) if _finite(_num(r, "POR1_mean")) and _finite(med) else math.nan, med),
             "p2_pct": pct_of_median((_num(r, "POR2_mean") - med) if _finite(_num(r, "POR2_mean")) and _finite(med) else math.nan, med),
@@ -377,6 +386,9 @@ def run_evidence(result_path: str, out_dir: str) -> pd.DataFrame:
     extra = ev.loc[~ev["group"].isin(GROUP_ORDER), "group"]
     if len(extra):
         lines.append(f"  그 외: {extra.value_counts().to_dict()}")
+    n_old = int((ev["por_gap_def"] == GAP_DEF_OLD).sum())
+    if n_old:
+        lines.append(f"por_gap: {GAP_DEF_OLD} {n_old}행 (items.csv에 {GAP_DEF_PAIRED} 열 없음)")
     text = "\n".join(lines)
     (out / "summary.txt").write_text(text + "\n", encoding="utf-8")
     print(text)

@@ -44,7 +44,9 @@ SIZE_JITTER_RHO = -0.5          # 작을수록 흔들림: Spearman ρ(크기, lo
 SIZE_JITTER_MIN_DIE = 10
 STATUS_COLS = ["status", "status_detail", "mean_median_ratio"]
 JITTER_COLS = ["run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter"]
+GAP_COLS = ["por_gap_over_delta", "por_gap_over_noise"]
 PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
+POR_GAP_NOISE_K = 3             # 조건 불안정: 짝지은 회차 차 ≥ 이 배수 × 회차 중앙값 차의 표준오차
 ST_OK, ST_UNSTABLE, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "분해능 부족", "산포 0"
 ST_RUN_JITTER, ST_SIZE_JITTER = "회차 흔들림", "작을수록 흔들림"
 ST_SETUP_ERROR = "조건 설정 오류"     # 예약 값. 판정에 필요한 입력이 없어 지금은 쓰지 않음
@@ -198,16 +200,27 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     """판정과 별개인 데이터 상태. 해당하는 것을 모두 ';'로 잇는다 (status와 status_detail 같은 순서).
     Y: die × 회차 POR 값, z: DOE die 값, delta: 그 ITEM의 최종 Δ.
     Δ ≤ 0 또는 NaN이면 조건 불안정·회차 흔들림·분해능 부족은 건너뜀. 회차 흔들림·작을수록 흔들림은 POR 회차만 씀
-    (POR 1회면 JITTER_COLS 모두 NaN). 작을수록 흔들림은 0값 없는 die가 SIZE_JITTER_MIN_DIE개 이상일 때만."""
+    (POR 1회면 JITTER_COLS 모두 NaN).
+    조건 불안정은 짝지은 회차 차: die별 회차 평균을 뺀 값의 회차별 중앙값 rr, gap = max(rr) − min(rr).
+    se = 1.2533 · sigma_die · √2 / √n (n = die 수, 두 중앙값 차의 표준오차). gap ≥ Δ 이고 gap ≥ POR_GAP_NOISE_K · se 일 때
+    (se가 0이거나 유한하지 않으면 gap ≥ Δ 만). GAP_COLS: por_gap_over_delta = gap / Δ, por_gap_over_noise = gap / se,
+    계산할 수 없으면 NaN (POR 1회면 둘 다 NaN, 조건 불안정 없음). 작을수록 흔들림은 0값 없는 die가 SIZE_JITTER_MIN_DIE개 이상일 때만."""
     Y, z = np.asarray(Y, float), np.asarray(z, float)
     R = Y.mean(axis=1)
     has_delta = bool(delta > 0)     # NaN도 False
     names, details = [], []
 
-    if has_delta:
-        run_med = np.median(Y, axis=0)
-        gap = float(run_med.max() - run_med.min())
-        if gap / delta >= 1:
+    gap_cols = dict.fromkeys(GAP_COLS, np.nan)
+    if Y.ndim == 2 and Y.shape[1] > 1:
+        rr = np.median(Y - Y.mean(axis=1, keepdims=True), axis=0)
+        gap = float(rr.max() - rr.min())
+        se = 1.2533 * robust_noise(Y)[0] * np.sqrt(2) / np.sqrt(Y.shape[0])
+        noisy = bool(np.isfinite(se) and se > 0)
+        if has_delta and np.isfinite(delta):
+            gap_cols["por_gap_over_delta"] = gap / delta
+        if noisy:
+            gap_cols["por_gap_over_noise"] = gap / se
+        if has_delta and gap >= delta and (not noisy or gap >= POR_GAP_NOISE_K * se):
             names.append(ST_UNSTABLE)
             details.append(f"회차 차 {gap / delta:.1f}Δ")
 
@@ -235,7 +248,7 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
 
     med = float(np.median(R))
     return {"status": ";".join(names) or ST_OK, "status_detail": ";".join(details),
-            "mean_median_ratio": (float(R.mean()) - med) / abs(med) if med != 0 else np.nan, **jit}
+            "mean_median_ratio": (float(R.mean()) - med) / abs(med) if med != 0 else np.nan, **jit, **gap_cols}
 
 
 def meas_precision(sigma_die: float, sigma_run: float, por_median: float, delta: float) -> dict:
@@ -483,7 +496,7 @@ def main() -> None:
 
     first = ["ITEM", "UNIT", "zone", "verdict", "reason"]
     res = pd.DataFrame(rows)
-    tail = STATUS_COLS + JITTER_COLS + PRECISION_COLS
+    tail = STATUS_COLS + JITTER_COLS + GAP_COLS + PRECISION_COLS
     res = res[first + [c for c in res.columns if c not in first + tail] + tail]
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
     out = Path(a.out)

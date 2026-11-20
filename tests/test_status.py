@@ -101,7 +101,7 @@ def test_fail_evidence_copies_status_columns(tmp_path: Path):
 
     assert fail_evidence.main(["--input", str(inp), "--out", str(tmp_path / "out")]) == 0
     out = read_out(tmp_path / "out" / "fail_evidence.csv")
-    assert list(out.columns[-9:-6]) == ["status", "status_detail", "mean_median_ratio"]
+    assert list(out.columns[-10:-7]) == ["status", "status_detail", "mean_median_ratio"]
     assert out["status"].tolist() == status
     assert out["status_detail"].tolist() == detail
     assert out["mean_median_ratio"].tolist() == ratio
@@ -110,7 +110,7 @@ def test_fail_evidence_copies_status_columns(tmp_path: Path):
 def test_fail_evidence_without_status_columns(tmp_path: Path):
     assert fail_evidence.main(["--input", str(SYNTH_TSV), "--out", str(tmp_path / "out")]) == 0
     out = read_out(tmp_path / "out" / "fail_evidence.csv")
-    assert list(out.columns[-9:-6]) == ["status", "status_detail", "mean_median_ratio"]
+    assert list(out.columns[-10:-7]) == ["status", "status_detail", "mean_median_ratio"]
     for c in ("status", "status_detail", "mean_median_ratio", *JITTER):
         assert (out[c] == "").all()
 
@@ -132,6 +132,6 @@ def test_compare_cli_writes_status_columns(tmp_path: Path):
     with open(out / "items.csv", encoding="utf-8-sig", newline="") as f:
         rows = list(csv.reader(f))
     header = rows[0]
-    assert header[-9:-3] == ["status", "status_detail", "mean_median_ratio", *JITTER]
+    assert header[-11:-5] == ["status", "status_detail", "mean_median_ratio", *JITTER]
     assert len(rows) > 1
     assert all(r[header.index("status")] for r in rows[1:])

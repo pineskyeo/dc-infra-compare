@@ -27,7 +27,7 @@ except ImportError:  # plot_verdicts가 없으면 DejaVu 그대로 쓴다.
         return None
 
 # 내부 기준 (README 표와 맞춘다)
-POR_GAP_OVER_DELTA = 0.25      # (max POR_mean - min POR_mean)/Δ
+POR_GAP_OVER_DELTA = 0.25      # POR 회차 차/Δ (items.csv의 짝지은 회차 차, 없으면 회차 평균 max−min)
 MEDIAN_OUT_OVER_DELTA = 0.10   # por_median이 POR·DOE 평균들의 [min,max] 밖으로 벗어난 거리/Δ
 ITEM_AXIS_OVER_DELTA = 3.0     # ITEM 그림 x축 범위 = ±(이 값)·Δ%
 RATIO_DIGITS = 9               # 비율을 기준과 비교하기 전 반올림 자릿수(부동소수 잔차 제거)
@@ -44,6 +44,8 @@ JUDGEMENT_ORDER = (J_DIFF, J_OK, J_BASE, J_NA, J_EXCL, J_SKIP)
 PLOT_ORDER = (J_DIFF, J_OK, J_BASE)
 JUDGEMENT_COLORS = {J_DIFF: "#d62728", J_OK: "#1f77b4", J_BASE: "#ff7f0e"}
 MISMATCH_NOTE = "verdict와 다름"
+GAP_DEF_PAIRED = "짝지은 회차 차"
+GAP_DEF_OLD = "옛 정의(회차 평균 차)"
 
 NUMERIC_COLUMNS = ("por_median", "DOE_mean", "center", "ci_low", "ci_high", "delta", "LoQ")
 POR_MEAN_RE = re.compile(r"^POR(\d+)_mean$")
@@ -97,13 +99,14 @@ def with_anon(table: pd.DataFrame, src: pd.DataFrame) -> pd.DataFrame:
 
 STATUS_COLUMNS = ("status", "status_detail", "mean_median_ratio")
 JITTER_COLUMNS = ("run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter")
+GAP_COLUMNS = ("por_gap_over_noise",)    # por_gap_over_delta는 이 파일이 따로 계산하는 열과 이름이 같아 복사하지 않음
 PRECISION_COLUMNS = ("sigma_meas", "meas_precision_pct", "sigma_meas_over_delta")
 
 
 def with_status(table: pd.DataFrame, src: pd.DataFrame) -> pd.DataFrame:
     """입력의 데이터 상태 열을 행 순서 그대로(값은 문자열 그대로) 끝에 붙인다. 입력에 없으면 빈 칸."""
     out = table.copy()
-    for c in STATUS_COLUMNS + JITTER_COLUMNS + PRECISION_COLUMNS:
+    for c in STATUS_COLUMNS + JITTER_COLUMNS + GAP_COLUMNS + PRECISION_COLUMNS:
         out[c] = src[c].tolist() if c in src.columns else ""
     return out
 
@@ -129,7 +132,7 @@ def por_ks(columns) -> list[int]:
 def csv_columns(ks: list[int]) -> list[str]:
     return (["ID", "verdict", "judgement", "rule_hit", "doe_pct"]
             + [f"por{k}_pct" for k in ks]
-            + ["por_gap_pct", "por_gap_over_delta", "median_out_over_delta", "delta_pct",
+            + ["por_gap_pct", "por_gap_over_delta", "por_gap_def", "median_out_over_delta", "delta_pct",
                "center_over_delta", "ci_low_over_delta", "ci_high_over_delta",
                "ci_half_over_delta", "loq_multiple", "note"])
 
@@ -160,7 +163,7 @@ def row_evidence(row: dict, ks: list[int], missing_cols: list[str],
                  median_out_limit: float = MEDIAN_OUT_OVER_DELTA) -> dict:
     verdict = str(row.get("verdict", "")).strip()
     out = {c: NAN for c in csv_columns(ks)}
-    out.update(ID=str(row.get("ID", "")).strip(), verdict=verdict, rule_hit="", note="")
+    out.update(ID=str(row.get("ID", "")).strip(), verdict=verdict, rule_hit="", note="", por_gap_def="")
     if verdict not in TARGET_VERDICTS:
         out["judgement"] = J_EXCL if verdict == J_EXCL else J_SKIP
         return out
@@ -194,7 +197,11 @@ def row_evidence(row: dict, ks: list[int], missing_cols: list[str],
 
     d, med, doe = vals["delta"], vals["por_median"], vals["DOE_mean"]
     means = list(por.values())
-    gap = max(means) - min(means)
+    paired, _ = parse_value(row.get("por_gap_over_delta"))
+    if paired is not None:
+        gap, gap_def = paired * d, GAP_DEF_PAIRED
+    else:  # 예전 items.csv(열 없음) 또는 빈칸
+        gap, gap_def = max(means) - min(means), GAP_DEF_OLD
     lo, hi = min(means + [doe]), max(means + [doe])
     median_out = max(0.0, lo - med, med - hi)
     mean_por = sum(means) / len(means)
@@ -206,7 +213,8 @@ def row_evidence(row: dict, ks: list[int], missing_cols: list[str],
     for k, v in por.items():
         out[f"por{k}_pct"] = pct(v)
     out["por_gap_pct"] = gap / abs(mean_por) * 100 if mean_por != 0 else NAN
-    out["por_gap_over_delta"] = gap / d
+    out["por_gap_over_delta"] = paired if paired is not None else gap / d
+    out["por_gap_def"] = gap_def
     out["median_out_over_delta"] = median_out / d
     out["delta_pct"] = d / abs(med) * 100 if med != 0 else NAN
     out["center_over_delta"] = vals["center"] / d
@@ -242,6 +250,10 @@ def evidence_table(df: pd.DataFrame,
     return pd.DataFrame(records, columns=csv_columns(ks))
 
 
+def old_gap_line(n: int) -> str:
+    return f"por_gap: {GAP_DEF_OLD} {n}행 (items.csv에 {GAP_DEF_PAIRED} 열 없음)"
+
+
 def summary_text(table: pd.DataFrame, input_name: str = "",
                  por_gap_limit: float = POR_GAP_OVER_DELTA,
                  median_out_limit: float = MEDIAN_OUT_OVER_DELTA) -> str:
@@ -256,6 +268,9 @@ def summary_text(table: pd.DataFrame, input_name: str = "",
               f"  POR_GAP_OVER_DELTA = {por_gap_limit:g}",
               f"  MEDIAN_OUT_OVER_DELTA = {median_out_limit:g}",
               f"  ITEM_AXIS_OVER_DELTA = {ITEM_AXIS_OVER_DELTA:g}"]
+    n_old = int((table["por_gap_def"] == GAP_DEF_OLD).sum()) if "por_gap_def" in table.columns else 0
+    if n_old:
+        lines.append(old_gap_line(n_old))
     return "\n".join(lines) + "\n"
 
 

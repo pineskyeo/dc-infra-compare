@@ -118,7 +118,7 @@ def test_fail_evidence_copies_jitter_columns(tmp_path: Path):
     assert fail_evidence.main(["--input", str(inp), "--out", str(tmp_path / "out")]) == 0
     out = pd.read_csv(tmp_path / "out" / "fail_evidence.csv", encoding="utf-8-sig",
                       dtype=str, keep_default_na=False)
-    assert list(out.columns[-6:-3]) == JITTER_COLS
+    assert list(out.columns[-7:-4]) == JITTER_COLS
     for c, v in cols.items():
         assert out[c].tolist() == v
 

@@ -157,6 +157,7 @@ def test_main_writes_outputs(tmp_path: Path, capsys):
                       dtype={"ITEM": str}, keep_default_na=False, na_values=[""])
     assert list(csv.columns) == ["ITEM"] + fe.csv_columns([1, 2, 3])[1:] + ["status", "status_detail", "mean_median_ratio",
                                                                         "run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter",
+                                                                        "por_gap_over_noise",
                                                                         "sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
     assert dict(zip(csv["ITEM"], csv["judgement"])) == EXPECTED
 
