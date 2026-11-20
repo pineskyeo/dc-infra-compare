@@ -2,7 +2,8 @@
 
 입력: por_doe_compare 의 items.csv. 쓰는 열:
   ITEM, status, verdict, verdict_log, ci_half_over_delta, ci_half_over_delta_log
-대상: status(';' 로 이은 문자열)에 '작을수록 흔들림' 또는 '클수록 흔들림' 이 있는 ITEM.
+대상: por_doe_compare.is_log_target 과 같다. status(';' 로 이은 문자열)에 '작을수록 흔들림' 또는
+'클수록 흔들림' 이 있는 ITEM + verdict ≠ verdict_log ITEM (verdict_log 판정 제외·빈칸은 아님, 마커 P).
 
 출력 (<out>/, 이 두 파일만 덮어씀):
   log_compare.png  x = 선형 비, y = log 비 (두 축 log), y=x 선. 대각선 아래 = log 쪽 CI 가 좁음.
@@ -25,29 +26,23 @@ from matplotlib.lines import Line2D
 
 from compare_metrics import _save, set_font
 
-try:
-    import por_doe_compare as _pdc
-except ImportError:  # scipy 등 없는 환경에서도 그림만은 그릴 수 있게
-    _pdc = None
-
-ST_SIZE_JITTER = getattr(_pdc, "ST_SIZE_JITTER", "작을수록 흔들림")
-ST_SIZE_JITTER_POS = getattr(_pdc, "ST_SIZE_JITTER_POS", "클수록 흔들림")
-TARGETS = (ST_SIZE_JITTER, ST_SIZE_JITTER_POS)
+from por_doe_compare import ST_SIZE_JITTER, ST_SIZE_JITTER_POS, log_target_statuses, verdict_log_differs
 
 PNG_NAME, CSV_NAME = "log_compare.png", "log_compare.csv"
 X_COL, Y_COL = "ci_half_over_delta", "ci_half_over_delta_log"
 CSV_COLS = ["ITEM", "target_status", X_COL, Y_COL, "verdict", "verdict_log", "changed"]
+VERDICT_DIFF = "verdict≠verdict_log"     # 흔들림 status 없이 verdict 와 verdict_log 가 달라 대상이 된 ITEM
 
-MARKER = {ST_SIZE_JITTER: "o", ST_SIZE_JITTER_POS: "^", "both": "D"}
+MARKER = {ST_SIZE_JITTER: "o", ST_SIZE_JITTER_POS: "^", "both": "D", VERDICT_DIFF: "P"}
 C_SAME, C_CHANGED = "#2f6db5", "#d62728"
 
 
-def target_status(status) -> str:
-    """status 문자열에서 대상 사유만 골라 '; ' 로 잇는다. 없으면 ''."""
-    if not isinstance(status, str):
-        return ""
-    parts = {p.strip() for p in status.split(";")}
-    return "; ".join(t for t in TARGETS if t in parts)
+def target_status(status, verdict=None, verdict_log=None) -> str:
+    """status 에서 대상 사유만 골라 '; ' 로 잇는다. 없고 verdict ≠ verdict_log 면 VERDICT_DIFF, 둘 다 아니면 ''."""
+    hit = log_target_statuses(status)
+    if hit:
+        return "; ".join(hit)
+    return VERDICT_DIFF if verdict_log_differs(verdict, verdict_log) else ""
 
 
 def build_table(items: pd.DataFrame) -> pd.DataFrame:
@@ -55,7 +50,7 @@ def build_table(items: pd.DataFrame) -> pd.DataFrame:
     for c in ("ITEM", "status", "verdict", "verdict_log", X_COL, Y_COL):
         if c not in df:
             df[c] = np.nan
-    df["target_status"] = df["status"].map(target_status)
+    df["target_status"] = [target_status(*a) for a in zip(df["status"], df["verdict"], df["verdict_log"])]
     df = df[df["target_status"] != ""].copy()
     for c in (X_COL, Y_COL):
         df[c] = pd.to_numeric(df[c], errors="coerce")

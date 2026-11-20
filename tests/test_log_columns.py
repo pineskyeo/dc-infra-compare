@@ -1,4 +1,4 @@
-"""WO-S S1: items.csv 의 log 판정 참고 열 (작을수록·클수록 흔들림 ITEM 만)."""
+"""WO-S S1: items.csv 의 log 판정 참고 열 (WO-U-A2 부터 0 없고 부호 하나인 모든 ITEM)."""
 import math
 
 import numpy as np
@@ -75,11 +75,13 @@ def test_judge_log_policy_is_log10_1_plus_r():
     assert "blank_status" not in lr and "accuracy_margin" not in lr
 
 
-def test_t2_not_target_gives_nan():
+def test_t2_non_jitter_status_still_fills_log_columns():
+    """WO-U-A2: log 열 대상은 status 무관 (0 없고 부호 하나인 모든 ITEM)."""
     row = run_item(*log_normal_data())
     assert not {pdc.ST_SIZE_JITTER, pdc.ST_SIZE_JITTER_POS} & set(parts(row["status"]))
-    assert all(math.isnan(row[c]) for c in LOG_COLS if c not in ("log_reason", "below_linear_loq"))
-    assert row["log_reason"] == ""
+    assert row["verdict_log"] in {"동등", "차이", "미결"}
+    assert all(np.isfinite(row[c]) for c in LOG_NUM)
+    assert row["log_reason"]
 
 
 def test_t3_zero_value_excluded():

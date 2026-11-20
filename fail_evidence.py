@@ -27,7 +27,7 @@ import por_doe_compare  # noqa: E402
 from compare_metrics import safe_group_name  # noqa: E402
 from por_doe_compare import (  # noqa: E402
     POR_GAP_NOISE_K, ST_BIMODAL, ST_FLAT, ST_LOG_CANDIDATE, ST_OK, ST_RESOLUTION, ST_RUN_JITTER, ST_SETUP_ERROR,
-    ST_SIZE_JITTER, ST_SIZE_JITTER_POS, ST_UNSTABLE,
+    ST_SIZE_JITTER, ST_SIZE_JITTER_POS, ST_UNSTABLE, is_log_target,
     add_common_args, load_blank, load_wide, read_csv_auto,
 )
 
@@ -351,22 +351,16 @@ def select_items(plain: pd.DataFrame, extra: list[str]) -> tuple[list[str], list
     return list(dict.fromkeys(chosen)), sorted(wanted - set(ids))
 
 
-# ST_SIZE_JITTER_POS 는 다른 브랜치에서 들어온다. 그 전까지 이 한 곳만 이름 기본값을 쓴다.
-LOG_TARGET_STATUSES = (ST_SIZE_JITTER, getattr(por_doe_compare, "ST_SIZE_JITTER_POS", "클수록 흔들림"))
-
-
-def is_log_target(status) -> bool:
-    """status(';' 구분)에 작을수록·클수록 흔들림이 있으면 True."""
-    text = "" if pd.isna(status) else str(status)
-    return any(s.strip() in LOG_TARGET_STATUSES for s in text.split(";"))
+def _row_log_target(r) -> bool:
+    return is_log_target(r.get("status", ""), r.get("verdict", ""), r.get("verdict_log", ""))
 
 
 def log_only_items(plain: pd.DataFrame, ids: list[str]) -> list[str]:
-    """log 대상인데 ids(차이·미결·--items)에 없는 ITEM(입력 순서). 폴더에 summary.csv·log_diag.png 만 쓴다."""
-    if "status" not in plain.columns:
+    """log 대상(is_log_target)인데 ids(차이·미결·--items)에 없는 ITEM(입력 순서). 폴더에 summary.csv·log_diag.png 만 쓴다."""
+    if plain.empty:
         return []
     keys = plain[key_column(plain)].astype(str).str.strip()
-    hit = keys[plain["status"].map(is_log_target)]
+    hit = keys[plain.apply(_row_log_target, axis=1)]
     return [i for i in dict.fromkeys(hit) if i not in set(ids)]
 
 
@@ -385,7 +379,7 @@ def items_index(plain: pd.DataFrame, ids: list[str]) -> pd.DataFrame:
         while name in used:
             name, n = f"{base}_{n}", n + 1
         used.add(name)
-        rows.append(dict(zip(INDEX_COLUMNS, (item, typ, verdict, status, f"{ITEMS_DIR}/{name}", is_log_target(status)))))
+        rows.append(dict(zip(INDEX_COLUMNS, (item, typ, verdict, status, f"{ITEMS_DIR}/{name}", _row_log_target(r)))))
     return pd.DataFrame(rows, columns=list(INDEX_COLUMNS))
 
 

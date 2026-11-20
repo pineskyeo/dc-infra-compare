@@ -57,7 +57,7 @@ SHAPE_COLS = ["decades", "skew_lin", "skew_log", "log_fit", "bimodality_log"]   
 STATUS_COLS = ["status", *METRIC_COLS, *SHAPE_COLS, "mean_median_ratio"]
 PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
 LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta",
-            "ci_half_over_delta_log", "spearman_size_jitter_log", "log_reason",     # 작을수록·클수록 흔들림 ITEM 참고용
+            "ci_half_over_delta_log", "spearman_size_jitter_log", "log_reason",     # 0 없고 부호 하나인 ITEM 참고용
             "sigma_die_log", "sigma_run_log", "below_linear_loq", "policy_margin_log"]   # 분석용, 판정에 안 씀
 POR_GAP_NOISE_K = 3             # 조건 불안정: 짝지은 회차 차 ≥ 이 배수 × 회차 중앙값 차의 표준오차
 ST_OK, ST_UNSTABLE, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "분해능 부족", "산포 0"
@@ -167,14 +167,27 @@ def robust_sigma(x: np.ndarray) -> float:
     return float(1.4826 * np.median(np.abs(x - np.median(x))))
 
 
-def robust_noise(Y: np.ndarray) -> tuple[float, float]:
-    """(sigma_die, sigma_run). sigma_run 은 회차별 중앙값들의 분산에서 die 잡음 몫((π/2) sigma_die² / n)을 뺀 것."""
+def _noise_parts(Y: np.ndarray) -> tuple[float, float]:
+    """(sigma_die, sigma_run² 추정값). 추정값은 회차별 중앙값들의 분산 − (π/2) sigma_die² / n 이라 0 이하일 수 있다."""
     n, J = Y.shape
     dd = [Y[:, k + 1] - Y[:, k] for k in range(J - 1)]
     s_die = robust_sigma(np.concatenate([x - np.median(x) for x in dd])) / np.sqrt(2)
     r = np.median(Y - Y.mean(axis=1, keepdims=True), axis=0)
-    s_run = float(np.sqrt(max(0.0, r.var(ddof=1) - (np.pi / 2) * s_die ** 2 / n)))
-    return s_die, s_run
+    return s_die, r.var(ddof=1) - (np.pi / 2) * s_die ** 2 / n
+
+
+def robust_noise(Y: np.ndarray) -> tuple[float, float]:
+    """(sigma_die, sigma_run). sigma_run 은 회차별 중앙값들의 분산에서 die 잡음 몫((π/2) sigma_die² / n)을 뺀 것."""
+    s_die, v = _noise_parts(Y)
+    return s_die, float(np.sqrt(max(0.0, v)))
+
+
+def sigma_run_clipped(Y: np.ndarray) -> bool | float:
+    """robust_noise 의 sigma_run 이 max(0, …) 로 잘렸으면(뺀 값 ≤ 0) True. 회차 < 2·die < 2 이거나 값이 NaN 이면 NaN."""
+    if Y.ndim != 2 or Y.shape[0] < 2 or Y.shape[1] < 2:
+        return np.nan
+    v = _noise_parts(Y)[1]
+    return bool(v <= 0) if np.isfinite(v) else np.nan
 
 
 def run_factor(J: int) -> float:
@@ -432,7 +445,7 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo
         **{f"POR{k + 1}_mean": float(Y[:, k].mean()) for k in range(J)}, "DOE_mean": float(z.mean()),
         "center": center, "ci_low": lo, "ci_high": hi, "delta": delta,
         "policy_margin": policy, "run_margin": run_term, "sigma_die": s_die, "sigma_run": s_run,
-        "LoQ": loq, "LoD": lod, "limit_source": src, "n_outlier_die": int(outlier.sum()),
+        "sigma_run_clipped": sigma_run_clipped(Y), "LoQ": loq, "LoD": lod, "limit_source": src, "n_outlier_die": int(outlier.sum()),
         "ttest": "유의차" if p_t < 0.05 else "유의차 없음", "ttest_p": p_t,
         "por_ttest_sig": f"{sum(p < 0.05 for p in por_pairs)}/{len(por_pairs)}",
         **sp, **bl,
@@ -485,9 +498,9 @@ def _ci_half_over_delta(res: dict) -> float:
     return (hi - lo) / 2 / delta if np.isfinite(delta) and delta > 0 else np.nan
 
 
-def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict, status: str) -> dict:
-    """LOG_COLS. status 에 작을수록·클수록 흔들림이 있는 ITEM 만, 나머지는 NaN·log_reason 빈칸.
-    POR·DOE 값에 0 이 있거나 부호가 섞이면 verdict_log 판정 제외, log_reason 에 사유, log 숫자 열 NaN.
+def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict) -> dict:
+    """LOG_COLS. 모든 ITEM (status 무관): POR·DOE 값에 0 이 없고 부호가 하나면 log 판정 값을 채운다.
+    0 이 있거나 부호가 섞이면 verdict_log 판정 제외, log_reason 에 사유, log 숫자 열 NaN.
     spearman_size_jitter_log = Spearman ρ(log10|회차 평균|, die별 log10|값| 회차 범위), _jitter 와 같은 _size_rho.
     log_reason 은 log 판정이 된 ITEM 이면 judge_log 의 reason (ASSUMED).
     분석용 열 (판정에 안 씀): sigma_*_log 는 judge_log 결과의 sigma_die·sigma_run, verdict_log 가 판정 제외면 NaN.
@@ -498,8 +511,6 @@ def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict, status: str) 
     doe_c = float(res.get("por_median", np.nan)) + float(res.get("center", np.nan))
     if np.isfinite(loq) and np.isfinite(doe_c):
         out["below_linear_loq"] = bool(abs(doe_c) < loq)
-    if not {ST_SIZE_JITTER, ST_SIZE_JITTER_POS} & set(status.split(";")):
-        return out
     out["ci_half_over_delta"] = _ci_half_over_delta(res)
     vals = np.concatenate([Y.ravel(), z])
     causes = [c for c, bad in (("0값 있음", (vals == 0).any()),
@@ -516,6 +527,31 @@ def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict, status: str) 
             "spearman_size_jitter_log": rho, "log_reason": lr["reason"],
             **({} if lr["verdict"] == V_EXCLUDED else {"sigma_die_log": lr["sigma_die"], "sigma_run_log": lr["sigma_run"]}),
             "policy_margin_log": float(np.log10(1 + r))}
+
+
+LOG_TARGET_STATUSES = (ST_SIZE_JITTER, ST_SIZE_JITTER_POS)
+
+
+def _text(v) -> str:
+    return "" if v is None or (isinstance(v, float) and np.isnan(v)) else str(v).strip()
+
+
+def log_target_statuses(status) -> list[str]:
+    """status(';' 구분)에 들어 있는 LOG_TARGET_STATUSES (LOG_TARGET_STATUSES 순서)."""
+    parts = {p.strip() for p in _text(status).split(";")}
+    return [s for s in LOG_TARGET_STATUSES if s in parts]
+
+
+def verdict_log_differs(verdict, verdict_log) -> bool:
+    """verdict 와 verdict_log 가 둘 다 값이 있고 다르면 True. verdict_log 가 판정 제외·빈칸이면 False."""
+    v, vl = _text(verdict), _text(verdict_log)
+    return bool(v and vl and vl != V_EXCLUDED and v != vl)
+
+
+def is_log_target(status, verdict=None, verdict_log=None) -> bool:
+    """log 진단 대상 (fail_evidence log_diag.png, log_compare): status 에 작을수록·클수록 흔들림이 있거나
+    verdict ≠ verdict_log (verdict_log_differs)."""
+    return bool(log_target_statuses(status)) or verdict_log_differs(verdict, verdict_log)
 
 
 def load_levels(path: str, encoding: str) -> dict[str, ItemInfo]:
@@ -585,7 +621,7 @@ def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: 
         extra["verdict_no_blank"] = judge(Y, z, r, None, info)[0]["verdict"]
     status = item_status(Y, z, res["delta"])
     prec = meas_precision(*(res.get(k, np.nan) for k in ("sigma_die", "sigma_run", "por_median", "delta")))
-    logs = log_columns(Y, z, r, res, status["status"])
+    logs = log_columns(Y, z, r, res)
     return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **status, **prec, **logs}, mask
 
 

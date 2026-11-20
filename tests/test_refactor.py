@@ -75,6 +75,9 @@ def test_items_csv_is_byte_identical_to_frozen_legacy(por3_data: Path, tmp_path:
                    "sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
     assert new_rows[0][-len(status_cols):] == status_cols
     new_rows = [r[:-len(status_cols)] for r in new_rows]
+    clipped = new_rows[0].index("sigma_run_clipped")
+    assert new_rows[0][clipped - 1] == "sigma_run"
+    new_rows = [r[:clipped] + r[clipped + 1:] for r in new_rows]
     legacy_rows = rows(legacy_out / "items.csv")
     header = new_rows[0]
     assert header == legacy_rows[0]

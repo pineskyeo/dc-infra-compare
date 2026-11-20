@@ -16,7 +16,7 @@ if str(ROOT) not in sys.path:
 import fail_evidence as fe  # noqa: E402
 from compare_metrics import safe_group_name  # noqa: E402
 from infra_compare import MEASURE_COLS  # noqa: E402
-from por_doe_compare import ST_OK, ST_RUN_JITTER, ST_SIZE_JITTER, ST_UNSTABLE, V_EXCLUDED  # noqa: E402
+from por_doe_compare import ST_OK, ST_RUN_JITTER, ST_SIZE_JITTER, ST_SIZE_JITTER_POS, ST_UNSTABLE, V_EXCLUDED  # noqa: E402
 
 ITEMS = [
     # ITEM, verdict, status
@@ -357,7 +357,7 @@ def test_t7c_items_index_log_target(tmp_path):
     for rel in idx["폴더"]:
         assert (out / rel).is_dir()
     # 클수록 흔들림 이름도 대상
-    assert fe.is_log_target(f"{ST_OK};{fe.LOG_TARGET_STATUSES[1]}")
+    assert fe.is_log_target(f"{ST_OK};{ST_SIZE_JITTER_POS}")
     assert not fe.is_log_target(ST_RUN_JITTER)
 
 

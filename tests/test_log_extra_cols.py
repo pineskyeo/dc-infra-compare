@@ -90,13 +90,14 @@ def test_w2_sigma_log_equals_judge_internal(data):
     assert np.isfinite(row["sigma_die_log"]) and np.isfinite(row["sigma_run_log"])
 
 
-def test_w2_sigma_log_blank_when_not_target_or_excluded():
-    row = run_item(pdc, *far_data())
+def test_w2_sigma_log_blank_when_excluded():
+    row = run_item(pdc, *far_data())          # 흔들림 status 아니어도 0 없고 부호 하나면 채움 (WO-U-A2)
     assert not is_target(row)
-    assert math.isnan(row["sigma_die_log"]) and math.isnan(row["sigma_run_log"])
-    row = run_item(pdc, *zero_value_data())
-    assert row["verdict_log"] == V_EXCLUDED
-    assert math.isnan(row["sigma_die_log"]) and math.isnan(row["sigma_run_log"])
+    assert np.isfinite(row["sigma_die_log"]) and np.isfinite(row["sigma_run_log"])
+    for data in (zero_value_data, near_zero_data):
+        row = run_item(pdc, *data())
+        assert row["verdict_log"] == V_EXCLUDED
+        assert math.isnan(row["sigma_die_log"]) and math.isnan(row["sigma_run_log"])
 
 
 def test_w3_below_linear_loq_true_false_blank():
@@ -111,14 +112,14 @@ def test_w3_below_linear_loq_true_false_blank():
     assert isinstance(run_item(pdc, *zero_value_data())["below_linear_loq"], bool)
     Y, z = far_data()
     for res in ({}, {"LoQ": np.nan, "por_median": 100.0, "center": 0.0}):
-        assert math.isnan(pdc.log_columns(Y, z, R, res, "")["below_linear_loq"])
+        assert math.isnan(pdc.log_columns(Y, z, R, res)["below_linear_loq"])
 
 
 def test_w4_policy_margin_log():
-    for data in (size_jitter_data, larger_jitter_data):
+    for data in (size_jitter_data, larger_jitter_data, far_data):
         row = run_item(pdc, *data())
         assert row["policy_margin_log"] == pytest.approx(math.log10(1 + R), rel=1e-12)
-    assert math.isnan(run_item(pdc, *far_data())["policy_margin_log"])
+    assert math.isnan(run_item(pdc, *near_zero_data())["policy_margin_log"])     # 부호 섞임
     assert math.isnan(run_item(pdc, *zero_value_data())["policy_margin_log"])
 
 
@@ -140,4 +141,5 @@ def test_w5_verdicts_same_as_head(data):
     a, b = run_item(pdc, Y, z), run_item(old, Y, z)
     assert a["verdict"] == b["verdict"]
     va, vb = a["verdict_log"], b["verdict_log"]
-    assert va == vb or (isinstance(va, float) and math.isnan(va) and math.isnan(vb))
+    # HEAD 는 흔들림 status ITEM 만 채웠다 (WO-U-A2 에서 대상 확대). HEAD 가 채운 곳은 같아야 한다.
+    assert va == vb or (isinstance(vb, float) and math.isnan(vb))
