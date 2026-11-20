@@ -100,7 +100,20 @@ def read_csv_auto(path: Path, encoding: str) -> pd.DataFrame:
     return pd.read_csv(io.StringIO(text))
 
 
-def read_dcnormal(path: Path, encoding: str) -> pd.DataFrame:
+ITEM_POS = MEASURE_COLS.index("ITEM")
+N_SEP = len(MEASURE_COLS) - 1
+
+
+def read_dcnormal(path: Path, encoding: str, items: set[str] | None = None) -> pd.DataFrame:
+    """DCNORMAL 파일 하나 → 측정 행 DataFrame (MEASURE_COLS + LINE, 헤더 값 열, FILE, ENC).
+
+    items 가 None 이면 모든 측정 행. 집합이면 ITEM 이 그 안에 있는 측정 행만 담는다(--only).
+    따옴표 없는 줄은 쉼표 수와 ITEM 칸을 문자열로 먼저 보고 거르며, 남은 줄은 csv 로 파싱해 ITEM 을 확정한다.
+    LINE(원래 줄 번호)·헤더 블록 값·MeasureData 헤더 검사는 전체 읽기와 같다. '열 개수가 맞지 않는 행' 경고는
+    거르기와 무관하게 파일 전체 기준으로 센다(전체 읽기와 같은 수). items 를 주면 DATA 는 float64, LINE 은 int64 로
+    맞춰 지정 ITEM 이 하나도 없어도 같은 열의 빈 DataFrame 을 돌려준다(파일 DATA 가 모두 정수 표기여서
+    전체 읽기가 int64 가 되는 경우만 dtype 이 다르다)."""
+    keep = None if items is None else frozenset(str(i) for i in items)
     header: dict[str, str] = {}
     rows: list[list] = []
     block, header_ok, bad = None, None, 0
@@ -113,6 +126,13 @@ def read_dcnormal(path: Path, encoding: str) -> pd.DataFrame:
             header_ok = None
             continue
         if block == "MeasureData":
+            if keep is not None and header_ok and '"' not in line:
+                # 따옴표 없는 줄은 csv 파싱 = 쉼표로 자르기. 열 수 검사(bad)는 거르기 전에 그대로 센다.
+                if line.count(",") != N_SEP:
+                    bad += 1
+                    continue
+                if line.split(",", ITEM_POS + 1)[ITEM_POS] not in keep:
+                    continue
             f = next(csv.reader([line]))
             if header_ok is None:
                 header_ok = f == MEASURE_COLS
@@ -122,14 +142,23 @@ def read_dcnormal(path: Path, encoding: str) -> pd.DataFrame:
             if len(f) != len(MEASURE_COLS):
                 bad += 1
                 continue
+            if keep is not None and f[ITEM_POS] not in keep:
+                continue
             rows.append(f + [no])
         elif block and "=" in line:
             k, v = line.split("=", 1)
             header.setdefault(k, v.strip('"'))
     if bad:
         print(f"  경고: {path.name} 열 개수가 맞지 않는 행 {bad}개 제외", file=sys.stderr)
-    df = pd.DataFrame(rows, columns=MEASURE_COLS + ["LINE"])
+    if keep is not None and not rows:
+        # 지정 ITEM 행이 없을 때도 문자열 열의 dtype 이 행이 있을 때와 같도록, 문자열 값 한 줄로 만든 뒤 행을 없앤다.
+        df = pd.DataFrame([[""] * len(MEASURE_COLS) + [0]], columns=MEASURE_COLS + ["LINE"]).iloc[:0]
+    else:
+        df = pd.DataFrame(rows, columns=MEASURE_COLS + ["LINE"])
     df["DATA"] = pd.to_numeric(df["DATA"], errors="coerce")
+    if keep is not None:
+        df["DATA"] = df["DATA"].astype("float64")
+        df["LINE"] = df["LINE"].astype("int64")
     df["UNIT"] = df["UNIT"].str.strip("[]")
     for k in ("LOTID", "WAFERID", "EQPID", "STARTDATETIME"):
         df[k] = header.get(k)
@@ -138,11 +167,12 @@ def read_dcnormal(path: Path, encoding: str) -> pd.DataFrame:
     return df
 
 
-def load_side(inputs: list[str], label: str, encoding: str) -> pd.DataFrame:
+def load_side(inputs: list[str], label: str, encoding: str, items: set[str] | None = None) -> pd.DataFrame:
+    """items 를 주면 파일마다 그 ITEM 행만 읽는다(read_dcnormal). None 이면 전체."""
     files = find_files(inputs)
     if not files:
         sys.exit(f"{label}: DCNORMAL 파일이 없습니다 ({inputs})")
-    df = pd.concat([read_dcnormal(f, encoding) for f in files], ignore_index=True)
+    df = pd.concat([read_dcnormal(f, encoding, items) for f in files], ignore_index=True)
     n_nan = int(df["DATA"].isna().sum())
     df = df.dropna(subset=["DATA"])
     encs = df.drop_duplicates("FILE")["ENC"].value_counts().to_dict()

@@ -419,13 +419,14 @@ def add_raw_args(p: argparse.ArgumentParser) -> None:
 
 
 def read_side_items(inputs: list[str], label: str, encoding: str, items) -> pd.DataFrame:
-    """infra_compare.load_side 와 같은 측정 행이되 파일마다 읽자마자 ITEM 이 items 인 행만 남긴다.
-    결과는 load_side 전체를 읽고 ITEM 으로 거른 것과 같다(행 순서·열·dtype)."""
+    """infra_compare.load_side 와 같은 측정 행이되 파일을 읽을 때부터 ITEM 이 items 인 줄만 파싱한다
+    (read_dcnormal(items=...)). items 는 실제 ITEM 이름(select_items 가 익명 ID 를 이미 바꿈).
+    결과는 load_side 전체를 읽고 ITEM 으로 거른 것과 같다(행 순서·열·LINE·헤더 값)."""
     files = find_files(inputs)
     if not files:
         sys.exit(f"{label}: DCNORMAL 파일이 없습니다 ({inputs})")
     keep = {str(i) for i in items}
-    parts = [df[df["ITEM"].astype(str).isin(keep)] for df in (read_dcnormal(f, encoding) for f in files)]
+    parts = [read_dcnormal(f, encoding, items=keep) for f in files]
     return pd.concat(parts, ignore_index=True).dropna(subset=["DATA"]).reset_index(drop=True)
 
 
