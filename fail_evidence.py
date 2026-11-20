@@ -94,12 +94,13 @@ def with_anon(table: pd.DataFrame, src: pd.DataFrame) -> pd.DataFrame:
 
 
 STATUS_COLUMNS = ("status", "status_detail", "mean_median_ratio")
+PRECISION_COLUMNS = ("sigma_meas", "meas_precision_pct", "sigma_meas_over_delta")
 
 
 def with_status(table: pd.DataFrame, src: pd.DataFrame) -> pd.DataFrame:
     """입력의 데이터 상태 열을 행 순서 그대로(값은 문자열 그대로) 끝에 붙인다. 입력에 없으면 빈 칸."""
     out = table.copy()
-    for c in STATUS_COLUMNS:
+    for c in STATUS_COLUMNS + PRECISION_COLUMNS:
         out[c] = src[c].tolist() if c in src.columns else ""
     return out
 

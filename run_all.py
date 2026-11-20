@@ -22,6 +22,8 @@ DESCRIPTIONS = [
     ("items.csv", "ITEM별 판정·상태"),
     ("outlier_dies.csv", "튀는 die"),
     ("summary_items.txt", "summarize 출력"),
+    ("summary.txt", "공유용 판정 요약 (ITEM 이름 없음, summarize 출력)"),
+    ("item_map.csv", "익명 번호 ↔ 실제 ITEM 대응표 (공유하지 말 것)"),
     ("fail_evidence/fail_evidence.csv", "Fail 근거"),
     ("fail_evidence/summary.txt", "Fail 근거 요약"),
     ("fail_evidence/forest.png", "Fail 근거 전체 그림"),

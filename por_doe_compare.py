@@ -39,6 +39,7 @@ MIN_DIE = 10
 OUTLIER_K = 5.0
 OPEN_SHORT_K = 5.0      # --outlier-k 기본값. OUTLIER_K(튀는 die 표시)와 별개
 STATUS_COLS = ["status", "status_detail", "mean_median_ratio"]
+PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
 ST_OK, ST_UNSTABLE, ST_OPEN_SHORT, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "Open/Short 의심", "분해능 부족", "산포 0"
 ST_SETUP_ERROR = "조건 설정 오류"     # 예약 값. 판정에 필요한 입력이 없어 지금은 쓰지 않음
 ORDER = {"차이": 0, "미결": 1, "동등": 2}
@@ -220,6 +221,16 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float, outlier_k: float = O
             "mean_median_ratio": (float(R.mean()) - med) / abs(med) if med != 0 else np.nan}
 
 
+def meas_precision(sigma_die: float, sigma_run: float, por_median: float, delta: float) -> dict:
+    """측정 정밀도 (작을수록 좋음). die 간 산포와 회차 산포는 서로 독립이라 분산이 더해진다.
+    por_median 또는 delta가 0·NaN이면 해당 비율은 NaN."""
+    s = float(np.hypot(float(sigma_die), float(sigma_run)))     # 입력 NaN이면 NaN
+    med, d = float(por_median), float(delta)
+    return {"sigma_meas": s,
+            "meas_precision_pct": 100 * s / abs(med) if med != 0 and not np.isnan(med) else np.nan,
+            "sigma_meas_over_delta": s / d if d != 0 and not np.isnan(d) else np.nan}
+
+
 def paired_t_p(d: np.ndarray) -> float:
     s = d.std(ddof=1)
     if s == 0:
@@ -398,7 +409,8 @@ def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: 
     if lim:
         extra["verdict_no_blank"] = judge(Y, z, r, None, info)[0]["verdict"]
     status = item_status(Y, z, res["delta"], outlier_k)
-    return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **status}, mask
+    prec = meas_precision(*(res.get(k, np.nan) for k in ("sigma_die", "sigma_run", "por_median", "delta")))
+    return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **status, **prec}, mask
 
 
 def main() -> None:
@@ -441,7 +453,8 @@ def main() -> None:
 
     first = ["ITEM", "UNIT", "zone", "verdict", "reason"]
     res = pd.DataFrame(rows)
-    res = res[first + [c for c in res.columns if c not in first + STATUS_COLS] + STATUS_COLS]
+    tail = STATUS_COLS + PRECISION_COLS
+    res = res[first + [c for c in res.columns if c not in first + tail] + tail]
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)

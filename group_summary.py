@@ -10,7 +10,7 @@
 출력:
   group_summary.csv   그룹별 표 (맨 위 '전체' 행)
   verdict_by_group.csv 그룹별 판정 변화 표
-  stability_by_group.csv 그룹별 안정성 (기존끼리·개선끼리 σ%, 순위)
+  stability_by_group.csv 그룹별 안정성 (기존끼리·개선끼리 σ%, 측정정밀도%, 순위)
   stability_panel.png 그룹별 안정성 그림
   ratio_hist.png      σ_die 비(개선/기존) 히스토그램, 로그 축
   density_die.png     σ_die 기존 vs 개선 밀도 산점도, 로그 축
@@ -242,6 +242,15 @@ def main():
                 mc = f"por_median_{side}"
                 med_ = pd.to_numeric(used[mc], errors="coerce") if mc in used.columns else pd.Series(np.nan, index=used.index)
                 used[col] = 100 * used[f"sigma_{k}_{side}"] / med_.abs().replace(0, np.nan)
+        # 측정 정밀도 % (낮을수록 좋음): 열이 있으면 쓰고, 없으면 100 × sqrt(σ_die² + σ_run²) / |por_median|
+        col = f"meas_precision_pct_{side}"
+        if col in used.columns:
+            used[col] = pd.to_numeric(used[col], errors="coerce")
+        else:
+            mc = f"por_median_{side}"
+            med_ = pd.to_numeric(used[mc], errors="coerce") if mc in used.columns else pd.Series(np.nan, index=used.index)
+            s_meas = np.hypot(used[f"sigma_die_{side}"], used[f"sigma_run_{side}"])
+            used[col] = 100 * s_meas / med_.abs().replace(0, np.nan)
     SIDE = {"before": "기존", "after": "개선"}
 
     def stab(d):
@@ -254,6 +263,11 @@ def main():
             r[f"{SIDE[side]} σ_die% 75%"] = round(float(dd.quantile(0.75)), 3) if len(dd) else np.nan
             r[f"{SIDE[side]} σ_run% 중앙값"] = round(float(rr.median()), 3) if len(rr) else np.nan
             r[f"{SIDE[side]} σ_run=0 %"] = round(100 * float((d[f"sigma_run_{side}"] == 0).mean()), 1) if len(d) else np.nan
+        for side in ("before", "after"):
+            mp = d[f"meas_precision_pct_{side}"].dropna()
+            r[f"{SIDE[side]} 측정정밀도% 중앙값"] = round(float(mp.median()), 3) if len(mp) else np.nan
+            r[f"{SIDE[side]} 측정정밀도% 25%"] = round(float(mp.quantile(0.25)), 3) if len(mp) else np.nan
+            r[f"{SIDE[side]} 측정정밀도% 75%"] = round(float(mp.quantile(0.75)), 3) if len(mp) else np.nan
         return r
 
     srows = [{"그룹": "전체", **stab(used)}] + [{"그룹": n, **stab(used[used["group"] == n])} for n in order]

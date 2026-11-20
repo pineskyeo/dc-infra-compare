@@ -52,6 +52,7 @@ BEFORE_COLOR, AFTER_COLOR, WARN_COLOR = "#7F8C9F", "#3D4C61", "#B5523B"
 NUMERIC_COLS = frozenset((
     "n_die", "por_median", "center", "ci_low", "ci_high", "delta",
     "policy_margin", "run_margin", "sigma_die", "sigma_run", "LoQ", "LoD",
+    "meas_precision_pct",
 ))
 MEAN_RE = re.compile(r"^.+_mean$")
 KEY_NAMES = ("ID", "ITEM")
@@ -63,6 +64,7 @@ COMPARE_COLS = [
     "verdict_before", "verdict_after", "verdict_transition",
     "sigma_die_pct_before", "sigma_die_pct_after", "sigma_die_pct_change", "sigma_die_status",
     "sigma_run_pct_before", "sigma_run_pct_after", "sigma_run_pct_change", "sigma_run_status",
+    "meas_precision_pct_before", "meas_precision_pct_after", "meas_precision_pct_change", "meas_precision_status",
     "delta_pct_before", "delta_pct_after", "delta_pct_change",
     "ci_width_pct_before", "ci_width_pct_after", "ci_width_pct_change",
     "both_lower",
@@ -75,7 +77,7 @@ EVIDENCE_COLS = [
     "ID", "verdict", "group", "doe_pct", "por_gap_pct",
     "center_over_delta", "ci_low_over_delta", "ci_high_over_delta",
     "ci_halfwidth_over_delta", "loq_ratio",
-    "sigma_die_pct", "sigma_run_pct", "delta_pct",
+    "sigma_die_pct", "meas_precision_pct", "sigma_run_pct", "delta_pct",
     "median_outside_runs", "por_gap_over_delta", "median_out_over_delta",
     "judgment",
 ]
@@ -196,6 +198,17 @@ def pct_of_median(num, den) -> float:
     return 100.0 * float(num) / abs(float(den))
 
 
+def meas_precision_pct(row) -> float:
+    """측정 정밀도 % (낮을수록 좋음). items.csv에 meas_precision_pct 열이 있으면 그 값,
+    없으면(예전 결과) 100 × sqrt(σ_die² + σ_run²) / |por_median|."""
+    if "meas_precision_pct" in row.index:
+        return _num(row, "meas_precision_pct")
+    die, run = _num(row, "sigma_die"), _num(row, "sigma_run")
+    if not (_finite(die) and _finite(run)):
+        return math.nan
+    return pct_of_median(math.hypot(die, run), _num(row, "por_median"))
+
+
 # ---------------------------------------------------------------- evidence
 
 def median_out_distance(med: float, means: list[float]) -> float:
@@ -273,6 +286,7 @@ def evidence_table(df: pd.DataFrame) -> pd.DataFrame:
             ),
             "loq_ratio": (abs(med) / _num(r, "LoQ")) if (_finite(med) and _finite(_num(r, "LoQ")) and _num(r, "LoQ") > 0) else math.nan,
             "sigma_die_pct": pct_of_median(_num(r, "sigma_die"), med),
+            "meas_precision_pct": meas_precision_pct(r),
             "sigma_run_pct": pct_of_median(_num(r, "sigma_run"), med),
             "delta_pct": pct_of_median(delta, med),
             "median_outside_runs": bool(_finite(med_out) and med_out > 0),
@@ -414,6 +428,7 @@ def _side_metrics(row: pd.Series, side: str) -> dict:
         f"sigma_run_{side}": _num(row, "sigma_run"),
         f"sigma_die_pct_{side}": pct_of_median(_num(row, "sigma_die"), med),
         f"sigma_run_pct_{side}": pct_of_median(_num(row, "sigma_run"), med),
+        f"meas_precision_pct_{side}": meas_precision_pct(row),
         f"delta_pct_{side}": pct_of_median(_num(row, "delta"), med),
         f"ci_width_pct_{side}": pct_of_median(ci_w, med),
     }
@@ -424,6 +439,7 @@ def _empty_side(side: str) -> dict:
         f"verdict_{side}", f"por_median_{side}",
         f"sigma_die_{side}", f"sigma_run_{side}",
         f"sigma_die_pct_{side}", f"sigma_run_pct_{side}",
+        f"meas_precision_pct_{side}",
         f"delta_pct_{side}", f"ci_width_pct_{side}",
     ]
     out = {k: math.nan for k in keys}
@@ -446,7 +462,7 @@ def compare_tables(before: pd.DataFrame, after: pd.DataFrame) -> pd.DataFrame:
         rec.setdefault("por_median_rel_diff", math.nan)
         rec.setdefault("verdict_transition", "")
         rec.setdefault("both_lower", "")
-        for stem in ("sigma_die_pct", "sigma_run_pct", "delta_pct", "ci_width_pct"):
+        for stem in ("sigma_die_pct", "sigma_run_pct", "meas_precision_pct", "delta_pct", "ci_width_pct"):
             rec[f"{stem}_change"] = (
                 rec[f"{stem}_after"] - rec[f"{stem}_before"]
                 if _finite(rec.get(f"{stem}_before")) and _finite(rec.get(f"{stem}_after"))
@@ -454,6 +470,8 @@ def compare_tables(before: pd.DataFrame, after: pd.DataFrame) -> pd.DataFrame:
             )
         rec["sigma_die_status"] = change_status(rec.get("sigma_die_before"), rec.get("sigma_die_after"))
         rec["sigma_run_status"] = change_status(rec.get("sigma_run_before"), rec.get("sigma_run_after"))
+        rec["meas_precision_status"] = change_status(
+            rec.get("meas_precision_pct_before"), rec.get("meas_precision_pct_after"))
         if rec["presence"] == "matched" and (INCLUDE_MISALIGNED or not rec["misaligned"]):
             rec["both_lower"] = both_lower_flag(rec["sigma_die_status"], rec["sigma_run_status"])
         return rec
@@ -507,6 +525,7 @@ def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> 
 
     die_lower = n_status("sigma_die_status", "lower")
     run_lower = n_status("sigma_run_status", "lower")
+    prec_lower = n_status("meas_precision_status", "lower")
     both_yes = int((ok["both_lower"] == "yes").sum())
     both_same0 = int((ok["both_lower"] == "same 0").sum())
     run_same0 = n_status("sigma_run_status", "same 0")
@@ -537,6 +556,7 @@ def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> 
         f"- 둘 다 하락: {both_yes}",
         f"- σ_die 하락·σ_run 둘 다 0 (same 0): {both_same0}",
         f"- σ_run 둘 다 0: {run_same0}",
+        f"- 측정정밀도% 하락 (낮을수록 좋음): {prec_lower}/{n_ok}",
         f"- σ_die 중앙값 비 (개선/기존): {med_ratio:.6g}" if _finite(med_ratio) else "- σ_die 중앙값 비 (개선/기존): (해당 없음)",
         "",
         f"판정 전이 ({_scope_label()})",
@@ -590,11 +610,12 @@ def _paired_plot(ok: pd.DataFrame, before_col: str, after_col: str, title: str, 
 
 
 def _scatter_plot(ok: pd.DataFrame, path: Path) -> None:
-    fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.6), dpi=200)
     specs = (
         ("sigma_die_pct_before", "sigma_die_pct_after", "σ_die / |중앙값| (%)"),
         ("sigma_run_pct_before", "sigma_run_pct_after", "σ_run / |중앙값| (%)"),
+        ("meas_precision_pct_before", "meas_precision_pct_after", "측정정밀도 (%)"),
     )
+    fig, axes = plt.subplots(1, len(specs), figsize=(3.8 * len(specs), 3.6), dpi=200)
     for ax, (xb, xa, title) in zip(axes, specs):
         x = ok[xb].astype(float)
         y = ok[xa].astype(float)

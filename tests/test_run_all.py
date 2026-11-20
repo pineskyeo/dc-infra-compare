@@ -71,6 +71,14 @@ def test_run_all_success(por3_data: Path, tmp_path: Path):
     assert "items.csv" in proc.stdout
 
 
+def test_describe_summarize_outputs():
+    import run_all
+
+    assert run_all.describe("summary.txt") == "공유용 판정 요약 (ITEM 이름 없음, summarize 출력)"
+    assert run_all.describe("item_map.csv") == "익명 번호 ↔ 실제 ITEM 대응표 (공유하지 말 것)"
+    assert run_all.describe("fail_evidence/summary.txt") == "Fail 근거 요약"
+
+
 def test_run_all_before_and_groups(por3_data: Path, tmp_path: Path):
     first = tmp_path / "first"
     proc = run_script(RUN_ALL, compare_args(por3_data, first))

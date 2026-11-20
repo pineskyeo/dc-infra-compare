@@ -65,8 +65,9 @@ def test_items_csv_is_byte_identical_to_frozen_legacy(por3_data: Path, tmp_path:
             return list(csv.reader(f))
 
     new_rows = rows(refactored_out / "items.csv")
-    assert new_rows[0][-3:] == ["status", "status_detail", "mean_median_ratio"]
-    assert [r[:-3] for r in new_rows] == rows(legacy_out / "items.csv")
+    assert new_rows[0][-6:] == ["status", "status_detail", "mean_median_ratio",
+                                "sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
+    assert [r[:-6] for r in new_rows] == rows(legacy_out / "items.csv")
 
 
 @pytest.mark.parametrize("n", [2, 3, 5, 9, 10, 11, 12, 29, 30, 31, 59, 60, 61, 62, 100])
