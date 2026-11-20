@@ -13,6 +13,7 @@ import pandas as pd
 import fail_evidence
 from por_doe_compare import item_status
 
+JITTER = ["run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter"]
 ROOT = Path(__file__).resolve().parents[1]
 SYNTH_TSV = ROOT / "tests" / "data" / "fail_evidence_synth.tsv"
 DELTA = 5.0
@@ -32,15 +33,6 @@ def test_fixed_value_is_flat():
     Y, z = np.full((200, 3), 400.0), np.full(200, 400.0)
     st = item_status(Y, z, DELTA)
     assert "산포 0" in parts(st["status"])
-
-
-def test_few_huge_dies_are_open_short():
-    Y, z = normal_data()
-    Y[:4] *= 1000
-    st = item_status(Y, z, DELTA)
-    assert "Open/Short 의심" in parts(st["status"])
-    m = re.search(r"POR 위 (\d+)%", st["status_detail"])
-    assert m and int(m.group(1)) > 0
 
 
 def test_run_shift_is_unstable():
@@ -70,16 +62,11 @@ def test_two_statuses_are_joined_in_same_order():
     Y[:, 2] += 2 * DELTA
     st = item_status(np.round(Y), np.round(z), DELTA)
     names, details = parts(st["status"]), parts(st["status_detail"])
-    assert names == ["조건 불안정", "분해능 부족"]
-    assert len(details) == 2
-    assert details[0].startswith("회차 차") and details[1].startswith("간격")
-
-
-def test_outlier_k_changes_open_short():
-    Y, z = normal_data()
-    Y[:4] *= 1000
-    assert "Open/Short 의심" in parts(item_status(Y, z, DELTA, outlier_k=5)["status"])
-    assert "Open/Short 의심" not in parts(item_status(Y, z, DELTA, outlier_k=1e6)["status"])
+    # 3회차만 2Δ 밀리면 die별 회차 범위도 ≈ 2Δ라 회차 흔들림도 같이 붙는다
+    assert names == ["조건 불안정", "회차 흔들림", "분해능 부족"]
+    assert len(details) == 3
+    assert details[0].startswith("회차 차") and details[1].startswith("회차 흔들림")
+    assert details[2].startswith("간격")
 
 
 def test_delta_nan_skips_delta_checks():
@@ -114,7 +101,7 @@ def test_fail_evidence_copies_status_columns(tmp_path: Path):
 
     assert fail_evidence.main(["--input", str(inp), "--out", str(tmp_path / "out")]) == 0
     out = read_out(tmp_path / "out" / "fail_evidence.csv")
-    assert list(out.columns[-6:-3]) == ["status", "status_detail", "mean_median_ratio"]
+    assert list(out.columns[-9:-6]) == ["status", "status_detail", "mean_median_ratio"]
     assert out["status"].tolist() == status
     assert out["status_detail"].tolist() == detail
     assert out["mean_median_ratio"].tolist() == ratio
@@ -123,8 +110,8 @@ def test_fail_evidence_copies_status_columns(tmp_path: Path):
 def test_fail_evidence_without_status_columns(tmp_path: Path):
     assert fail_evidence.main(["--input", str(SYNTH_TSV), "--out", str(tmp_path / "out")]) == 0
     out = read_out(tmp_path / "out" / "fail_evidence.csv")
-    assert list(out.columns[-6:-3]) == ["status", "status_detail", "mean_median_ratio"]
-    for c in ("status", "status_detail", "mean_median_ratio"):
+    assert list(out.columns[-9:-6]) == ["status", "status_detail", "mean_median_ratio"]
+    for c in ("status", "status_detail", "mean_median_ratio", *JITTER):
         assert (out[c] == "").all()
 
 
@@ -140,11 +127,11 @@ def test_compare_cli_writes_status_columns(tmp_path: Path):
     run_script(ROOT / "examples" / "make_por3_data.py", [data])
     run_script(ROOT / "por_doe_compare.py", [
         "--por", data / "por_run1", "--por", data / "por_run2", "--por", data / "por_run3",
-        "--doe", data / "doe", "--outlier-k", "3", "--out", out,
+        "--doe", data / "doe", "--out", out,
     ])
     with open(out / "items.csv", encoding="utf-8-sig", newline="") as f:
         rows = list(csv.reader(f))
     header = rows[0]
-    assert header[-6:-3] == ["status", "status_detail", "mean_median_ratio"]
+    assert header[-9:-3] == ["status", "status_detail", "mean_median_ratio", *JITTER]
     assert len(rows) > 1
     assert all(r[header.index("status")] for r in rows[1:])

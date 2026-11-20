@@ -152,7 +152,25 @@
 <tr><td>n_outlier_die · ttest · ttest_p · por_ttest_sig</td><td>참고 지표: 이상치 die 수, t-test 결과와 p 값, 기준 조건 회차끼리 t-test</td><td>참고 (<a href="#ref">아래</a>)</td><td>t-test 유의차 · p 4.2e-07 · 기준 회차끼리 3/3 유의차 · 이상치 die 수 —</td></tr>
 <tr><td>spec_status · level_check · range_por · range_doe · spec_resolution · accuracy_margin · verdict_no_accuracy</td><td>ITEM 정보 표(LEVEL, CALCVAL, DERIVED) 관련: 장비 분해능·정확도, range, 자릿수 점검, 장비 정확도 없이 낸 판정</td><td><a href="step-3.html">③</a> <a href="step-5.html">⑤</a></td><td>—</td></tr>
 <tr><td>blank_item · blank_status · blank_LoQ_item · verdict_no_blank</td><td>blank 관련: 연결된 blank, blank LoQ, blank 없이 낸 판정</td><td><a href="step-3.html">③</a></td><td>—</td></tr>
+<tr><td>status · status_detail · run_jitter_pct · run_jitter_over_delta · spearman_size_jitter</td><td>데이터 상태(판정과 별개): 조건 불안정, <a href="glossary.html#run-jitter">회차 흔들림</a>, <a href="glossary.html#size-jitter">작을수록 흔들림</a>, 분해능 부족, 산포 0. 뒤 세 열은 기준 조건 회차만 쓰고, 기준 조건이 1회뿐이면 빈 칸</td><td>참고</td><td>—</td></tr>
 </tbody></table></div>
+<h3>데이터 상태 예시 계산</h3>
+<p>회차 흔들림 (Δ = 5)</p>
+<ul>
+<li>die A 회차 10, 14, 6 → 범위 8, 평균 10 → 80%</li>
+<li>die B 회차 20, 26, 14 → 범위 12, 평균 20 → 60%</li>
+<li>die C 회차 5, 6, 4 → 범위 2, 평균 5 → 40%</li>
+<li>run_jitter_pct = 중앙값(80, 60, 40) = 60%</li>
+<li>중앙값(범위) = 중앙값(8, 12, 2) = 8</li>
+<li>run_jitter_over_delta = 8/5 = 1.6 ≥ 1 → 상태 '회차 흔들림', detail '회차 흔들림 60% (1.6Δ)'</li>
+</ul>
+<p>작을수록 흔들림 (die 5개)</p>
+<ul>
+<li>회차 평균 1e-9, 1e-8, 1e-7, 1e-6, 1e-5 → x = −9, −8, −7, −6, −5</li>
+<li>log 범위 y = 0.8, 0.5, 0.3, 0.2, 0.1</li>
+<li>x 순위 1..5, y 순위 5..1 → ρ = −1.00 ≤ −0.5</li>
+<li>유효 die 5 &lt; 10 → 상태는 붙이지 않고 spearman_size_jitter = −1.00만 기록 (같은 모양이 die 10개 이상이면 '작을수록 흔들림', detail 'ρ −1.00')</li>
+</ul>
 </section>
 
 <section id="flow"><h2>판정 흐름 (기호)</h2>

@@ -39,10 +39,14 @@ Z90 = 1.645
 K_LOD, K_LOQ = 3.29, 10.0
 MIN_DIE = 10
 OUTLIER_K = 5.0
-OPEN_SHORT_K = 5.0      # --outlier-k 기본값. OUTLIER_K(튀는 die 표시)와 별개
+RUN_JITTER_OVER_DELTA = 1.0     # 회차 흔들림: die별 회차 범위 중앙값 ≥ 이 배수 × Δ
+SIZE_JITTER_RHO = -0.5          # 작을수록 흔들림: Spearman ρ(크기, log 범위) ≤ 이 값
+SIZE_JITTER_MIN_DIE = 10
 STATUS_COLS = ["status", "status_detail", "mean_median_ratio"]
+JITTER_COLS = ["run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter"]
 PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
-ST_OK, ST_UNSTABLE, ST_OPEN_SHORT, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "Open/Short 의심", "분해능 부족", "산포 0"
+ST_OK, ST_UNSTABLE, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "분해능 부족", "산포 0"
+ST_RUN_JITTER, ST_SIZE_JITTER = "회차 흔들림", "작을수록 흔들림"
 ST_SETUP_ERROR = "조건 설정 오류"     # 예약 값. 판정에 필요한 입력이 없어 지금은 쓰지 않음
 V_EXCLUDED = "판정 제외"
 ORDER = {"차이": 0, "미결": 1, "동등": 2, V_EXCLUDED: 3}
@@ -162,28 +166,39 @@ def run_factor(J: int) -> float:
     return float(stats.t.ppf(0.95, J - 1) * np.sqrt(1 + 1 / J))
 
 
-def _log_tails(v: np.ndarray, k: float) -> tuple[tuple[float, float, int] | None, int]:
-    """0값을 뺀 log10|v|가 중앙값보다 k·robust σ 넘게 위·아래로 튄 비율.
-    ((위 비율, 아래 비율, 이상 die 수) 또는 σ = 0이면 None, 뺀 0값 개수)"""
-    nz = v[v != 0]
-    n_zero = int(v.size - nz.size)
-    if nz.size == 0:
-        return None, n_zero
-    lg = np.log10(np.abs(nz))
-    m, s = np.median(lg), robust_sigma(lg)
-    if s == 0:
-        return None, n_zero
-    up, down = int((lg - m > k * s).sum()), int((m - lg > k * s).sum())
-    return (up / lg.size, down / lg.size, up + down), n_zero
+def _jitter(Y: np.ndarray, delta: float) -> tuple[dict, int]:
+    """die별 POR 회차 흔들림 열(JITTER_COLS)과 작을수록 흔들림 검사에 쓴 die 수. 계산할 수 없으면 NaN.
+    run_jitter_pct = 100 × 중앙값(회차 범위 / |회차 평균|), run_jitter_over_delta = 중앙값(회차 범위) / Δ,
+    spearman_size_jitter = Spearman ρ(log10|회차 평균|, log10|값|의 회차 범위). 0값 있는 die는 ρ에서 뺌."""
+    out = dict.fromkeys(JITTER_COLS, np.nan)
+    if Y.ndim != 2 or Y.shape[1] < 2:
+        return out, 0
+    Y = Y[np.isfinite(Y).all(axis=1)]
+    m, rng = Y.mean(axis=1), Y.max(axis=1) - Y.min(axis=1)
+    keep = m != 0
+    if keep.any():
+        out["run_jitter_pct"] = float(100 * np.median(rng[keep] / np.abs(m[keep])))
+        if delta > 0 and np.isfinite(delta):
+            out["run_jitter_over_delta"] = float(np.median(rng[keep]) / delta)
+    ok = (Y != 0).all(axis=1) & keep
+    n = int(ok.sum())
+    if n >= 3:
+        x, lg = np.log10(np.abs(m[ok])), np.log10(np.abs(Y[ok]))
+        y = lg.max(axis=1) - lg.min(axis=1)
+        if np.ptp(x) > 0 and np.ptp(y) > 0:
+            out["spearman_size_jitter"] = float(stats.spearmanr(x, y)[0])
+    return out, n
 
 
 def _mode_share(v: np.ndarray) -> float:
     return float(np.unique(v, return_counts=True)[1].max() / v.size)
 
 
-def item_status(Y: np.ndarray, z: np.ndarray, delta: float, outlier_k: float = OPEN_SHORT_K) -> dict:
+def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     """판정과 별개인 데이터 상태. 해당하는 것을 모두 ';'로 잇는다 (status와 status_detail 같은 순서).
-    Y: die × 회차 POR 값, z: DOE die 값, delta: 그 ITEM의 최종 Δ. Δ ≤ 0 또는 NaN이면 조건 불안정·분해능 부족은 건너뜀."""
+    Y: die × 회차 POR 값, z: DOE die 값, delta: 그 ITEM의 최종 Δ.
+    Δ ≤ 0 또는 NaN이면 조건 불안정·회차 흔들림·분해능 부족은 건너뜀. 회차 흔들림·작을수록 흔들림은 POR 회차만 씀
+    (POR 1회면 JITTER_COLS 모두 NaN). 작을수록 흔들림은 0값 없는 die가 SIZE_JITTER_MIN_DIE개 이상일 때만."""
     Y, z = np.asarray(Y, float), np.asarray(z, float)
     R = Y.mean(axis=1)
     has_delta = bool(delta > 0)     # NaN도 False
@@ -196,15 +211,14 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float, outlier_k: float = O
             names.append(ST_UNSTABLE)
             details.append(f"회차 차 {gap / delta:.1f}Δ")
 
-    (por, n0_por), (doe, n0_doe) = _log_tails(R, outlier_k), _log_tails(z, outlier_k)
-    if (por and por[2]) or (doe and doe[2]):
-        def side(name, t):
-            return f"{name} 위 {t[0]:.0%} 아래 {t[1]:.0%}" if t else f"{name} MAD 0 건너뜀"
-        text = f"{side('POR', por)} / {side('DOE', doe)}"
-        if n0_por + n0_doe:
-            text += f", 0값 제외 {n0_por + n0_doe}"
-        names.append(ST_OPEN_SHORT)
-        details.append(text)
+    jit, n_size = _jitter(Y, delta)
+    over, rho = jit["run_jitter_over_delta"], jit["spearman_size_jitter"]
+    if over >= RUN_JITTER_OVER_DELTA:      # NaN이면 False
+        names.append(ST_RUN_JITTER)
+        details.append(f"회차 흔들림 {round(jit['run_jitter_pct'])}% ({over:.1f}Δ)")
+    if rho <= SIZE_JITTER_RHO and n_size >= SIZE_JITTER_MIN_DIE:
+        names.append(ST_SIZE_JITTER)
+        details.append(f"ρ {rho:.2f}".replace("-", "−"))
 
     vals = np.unique(np.concatenate([Y.ravel(), z]))
     if has_delta and vals.size > 1:
@@ -213,7 +227,7 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float, outlier_k: float = O
             names.append(ST_RESOLUTION)
             details.append(f"간격 {step:.4g} = Δ의 {step / delta:.0%}")
 
-    s_die, _ = robust_noise(Y)
+    s_die = robust_noise(Y)[0] if Y.shape[1] > 1 else np.nan      # POR 1회면 die 잡음을 못 구함
     share = max(_mode_share(R), _mode_share(z))
     if s_die == 0 or share > 0.5:
         names.append(ST_FLAT)
@@ -221,7 +235,7 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float, outlier_k: float = O
 
     med = float(np.median(R))
     return {"status": ";".join(names) or ST_OK, "status_detail": ";".join(details),
-            "mean_median_ratio": (float(R.mean()) - med) / abs(med) if med != 0 else np.nan}
+            "mean_median_ratio": (float(R.mean()) - med) / abs(med) if med != 0 else np.nan, **jit}
 
 
 def meas_precision(sigma_die: float, sigma_run: float, por_median: float, delta: float) -> dict:
@@ -394,8 +408,6 @@ def add_common_args(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--blank-map", help="CSV ITEM,BLANK_ITEM. 없으면 같은 이름끼리 연결")
     ap.add_argument("--key", default="WAFERID,COORD_X_Y,ITEM")
     ap.add_argument("--encoding", default="auto")
-    ap.add_argument("--outlier-k", type=float, default=OPEN_SHORT_K,
-                    help="Open/Short 의심 기준 k: |log10|값| − 중앙값| > k×robust σ")
 
 
 def load_wide(a: argparse.Namespace) -> tuple[pd.DataFrame, list[str], dict]:
@@ -415,8 +427,7 @@ def load_wide(a: argparse.Namespace) -> tuple[pd.DataFrame, list[str], dict]:
 
 
 def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: float,
-               levels: dict[str, ItemInfo], blank: pd.DataFrame, bmap: dict,
-               outlier_k: float = OPEN_SHORT_K) -> tuple[dict, np.ndarray]:
+               levels: dict[str, ItemInfo], blank: pd.DataFrame, bmap: dict) -> tuple[dict, np.ndarray]:
     """ITEM 하나에 level/blank를 연결해 판정하고, 결과 행(끝에 데이터 상태 열)과 튀는 die 표시를 돌려준다."""
     Y, z = g[por_cols].to_numpy(float), g["DOE"].to_numpy(float)
     info, lim, extra = levels.get(item), None, {}
@@ -429,7 +440,7 @@ def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: 
     res, mask = judge(Y, z, r, lim, info)
     if lim:
         extra["verdict_no_blank"] = judge(Y, z, r, None, info)[0]["verdict"]
-    status = item_status(Y, z, res["delta"], outlier_k)
+    status = item_status(Y, z, res["delta"])
     prec = meas_precision(*(res.get(k, np.nan) for k in ("sigma_die", "sigma_run", "por_median", "delta")))
     return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **status, **prec}, mask
 
@@ -445,8 +456,6 @@ def main() -> None:
     ap.add_argument("--blank-map", help="CSV ITEM,BLANK_ITEM. 없으면 같은 이름끼리 연결")
     ap.add_argument("--key", default="WAFERID,COORD_X_Y,ITEM")
     ap.add_argument("--encoding", default="auto")
-    ap.add_argument("--outlier-k", type=float, default=OPEN_SHORT_K,
-                    help="Open/Short 의심 기준 k: |log10|값| − 중앙값| > k×robust σ")
     ap.add_argument("--out", default="por_doe_out")
     a = ap.parse_args()
     if len(a.por) < 2:
@@ -467,14 +476,14 @@ def main() -> None:
 
     rows, outl = [], []
     for item, g in wide.groupby("ITEM", sort=False):
-        res, mask = judge_item(item, g, por_cols, units, a.r, levels, blank, bmap, a.outlier_k)
+        res, mask = judge_item(item, g, por_cols, units, a.r, levels, blank, bmap)
         rows.append(res)
         if mask.any():
             outl.append(g.loc[mask, die_cols + ["ITEM"] + por_cols + ["DOE"]])
 
     first = ["ITEM", "UNIT", "zone", "verdict", "reason"]
     res = pd.DataFrame(rows)
-    tail = STATUS_COLS + PRECISION_COLS
+    tail = STATUS_COLS + JITTER_COLS + PRECISION_COLS
     res = res[first + [c for c in res.columns if c not in first + tail] + tail]
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
     out = Path(a.out)

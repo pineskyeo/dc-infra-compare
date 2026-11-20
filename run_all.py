@@ -74,8 +74,6 @@ def compare_forward_args(ap: argparse.ArgumentParser, a: argparse.Namespace) -> 
         args += ["--key", a.key]
     if a.encoding != ap.get_default("encoding"):
         args += ["--encoding", a.encoding]
-    if a.outlier_k != ap.get_default("outlier_k"):
-        args += ["--outlier-k", repr(a.outlier_k)]
     return args
 
 
