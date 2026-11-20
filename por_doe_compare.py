@@ -1,4 +1,4 @@
-"""POR 여러 회(같은 die 재측정) + DOE 1회로 ITEM별 동등 / 차이 / 미결을 판정한다.
+"""POR 여러 회(같은 die 재측정) + DOE 1회로 ITEM별 동등 / 차이 / 미결 / 판정 제외를 판정한다.
 
 기준은 실행 전에 정하는 값(허용폭 r)뿐이고, 데이터를 보고 바뀌는 문턱값은 없다. UNIT, SPEC 열은 판정에 쓰지 않는다.
 
@@ -16,6 +16,8 @@
    정량 (|POR| ≥ LoQ): 신뢰구간이 ±Δ 안 → 동등, 통째로 밖 → 차이, 걸침 → 미결
    LoQ 미만: 값은 "<LoQ"로 보고한다 (IUPAC). 신뢰구간이 통째로 ±Δ 밖이고 DOE 중심(POR 중앙값 + shift)이
      LoQ 이상이라 보고가 달라질 때만 차이, 그 밖은 동등 ("<LoQ 보고 일치")
+   판정 제외: 통계를 낼 수 없는 ITEM. Δ ≤ 0 또는 NaN/inf, 중심·신뢰구간 NaN/inf,
+     모든 die가 같은 값 (sigma_die = sigma_run = 0, 고정값 100%). 해당하는 원인을 모두 reason에 적는다
 
 4. 참고 (판정에 안 씀): t-test (NIST 7.3.1.1), POR 회차끼리 t-test, 튀는 die (|d − 중앙값| > 5 robust σ)
 """
@@ -42,7 +44,8 @@ STATUS_COLS = ["status", "status_detail", "mean_median_ratio"]
 PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
 ST_OK, ST_UNSTABLE, ST_OPEN_SHORT, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "Open/Short 의심", "분해능 부족", "산포 0"
 ST_SETUP_ERROR = "조건 설정 오류"     # 예약 값. 판정에 필요한 입력이 없어 지금은 쓰지 않음
-ORDER = {"차이": 0, "미결": 1, "동등": 2}
+V_EXCLUDED = "판정 제외"
+ORDER = {"차이": 0, "미결": 1, "동등": 2, V_EXCLUDED: 3}
 
 # Keysight P9001A Per-pin SMU (P9001 Data sheet p.6-7 측정 분해능·측정 정확도, Programming Reference Table 2-19/2-22
 # auto range 상한). measure_i/measure_v 를 auto range(range=0)로 쓰면 값이 들어가는 가장 작은 range를 쓴다.
@@ -267,10 +270,25 @@ def tost(center: float, lo: float, hi: float, delta: float) -> tuple[str, str]:
 
 
 def reason_group(reason: pd.Series) -> pd.Series:
-    """사유에서 숫자를 빼고 종류만 남긴다 (표로 세기 위해)."""
-    return (reason.astype(str)
-            .str.replace(r"^shift .*밖$", "shift가 ±Δ 밖", regex=True)
-            .str.replace(r"^DOE 중심 .*밖$", "LoQ 미만: DOE 중심 ≥ LoQ이고 이동이 ±Δ 밖", regex=True))
+    """사유에서 숫자를 빼고 종류만 남긴다 (표로 세기 위해). 판정 제외 사유는 괄호 속 값을 뺀다."""
+    s = (reason.astype(str)
+         .str.replace(r"^shift .*밖$", "shift가 ±Δ 밖", regex=True)
+         .str.replace(r"^DOE 중심 .*밖$", "LoQ 미만: DOE 중심 ≥ LoQ이고 이동이 ±Δ 밖", regex=True))
+    return s.where(~s.str.startswith(V_EXCLUDED), s.str.replace(r" \([^)]*\)", "", regex=True))
+
+
+def excluded_reasons(delta: float, center: float, lo: float, hi: float,
+                     s_die: float, s_run: float, R: np.ndarray, z: np.ndarray) -> list[str]:
+    """통계를 낼 수 없는 원인들 (없으면 빈 목록)."""
+    why = []
+    if not np.isfinite(delta) or delta <= 0:
+        why.append(f"{V_EXCLUDED}: Δ가 0 이하이거나 유효하지 않음 (Δ={delta:.4g})")
+    bad = [k for k, v in (("center", center), ("ci_low", lo), ("ci_high", hi)) if not np.isfinite(v)]
+    if bad:
+        why.append(f"{V_EXCLUDED}: 중심·신뢰구간 계산 불가 ({', '.join(bad)})")
+    if s_die == 0 and s_run == 0 and max(_mode_share(R), _mode_share(z)) == 1:
+        why.append(f"{V_EXCLUDED}: 모든 die가 같은 값 (σ_die=0, σ_run=0, 고정값 100%)")
+    return why
 
 
 def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo | None = None) -> tuple[dict, np.ndarray]:
@@ -319,6 +337,9 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo
     }
     if n < MIN_DIE:
         return {**out, "zone": "die 부족", "verdict": "미결", "reason": f"die {n}개 (< {MIN_DIE})"}, outlier
+    why = excluded_reasons(delta, center, lo, hi, s_die, s_run, R, z)
+    if why:
+        return {**out, "zone": V_EXCLUDED, "verdict": V_EXCLUDED, "reason": "; ".join(why)}, outlier
 
     if level < loq:
         zone = "검출한계 이하" if level < lod else "검출~정량"

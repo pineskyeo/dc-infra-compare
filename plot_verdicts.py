@@ -23,7 +23,9 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Rectangle
 
 from infra_compare import load_blank, read_csv_auto
-from por_doe_compare import ORDER, add_common_args, ci_rank, judge_item, load_levels, load_wide
+from por_doe_compare import (
+    ORDER, V_EXCLUDED, add_common_args, ci_rank, judge_item, load_levels, load_wide,
+)
 
 FONT_CANDIDATES = (
     "Apple SD Gothic Neo",
@@ -62,6 +64,8 @@ SUMMARY_XLABEL = "차이 / Δ (가로선: 90% 신뢰구간, 점: 중심)"
 SUMMARY_YLABEL = "ITEM (정렬: 판정 → center/Δ)"
 PAGE_LEGEND_TITLE = "판정 개수 (이 장 / LoQ 패널)"
 CLIPPED_LABEL = "x축 범위 밖 (끝에서 자름)"
+# 판정 제외 ITEM(과 center/Δ가 유효하지 않은 예전 items.csv 행)은 요약 그림·LoQ 패널에 그리지 않는다.
+EXCLUDED_NOTE = "판정 제외 {n}개 (요약 그림에서 뺌)"
 NO_MAIN_ITEMS = "정량 zone ITEM 없음 (LoQ 미만은 summary_loq.png)"
 LOQ_ZONES = ("검출한계 이하", "검출~정량")
 DEFAULT_XLIM = 3.0
@@ -97,6 +101,8 @@ KOREAN_TEXTS = tuple(dict.fromkeys(
         SUMMARY_YLABEL,
         PAGE_LEGEND_TITLE,
         CLIPPED_LABEL,
+        V_EXCLUDED,
+        EXCLUDED_NOTE.format(n=1),
         NO_MAIN_ITEMS,
         LOQ_TITLE,
         LOQ_XLABEL,
@@ -250,10 +256,12 @@ def recompute(args: argparse.Namespace) -> pd.DataFrame:
 
 
 def verdict_category(row: pd.Series) -> str:
-    """도구 verdict/reason/zone을 요약 그림의 여섯 표시 범주로 변환한다."""
+    """도구 verdict/reason/zone을 요약 그림의 여섯 표시 범주 또는 '판정 제외'(그리지 않음)로 변환한다."""
     verdict = str(row["verdict"])
     reason = "" if pd.isna(row["reason"]) else str(row["reason"])
     zone = "" if pd.isna(row.get("zone", "")) else str(row.get("zone", ""))
+    if verdict == V_EXCLUDED:
+        return V_EXCLUDED
     if verdict == "차이":
         return "차이"
     if verdict == "동등":
@@ -289,11 +297,22 @@ def _normalized_summary(items: pd.DataFrame) -> pd.DataFrame:
     ).reset_index(drop=True)
 
 
-def split_summary(items: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """정렬한 요약 행을 (본 패널 행, LoQ 미만 zone 행)으로 나눈다. LoQ 미만 행은 summary_loq.png에만 그린다."""
+def _split_summary(items: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, int]:
+    """(본 패널 행, LoQ 미만 zone 행, 판정 제외 개수). 판정 제외 = verdict '판정 제외' 행 +
+    (예전 items.csv 호환) 판정은 다른데 center/Δ가 유효하지 않은 본 패널 행. 어느 패널에도 넣지 않는다."""
     work = _normalized_summary(items)
     in_loq = work["zone"].isin(LOQ_ZONES) if "zone" in work else pd.Series(False, index=work.index)
-    return work.loc[~in_loq].reset_index(drop=True), work.loc[in_loq].reset_index(drop=True)
+    excluded = (work["_category"] == V_EXCLUDED) | (~in_loq & ~work["_valid"])
+    main = work.loc[~in_loq & ~excluded].reset_index(drop=True)
+    loq = work.loc[in_loq & ~excluded].reset_index(drop=True)
+    return main, loq, int(excluded.sum())
+
+
+def split_summary(items: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """정렬한 요약 행을 (본 패널 행, LoQ 미만 zone 행)으로 나눈다. LoQ 미만 행은 summary_loq.png에만 그린다.
+    판정 제외 행은 둘 다에서 뺀다."""
+    main, loq, _ = _split_summary(items)
+    return main, loq
 
 
 def clip_summary(page: pd.DataFrame, xlim: float) -> pd.DataFrame:
@@ -333,14 +352,10 @@ def plot_summary(
         raise ValueError("--dpi는 1 이상이어야 합니다.")
     if not np.isfinite(xlim) or xlim <= 0:
         raise ValueError("--xlim은 양수여야 합니다.")
-    work, loq = split_summary(items)
-    omitted = int((~work["_valid"]).sum())
+    work, loq, omitted = _split_summary(items)
+    excluded_note = EXCLUDED_NOTE.format(n=omitted) if omitted else ""
     if omitted:
-        warnings.warn(
-            f"delta가 0이거나 유효하지 않아 요약에서 제외한 ITEM {omitted}개",
-            RuntimeWarning,
-            stacklevel=2,
-        )
+        warnings.warn(excluded_note, RuntimeWarning, stacklevel=2)
 
     out.mkdir(parents=True, exist_ok=True)
     pages = [work.iloc[start:start + per_page] for start in range(0, len(work), per_page)] or [work]
@@ -408,6 +423,8 @@ def plot_summary(
             handles.append(Line2D(
                 [0], [0], color="#555555", marker=">", markersize=5, linestyle="none", label=labels[-1],
             ))
+            if excluded_note:
+                handles.append(Line2D([0], [0], linestyle="none", label=excluded_note))
             ax.legend(handles=handles, title=PAGE_LEGEND_TITLE, loc="upper left", bbox_to_anchor=(1.01, 1.0))
             fig.subplots_adjust(left=0.09, right=0.79, top=0.97, bottom=max(0.025, 0.7 / height))
             path = out / f"summary_{page_number:03d}.png"
@@ -423,7 +440,8 @@ def plot_loq(items: pd.DataFrame, out: Path, dpi: int = 100) -> Path:
     _require_columns(items, {"zone", "doe_center", "LoQ", "center", "delta", "verdict"})
     if dpi < 1:
         raise ValueError("--dpi는 1 이상이어야 합니다.")
-    selected = items.loc[items["zone"].isin(["검출한계 이하", "검출~정량"])].copy()
+    in_panel = items["zone"].isin(LOQ_ZONES) & (items["verdict"].astype(str) != V_EXCLUDED)
+    selected = items.loc[in_panel].copy()
     for column in ("doe_center", "LoQ", "center", "delta"):
         selected[column] = pd.to_numeric(selected[column], errors="coerce")
     with np.errstate(divide="ignore", invalid="ignore"):

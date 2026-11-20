@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from por_doe_compare import reason_group
+from por_doe_compare import V_EXCLUDED, reason_group
 
 
 def main() -> None:
@@ -41,7 +41,8 @@ def main() -> None:
 
     q = d[d["zone"] == "정량"]
     low = d[d["zone"].isin(["검출한계 이하", "검출~정량"])]
-    bad = d[d["verdict"] != "동등"]
+    ex = d[d["verdict"] == V_EXCLUDED]
+    bad = d[~d["verdict"].isin(["동등", V_EXCLUDED])]
     runs = sorted(c for c in d.columns if c.startswith("POR") and c.endswith("_mean"))
     f4 = lambda v: f"{v:.4g}"
     buf = io.StringIO()
@@ -54,6 +55,10 @@ def main() -> None:
 
     buf.write(f"ITEM {len(d):,}개, die 중앙값 {d['n_die'].median():.0f}개, POR 회차 {len(runs)}회\n"
               f"판정: 중앙값 TOST, 허용폭 = r × |POR| + POR 회차 흔들림, LoQ 미만은 '<LoQ 보고 일치'\n")
+    if len(ex):
+        causes = reason_group(ex["reason"]).str.split("; ").explode().str.replace(f"^{V_EXCLUDED}: ", "", regex=True)
+        buf.write(f"{V_EXCLUDED} ITEM: {len(ex):,} ("
+                  + ", ".join(f"{k} {v:,}" for k, v in causes.value_counts().items()) + ")\n")
 
     # 1. 결과
     sec("구간 x 판정", pd.crosstab(d["zone"], d["verdict"], margins=True, margins_name="합계"))

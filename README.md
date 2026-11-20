@@ -1,6 +1,6 @@
 # dc-infra-compare
 
-같은 웨이퍼, 같은 die를 POR(기존 프로그램)로 여러 번, DOE(새 프로그램)로 한 번 잰 DCNORMAL 결과를 ITEM별로 비교해서 **동등 / 차이 / 미결**로 판정합니다.
+같은 웨이퍼, 같은 die를 POR(기존 프로그램)로 여러 번, DOE(새 프로그램)로 한 번 잰 DCNORMAL 결과를 ITEM별로 비교해서 **동등 / 차이 / 미결**로 판정합니다. 통계를 낼 수 없는 ITEM은 **판정 제외**입니다.
 
 원칙은 하나입니다. **DOE와 POR의 차이가, POR을 자기 자신과 다시 잰 차이보다 크지 않으면 같다고 본다.**
 
@@ -93,6 +93,8 @@ UNIT, SPECLOW, SPECHIGH 열은 판정에 쓰지 않습니다(값이 잘못 들�
 | 정량 (≥ LoQ) | 신뢰구간이 ±Δ 안 → **동등**, 통째로 밖 → **차이**, 걸침 → **미결** (반폭 ≥ Δ면 해상도 부족, 아니면 경계) |
 | LoQ 미만 | LoQ 미만 값은 "<LoQ"로 보고합니다(IUPAC). 신뢰구간이 통째로 ±Δ 밖이고 **DOE 중심(POR 중앙값 + shift)이 LoQ 이상**이라 보고가 달라질 때만 **차이**, 그 밖은 **동등**("<LoQ 보고 일치") |
 
+**판정 제외**는 통계를 낼 수 없어 판정하지 않은 ITEM입니다. (a) Δ ≤ 0, NaN, inf, (b) center·ci_low·ci_high 중 하나가 NaN이나 inf, (c) `sigma_die` = 0, `sigma_run` = 0이고 모든 die가 같은 값(고정값 100%) 중 하나라도 맞으면 해당합니다. `reason`에는 "판정 제외: …"로 원인을 적고, 여러 개면 "; "로 잇습니다. die 일부만 같은 값(예: 60%)이면 판정은 그대로 하고 `status`에 `산포 0`만 표시합니다. die 수 부족(MIN_DIE)은 그대로 **미결**입니다.
+
 **4. 참고 (판정에 쓰지 않음).** t-test(NIST 7.3.1.1), POR 회차끼리 t-test(`por_ttest_sig`), 튀는 die(\|d − 중앙값\| > 5 robust σ, `n_outlier_die`).
 
 ## ITEM 정보 표 (`--level`, 선택)
@@ -144,7 +146,7 @@ VT_N1,SHORT_V
 
 | 파일 | 내용 |
 |---|---|
-| `items.csv` | ITEM별 판정. 차이, 미결, 동등 순 |
+| `items.csv` | ITEM별 판정. 차이, 미결, 동등, 판정 제외 순 |
 | `outlier_dies.csv` | ITEM마다 튀는 die와 POR 회차별, DOE 값 |
 | `summary.txt` | `summarize.py`가 만드는 공유용 요약 (ITEM 이름 대신 익명 번호) |
 | `item_map.csv` | 익명 번호 ↔ ITEM. 공유하지 마세요. `items.csv`에도 `ID` 열이 들어갑니다. 번호는 ITEM 이름 순서로 매겨서 실행마다 같습니다 |
@@ -173,7 +175,7 @@ VT_N1,SHORT_V
 
 주의: `status`가 `산포 0`이면 `sigma_die`가 0이라 `meas_precision_pct`가 0(또는 0에 가깝게)으로 나올 수 있습니다. 측정이 정밀하다는 뜻이 아니라 값이 고정되어 산포를 못 잰 것이니 좋은 값으로 읽지 마세요.
 
-`status`는 판정(동등/차이/미결)과 별개인 데이터 상태 열입니다. 판정 값은 바꾸지 않고, 이상 die를 빼고 다시 판정하지도 않습니다. 여러 개가 해당하면 아래 표 순서대로 `;`로 잇고, `status_detail`도 같은 순서로 `;`로 잇습니다. 하나도 없으면 `정상`, detail은 빈 칸. Δ는 그 ITEM의 최종 `delta`, R은 POR die별 회차 평균, z는 DOE die 값입니다.
+`status`는 판정(동등/차이/미결/판정 제외)과 별개인 데이터 상태 열입니다. 판정 값은 바꾸지 않고, 이상 die를 빼고 다시 판정하지도 않습니다. 여러 개가 해당하면 아래 표 순서대로 `;`로 잇고, `status_detail`도 같은 순서로 `;`로 잇습니다. 하나도 없으면 `정상`, detail은 빈 칸. Δ는 그 ITEM의 최종 `delta`, R은 POR die별 회차 평균, z는 DOE die 값입니다.
 
 | 열 값 | 조건 | detail 예시 | 옵션 |
 |---|---|---|---|
@@ -204,6 +206,8 @@ python summarize.py p3/out/items.csv
 - **요약**은 기본으로 만듭니다. `summary_001.png`부터 장을 나누어 저장하며, 한 장에는 최대 `--per-page`개의 ITEM을 넣습니다(기본 1200). 점은 차이/Δ의 중심이고 가로선은 90% 신뢰구간입니다. LoQ 미만 ITEM을 모은 `summary_loq.png` 패널도 함께 만듭니다.
 - **상세**는 `--detail`을 줄 때만 만듭니다. 대상을 정하지 않으면 차이와 미결 ITEM을 그리고, `--items A,B`로 ITEM 코드를 고르거나 `--all`로 전체를 고릅니다. `--jobs N`은 상세 그림을 그리는 작업 프로세스 수입니다(기본 1).
 - 그림에는 `item_map.csv`의 실제 항목 이름을 쓰지 않습니다. 상세 파일은 `detail/` 아래에 저장하며, 파일명은 ITEM 코드를 `safe_item_name()`에 통과시켜 만듭니다.
+
+판정 제외 ITEM은 요약·LoQ 그림에서 빠지고, 경고 '판정 제외 n개'가 나옵니다.
 
 요약만 그릴 때는 판정 결과 `items.csv` 하나면 충분합니다.
 
@@ -280,15 +284,21 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 verdict와 규칙 결과가 어긋나면 note에 'verdict와 다름'을 적습니다.
 
+verdict가 '판정 제외'인 행은 근거 대상이 아니며, '계산 불가'·'대상 아님'과 따로 judgement='판정 제외'로 둡니다.
+
 ## 기존·개선 비교 (`compare_before_after.py`)
 
 `python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더>` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. 첫 열 `ITEM`은 ID로 읽고(탭 구분 표의 `ID` 열도 됨), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`, `summary.txt`, σ 짝 비교 그림으로 냅니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 실제 `ITEM` 이름이고, 입력에 summarize.py의 익명 `ID` 열이 같이 있으면 그 옆에 `ID` 열로 붙습니다. 비교 키는 항상 실제 ITEM입니다. 한쪽에만 있는 ITEM은 따로 표시하고 σ 집계에서 뺍니다. 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 `misaligned` 열에 표시만 하고 기본으로 σ 집계에 포함합니다. 빼려면 `--exclude-misaligned`를 붙입니다. `compare.csv`에는 측정 정밀도 열 `meas_precision_pct_before`·`meas_precision_pct_after`·`meas_precision_pct_change`(개선−기존)와 `meas_precision_status`(`sigma_die_status`와 같은 규칙: lower/higher/same, 낮을수록 좋음)도 붙습니다. 입력 items.csv에 `meas_precision_pct` 열이 없으면(예전 결과) 100 × √(σ_die² + σ_run²) / |por_median|으로 계산합니다. `evidence <items.csv> -o <폴더>` 모드도 있고, 그 `evidence.csv`에도 같은 방식의 `meas_precision_pct` 열이 붙습니다.
 
 `--plot-top N`(기본 30)은 σ 짝 그림에 |개선−기존| 변화가 큰 ITEM N개만 그리고 제목에 '상위 N / 전체 M'을 적습니다(전체가 N개 이하면 '전체 M'). `run_all.py --plot-top N`으로도 넘길 수 있습니다.
 
+기존·개선 어느 쪽이든 판정 제외인 행은 σ 집계에서 빼고, 1개 이상이면 `summary.txt`에 "- 판정 제외 (기존 또는 개선, σ 집계에서 뺌): n" 줄을 넣습니다.
+
 ## 그룹별 요약 (`group_summary.py`)
 
 `python group_summary.py --compare compare.csv --groups 그룹.csv --out group_out` — `compare_before_after.py compare`가 만든 `compare.csv`를 ITEM 그룹별로 요약합니다. 그룹 파일은 첫 열 ITEM, 둘째 열 그룹(쉼표 또는 탭, 헤더는 있어도 없어도 됨)이고, 그룹 파일 ITEM은 이름 그대로 먼저 맞추고, 안 맞으면 앞의 `F<숫자>_` 접두어를 떼고 다시 맞춥니다. 그래도 없는 ITEM은 '미지정'으로 묶습니다. presence=matched인 행을 씁니다. 정렬 의심 행도 기본으로 포함하고, `--exclude-misaligned`를 주면 뺍니다(제외 열 이름은 기본 '제외(짝 없음)', 옵션을 주면 '제외(짝 없음, 정렬 의심)'). `stability_panel.png`의 σ_run 막대에는 값이 적히고, 중앙값이 0이면 '0 (σ_run=0 xx%)'로 표시합니다. 출력은 `group_summary.csv`(맨 위 '전체' 행), `verdict_by_group.csv`(그룹별 판정 변화), `ratio_hist.png`(σ_die 개선/기존 비 히스토그램), `density_die.png`(σ_die 기존 대 개선 산점도), `group_panel.png`(그룹별 비교, 그룹 10~20개 기준), `stability_by_group.csv`(그룹별 안정성: 기존끼리·개선끼리 σ_die%·σ_run% 중앙값과 사분위, 측정정밀도% 중앙값·25%·75%, σ_run=0 비율, 안정 순위), `stability_panel.png`(그룹별 안정성 그림)입니다. 안정성은 compare.csv의 `sigma_*_pct_*`·`meas_precision_pct_*` 열을 쓰고, 없으면 σ와 `por_median_*`로 계산하며, 둘 다 없으면 그림을 건너뜁니다.
+
+판정 제외 행은 쓰는 행에서 빼고, 그런 행이 있을 때만 '판정 제외' 열을 붙입니다.
 
 ## infra_compare.py (이전 방식)
 

@@ -26,6 +26,8 @@ from matplotlib import font_manager as fm  # noqa: E402
 from matplotlib.collections import LineCollection  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 
+from por_doe_compare import V_EXCLUDED  # noqa: E402
+
 # ---------------------------------------------------------------------------
 # 분류·정렬 상수 (내부 기준).
 #   미결-기준 흔들림: POR 회차 간격/Δ >= POR_GAP_OVER_DELTA
@@ -503,10 +505,28 @@ def compare_tables(before: pd.DataFrame, after: pd.DataFrame) -> pd.DataFrame:
 INCLUDE_MISALIGNED = True
 
 
-def _valid_matched(cmp_df: pd.DataFrame) -> pd.DataFrame:
+def _scope_matched(cmp_df: pd.DataFrame) -> pd.DataFrame:
+    """공통 ID (정렬 의심은 INCLUDE_MISALIGNED에 따라). 판정 제외도 포함 — 판정 전이 표용."""
     if INCLUDE_MISALIGNED:
         return cmp_df[cmp_df["presence"] == "matched"].copy()
     return cmp_df[(cmp_df["presence"] == "matched") & (~cmp_df["misaligned"])].copy()
+
+
+def _is_excluded(df: pd.DataFrame) -> pd.Series:
+    """기존 또는 개선 verdict가 '판정 제외'인 행."""
+    return df["verdict_before"].eq(V_EXCLUDED) | df["verdict_after"].eq(V_EXCLUDED)
+
+
+def _valid_matched(cmp_df: pd.DataFrame) -> pd.DataFrame:
+    """σ 집계·그림 대상: _scope_matched에서 판정 제외(기존 또는 개선) 행을 뺀 것."""
+    scope = _scope_matched(cmp_df)
+    return scope[~_is_excluded(scope)].copy()
+
+
+def _id_list(ids, limit: int = 10) -> str:
+    ids = list(ids)
+    text = ", ".join(ids[:limit])
+    return text + (f" 외 {len(ids) - limit}개" if len(ids) > limit else "")
 
 
 def _scope_label() -> str:
@@ -518,6 +538,8 @@ def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> 
     only_b = cmp_df[cmp_df["presence"] == "only_before"]
     only_a = cmp_df[cmp_df["presence"] == "only_after"]
     suspect = matched[matched["misaligned"]]
+    scope = _scope_matched(cmp_df)
+    excluded = scope[_is_excluded(scope)]
     ok = _valid_matched(cmp_df)
     n_ok = len(ok)
 
@@ -550,6 +572,12 @@ def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> 
             f"- 정렬 의심 (por_median 상대차 > {MEDIAN_MISALIGN:.0%}): {len(suspect)}"
             + (f"  ({', '.join(suspect.ID)})" if len(suspect) else "")
         ),
+    ]
+    if len(excluded):
+        lines.append(
+            f"- {V_EXCLUDED} (기존 또는 개선, σ 집계에서 뺌): {len(excluded)}  ({_id_list(excluded.ID)})"
+        )
+    lines += [
         "",
         f"σ 변화 ({_scope_label()} {n_ok}건)",
         f"- σ_die 하락: {die_lower}/{n_ok}",
@@ -562,8 +590,8 @@ def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> 
         "",
         f"판정 전이 ({_scope_label()})",
     ]
-    if n_ok:
-        trans = pd.crosstab(ok["verdict_before"], ok["verdict_after"], margins=True, margins_name="합계")
+    if len(scope):  # 판정 제외도 남겨 '동등→판정 제외' 같은 전이가 보이게
+        trans = pd.crosstab(scope["verdict_before"], scope["verdict_after"], margins=True, margins_name="합계")
         lines.append(trans.to_string())
     else:
         lines.append("(해당 없음)")

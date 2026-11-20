@@ -58,7 +58,7 @@
 <li>b의 90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a>이 허용 범위 ±Δ와 어떻게 놓이는지로 판정</li>
 <li>정량 구간은 <a class="g" href="glossary.html#tost"><abbr title="두 번의 한쪽 검정 · '차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등">두 번의 한쪽 검정(TOST, Two One-Sided Tests)</abbr></a> → 동등 · 차이 · 미결 세 가지</li>
 <li><a class="g" href="glossary.html#loq"><abbr title="정량한계 · 믿고 숫자로 비교할 수 있는 가장 작은 크기">정량한계(LoQ, Limit of Quantitation)</abbr></a> 미만 구간은 '&lt;LoQ 보고 일치' → 동등 · 차이 두 가지</li>
-<li>동등 = 편향이 허용 범위 안이라고 증명됨 · 차이 = 허용 범위보다 크다고 증명됨 · 미결 = 어느 쪽도 증명 못 함</li>
+<li>동등 = 편향이 허용 범위 안이라고 증명됨 · 차이 = 허용 범위보다 크다고 증명됨 · 미결 = 어느 쪽도 증명 못 함 · 판정 제외 = Δ·신뢰구간을 계산할 수 없거나 모든 die가 같은 값이라 판정하지 않음</li>
 <li>차이나 미결이 나오면 <a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></li>
 </ul>
 <div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th></tr></thead><tbody>
@@ -78,6 +78,7 @@
 <tr><td><span class="pill bad">차이</span></td><td>CI 아래 &gt; +Δ 또는 CI 위 &lt; −Δ</td><td>편향이 허용 범위보다 크다고 증명됨 · <a href="step-6.html#C6-2">⑥ 판정</a></td></tr>
 <tr><td><span class="pill hold">미결 · 해상도 부족</span></td><td>걸침, CI 반폭 ≥ Δ</td><td>b가 0이어도 ±Δ 안에 못 들어감. 정밀도 부족<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span> · <a href="step-6.html#C6-3">⑥ 판정</a></td></tr>
 <tr><td><span class="pill hold">미결 · 경계</span></td><td>걸침, CI 반폭 &lt; Δ</td><td>정밀도는 충분, b가 Δ 근처<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span> · <a href="step-6.html#C6-4">⑥ 판정</a></td></tr>
+<tr><td><span class="pill">판정 제외</span></td><td>Δ ≤ 0·NaN·inf, 또는 CI 계산 불가, 또는 모든 die가 같은 값(σ<sub>die</sub> = σ<sub>run</sub> = 0)</td><td>통계를 낼 수 없어 판정하지 않음 · <a href="glossary.html#excluded">용어집</a></td></tr>
 </tbody></table></div>
 <h3>LoQ 미만 구간</h3>
 <div class="formula"><div>차이  ⇔  [CI가 통째로 ±Δ 밖]  AND  [|비교 조건 중심| ≥ LoQ]</div><div>아니오 → 동등 <span class="c">&lt;LoQ 보고 일치</span></div></div>
@@ -123,13 +124,13 @@
 
 <section id="columns"><h2>결과 표 items.csv 열</h2>
 <ul>
-<li>items.csv = ITEM별 판정 · 차이, 미결, 동등 순</li>
+<li>items.csv = ITEM별 판정 · 차이, 미결, 동등, 판정 제외 순</li>
 <li>열 이름(코드 글자)은 이 쪽에서만 씀 · 다른 쪽은 쉬운 말 이름</li>
 <li>— = 이 문서 입력 숫자에 없는 값 · 합성 예시 도구 출력 전체는 <a href="examples/tool_items.csv">examples/tool_items.csv</a></li>
 </ul>
 <div class="tw"><table><thead><tr><th>열 이름</th><th>쉬운 말</th><th>단계</th><th>합성 예시 값</th></tr></thead><tbody>
 <tr><td>zone</td><td>구간. 정량 · 검출~정량 · 검출한계 이하</td><td><a href="step-3.html">③</a></td><td>정량</td></tr>
-<tr><td>verdict</td><td>판정. 동등 · 차이 · 미결</td><td><a href="step-6.html">⑥</a></td><td>동등</td></tr>
+<tr><td>verdict</td><td>판정. 동등 · 차이 · 미결 · 판정 제외</td><td><a href="step-6.html">⑥</a></td><td>동등</td></tr>
 <tr><td>reason</td><td>판정 사유</td><td><a href="step-6.html">⑥</a></td><td>'90% 신뢰구간이 ±Δ 안'</td></tr>
 <tr><td>ID</td><td>익명 번호 (item_map.csv와 짝)</td><td>—</td><td>—</td></tr>
 <tr><td>por_median</td><td>die별 기준 조건 J회 평균의 중앙값. 구간 나누기와 실용 한계에 씀</td><td><a href="step-3.html">③</a> <a href="step-5.html">⑤</a></td><td>100.000</td></tr>

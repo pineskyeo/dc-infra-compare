@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
 
 UNGROUPED = "미지정"
+V_EXCLUDED = "판정 제외"  # por_doe_compare.V_EXCLUDED와 같은 값 (scipy 의존 없이 단독 실행되게 로컬로 둠)
 
 
 def set_font():
@@ -134,20 +135,27 @@ def main():
     keep = c["presence"].astype(str).str.strip() == "matched"
     if a.exclude_misaligned:
         keep &= ~as_bool(c["misaligned"])
-    used = c[keep].copy()
-    print(f"분석 ITEM: {len(used)}개 (정렬 의심 {'제외' if a.exclude_misaligned else '포함'})")
+    scoped = c[keep].copy()  # 판정 전이 표용 (판정 제외 포함)
+    is_excl = scoped["verdict_before"].eq(V_EXCLUDED) | scoped["verdict_after"].eq(V_EXCLUDED)
+    used = scoped[~is_excl].copy()  # σ 집계용: 기존 또는 개선이 판정 제외면 뺌
+    verdict_excl = scoped[is_excl].groupby("group").size()
+    n_verdict_excl = int(is_excl.sum())
+    print(f"분석 ITEM: {len(used)}개 (정렬 의심 {'제외' if a.exclude_misaligned else '포함'})"
+          + (f", {V_EXCLUDED} {n_verdict_excl}개 뺌" if n_verdict_excl else ""))
 
     # 그룹별 표
     rows = [{"그룹": "전체", **summarize(used)}]
     order = sorted(used["group"].unique(), key=lambda x: (x == UNGROUPED, x))
     for name in order:
         rows.append({"그룹": name, **summarize(used[used["group"] == name])})
-    excluded = c[~c.index.isin(used.index)].groupby("group").size()
+    excluded = c[~keep].groupby("group").size()
     tab = pd.DataFrame(rows)
     tab["제외(짝 없음"+(", 정렬 의심" if a.exclude_misaligned else "")+")"] = tab["그룹"].map(lambda x: int(excluded.sum()) if x == "전체" else int(excluded.get(x, 0)))
+    if n_verdict_excl:
+        tab[V_EXCLUDED] = tab["그룹"].map(lambda x: n_verdict_excl if x == "전체" else int(verdict_excl.get(x, 0)))
     tab.to_csv(out / "group_summary.csv", index=False, encoding="utf-8-sig")
 
-    vt = pd.crosstab(used["group"], used["verdict_before"] + "→" + used["verdict_after"])
+    vt = pd.crosstab(scoped["group"], scoped["verdict_before"] + "→" + scoped["verdict_after"])
     vt.loc["전체"] = vt.sum()
     vt.to_csv(out / "verdict_by_group.csv", encoding="utf-8-sig")
 

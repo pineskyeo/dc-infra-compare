@@ -38,7 +38,9 @@ J_OK = "미결-정상"
 J_BASE = "미결-기준 흔들림"
 J_NA = "계산 불가"
 J_SKIP = "대상 아님"
-JUDGEMENT_ORDER = (J_DIFF, J_OK, J_BASE, J_NA, J_SKIP)
+# por_doe_compare가 통계를 낼 수 없다고 판정한 ITEM. 근거 대상이 아니지만 '대상 아님'(동등 등)과 섞지 않는다.
+J_EXCL = "판정 제외"
+JUDGEMENT_ORDER = (J_DIFF, J_OK, J_BASE, J_NA, J_EXCL, J_SKIP)
 PLOT_ORDER = (J_DIFF, J_OK, J_BASE)
 JUDGEMENT_COLORS = {J_DIFF: "#d62728", J_OK: "#1f77b4", J_BASE: "#ff7f0e"}
 MISMATCH_NOTE = "verdict와 다름"
@@ -159,7 +161,7 @@ def row_evidence(row: dict, ks: list[int], missing_cols: list[str],
     out = {c: NAN for c in csv_columns(ks)}
     out.update(ID=str(row.get("ID", "")).strip(), verdict=verdict, rule_hit="", note="")
     if verdict not in TARGET_VERDICTS:
-        out["judgement"] = J_SKIP
+        out["judgement"] = J_EXCL if verdict == J_EXCL else J_SKIP
         return out
 
     problems = [f"{c} 열 없음" for c in missing_cols]
@@ -295,8 +297,9 @@ def plot_forest(table: pd.DataFrame, path: Path) -> Path:
         ax.grid(axis="x", alpha=0.3)
     ax.set_title("Fail ITEM 근거: CI/Δ")
     n_na = int((table["judgement"] == J_NA).sum())
+    n_excl = int((table["judgement"] == J_EXCL).sum())
     n_skip = int((table["judgement"] == J_SKIP).sum())
-    _footnote(fig, f"점선 ±1 = Δ 경계. 제외: {J_NA} {n_na}행, {J_SKIP} {n_skip}행")
+    _footnote(fig, f"점선 ±1 = Δ 경계. 제외: {J_NA} {n_na}행, {J_EXCL} {n_excl}행, {J_SKIP} {n_skip}행")
     fig.tight_layout(rect=(0, 0.04, 1, 1))
     fig.savefig(path, dpi=150)
     plt.close(fig)
