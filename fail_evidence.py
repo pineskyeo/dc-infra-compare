@@ -26,7 +26,8 @@ from matplotlib.lines import Line2D  # noqa: E402
 import por_doe_compare  # noqa: E402
 from compare_metrics import safe_group_name  # noqa: E402
 from por_doe_compare import (  # noqa: E402
-    POR_GAP_NOISE_K, ST_FLAT, ST_OK, ST_RESOLUTION, ST_RUN_JITTER, ST_SETUP_ERROR, ST_SIZE_JITTER, ST_UNSTABLE,
+    POR_GAP_NOISE_K, ST_BIMODAL, ST_FLAT, ST_LOG_CANDIDATE, ST_OK, ST_RESOLUTION, ST_RUN_JITTER, ST_SETUP_ERROR,
+    ST_SIZE_JITTER, ST_SIZE_JITTER_POS, ST_UNSTABLE,
     add_common_args, load_blank, load_wide, read_csv_auto,
 )
 
@@ -327,7 +328,8 @@ INDEX_COLUMNS = ("ID", "유형", "verdict", "status", "폴더", "log_target")
 CMP_PREFIX = "cmp_"
 NO_RAW_MSG = "원데이터 없음: raw.csv·drill.png 건너뜀"
 # 대표 status(폴더 <유형>): 여러 status가 ';'로 붙어 있으면 이 표에서 앞에 있는 것. 표에 없는 이름은 맨 뒤(나온 순서).
-STATUS_PRIORITY = (ST_SETUP_ERROR, ST_UNSTABLE, ST_FLAT, ST_RESOLUTION, ST_RUN_JITTER, ST_SIZE_JITTER)
+STATUS_PRIORITY = (ST_SETUP_ERROR, ST_UNSTABLE, ST_FLAT, ST_RESOLUTION, ST_RUN_JITTER, ST_SIZE_JITTER,
+                   ST_SIZE_JITTER_POS, ST_LOG_CANDIDATE, ST_BIMODAL)
 
 
 def item_type(status: str, verdict: str) -> str:
@@ -702,15 +704,35 @@ def _status_flat(ax, rows: pd.DataFrame, s: dict, por_cols: list[str]) -> None:
     ax.set_title("Blank·LoD·LoQ 대비 값 위치", fontsize=10)
 
 
+def _status_shape(ax, rows: pd.DataFrame, s: dict, por_cols: list[str]) -> None:
+    """log 후보·두 덩어리: die별 log10|POR 회차 평균| 히스토그램 + summary 의 decades·log_fit·bimodality_log."""
+    P = _por_matrix(rows, por_cols)
+    m = P.mean(axis=1) if not P.empty else pd.Series(dtype=float)
+    if m.empty or (m == 0).any() or ((m > 0).any() and (m < 0).any()):
+        _no_data(ax, "POR 회차 평균에 0 또는 부호 섞임")
+    else:
+        lg = np.log10(m.abs())
+        ax.hist(lg, bins=min(30, max(5, len(lg) // 3)), color=POR_COLOR, alpha=0.7)
+        text = "\n".join(f"{c} = {_num(s, c):.3g}" for c in ("decades", "log_fit", "bimodality_log")
+                         if math.isfinite(_num(s, c)))
+        if text:
+            ax.text(0.97, 0.95, text.replace("-", "−"), transform=ax.transAxes, ha="right", va="top", fontsize=9)
+        ax.set_xlabel("log10 |회차 평균|", fontsize=8)
+        ax.set_ylabel("die 수", fontsize=8)
+        ax.grid(axis="y", alpha=0.3)
+    ax.set_title("die별 크기 분포 (log)", fontsize=10)
+
+
 STATUS_PANELS = {
     ST_UNSTABLE: _status_unstable,
     ST_RUN_JITTER: _status_run_jitter,
     ST_SIZE_JITTER: _status_size_jitter,
+    ST_SIZE_JITTER_POS: _status_size_jitter,
     ST_RESOLUTION: _status_resolution,
     ST_FLAT: _status_flat,
+    ST_LOG_CANDIDATE: _status_shape,
+    ST_BIMODAL: _status_shape,
 }
-if getattr(por_doe_compare, "ST_SIZE_JITTER_POS", None):
-    STATUS_PANELS[por_doe_compare.ST_SIZE_JITTER_POS] = _status_size_jitter
 
 
 def plot_status_panels(rows: pd.DataFrame, summary: dict, item: str, status: str, folder: Path) -> list[Path]:

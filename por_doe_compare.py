@@ -45,18 +45,23 @@ RUN_JITTER_OVER_DELTA = 1.0     # 회차 흔들림: die별 회차 범위 중앙�
 SIZE_JITTER_RHO = -0.5          # 작을수록 흔들림: Spearman ρ(크기, log 범위) ≤ 이 값
 SIZE_JITTER_RHO_POS = 0.5       # 클수록 흔들림: Spearman ρ(크기, log 범위) ≥ 이 값
 SIZE_JITTER_MIN_DIE = 10
+LOG_DECADES_MIN = 2.0           # log 후보: decades ≥ 이 값 그리고 log_fit > 0. 기준값 추천(검토 필요)
+BIMODAL_BC_MIN = 5 / 9          # 두 덩어리: bimodality_log > 이 값 (균일분포 BC = 5/9 ≈ 0.555). 기준값 추천(검토 필요)
+BIMODAL_MIN_DIE = 10            # 두 덩어리: POR 회차평균이 유한한 die ≥ 이 수. 기준값 추천(검토 필요)
 JITTER_COLS = ["run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter"]
 GAP_COLS = ["por_gap_over_delta", "por_gap_over_noise"]
 RESOLUTION_COLS = ["resolution_step", "resolution_over_delta"]
 # status 바로 뒤 지표 묶음: 조건 불안정 → 회차 흔들림 → 크기-흔들림 → 분해능 부족 → 산포 0
 METRIC_COLS = GAP_COLS + JITTER_COLS + RESOLUTION_COLS + ["fixed_share"]
-STATUS_COLS = ["status", *METRIC_COLS, "mean_median_ratio"]
+SHAPE_COLS = ["decades", "skew_lin", "skew_log", "log_fit", "bimodality_log"]    # 분포 모양 묶음 (지표 묶음 끝)
+STATUS_COLS = ["status", *METRIC_COLS, *SHAPE_COLS, "mean_median_ratio"]
 PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
 LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta",
             "ci_half_over_delta_log", "spearman_size_jitter_log", "log_reason"]     # 작을수록·클수록 흔들림 ITEM 참고용
 POR_GAP_NOISE_K = 3             # 조건 불안정: 짝지은 회차 차 ≥ 이 배수 × 회차 중앙값 차의 표준오차
 ST_OK, ST_UNSTABLE, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "분해능 부족", "산포 0"
 ST_RUN_JITTER, ST_SIZE_JITTER, ST_SIZE_JITTER_POS = "회차 흔들림", "작을수록 흔들림", "클수록 흔들림"
+ST_LOG_CANDIDATE, ST_BIMODAL = "log 후보", "두 덩어리"     # 분포 모양 (SHAPE_COLS)
 ST_SETUP_ERROR = "조건 설정 오류"     # 예약 값. 판정에 필요한 입력이 없어 지금은 쓰지 않음
 V_EXCLUDED = "판정 제외"
 ORDER = {"차이": 0, "미결": 1, "동등": 2, V_EXCLUDED: 3}
@@ -212,6 +217,41 @@ def flat_share(R: np.ndarray, z: np.ndarray) -> float:
     return max(_mode_share(R), _mode_share(z))
 
 
+def _skew(v: np.ndarray) -> float:
+    """표본 왜도 (보정식, scipy bias=False). n < 3 이거나 값이 모두 같으면 NaN."""
+    return float(stats.skew(v, bias=False)) if v.size >= 3 and np.ptp(v) > 0 else np.nan
+
+
+def bimodality_coef(v: np.ndarray) -> float:
+    """BC = (g² + 1) / (k + 3(n−1)² / ((n−2)(n−3))). g = 표본 왜도, k = 표본 초과 첨도 (둘 다 보정식, scipy bias=False).
+    n < 4 이거나 값이 모두 같으면 NaN."""
+    n = v.size
+    if n < 4 or np.ptp(v) == 0:
+        return np.nan
+    g, k = float(stats.skew(v, bias=False)), float(stats.kurtosis(v, fisher=True, bias=False))
+    return (g ** 2 + 1) / (k + 3 * (n - 1) ** 2 / ((n - 2) * (n - 3)))
+
+
+def shape_cols(x: np.ndarray) -> dict:
+    """SHAPE_COLS. x = die별 POR 회차평균 (유한한 값만 씀).
+    decades = log10(max|x| / min|x|), skew_lin = 표본 왜도(x), skew_log = 표본 왜도(log10|x|),
+    log_fit = |skew_lin| − |skew_log| (양수면 log 쪽이 더 대칭), bimodality_log = log10|x| 의 bimodality_coef.
+    x에 0이 있거나 부호가 섞이면 log 쪽(decades, skew_log, log_fit, bimodality_log)은 NaN."""
+    x = x[np.isfinite(x)]
+    out = dict.fromkeys(SHAPE_COLS, np.nan)
+    if x.size == 0:
+        return out
+    out["skew_lin"] = _skew(x)
+    if (x == 0).any() or ((x > 0).any() and (x < 0).any()):
+        return out
+    lg = np.log10(np.abs(x))
+    out["decades"] = float(lg.max() - lg.min())
+    out["skew_log"] = _skew(lg)
+    out["log_fit"] = abs(out["skew_lin"]) - abs(out["skew_log"])
+    out["bimodality_log"] = bimodality_coef(lg)
+    return out
+
+
 def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     """판정과 별개인 데이터 상태. 해당하는 이름을 모두 ';'로 잇고, 판단에 쓴 값을 METRIC_COLS 로 같이 돌려준다.
     지표는 status 여부와 무관하게 계산할 수 있으면 채우고 못 하면 NaN.
@@ -223,7 +263,9 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     조건 불안정은 짝지은 회차 차: die별 회차 평균을 뺀 값의 회차별 중앙값 rr, gap = max(rr) − min(rr).
     se = 1.2533 · sigma_die · √2 / √n (n = die 수, 두 중앙값 차의 표준오차). gap ≥ Δ 이고 gap ≥ POR_GAP_NOISE_K · se 일 때
     (se가 0이거나 유한하지 않으면 gap ≥ Δ 만). GAP_COLS: por_gap_over_delta = gap / Δ, por_gap_over_noise = gap / se,
-    계산할 수 없으면 NaN (POR 1회면 둘 다 NaN, 조건 불안정 없음). 작을수록·클수록 흔들림은 0값 없는 die가 SIZE_JITTER_MIN_DIE개 이상일 때만."""
+    계산할 수 없으면 NaN (POR 1회면 둘 다 NaN, 조건 불안정 없음). 작을수록·클수록 흔들림은 0값 없는 die가 SIZE_JITTER_MIN_DIE개 이상일 때만.
+    분포 모양 SHAPE_COLS = shape_cols(die별 POR 회차평균). log 후보: decades ≥ LOG_DECADES_MIN 그리고 log_fit > 0.
+    두 덩어리: bimodality_log > BIMODAL_BC_MIN 그리고 die ≥ BIMODAL_MIN_DIE. 판정(judge)과 다른 status는 바꾸지 않는다."""
     Y, z = np.asarray(Y, float), np.asarray(z, float)
     R = Y.mean(axis=1)
     has_delta = bool(delta > 0)     # NaN도 False
@@ -266,8 +308,14 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     if s_die == 0 or share > 0.5:
         names.append(ST_FLAT)
 
+    shape = shape_cols(R)
+    if shape["decades"] >= LOG_DECADES_MIN and shape["log_fit"] > 0:      # NaN이면 False
+        names.append(ST_LOG_CANDIDATE)
+    if shape["bimodality_log"] > BIMODAL_BC_MIN and int(np.isfinite(R).sum()) >= BIMODAL_MIN_DIE:
+        names.append(ST_BIMODAL)
+
     med = float(np.median(R))
-    return {"status": ";".join(names) or ST_OK, **gap_cols, **jit, **res_cols, "fixed_share": share,
+    return {"status": ";".join(names) or ST_OK, **gap_cols, **jit, **res_cols, "fixed_share": share, **shape,
             "mean_median_ratio": (float(R.mean()) - med) / abs(med) if med != 0 else np.nan}
 
 

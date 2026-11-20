@@ -161,6 +161,7 @@ def test_main_writes_outputs(tmp_path: Path, capsys):
     assert list(csv.columns) == ["ITEM"] + fe.csv_columns([1, 2, 3])[1:] + ["status", "por_gap_over_noise",
                                                                         "run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter",
                                                                         "resolution_step", "resolution_over_delta", "fixed_share",
+                                                                        "decades", "skew_lin", "skew_log", "log_fit", "bimodality_log",
                                                                         "mean_median_ratio",
                                                                         "sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
     assert dict(zip(csv["ITEM"], csv["judgement"])) == EXPECTED

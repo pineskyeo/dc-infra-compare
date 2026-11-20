@@ -94,7 +94,7 @@ def test_fail_evidence_copies_status_columns(tmp_path: Path):
 
     assert fail_evidence.main(["--input", str(inp), "--out", str(tmp_path / "out")]) == 0
     out = read_out(tmp_path / "out" / "fail_evidence.csv")
-    assert list(out.columns[-12:-3]) == list(fail_evidence.STATUS_COLUMNS)
+    assert list(out.columns[-len(fail_evidence.STATUS_COLUMNS) - 3:-3]) == list(fail_evidence.STATUS_COLUMNS)
     assert out["status"].tolist() == status
     assert out["fixed_share"].tolist() == share
     assert out["mean_median_ratio"].tolist() == ratio
@@ -103,7 +103,7 @@ def test_fail_evidence_copies_status_columns(tmp_path: Path):
 def test_fail_evidence_without_status_columns(tmp_path: Path):
     assert fail_evidence.main(["--input", str(SYNTH_TSV), "--out", str(tmp_path / "out")]) == 0
     out = read_out(tmp_path / "out" / "fail_evidence.csv")
-    assert list(out.columns[-12:-3]) == list(fail_evidence.STATUS_COLUMNS)
+    assert list(out.columns[-len(fail_evidence.STATUS_COLUMNS) - 3:-3]) == list(fail_evidence.STATUS_COLUMNS)
     for c in fail_evidence.STATUS_COLUMNS:
         assert (out[c] == "").all()
 

@@ -12,7 +12,8 @@ import pandas as pd
 import pytest
 
 import fail_evidence
-from por_doe_compare import LOG_COLS, METRIC_COLS, PRECISION_COLS, STATUS_COLS, excluded_reason, item_status
+from por_doe_compare import (LOG_COLS, METRIC_COLS, PRECISION_COLS, ST_BIMODAL, ST_LOG_CANDIDATE, ST_OK, STATUS_COLS,
+                             excluded_reason, item_status)
 
 ROOT = Path(__file__).resolve().parents[1]
 SYNTH_TSV = ROOT / "tests" / "data" / "fail_evidence_synth.tsv"
@@ -142,10 +143,16 @@ def old_item_status(tmp_path_factory):
     return mod.item_status
 
 
+def without_shape(status: str) -> str:
+    """WO-U 분포 모양 status(log 후보·두 덩어리)를 뺀 status. 다 빠지면 정상."""
+    names = [s for s in status.split(";") if s not in (ST_LOG_CANDIDATE, ST_BIMODAL, ST_OK)]
+    return ";".join(names) or ST_OK
+
+
 @pytest.mark.parametrize("name", list(_cases()))
 def test_v4_status_names_unchanged(name, old_item_status):
     Y, z, d = _cases()[name]
-    assert item_status(Y, z, d)["status"] == old_item_status(Y, z, d)["status"]
+    assert without_shape(item_status(Y, z, d)["status"]) == old_item_status(Y, z, d)["status"]
 
 
 def test_v4_known_names():

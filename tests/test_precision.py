@@ -51,7 +51,8 @@ def test_fail_evidence_copies_precision_columns(tmp_path: Path):
     assert fail_evidence.main(["--input", str(inp), "--out", str(tmp_path / "out")]) == 0
     out = pd.read_csv(tmp_path / "out" / "fail_evidence.csv", encoding="utf-8-sig",
                       dtype=str, keep_default_na=False)
-    assert list(out.columns[-12:]) == [c for c in STATUS_COLS if c != "por_gap_over_delta"] + PRECISION_COLS
+    want = [c for c in STATUS_COLS if c != "por_gap_over_delta"] + PRECISION_COLS
+    assert list(out.columns[-len(want):]) == want
     assert out["sigma_meas"].tolist() == sm
     assert out["meas_precision_pct"].tolist() == pct
     assert out["sigma_meas_over_delta"].tolist() == over
