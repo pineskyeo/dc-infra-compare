@@ -1,4 +1,4 @@
-"""WO-P (a): fail_evidence ITEM별 폴더(items/<유형>_<ID>/summary.csv·raw.csv), items_index.csv, 표식 기반 지우기. 합성 데이터만."""
+"""WO-P (a)(b): fail_evidence ITEM별 폴더(items/<유형>_<ID>/summary.csv·raw.csv·drill.png), items_index.csv, 표식 기반 지우기. 합성 데이터만."""
 import sys
 from pathlib import Path
 
@@ -196,6 +196,52 @@ def test_no_marker_with_user_files_stops(tmp_path, capsys):
     assert not (items / fe.ITEMS_MARKER).exists()
     assert (out / "fail_evidence.csv").read_text(encoding="utf-8") == "old"   # 다른 출력도 건드리지 않음
     assert not (out / fe.ITEMS_INDEX).exists()
+
+
+def test_drill_png_written_with_raw(tmp_path):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out), *_raw_args(tmp_path)]) == 0
+    for f in (_folder(out, "차이", "A1"), _folder(out, ST_UNSTABLE, "A2")):
+        png = f / fe.DRILL_PNG
+        assert png.is_file() and png.stat().st_size > 0, f
+    assert not (_folder(out, "미결", "A5") / fe.DRILL_PNG).exists()   # 원데이터 행이 없으면 그림 없음
+
+
+def test_no_raw_no_drill_png(tmp_path):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out)]) == 0
+    assert not list((out / fe.ITEMS_DIR).rglob(fe.DRILL_PNG))
+
+
+def _drill_rows(**coords) -> pd.DataFrame:
+    n = 6
+    rows = pd.DataFrame({"ITEM": ["Z"] * n, "POR1": [1.0, 1.1, 0.9, 1.2, 1.0, 0.8],
+                         "POR2": [1.1, 1.0, 1.0, 1.1, 0.9, 0.9], "DOE": [1.5, 1.6, 1.4, 1.7, 1.5, 1.3],
+                         "blank_sigma0": [0.02] * n, **coords})
+    rows["d"] = rows["DOE"] - rows[["POR1", "POR2"]].mean(axis=1)
+    return rows
+
+
+SUMMARY = {"ITEM": "Z", "verdict": "차이", "status": ST_OK, "center": "0.5", "ci_low": "0.4", "ci_high": "0.6",
+           "delta": "0.3", "LoQ": "0.2", "LoD": "0.066"}
+
+
+@pytest.mark.parametrize("coords", [
+    {"COORD_X_Y": ["0_0", "1_0", "0_1", "1_1", "-1_0", "0_-1"]},
+    {"X": [0, 1, 0, 1, -1, 0], "Y": [0, 0, 1, 1, 0, -1]},
+    {},
+])
+def test_plot_drill_with_and_without_coords(tmp_path, coords):
+    rows = _drill_rows(**coords)
+    assert (fe.die_xy(rows) is not None) == bool(coords)
+    png = fe.plot_drill(rows, SUMMARY, "Z", tmp_path / fe.DRILL_PNG)
+    assert png.is_file() and png.stat().st_size > 0
+
+
+def test_plot_drill_without_blank_or_limits(tmp_path):
+    rows = _drill_rows().drop(columns="blank_sigma0")
+    png = fe.plot_drill(rows, {"verdict": "미결"}, "Z", tmp_path / fe.DRILL_PNG)
+    assert png.is_file()
 
 
 def test_empty_items_dir_without_marker_is_used(tmp_path):

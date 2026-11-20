@@ -415,6 +415,161 @@ def load_raw(a: argparse.Namespace, items: list[str]) -> pd.DataFrame:
     return wide
 
 
+DRILL_PNG = "drill.png"
+POR_COL_RE = re.compile(r"^POR\d+$")
+XY_PAIRS = (("X", "Y"), ("DIE_X", "DIE_Y"), ("COORD_X", "COORD_Y"), ("DIEX", "DIEY"))
+XY_TEXT_RE = re.compile(r"^\s*(-?\d+(?:\.\d+)?)\s*[_,:/ ]\s*(-?\d+(?:\.\d+)?)\s*$")
+POR_COLOR, DOE_COLOR, D_COLOR = "#7f7f7f", "#d62728", "#1f77b4"
+
+
+def die_xy(rows: pd.DataFrame) -> tuple[pd.Series, pd.Series] | None:
+    """die 좌표 (x, y). X/Y 같은 숫자 열 쌍, 없으면 COORD_X_Y 처럼 '1_2' 글자 열. 둘 다 없으면 None."""
+    upper = {str(c).strip().upper(): c for c in rows.columns}
+    for xn, yn in XY_PAIRS:
+        if xn in upper and yn in upper:
+            x = pd.to_numeric(rows[upper[xn]], errors="coerce")
+            y = pd.to_numeric(rows[upper[yn]], errors="coerce")
+            if x.notna().all() and y.notna().all():
+                return x, y
+    for name, col in upper.items():
+        if "X_Y" in name or "XY" in name:
+            parts = rows[col].astype(str).str.extract(XY_TEXT_RE)
+            if parts.notna().all().all():
+                return parts[0].astype(float), parts[1].astype(float)
+    return None
+
+
+def _num(row: dict, name: str) -> float:
+    v = pd.to_numeric(pd.Series([row.get(name)]), errors="coerce").iloc[0]
+    return float(v) if pd.notna(v) else NAN
+
+
+def _no_data(ax, text: str = "자료 없음") -> None:
+    ax.text(0.5, 0.5, text, ha="center", va="center", transform=ax.transAxes, color="#555555")
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+
+def _drill_values(ax, rows: pd.DataFrame, por_cols: list[str]) -> None:
+    """① POR 회차별·DOE die 값: box + 흩뿌린 점."""
+    cols = por_cols + (["DOE"] if "DOE" in rows.columns else [])
+    data = [pd.to_numeric(rows[c], errors="coerce").dropna().to_numpy() for c in cols]
+    if not any(len(v) for v in data):
+        _no_data(ax)
+    else:
+        ax.boxplot([v if len(v) else [NAN] for v in data], widths=0.5, showfliers=False,
+                   medianprops={"color": "#333333"})
+        for i, (c, v) in enumerate(zip(cols, data), start=1):
+            jitter = (pd.Series(range(len(v))) % 7 - 3) * 0.04
+            ax.plot(i + jitter.to_numpy(), v, "o", ms=3, alpha=0.6,
+                    color=DOE_COLOR if c == "DOE" else POR_COLOR)
+        ax.set_xticks(range(1, len(cols) + 1))
+        ax.set_xticklabels(cols, fontsize=8)
+        ax.grid(axis="y", alpha=0.3)
+    ax.set_title("POR 회차별·DOE die 값", fontsize=10)
+
+
+def _drill_blank(ax, rows: pd.DataFrame, s: dict) -> None:
+    """② Blank 분포(σ0·offset 기준 정규 곡선)와 LoD·LoQ 선."""
+    lod, loq = _num(s, "LoD"), _num(s, "LoQ")
+    sig = pd.to_numeric(rows.get("blank_sigma0", pd.Series(dtype=float)), errors="coerce").dropna()
+    off = pd.to_numeric(rows.get("blank_offset", pd.Series(dtype=float)), errors="coerce").dropna()
+    sigma = float(sig.iloc[0]) if not sig.empty and sig.iloc[0] > 0 else NAN
+    mu = float(off.iloc[0]) if not off.empty else 0.0
+    lines = [(v, n, ls) for v, n, ls in ((lod, "LoD", ":"), (loq, "LoQ", "--")) if math.isfinite(v)]
+    if not math.isfinite(sigma) and not lines:
+        _no_data(ax)
+    else:
+        if math.isfinite(sigma):
+            xs = [mu + sigma * (i / 50 - 4) for i in range(401)]
+            ys = [math.exp(-0.5 * ((x - mu) / sigma) ** 2) / (sigma * math.sqrt(2 * math.pi)) for x in xs]
+            ax.fill_between(xs, ys, color=POR_COLOR, alpha=0.3, label=f"Blank (σ0={sigma:.3g})")
+        for v, n, ls in lines:
+            ax.axvline(v, color="#333333", ls=ls, lw=1.2, label=f"{n}={v:.3g}")
+        ax.legend(fontsize=7, loc="best")
+        ax.set_yticks([])
+    ax.set_title("Blank 분포와 LoD·LoQ", fontsize=10)
+
+
+def _center_lines(ax, s: dict, vertical: bool) -> None:
+    line = ax.axvline if vertical else ax.axhline
+    center, delta = _num(s, "center"), _num(s, "delta")
+    if math.isfinite(center):
+        line(center, color="#333333", lw=1.5, label=f"center={center:.3g}")
+    if math.isfinite(delta):
+        for sign in (-1, 1):
+            line(sign * delta, color="#555555", ls="--", lw=1, label="±Δ" if sign > 0 else None)
+    line(0, color="#999999", lw=0.8)
+
+
+def _drill_d_hist(ax, d: pd.Series, s: dict) -> None:
+    """③ d 히스토그램 + center·CI·±Δ 세로선."""
+    if d.empty:
+        _no_data(ax)
+    else:
+        ax.hist(d, bins=min(30, max(5, len(d) // 3)), color=D_COLOR, alpha=0.6)
+        lo, hi = _num(s, "ci_low"), _num(s, "ci_high")
+        if math.isfinite(lo) and math.isfinite(hi):
+            ax.axvspan(lo, hi, color="#ff7f0e", alpha=0.2, label="CI")
+        _center_lines(ax, s, vertical=True)
+        ax.legend(fontsize=7, loc="best")
+        ax.set_xlabel("d = DOE − POR 회차 평균", fontsize=8)
+    ax.set_title("d 분포", fontsize=10)
+
+
+def _drill_d_order(ax, d: pd.Series, s: dict) -> None:
+    """④ raw.csv 행 순서별 d + center·±Δ 가로선."""
+    if d.empty:
+        _no_data(ax)
+    else:
+        ax.plot(range(1, len(d) + 1), d.to_numpy(), "o-", ms=3, lw=0.6, color=D_COLOR)
+        _center_lines(ax, s, vertical=False)
+        ax.legend(fontsize=7, loc="best")
+        ax.set_xlabel("die 순서 (raw.csv 행)", fontsize=8)
+        ax.set_ylabel("d", fontsize=8)
+        ax.grid(alpha=0.3)
+    ax.set_title("die 순서별 d", fontsize=10)
+
+
+def _drill_map(fig, ax, xy: tuple[pd.Series, pd.Series], d: pd.Series) -> None:
+    """⑤ 웨이퍼맵: die 좌표에 d 색(0 중심 발산색)."""
+    lim = float(d.abs().max()) if d.notna().any() else 1.0
+    lim = lim if lim > 0 else 1.0
+    sc = ax.scatter(xy[0], xy[1], c=d, cmap="RdBu_r", vmin=-lim, vmax=lim, s=40, marker="s")
+    fig.colorbar(sc, ax=ax, label="d")
+    ax.set_aspect("equal", adjustable="datalim")
+    ax.set_xlabel("x", fontsize=8)
+    ax.set_ylabel("y", fontsize=8)
+    ax.set_title("웨이퍼맵 (d)", fontsize=10)
+
+
+def plot_drill(rows: pd.DataFrame, summary: dict, item: str, path: Path) -> Path:
+    """ITEM 한 개의 공통 그림: 값 분포, Blank·LoD·LoQ, d 분포, die 순서별 d, (좌표 있으면) 웨이퍼맵."""
+    rows = rows.reset_index(drop=True)
+    por_cols = [c for c in rows.columns if POR_COL_RE.match(str(c))]
+    d = pd.to_numeric(rows["d"], errors="coerce") if "d" in rows.columns else pd.Series(dtype=float)
+    xy = die_xy(rows)
+    fig, axes = plt.subplots(2, 3 if xy is not None else 2, figsize=(14 if xy is not None else 10, 7.5))
+    ax = axes.ravel()
+    _drill_values(ax[0], rows, por_cols)
+    _drill_blank(ax[1], rows, summary)
+    if xy is not None:
+        _drill_map(fig, ax[2], xy, d)
+        ax[5].set_axis_off()
+        hist_ax, order_ax = ax[3], ax[4]
+    else:
+        hist_ax, order_ax = ax[2], ax[3]
+    _drill_d_hist(hist_ax, d.dropna(), summary)
+    _drill_d_order(order_ax, d, summary)
+    parts = [item, summary.get("verdict"), summary.get("status")]
+    fig.suptitle(" · ".join(str(p).strip() for p in parts if not pd.isna(p) and str(p).strip()))
+    _footnote(fig, f"die {len(rows)}개, POR 회차 {len(por_cols)}개. 실선 = center, 점선 = ±Δ, 주황 띠 = CI")
+    fig.tight_layout(rect=(0, 0.03, 1, 0.96))
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+    return path
+
+
 def items_dir_blocked(d: Path) -> str | None:
     """표식 없이 파일이 든 items/ 이면 이유 문장, 아니면 None."""
     if d.is_dir() and not (d / ITEMS_MARKER).is_file() and any(d.iterdir()):
@@ -501,12 +656,16 @@ def main(argv: list[str] | None = None) -> int:
     for rec in index.to_dict("records"):
         folder = out / rec["폴더"]
         folder.mkdir(parents=True)
-        item_summary(plain, rec["ID"], cmp).to_csv(folder / "summary.csv", index=False, encoding="utf-8-sig")
+        isum = item_summary(plain, rec["ID"], cmp)
+        isum.to_csv(folder / "summary.csv", index=False, encoding="utf-8-sig")
         if raw is not None:
             rows = raw[raw["ITEM"].astype(str) == rec["ID"]]
             if rows.empty:
-                print(f"{rec['ID']}: 원데이터에 행 없음 (raw.csv는 머리줄만)")
+                print(f"{rec['ID']}: 원데이터에 행 없음 (raw.csv는 머리줄만, {DRILL_PNG} 없음)")
             rows.to_csv(folder / "raw.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
+            if not rows.empty:
+                srow = isum.iloc[0].to_dict() if not isum.empty else {}
+                plot_drill(rows, srow, rec["ID"], folder / DRILL_PNG)
     index.to_csv(out / ITEMS_INDEX, index=False, encoding="utf-8-sig")
 
     summary = summary_text(table, Path(args.input).name)
