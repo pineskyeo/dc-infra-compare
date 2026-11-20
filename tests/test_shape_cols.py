@@ -87,6 +87,17 @@ def test_w2_normal_is_not_log_candidate():
     assert ST_LOG_CANDIDATE not in names(st) and ST_BIMODAL not in names(st)
 
 
+def test_decades_between_1_and_2_is_log_candidate():
+    """LOG_DECADES_MIN = 1.0: decades ≈ 1.5 (log10 표준편차 0.32 → P1~P99 폭 ≈ 4.65 × 0.32), log_fit > 0 이면 후보."""
+    rng = np.random.default_rng(21)
+    st = item_status(*runs(10 ** (0.32 * norm_quantiles(300)), rng), DELTA)
+    assert LOG_DECADES_MIN == 1.0
+    assert 1.0 <= st["decades"] < 2.0
+    assert st["decades"] == pytest.approx(1.5, abs=0.1)
+    assert st["log_fit"] > 0
+    assert ST_LOG_CANDIDATE in names(st)
+
+
 # w3
 @pytest.mark.parametrize("make", [with_zero, mixed_sign])
 def test_w3_zero_or_mixed_sign_gives_nan(make):

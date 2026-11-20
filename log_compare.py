@@ -153,7 +153,7 @@ def plot(t: pd.DataFrame, path: Path) -> dict:
     ]
     present = set(keys)
     handles += [Line2D([], [], marker="o", markersize=EDGE[k][0] ** 0.5, markeredgewidth=EDGE[k][1],
-                       label=("둘 다" if k == "both" else k), **hollow) for k in EDGE if k in present]
+                       label="테두리: " + ("둘 다" if k == "both" else k), **hollow) for k in EDGE if k in present]
     if n_nan:
         handles.append(Line2D([], [], ls="", marker="o", color=C_NAN, markersize=7,
                               label=f"log_fit 없음 {n_nan}"))

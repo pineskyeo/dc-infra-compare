@@ -241,7 +241,7 @@ log 진단 대상(`is_log_target`: `fail_evidence.py`의 log 진단 그림, `log
 | `클수록 흔들림` | `spearman_size_jitter` ≥ +0.5이고 유효 die ≥ 10. 값이 큰 die일수록 log 범위가 큼 | `SIZE_JITTER_RHO_POS` = 0.5, `SIZE_JITTER_MIN_DIE` = 10 |
 | `분해능 부족` | `resolution_step` ≥ 0.1·Δ. 값이 1개뿐이거나 Δ ≤ 0·NaN이면 건너뜀 | |
 | `산포 0` | sigma_die = 0, 또는 `fixed_share` > 50%. 이 ITEM은 판정 제외 | |
-| `log 후보` | `decades` ≥ 2.0이고 `log_fit` > 0 | `LOG_DECADES_MIN` = 2.0 |
+| `log 후보` | `decades` ≥ 1.0이고 `log_fit` > 0 | `LOG_DECADES_MIN` = 1.0 |
 | `두 덩어리` | `bimodality_log` > 5/9(≈ 0.556)이고 R이 유한한 die ≥ 10 | `BIMODAL_BC_MIN` = 5/9, `BIMODAL_MIN_DIE` = 10 |
 | `조건 설정 오류` | 예약 값. 판정할 입력이 없어 지금은 판정하지 않음 | |
 

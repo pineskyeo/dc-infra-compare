@@ -45,7 +45,7 @@ RUN_JITTER_OVER_DELTA = 1.0     # 회차 흔들림: die별 회차 범위 중앙�
 SIZE_JITTER_RHO = -0.5          # 작을수록 흔들림: Spearman ρ(크기, log 범위) ≤ 이 값
 SIZE_JITTER_RHO_POS = 0.5       # 클수록 흔들림: Spearman ρ(크기, log 범위) ≥ 이 값
 SIZE_JITTER_MIN_DIE = 10
-LOG_DECADES_MIN = 2.0           # log 후보: decades ≥ 이 값 그리고 log_fit > 0. 기준값 추천(검토 필요)
+LOG_DECADES_MIN = 1.0           # log 후보: decades ≥ 이 값 그리고 log_fit > 0
 BIMODAL_BC_MIN = 5 / 9          # 두 덩어리: bimodality_log > 이 값 (균일분포 BC = 5/9 ≈ 0.555). 기준값 추천(검토 필요)
 BIMODAL_MIN_DIE = 10            # 두 덩어리: POR 회차평균이 유한한 die ≥ 이 수. 기준값 추천(검토 필요)
 JITTER_COLS = ["run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter"]

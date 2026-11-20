@@ -189,6 +189,19 @@ def test_plot_fit_one_sided_or_all_nan(tmp_path, monkeypatch):
     assert (by["A"].norm.vmin, by["A"].norm.vmax) == (-lc.FIT_DEFAULT_RANGE, lc.FIT_DEFAULT_RANGE)
 
 
+def test_legend_edge_labels_prefixed(tmp_path, monkeypatch):
+    """target_status 테두리 범례 줄은 '테두리: ' 로 시작 (X 마커 = 판정 바뀜 과 구분). CSV 값은 그대로."""
+    rows = sample_rows() + [["K", "정상", "동등", "차이", 0.3, 0.2]]      # verdict≠verdict_log 로만 대상
+    _, fig, _ = run_capture(monkeypatch, write_items(tmp_path, rows), tmp_path)
+    labels = [t.get_text() for t in fig.axes[0].get_legend().get_texts()]
+    assert labels[0].startswith("판정 같음") and labels[1].startswith("판정 바뀜")
+    assert labels[-1].startswith("log_fit 없음")        # sample_rows 엔 log_fit 열이 없음
+    edge = labels[2:-1]
+    assert edge == ["테두리: " + k for k in (lc.ST_SIZE_JITTER, lc.ST_SIZE_JITTER_POS, "둘 다", lc.VERDICT_DIFF)]
+    ts = set(pd.read_csv(tmp_path / "log_compare.csv", encoding="utf-8-sig")["target_status"])
+    assert lc.VERDICT_DIFF in ts and not any(str(s).startswith("테두리") for s in ts)
+
+
 def test_default_out_and_keeps_other_files(tmp_path):
     p = write_items(tmp_path, sample_rows())
     other = tmp_path / "summary.png"
