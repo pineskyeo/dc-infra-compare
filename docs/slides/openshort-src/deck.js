@@ -244,7 +244,7 @@ function whenSlide(pptx) {
   const L = (t) => TC(t, { align: 'left' });
   const rule = [
     [HC('지표'), HC('기준'), HC('status'), HC('할 일')],
-    [K('decades · log_fit'), L('decades ≥ ' + fmt(T.log_decades_min, 0) + ' 그리고 log_fit > 0'), L("'log 후보'"), L('verdict_log 참고')],
+    [K('decades · log_fit'), L('decades ≥ ' + fmt(T.log_decades_min, 0) + ' 그리고 log_fit > ' + fmt(T.log_fit_min, 1)), L("'log 후보'"), L('verdict_log 참고')],
     [K('bimodality_log'), L('> ' + fmt(T.bimodal_bc_min, 3) + ' (die ≥ ' + T.bimodal_min_die + ')'), L("'두 덩어리'"), L('log 도 안 됨, 나눠서 봄')],
     [K('spearman_size_jitter'), L('≈ 0: 상대 흔들림 일정'), L('—'), L('곱셈형 → log 가 맞음 (추정)')],
     [K('spearman_size_jitter'), L('≤ ' + sg(T.size_jitter_rho, 1) + ' / ≥ ' + sg(T.size_jitter_rho_pos, 1) + ' (die ≥ ' + T.size_jitter_min_die + ')'),
