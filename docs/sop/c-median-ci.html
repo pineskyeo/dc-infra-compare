@@ -74,6 +74,210 @@
 </section>
 
 <section id="plain"><h2>쉬운 말로</h2>
+<h3 id="pics">그림으로 먼저: d → 진짜 중앙값 m → 동전 → 양끝 자르기</h3>
+<ul>
+<li>그림 1: die마다 <a class="g" href="glossary.html#d"><abbr title="die별 차이 · 비교 조건 값 − 기준 조건 3회 평균">차이 d</abbr></a> = <a class="g" href="glossary.html#cand"><abbr title="비교 조건 · 바꾸려는 조건">비교 조건(Candidate)</abbr></a> 값 − <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> 3회 평균부터 만듦 · 기준 조건 값(100 근처)과 비교하는 것이 아님</li>
+<li>그림 2: d들의 진짜 중앙값 m(= 진짜 차이)을 기준으로 die 하나가 위냐 아래냐 → 동전 한 번</li>
+<li>그림 3: 동전 60번의 확률로 양끝을 몇 개 뗄지 정함 → 남은 구간이 90% CI</li>
+</ul>
+<figure class="cfig" id="fig-mci-d">
+<svg viewBox="0 0 480 300" style="max-width:480px" role="img" aria-labelledby="mcid-t"><title id="mcid-t">die 1~5의 기준 조건 3회 평균과 비교 조건 값 · 화살표 길이가 d · 아래 수직선에 d 다섯 개를 모음</title>
+<defs><marker id="mcid-ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#2563EB"/></marker></defs>
+<text x="8" y="24" class="val">die</text><text x="104" y="24" text-anchor="end" class="val">기준 3회 평균</text><text x="250" y="24" text-anchor="middle" class="val">차이 화살표</text><text x="396" y="24" text-anchor="end" class="val">비교 조건</text><text x="472" y="24" text-anchor="end" class="val">d</text>
+<text x="8" y="56">die 1</text><text x="104" y="56" text-anchor="end">96.486</text>
+<line class="ax" x1="170" y1="52" x2="330" y2="52"/>
+<line class="ring" x1="250" y1="52" x2="273.1" y2="52" marker-end="url(#mcid-ar)"/>
+<circle class="dot" cx="250" cy="52" r="4"/><circle class="hi" cx="273.1" cy="52" r="4"/>
+<text x="396" y="56" text-anchor="end">97.258</text><text x="472" y="56" text-anchor="end" class="val">+0.772</text>
+<text x="8" y="86">die 2</text><text x="104" y="86" text-anchor="end">99.238</text>
+<line class="ax" x1="170" y1="82" x2="330" y2="82"/>
+<line class="ring" x1="250" y1="82" x2="303.0" y2="82" marker-end="url(#mcid-ar)"/>
+<circle class="dot" cx="250" cy="82" r="4"/><circle class="hi" cx="303.0" cy="82" r="4"/>
+<text x="396" y="86" text-anchor="end">101.005</text><text x="472" y="86" text-anchor="end" class="val">+1.767</text>
+<text x="8" y="116">die 3</text><text x="104" y="116" text-anchor="end">95.285</text>
+<line class="ax" x1="170" y1="112" x2="330" y2="112"/>
+<line class="ring" x1="250" y1="112" x2="296.0" y2="112" marker-end="url(#mcid-ar)"/>
+<circle class="dot" cx="250" cy="112" r="4"/><circle class="hi" cx="296.0" cy="112" r="4"/>
+<text x="396" y="116" text-anchor="end">96.819</text><text x="472" y="116" text-anchor="end" class="val">+1.534</text>
+<text x="8" y="146">die 4</text><text x="104" y="146" text-anchor="end">102.004</text>
+<line class="ax" x1="170" y1="142" x2="330" y2="142"/>
+<line class="ring" x1="250" y1="142" x2="232.3" y2="142" marker-end="url(#mcid-ar)"/>
+<circle class="dot" cx="250" cy="142" r="4"/><circle class="hi" cx="232.3" cy="142" r="4"/>
+<text x="396" y="146" text-anchor="end">101.415</text><text x="472" y="146" text-anchor="end" class="val">−0.589</text>
+<text x="8" y="176">die 5</text><text x="104" y="176" text-anchor="end">106.948</text>
+<line class="ax" x1="170" y1="172" x2="330" y2="172"/>
+<line class="ring" x1="250" y1="172" x2="265.2" y2="172" marker-end="url(#mcid-ar)"/>
+<circle class="dot" cx="250" cy="172" r="4"/><circle class="hi" cx="265.2" cy="172" r="4"/>
+<text x="396" y="176" text-anchor="end">107.455</text><text x="472" y="176" text-anchor="end" class="val">+0.507</text>
+<text x="250" y="200" text-anchor="middle">회색 점 = 기준 조건 3회 평균 · 파란 점 = 비교 조건 값 · 화살표 = d</text>
+<text x="8" y="232" class="val">d만 모아 한 줄에</text>
+<line class="ax" x1="40" y1="262" x2="440" y2="262"/>
+<line class="ax" x1="40.0" y1="258" x2="40.0" y2="266"/><text x="40.0" y="282" text-anchor="middle">−1</text>
+<line class="ax" x1="173.3" y1="258" x2="173.3" y2="266"/><text x="173.3" y="282" text-anchor="middle">0</text>
+<line class="ax" x1="306.7" y1="258" x2="306.7" y2="266"/><text x="306.7" y="282" text-anchor="middle">+1</text>
+<line class="ax" x1="440.0" y1="258" x2="440.0" y2="266"/><text x="440.0" y="282" text-anchor="middle">+2</text>
+<circle class="hi" cx="276.2" cy="262" r="5"/><text x="276.2" y="252" text-anchor="middle">1</text>
+<circle class="hi" cx="408.9" cy="262" r="5"/><text x="408.9" y="252" text-anchor="middle">2</text>
+<circle class="hi" cx="377.8" cy="262" r="5"/><text x="377.8" y="252" text-anchor="middle">3</text>
+<circle class="hi" cx="94.8" cy="262" r="5"/><text x="94.8" y="252" text-anchor="middle">4</text>
+<circle class="hi" cx="240.9" cy="262" r="5"/><text x="240.9" y="252" text-anchor="middle">5</text>
+</svg>
+<figcaption class="s">예시 ITEM의 die 1~5 실제 값(examples/example_wide.csv) · 기준 조건 값은 die마다 95 ~ 107로 다르지만 화살표 길이(d)만 남김 · 아래 수직선의 숫자 = die 번호 <span class="badge-int">내부 기준(문헌 근거 없음)</span></figcaption>
+</figure>
+<details><summary>d 계산 (die 1~5)</summary><ol class="calc">
+<li>die 1: 기준 3회 평균 = (96.104 + 96.890 + 96.465) / 3 = 96.4863<span class="cl">d = 97.258 − 96.4863 = +0.7717</span></li>
+<li>die 2: 기준 3회 평균 = (99.194 + 98.516 + 100.005) / 3 = 99.2383<span class="cl">d = 101.005 − 99.2383 = +1.7667</span></li>
+<li>die 3: 기준 3회 평균 = (94.828 + 95.894 + 95.134) / 3 = 95.2853<span class="cl">d = 96.819 − 95.2853 = +1.5337</span></li>
+<li>die 4: 기준 3회 평균 = (102.294 + 101.657 + 102.060) / 3 = 102.0037<span class="cl">d = 101.415 − 102.0037 = −0.5887</span></li>
+<li>die 5: 기준 3회 평균 = (106.554 + 105.866 + 108.424) / 3 = 106.9480<span class="cl">d = 107.455 − 106.9480 = +0.5070</span></li>
+</ol></details>
+<p class="look"><b>여기서 볼 것</b> · 비교하는 것은 die별 차이 d · 기준 조건 값 자체(95 ~ 107)는 d를 만들고 나면 더 안 씀</p>
+<figure class="cfig" id="fig-mci-coin">
+<svg viewBox="0 0 480 260" style="max-width:480px" role="img" aria-labelledby="mcic-t"><title id="mcic-t">die 1~10의 d를 한 줄씩 찍고 모르는 진짜 중앙값 m을 점선으로 · m보다 아래는 앞면, 위는 뒷면</title>
+<text x="191.4" y="18" text-anchor="middle" class="hi" stroke="none">m보다 아래 = 앞면 · 6개</text>
+<text x="401.4" y="18" text-anchor="middle" class="ok" stroke="none">m보다 위 = 뒷면 · 4개</text>
+<text x="8" y="58" font-size="11">die 1</text><line class="ax" x1="60" y1="54" x2="460" y2="54" stroke-dasharray="1 3"/><circle class="hi" cx="319.6" cy="54" r="5"/>
+<text x="8" y="73" font-size="11">die 2</text><line class="ax" x1="60" y1="69" x2="460" y2="69" stroke-dasharray="1 3"/><circle class="ok" cx="433.3" cy="69" r="5"/>
+<text x="8" y="88" font-size="11">die 3</text><line class="ax" x1="60" y1="84" x2="460" y2="84" stroke-dasharray="1 3"/><circle class="ok" cx="406.7" cy="84" r="5"/>
+<text x="8" y="103" font-size="11">die 4</text><line class="ax" x1="60" y1="99" x2="460" y2="99" stroke-dasharray="1 3"/><circle class="hi" cx="164.2" cy="99" r="5"/>
+<text x="8" y="118" font-size="11">die 5</text><line class="ax" x1="60" y1="114" x2="460" y2="114" stroke-dasharray="1 3"/><circle class="hi" cx="289.4" cy="114" r="5"/>
+<text x="8" y="133" font-size="11">die 6</text><line class="ax" x1="60" y1="129" x2="460" y2="129" stroke-dasharray="1 3"/><circle class="hi" cx="111.4" cy="129" r="5"/>
+<text x="8" y="148" font-size="11">die 7</text><line class="ax" x1="60" y1="144" x2="460" y2="144" stroke-dasharray="1 3"/><circle class="ok" cx="393.3" cy="144" r="5"/>
+<text x="8" y="163" font-size="11">die 8</text><line class="ax" x1="60" y1="159" x2="460" y2="159" stroke-dasharray="1 3"/><circle class="hi" cx="301.1" cy="159" r="5"/>
+<text x="8" y="178" font-size="11">die 9</text><line class="ax" x1="60" y1="174" x2="460" y2="174" stroke-dasharray="1 3"/><circle class="hi" cx="314.5" cy="174" r="5"/>
+<text x="8" y="193" font-size="11">die 10</text><line class="ax" x1="60" y1="189" x2="460" y2="189" stroke-dasharray="1 3"/><circle class="ok" cx="417.9" cy="189" r="5"/>
+<line class="ax" x1="60" y1="207" x2="460" y2="207"/>
+<line class="ax" x1="117.1" y1="203" x2="117.1" y2="211"/><text x="117.1" y="223" text-anchor="middle">−1</text>
+<line class="ax" x1="231.4" y1="203" x2="231.4" y2="211"/><text x="231.4" y="223" text-anchor="middle">0</text>
+<line class="ax" x1="345.7" y1="203" x2="345.7" y2="211"/><text x="345.7" y="223" text-anchor="middle">+1</text>
+<line class="ax" x1="460.0" y1="203" x2="460.0" y2="211"/><text x="460.0" y="223" text-anchor="middle">+2</text>
+<line class="tx" x1="322.9" y1="28" x2="322.9" y2="207" stroke-dasharray="5 4" fill="none"/>
+<text x="327.9" y="40" class="val">m · 모름</text>
+<text x="240" y="247" text-anchor="middle" class="val">die 하나당 위 / 아래 반반 → 동전 한 번 · 이번 10개는 앞면 수 B = 6</text>
+</svg>
+<figcaption class="s">점 = 예시 ITEM die 1~10의 d · 가로 = d 값 · 점선 m은 실제로는 모르는 값이라 설명용으로 0.8에 둠(가정) · 파랑 = m보다 아래(앞면), 초록 = m보다 위(뒷면) <span class="badge-int">내부 기준(문헌 근거 없음)</span></figcaption>
+</figure>
+<ul>
+<li>m = d들의 진짜 중앙값 = 두 조건의 진짜 차이 → 뜻 자체가 '절반은 아래, 절반은 위'</li>
+<li>그래서 die 하나의 d가 m보다 아래일 확률 = 1/2 → 동전 앞면 확률과 같음</li>
+<li>m 아래 die 수 B = 동전 n번의 앞면 수 → <span>이항분포(Binomial distribution)</span>를 따름 <span class="from">이번 10개: 아래 -1.050, -0.589, 0.507, 0.610, 0.727, 0.772 → B = 6</span></li>
+</ul>
+<p class="look"><b>여기서 볼 것</b> · m 위치는 몰라도 'die마다 위·아래 반반'은 확실 → 이 사실 하나로 범위를 잡음</p>
+<figure class="cfig" id="fig-mci-cut">
+<svg viewBox="0 0 480 300" style="max-width:480px" role="img" aria-labelledby="mcik-t"><title id="mcik-t">동전 60번의 앞면 수 분포 · 양쪽 꼬리 23 이하와 37 이상이 각 4.62% · 아래 크기순 d 60개에서 양끝 23개씩 떼면 24번째 0.610부터 37번째 1.102까지 남음</title>
+<text x="8" y="20" class="val">위: 동전 60번에서 앞면 수 B의 확률</text>
+<rect class="bad" x="146.2" y="149.7" width="5.6" height="0.3"/>
+<rect class="bad" x="153.2" y="149.2" width="5.6" height="0.8"/>
+<rect class="bad" x="160.2" y="148.3" width="5.6" height="1.7"/>
+<rect class="bad" x="167.2" y="146.5" width="5.6" height="3.5"/>
+<rect class="bad" x="174.2" y="143.2" width="5.6" height="6.8"/>
+<rect class="bad" x="181.2" y="138.0" width="5.6" height="12.0"/>
+<rect class="bad" x="188.2" y="130.2" width="5.6" height="19.8"/>
+<rect class="barhi" x="195.2" y="119.5" width="5.6" height="30.5"/>
+<rect class="barhi" x="202.2" y="106.1" width="5.6" height="43.9"/>
+<rect class="barhi" x="209.2" y="90.9" width="5.6" height="59.1"/>
+<rect class="barhi" x="216.2" y="75.6" width="5.6" height="74.4"/>
+<rect class="barhi" x="223.2" y="62.3" width="5.6" height="87.7"/>
+<rect class="barhi" x="230.2" y="53.2" width="5.6" height="96.8"/>
+<rect class="barhi" x="237.2" y="50.0" width="5.6" height="100.0"/>
+<rect class="barhi" x="244.2" y="53.2" width="5.6" height="96.8"/>
+<rect class="barhi" x="251.2" y="62.3" width="5.6" height="87.7"/>
+<rect class="barhi" x="258.2" y="75.6" width="5.6" height="74.4"/>
+<rect class="barhi" x="265.2" y="90.9" width="5.6" height="59.1"/>
+<rect class="barhi" x="272.2" y="106.1" width="5.6" height="43.9"/>
+<rect class="barhi" x="279.2" y="119.5" width="5.6" height="30.5"/>
+<rect class="bad" x="286.2" y="130.2" width="5.6" height="19.8"/>
+<rect class="bad" x="293.2" y="138.0" width="5.6" height="12.0"/>
+<rect class="bad" x="300.2" y="143.2" width="5.6" height="6.8"/>
+<rect class="bad" x="307.2" y="146.5" width="5.6" height="3.5"/>
+<rect class="bad" x="314.2" y="148.3" width="5.6" height="1.7"/>
+<rect class="bad" x="321.2" y="149.2" width="5.6" height="0.8"/>
+<rect class="bad" x="328.2" y="149.7" width="5.6" height="0.3"/>
+<line class="ax" x1="30" y1="150" x2="450" y2="150"/>
+<text x="30.0" y="164" text-anchor="middle" font-size="10">0</text>
+<text x="191.0" y="164" text-anchor="middle" font-size="10">23</text>
+<text x="240.0" y="164" text-anchor="middle" font-size="10">30</text>
+<text x="289.0" y="164" text-anchor="middle" font-size="10">37</text>
+<text x="450.0" y="164" text-anchor="middle" font-size="10">60</text>
+<text x="114.0" y="110" text-anchor="middle" class="bad" stroke="none">B ≤ 23 · 4.62%</text>
+<text x="366.0" y="110" text-anchor="middle" class="bad" stroke="none">B ≥ 37 · 4.62%</text>
+<text x="275.0" y="62" class="hi" stroke="none">가운데 24 ~ 36 = 90.75%</text>
+<text x="8" y="186" class="val">아래: 예시 ITEM d 60개 크기순 (1번째 ~ 60번째)</text>
+<rect class="pb-bg" x="30.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="37.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="44.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="51.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="58.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="65.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="72.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="79.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="86.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="93.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="100.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="107.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="114.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="121.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="128.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="135.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="142.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="149.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="156.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="163.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="170.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="177.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="184.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="191.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="198.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="205.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="212.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="219.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="226.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="233.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="240.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="247.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="254.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="261.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="268.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="275.7" y="200" width="5.6" height="22"/>
+<rect class="hi" x="282.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="289.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="296.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="303.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="310.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="317.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="324.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="331.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="338.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="345.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="352.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="359.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="366.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="373.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="380.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="387.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="394.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="401.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="408.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="415.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="422.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="429.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="436.7" y="200" width="5.6" height="22"/>
+<rect class="pb-bg" x="443.7" y="200" width="5.6" height="22"/>
+<line class="ring" x1="194.5" y1="232" x2="285.5" y2="232"/>
+<text x="194.5" y="250" text-anchor="end">24번째 0.610</text><text x="285.5" y="250">37번째 1.102</text>
+<text x="110.5" y="216" text-anchor="middle" font-size="10">뗌 23개</text><text x="369.5" y="216" text-anchor="middle" font-size="10">뗌 23개</text>
+<text x="240" y="280" text-anchor="middle" class="val">90% CI = [0.610, 1.102] · 실제 신뢰도 90.75%</text>
+</svg>
+<figcaption class="s">위 막대 = P(B = i) = C(60, i) / 2<sup>60</sup> · 빨강 = 꼬리(m이 구간 밖) · 아래 칸 = 예시 ITEM d 60개 크기순, 회색 = 뗀 die, 파랑 = 남은 die · m이 24번째보다 아래 = 앞면 23번 이하(B ≤ 23) <span class="badge-int">내부 기준(문헌 근거 없음)</span></figcaption>
+</figure>
+<ol class="calc">
+<li>한쪽 꼬리 P(B ≤ 23) = Σ<sub>i=0..23</sub> C(60, i) / 2<sup>60</sup> = 0.04623 = 4.62% ≤ 5%<span class="cl">P(B ≤ 24) = 0.07750 = 7.75% &gt; 5% → k = 23</span></li>
+<li>반대쪽 P(B ≥ 37) = 뒷면 23번 이하 = 같은 4.62%<span class="cl">두 꼬리 합 = 2 × 0.04623 = 0.09246 ≈ 9.25%</span></li>
+<li>실제 신뢰도 = 1 − 0.09246 = 0.90754 → 90.75%</li>
+<li>남은 구간 = 23+1 = 24번째 ~ 60 − 23 = 37번째 = [0.610, 1.102] <span class="from">아래 '예시 계산'과 같은 값</span></li>
+</ol>
+<p class="look"><b>여기서 볼 것</b> · 동전이 한쪽으로 몰리는 드문 경우(각 4.62%)만 m이 구간 밖 → 양끝 23개씩 떼고 남은 [0.610, 1.102]가 90% CI</p>
+<h3>말로 정리</h3>
 <ul id="why">
 <li>d: die마다 <a class="g" href="glossary.html#cand"><abbr title="비교 조건 · 바꾸려는 조건">비교 조건(Candidate)</abbr></a> 값 − <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> 3회 평균 <span class="from">합성 예시는 기준 조건 3회(J = 3)</span> · d 60개의 진짜 중앙값 m은 모름<ul class="chain"><li>→ die를 다시 뽑아 재면 중앙값이 조금씩 달라짐</li><li>→ m이 있을 만한 범위가 필요</li></ul></li>
 <li>die마다 d가 진짜 중앙값 m보다 작게 나올 확률은 반반 <span class="from">m이 중앙값이라 절반은 아래, 절반은 위</span><ul class="chain"><li>→ 'm보다 작은 die 수' = '동전 60번 던졌을 때 앞면 수(B)'와 같은 꼴<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup> · 동전 비유 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li></ul></li>
