@@ -182,7 +182,7 @@ VT_N1,SHORT_V
 | 열 | 내용 |
 |---|---|
 | `zone`, `verdict`, `reason` | 구간, 판정, 사유 |
-| `verdict_final`, `verdict_basis` | 최종 판정과 그 근거(`log`/`linear`). `verdict` 바로 뒤 열. `status`에 `log 후보`가 있으면 `verdict_log`, 그 외나 `verdict_log`가 판정 제외·빈 칸이면 `verdict`. 판정 집계와 차이/미결 선택(`summarize`, `plot_verdicts`, `fail_evidence`, `group_summary`)은 `verdict_final` 기준 |
+| `verdict_final`, `verdict_basis` | 최종 판정과 그 근거(`log`/`linear`). `verdict` 바로 뒤 열. 선형 먼저: `verdict`가 동등이면 `verdict`, 동등이 아니고 `status`에 `log 후보`가 있고 `verdict_log`가 판정 제외·빈 칸이 아니면 `verdict_log`, 그 밖은 `verdict`. 판정 집계와 차이/미결 선택(`summarize`, `plot_verdicts`, `fail_evidence`, `group_summary`)은 `verdict_final` 기준 |
 | `por_median`, `POR1_mean` …, `DOE_mean` | POR 값, 회차별 평균 |
 | `center`, `ci_low`, `ci_high`, `rel_shift` | shift와 90% 신뢰구간, POR 대비 비율 |
 | `delta`, `policy_margin`, `run_margin`, `delta_source` | 허용폭과 그 구성 |
@@ -242,7 +242,7 @@ log 진단 대상(`is_log_target`: `fail_evidence.py`의 log 진단 그림, `log
 | `클수록 흔들림` | `spearman_size_jitter` ≥ +0.5이고 유효 die ≥ 10. 값이 큰 die일수록 log 범위가 큼 | `SIZE_JITTER_RHO_POS` = 0.5, `SIZE_JITTER_MIN_DIE` = 10 |
 | `분해능 부족` | `resolution_step` ≥ 0.1·Δ. 값이 1개뿐이거나 Δ ≤ 0·NaN이면 건너뜀 | |
 | `산포 0` | sigma_die = 0, 또는 `fixed_share` > 50%. 이 ITEM은 판정 제외 | |
-| `log 후보` | `decades` ≥ 1.0이고 `log_fit` > 0 | `LOG_DECADES_MIN` = 1.0 |
+| `log 후보` | `decades` ≥ 1.0이고 `log_fit` > 0.1(LOG_FIT_MIN) | `LOG_DECADES_MIN` = 1.0, `LOG_FIT_MIN` = 0.1 |
 | `두 덩어리` | `bimodality_log` > 5/9(≈ 0.556)이고 R이 유한한 die ≥ 10 (\|R\| ≥ 1E+90 die는 세지 않음) | `BIMODAL_BC_MIN` = 5/9, `BIMODAL_MIN_DIE` = 10 |
 | `조건 설정 오류` | 예약 값. 판정할 입력이 없어 지금은 판정하지 않음 | |
 

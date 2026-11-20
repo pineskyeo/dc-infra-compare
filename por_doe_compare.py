@@ -45,7 +45,8 @@ RUN_JITTER_OVER_DELTA = 1.0     # 회차 흔들림: die별 회차 범위 중앙�
 SIZE_JITTER_RHO = -0.5          # 작을수록 흔들림: Spearman ρ(크기, log 범위) ≤ 이 값
 SIZE_JITTER_RHO_POS = 0.5       # 클수록 흔들림: Spearman ρ(크기, log 범위) ≥ 이 값
 SIZE_JITTER_MIN_DIE = 10
-LOG_DECADES_MIN = 1.0           # log 후보: decades ≥ 이 값 그리고 log_fit > 0
+LOG_DECADES_MIN = 1.0           # log 후보: decades ≥ 이 값 그리고 log_fit > LOG_FIT_MIN
+LOG_FIT_MIN = 0.1               # log 후보: log_fit > 이 값 (|skew_lin| − |skew_log|, log 쪽이 이만큼은 더 대칭이어야)
 BIMODAL_BC_MIN = 5 / 9          # 두 덩어리: bimodality_log > 이 값 (균일분포 BC = 5/9 ≈ 0.555). 기준값 추천(검토 필요)
 BIMODAL_MIN_DIE = 10            # 두 덩어리: POR 회차평균이 유한한 die ≥ 이 수, Open 코드(|x| ≥ 1E+90) die는 세지 않음. 기준값 추천(검토 필요)
 JITTER_COLS = ["run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter"]
@@ -279,7 +280,7 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     se = 1.2533 · sigma_die · √2 / √n (n = die 수, 두 중앙값 차의 표준오차). gap ≥ Δ 이고 gap ≥ POR_GAP_NOISE_K · se 일 때
     (se가 0이거나 유한하지 않으면 gap ≥ Δ 만). GAP_COLS: por_gap_over_delta = gap / Δ, por_gap_over_noise = gap / se,
     계산할 수 없으면 NaN (POR 1회면 둘 다 NaN, 조건 불안정 없음). 작을수록·클수록 흔들림은 0값 없는 die가 SIZE_JITTER_MIN_DIE개 이상일 때만.
-    분포 모양 SHAPE_COLS = shape_cols(die별 POR 회차평균). log 후보: decades ≥ LOG_DECADES_MIN 그리고 log_fit > 0.
+    분포 모양 SHAPE_COLS = shape_cols(die별 POR 회차평균). log 후보: decades ≥ LOG_DECADES_MIN 그리고 log_fit > LOG_FIT_MIN.
     두 덩어리: bimodality_log > BIMODAL_BC_MIN 그리고 die ≥ BIMODAL_MIN_DIE (Open 코드(|x| ≥ 1E+90) die는 세지 않음). 판정(judge)과 다른 status는 바꾸지 않는다."""
     Y, z = np.asarray(Y, float), np.asarray(z, float)
     R = Y.mean(axis=1)
@@ -324,7 +325,7 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
         names.append(ST_FLAT)
 
     shape = shape_cols(R)
-    if shape["decades"] >= LOG_DECADES_MIN and shape["log_fit"] > 0:      # NaN이면 False
+    if shape["decades"] >= LOG_DECADES_MIN and shape["log_fit"] > LOG_FIT_MIN:      # NaN이면 False
         names.append(ST_LOG_CANDIDATE)
     n_shape = int((np.isfinite(R) & (np.abs(R) < SHAPE_EXCLUDE_ABS)).sum())
     if shape["bimodality_log"] > BIMODAL_BC_MIN and n_shape >= BIMODAL_MIN_DIE:
@@ -575,10 +576,14 @@ def is_log_target(status, verdict=None, verdict_log=None) -> bool:
 def final_verdict(status, verdict, verdict_log) -> tuple[str, str]:
     """최종 판정 (verdict_final, verdict_basis).
 
-    - status(';' 구분)에 ST_LOG_CANDIDATE('log 후보')가 있고 verdict_log 에 값이 있으면 (verdict_log, 'log').
-    - log 후보라도 verdict_log 가 NaN·빈칸이거나 V_EXCLUDED('판정 제외')면 (verdict, 'linear').
-    - log 후보가 아니면 (verdict, 'linear').
+    선형 먼저, 동등이 아닌 log 후보만 log 로 재판정.
+    - verdict 가 '동등'이면 (verdict, 'linear') — log 와 무관.
+    - 동등이 아니고 status(';' 구분)에 ST_LOG_CANDIDATE('log 후보')가 있고 verdict_log 에 값이 있고
+      (NaN·빈칸 아님) V_EXCLUDED('판정 제외')가 아니면 (verdict_log, 'log').
+    - 그 밖은 (verdict, 'linear').
     """
+    if _text(verdict) == "동등":
+        return verdict, "linear"
     vl = _text(verdict_log)
     if ST_LOG_CANDIDATE in {p.strip() for p in _text(status).split(";")} and vl and vl != V_EXCLUDED:
         return vl, "log"

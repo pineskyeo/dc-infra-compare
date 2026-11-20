@@ -10,7 +10,7 @@ import pytest
 from scipy import stats
 
 import fail_evidence
-from por_doe_compare import (BIMODAL_BC_MIN, BIMODAL_MIN_DIE, LOG_DECADES_MIN, METRIC_COLS, SHAPE_COLS, SHAPE_EXCLUDE_ABS, ST_BIMODAL,
+from por_doe_compare import (BIMODAL_BC_MIN, BIMODAL_MIN_DIE, LOG_DECADES_MIN, LOG_FIT_MIN, METRIC_COLS, SHAPE_COLS, SHAPE_EXCLUDE_ABS, ST_BIMODAL,
                              ST_LOG_CANDIDATE, ST_OK, STATUS_COLS, bimodality_coef, item_status, judge, shape_cols)
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -74,7 +74,7 @@ def test_w1_lognormal_is_log_candidate():
     assert list(st) == STATUS_COLS
     assert STATUS_COLS[1 + len(METRIC_COLS):1 + len(METRIC_COLS) + len(SHAPE_COLS)] == SHAPE_COLS
     assert st["decades"] >= LOG_DECADES_MIN
-    assert st["log_fit"] > 0
+    assert st["log_fit"] > LOG_FIT_MIN
     assert st["log_fit"] == pytest.approx(abs(st["skew_lin"]) - abs(st["skew_log"]))
     assert ST_LOG_CANDIDATE in names(st)
     assert ST_BIMODAL not in names(st)
@@ -88,14 +88,27 @@ def test_w2_normal_is_not_log_candidate():
 
 
 def test_decades_between_1_and_2_is_log_candidate():
-    """LOG_DECADES_MIN = 1.0: decades ≈ 1.5 (log10 표준편차 0.32 → P1~P99 폭 ≈ 4.65 × 0.32), log_fit > 0 이면 후보."""
+    """LOG_DECADES_MIN = 1.0: decades ≈ 1.5 (log10 표준편차 0.32 → P1~P99 폭 ≈ 4.65 × 0.32), log_fit > LOG_FIT_MIN 이면 후보."""
     rng = np.random.default_rng(21)
     st = item_status(*runs(10 ** (0.32 * norm_quantiles(300)), rng), DELTA)
     assert LOG_DECADES_MIN == 1.0
     assert 1.0 <= st["decades"] < 2.0
     assert st["decades"] == pytest.approx(1.5, abs=0.1)
-    assert st["log_fit"] > 0
+    assert st["log_fit"] > LOG_FIT_MIN
     assert ST_LOG_CANDIDATE in names(st)
+
+
+@pytest.mark.parametrize("log_fit, cand", [(0.05, False), (0.15, True)])
+def test_z3_log_fit_min_boundary(log_fit, cand):
+    """LOG_FIT_MIN = 0.1: decades = 4 (0.01 ×5, 100 ×5 꼬리)이고 사분위가 1, r, r² (log 등간격 → skew_log = 0,
+    skew_lin = (r−1)/(r+1) = log_fit). n = 100 → P1·P99 는 꼬리, P25·P50·P75 는 각 블록 안."""
+    r = (1 + log_fit) / (1 - log_fit)
+    x = np.array([0.01] * 5 + [1.0] * 30 + [r] * 30 + [r * r] * 30 + [100.0] * 5)
+    st = item_status(np.repeat(x[:, None], 3, axis=1), x.copy(), DELTA)
+    assert LOG_FIT_MIN == 0.1
+    assert st["decades"] == pytest.approx(4.0)
+    assert st["log_fit"] == pytest.approx(log_fit, abs=1e-9)
+    assert (ST_LOG_CANDIDATE in names(st)) is cand
 
 
 # w3

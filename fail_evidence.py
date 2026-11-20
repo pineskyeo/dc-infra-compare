@@ -343,14 +343,19 @@ def item_type(status: str, verdict: str) -> str:
 
 def select_items(plain: pd.DataFrame, extra: list[str]) -> tuple[list[str], list[str]]:
     """폴더를 만들 ITEM(최종 판정 차이·미결 + extra, 입력 순서)과 입력에 없는 extra ID.
-    최종 판정 = verdict_final, 열이 없는 옛 CSV 면 verdict."""
+    최종 판정 = verdict_final, 열이 없는 옛 CSV 면 verdict.
+    extra 는 실제 ITEM 이름이나 익명 ID(ITEM 열과 같이 있는 ID 열, read_table 의 ANON_ID). 둘 다 맞으면 실제 이름 우선."""
     key = key_column(plain)
     ids = plain[key].astype(str).str.strip()
     col = next((c for c in ("verdict_final", "verdict") if c in plain.columns), None)
     verdict = plain[col].astype(str).str.strip() if col else pd.Series("", index=plain.index)
-    wanted = set(extra)
+    anon = {}
+    if key != "ID" and "ID" in plain.columns:
+        anon = {a: i for a, i in zip(plain["ID"].astype(str).str.strip(), ids) if a}
+    known = set(ids)
+    wanted = {e if e in known else anon.get(e, e) for e in extra}
     chosen = ids[verdict.isin(TARGET_VERDICTS) | ids.isin(wanted)]
-    return list(dict.fromkeys(chosen)), sorted(wanted - set(ids))
+    return list(dict.fromkeys(chosen)), sorted(wanted - known)
 
 
 def _row_log_target(r) -> bool:
@@ -896,7 +901,7 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p.add_argument("--input", required=True, help="por_doe_compare.py 결과 items.csv")
     p.add_argument("--out", required=True, help="출력 폴더")
     p.add_argument("--items", nargs="*", default=[], metavar="ID",
-                   help="ITEM 폴더를 더 만들 ID(공백 또는 쉼표 구분). 기본 대상 = verdict 차이·미결")
+                   help="ITEM 폴더를 더 만들 ID(공백 또는 쉼표 구분, 실제 ITEM 이름 또는 익명 ID, 겹치면 실제 이름). 기본 대상 = verdict 차이·미결")
     p.add_argument("--compare", help="compare_before_after.py compare 결과 compare.csv. 같은 ITEM 행을 summary.csv에 cmp_ 열로 붙임")
     raw = p.add_argument_group("원데이터 (por_doe_compare.py 와 같은 인자, 주면 raw.csv 작성)")
     add_raw_args(raw)

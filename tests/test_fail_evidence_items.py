@@ -163,6 +163,48 @@ def test_items_option_adds_folders(tmp_path, capsys):
     assert "NOPE" in capsys.readouterr().out
 
 
+# ---------------------------------------------------------------- WO-Z3: --items 익명 ID
+
+ANON = {"A1": "X01", "A2": "X02", "A3": "X03", "A4": "X04", "A5": "A3"}   # A5 의 익명 ID 는 실제 이름 A3 와 겹침
+
+
+def _anon_items_csv(tmp_path: Path) -> Path:
+    """summarize.py 처럼 ITEM 옆에 익명 ID 열이 있는 items.csv."""
+    path = tmp_path / "items.csv"
+    pd.DataFrame([{"ITEM": i, "ID": ANON[i], "UNIT": "A", "verdict": v, "reason": "r", "status": s}
+                  for i, v, s in ITEMS]).to_csv(path, index=False, encoding="utf-8-sig")
+    return path
+
+
+def test_z3_items_by_anon_id_with_raw(tmp_path, monkeypatch, capsys):
+    monkeypatch.setitem(VALUES, "A4", ([7.0, 8.0, 9.0], [7.1, 8.1, 9.1], [7.5, 8.5, 9.5]))
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_anon_items_csv(tmp_path)), "--out", str(out), *_raw_args(tmp_path),
+                    "--items", "X03,X04"]) == 0
+    assert list(_index(out)["ID"]) == ["A1", "A2", "A3", "A4", "A5"]          # items_index 는 실제 ITEM
+    assert _folder(out, "동등", "A3").is_dir()
+    a4 = _folder(out, fe.item_type(ST_OK, V_EXCLUDED), "A4")                  # 판정 제외 ITEM 도 익명 ID 로
+    for name in ("summary.csv", "raw.csv", fe.DRILL_PNG):
+        assert (a4 / name).is_file(), name
+    assert pd.read_csv(a4 / "raw.csv", encoding="utf-8-sig")["POR1"].tolist() == pytest.approx([7.0, 8.0, 9.0])
+    assert "입력에 없는 ID" not in capsys.readouterr().out
+
+
+def test_z3_items_mixed_real_and_anon_and_unknown(tmp_path, capsys):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_anon_items_csv(tmp_path)), "--out", str(out),
+                    "--items", "A4", "X03", "NOPE,X99"]) == 0
+    assert list(_index(out)["ID"]) == ["A1", "A2", "A3", "A4", "A5"]
+    printed = [ln for ln in capsys.readouterr().out.splitlines() if "입력에 없는 ID" in ln]
+    assert printed == ["입력에 없는 ID: NOPE, X99"]
+
+
+def test_z3_real_name_wins_over_anon_id(tmp_path):
+    plain = fe.read_plain(_anon_items_csv(tmp_path))
+    assert fe.select_items(plain, ["A3"]) == (["A1", "A2", "A3", "A5"], [])   # 'A3' = 실제 A3 (A5 의 익명 ID 아님)
+    assert fe.select_items(plain, ["X04", "X9"]) == (["A1", "A2", "A4", "A5"], ["X9"])
+
+
 def test_rerun_with_marker_rebuilds(tmp_path):
     src = _items_csv(tmp_path)
     out = tmp_path / "out"
