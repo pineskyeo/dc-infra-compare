@@ -53,7 +53,9 @@ GAP_COLS = ["por_gap_over_delta", "por_gap_over_noise"]
 RESOLUTION_COLS = ["resolution_step", "resolution_over_delta"]
 # status 바로 뒤 지표 묶음: 조건 불안정 → 회차 흔들림 → 크기-흔들림 → 분해능 부족 → 산포 0
 METRIC_COLS = GAP_COLS + JITTER_COLS + RESOLUTION_COLS + ["fixed_share"]
-SHAPE_COLS = ["decades", "skew_lin", "skew_log", "log_fit", "bimodality_log"]    # 분포 모양 묶음 (지표 묶음 끝)
+SHAPE_EXCLUDE_ABS = 1e90        # 분포 모양(SHAPE_COLS) 계산에서만 |x| ≥ 이 값(Open 코드 등)을 뺀다
+# 분포 모양 묶음 (지표 묶음 끝). decades = log10(P99|x|/P1|x|), skew_lin·skew_log = Bowley(사분위) 왜도, 범위 −1~1
+SHAPE_COLS = ["decades", "skew_lin", "skew_log", "log_fit", "bimodality_log"]
 STATUS_COLS = ["status", *METRIC_COLS, *SHAPE_COLS, "mean_median_ratio"]
 PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
 LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta",
@@ -225,8 +227,12 @@ def flat_share(R: np.ndarray, z: np.ndarray) -> float:
 
 
 def _skew(v: np.ndarray) -> float:
-    """표본 왜도 (보정식, scipy bias=False). n < 3 이거나 값이 모두 같으면 NaN."""
-    return float(stats.skew(v, bias=False)) if v.size >= 3 and np.ptp(v) > 0 else np.nan
+    """Bowley(사분위) 왜도, 범위 −1~1: (Q3 + Q1 − 2·Q2) / (Q3 − Q1), Q = np.percentile 25/50/75.
+    n < 3 이거나 IQR(Q3 − Q1)이 0이면 NaN."""
+    if v.size < 3:
+        return np.nan
+    q1, q2, q3 = np.percentile(v, [25, 50, 75])
+    return float((q3 + q1 - 2 * q2) / (q3 - q1)) if q3 > q1 else np.nan
 
 
 def bimodality_coef(v: np.ndarray) -> float:
@@ -240,11 +246,12 @@ def bimodality_coef(v: np.ndarray) -> float:
 
 
 def shape_cols(x: np.ndarray) -> dict:
-    """SHAPE_COLS. x = die별 POR 회차평균 (유한한 값만 씀).
-    decades = log10(max|x| / min|x|), skew_lin = 표본 왜도(x), skew_log = 표본 왜도(log10|x|),
+    """SHAPE_COLS. x = die별 POR 회차평균. 유한하고 |x| < SHAPE_EXCLUDE_ABS 인 값만 씀 (Open 코드 등은 여기서만 뺌).
+    decades = log10(P99|x| / P1|x|) (np.percentile 기본 linear 보간), skew_lin = Bowley(사분위) 왜도(x),
+    skew_log = Bowley(사분위) 왜도(log10|x|) — 둘 다 범위 −1~1, IQR 0 이면 NaN (_skew).
     log_fit = |skew_lin| − |skew_log| (양수면 log 쪽이 더 대칭), bimodality_log = log10|x| 의 bimodality_coef.
-    x에 0이 있거나 부호가 섞이면 log 쪽(decades, skew_log, log_fit, bimodality_log)은 NaN."""
-    x = x[np.isfinite(x)]
+    뺀 뒤의 x에 0이 있거나 부호가 섞이면 log 쪽(decades, skew_log, log_fit, bimodality_log)은 NaN."""
+    x = x[np.isfinite(x) & (np.abs(x) < SHAPE_EXCLUDE_ABS)]
     out = dict.fromkeys(SHAPE_COLS, np.nan)
     if x.size == 0:
         return out
@@ -252,7 +259,8 @@ def shape_cols(x: np.ndarray) -> dict:
     if (x == 0).any() or ((x > 0).any() and (x < 0).any()):
         return out
     lg = np.log10(np.abs(x))
-    out["decades"] = float(lg.max() - lg.min())
+    p1, p99 = np.percentile(lg, [1, 99])      # log10 은 단조라 log10(P99|x|/P1|x|) 와 같음
+    out["decades"] = float(p99 - p1)
     out["skew_log"] = _skew(lg)
     out["log_fit"] = abs(out["skew_lin"]) - abs(out["skew_log"])
     out["bimodality_log"] = bimodality_coef(lg)
@@ -563,6 +571,36 @@ def is_log_target(status, verdict=None, verdict_log=None) -> bool:
     return bool(log_target_statuses(status)) or verdict_log_differs(verdict, verdict_log)
 
 
+def final_verdict(status, verdict, verdict_log) -> tuple[str, str]:
+    """최종 판정 (verdict_final, verdict_basis).
+
+    - status(';' 구분)에 ST_LOG_CANDIDATE('log 후보')가 있고 verdict_log 에 값이 있으면 (verdict_log, 'log').
+    - log 후보라도 verdict_log 가 NaN·빈칸이거나 V_EXCLUDED('판정 제외')면 (verdict, 'linear').
+    - log 후보가 아니면 (verdict, 'linear').
+    """
+    vl = _text(verdict_log)
+    if ST_LOG_CANDIDATE in {p.strip() for p in _text(status).split(";")} and vl and vl != V_EXCLUDED:
+        return vl, "log"
+    return verdict, "linear"
+
+
+def add_final_verdict(res: pd.DataFrame) -> pd.DataFrame:
+    """res 에 verdict_final·verdict_basis 열을 verdict 바로 뒤에 넣어 돌려준다."""
+    vl = res["verdict_log"] if "verdict_log" in res else pd.Series(np.nan, index=res.index)
+    st = res["status"] if "status" in res else pd.Series("", index=res.index)
+    fb = [final_verdict(s, v, l) for s, v, l in zip(st, res["verdict"], vl)]
+    res = res.drop(columns=["verdict_final", "verdict_basis"], errors="ignore")
+    at = res.columns.get_loc("verdict") + 1
+    res.insert(at, "verdict_final", [f for f, _ in fb])
+    res.insert(at + 1, "verdict_basis", [b for _, b in fb])
+    return res
+
+
+def verdict_col(df: pd.DataFrame) -> pd.Series:
+    """판정 소비처가 쓸 판정 값: verdict_final, 열이 없는 옛 CSV 면 verdict."""
+    return df["verdict_final"] if "verdict_final" in df else df["verdict"]
+
+
 def load_levels(path: str, encoding: str) -> dict[str, ItemInfo]:
     lv = read_csv_auto(Path(path), encoding)
     lv.columns = [c.strip().upper() for c in lv.columns]
@@ -674,6 +712,7 @@ def main() -> None:
     res = pd.DataFrame(rows)
     tail = STATUS_COLS + PRECISION_COLS + LOG_COLS
     res = res[first + [c for c in res.columns if c not in first + tail] + tail]
+    res = add_final_verdict(res)
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)

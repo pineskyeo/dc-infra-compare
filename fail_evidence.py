@@ -342,10 +342,12 @@ def item_type(status: str, verdict: str) -> str:
 
 
 def select_items(plain: pd.DataFrame, extra: list[str]) -> tuple[list[str], list[str]]:
-    """폴더를 만들 ITEM(verdict 차이·미결 + extra, 입력 순서)과 입력에 없는 extra ID."""
+    """폴더를 만들 ITEM(최종 판정 차이·미결 + extra, 입력 순서)과 입력에 없는 extra ID.
+    최종 판정 = verdict_final, 열이 없는 옛 CSV 면 verdict."""
     key = key_column(plain)
     ids = plain[key].astype(str).str.strip()
-    verdict = plain["verdict"].astype(str).str.strip() if "verdict" in plain.columns else pd.Series("", index=plain.index)
+    col = next((c for c in ("verdict_final", "verdict") if c in plain.columns), None)
+    verdict = plain[col].astype(str).str.strip() if col else pd.Series("", index=plain.index)
     wanted = set(extra)
     chosen = ids[verdict.isin(TARGET_VERDICTS) | ids.isin(wanted)]
     return list(dict.fromkeys(chosen)), sorted(wanted - set(ids))

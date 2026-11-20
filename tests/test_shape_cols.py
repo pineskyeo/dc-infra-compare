@@ -7,10 +7,11 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from scipy import stats
 
 import fail_evidence
-from por_doe_compare import (BIMODAL_BC_MIN, LOG_DECADES_MIN, METRIC_COLS, SHAPE_COLS, ST_BIMODAL, ST_LOG_CANDIDATE,
-                             ST_OK, STATUS_COLS, bimodality_coef, item_status, judge)
+from por_doe_compare import (BIMODAL_BC_MIN, LOG_DECADES_MIN, METRIC_COLS, SHAPE_COLS, SHAPE_EXCLUDE_ABS, ST_BIMODAL,
+                             ST_LOG_CANDIDATE, ST_OK, STATUS_COLS, bimodality_coef, item_status, judge, shape_cols)
 
 ROOT = Path(__file__).resolve().parents[1]
 BEFORE_WOU = "f736220"      # WO-U 직전 커밋 (분포 모양 열이 없던 판)
@@ -115,6 +116,69 @@ def test_w4_bimodality_coef_formula():
     assert bimodality_coef(v) == pytest.approx((g ** 2 + 1) / (k + 3 * (n - 1) ** 2 / ((n - 2) * (n - 3))))
     assert math.isnan(bimodality_coef(v[:3]))
     assert math.isnan(bimodality_coef(np.ones(10)))
+
+
+# WO-Z 1단계: Bowley 왜도, decades = log10(P99/P1), |x| ≥ 1E+90 제외
+def same_shape(a: dict, b: dict) -> bool:
+    return all(same(a[c], b[c]) for c in SHAPE_COLS)
+
+
+def test_z1_bowley_skew_hand_computed():
+    """x = 1,2,4,8,16: Q1=2, Q2=4, Q3=8 → skew_lin = (8+2−8)/6 = 1/3. log10 은 등간격 → skew_log = 0.
+    decades: log10 등간격이라 P99 − P1 = 0.98 × log10(16)."""
+    st = shape_cols(np.array([1.0, 2, 4, 8, 16]))
+    assert st["skew_lin"] == pytest.approx(1 / 3)
+    assert st["skew_log"] == pytest.approx(0, abs=1e-12)
+    assert st["log_fit"] == pytest.approx(1 / 3)
+    assert st["decades"] == pytest.approx(0.98 * math.log10(16))
+    # 1,2,3,4,10: Q1=2, Q2=3, Q3=4 → 0 (큰 값 하나는 사분위에 안 들어감)
+    assert shape_cols(np.array([1.0, 2, 3, 4, 10]))["skew_lin"] == pytest.approx(0, abs=1e-12)
+
+
+def test_z1_iqr_zero_gives_nan():
+    st = shape_cols(np.array([5.0, 5, 5, 5, 9]))
+    for c in ("skew_lin", "skew_log", "log_fit"):
+        assert math.isnan(st[c]), c
+    assert math.isfinite(st["decades"])
+
+
+def norm_quantiles(n: int) -> np.ndarray:
+    """표준정규 분위수 n개 (대칭이라 Bowley 왜도 = 0, 난수 없음)."""
+    return stats.norm.ppf((np.arange(n) + 0.5) / n)
+
+
+def test_z1_decades_ignores_single_outlier():
+    x = 10 ** (0.3 * norm_quantiles(1000))
+    base = shape_cols(x)["decades"]
+    with_out = shape_cols(np.append(x, x.max() * 1e6))["decades"]
+    assert abs(with_out - base) < 0.1
+    assert math.log10(x.max() * 1e6 / x.min()) - with_out > 5      # 옛 max/min 이면 6자리 넘게 커졌을 값
+
+
+@pytest.mark.parametrize("code", [1e97, -1e97, SHAPE_EXCLUDE_ABS])
+def test_z1_open_code_die_is_excluded(code):
+    rng = np.random.default_rng(12)
+    x = 10 ** rng.normal(0, 0.6, 50)
+    st = shape_cols(np.append(x, code))
+    assert same_shape(st, shape_cols(x))
+    assert all(math.isfinite(st[c]) for c in SHAPE_COLS)       # 음수 코드여도 뺀 뒤엔 부호 하나
+
+
+def test_z1_open_code_die_excluded_in_item_status():
+    Y, z = lognormal(seed=13, n=60)
+    Y2 = np.vstack([Y, np.full((1, Y.shape[1]), 1e97)])
+    z2 = np.append(z, 1e97)
+    a, b = item_status(Y, z, DELTA), item_status(Y2, z2, DELTA)
+    assert same_shape(a, b)
+
+
+def test_z1_single_outlier_does_not_pin_skew():
+    """정규 60개 + 큰 값 1개. 옛 모멘트 왜도는 ~7.7 로 튀던 경우."""
+    x = 100 + norm_quantiles(60)
+    base, st = shape_cols(x), shape_cols(np.append(x, 1e4))
+    for c in ("skew_lin", "skew_log"):
+        assert abs(st[c]) < 0.5, c
+        assert abs(st[c] - base[c]) < 0.1, c
 
 
 def test_w4_new_names_in_fail_evidence_tables():

@@ -16,7 +16,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from por_doe_compare import V_EXCLUDED, reason_group
+from por_doe_compare import V_EXCLUDED, reason_group, verdict_col
+
+
+def not_equivalent(d: pd.DataFrame) -> pd.DataFrame:
+    """차이·미결 표 대상: 최종 판정(verdict_final, 옛 CSV 면 verdict)이 동등도 판정 제외도 아닌 행."""
+    return d[~verdict_col(d).isin(["동등", V_EXCLUDED])]
 
 
 def main() -> None:
@@ -41,8 +46,9 @@ def main() -> None:
 
     q = d[d["zone"] == "정량"]
     low = d[d["zone"].isin(["검출한계 이하", "검출~정량"])]
-    ex = d[d["verdict"] == V_EXCLUDED]
-    bad = d[~d["verdict"].isin(["동등", V_EXCLUDED])]
+    vf = verdict_col(d).rename("verdict")
+    ex = d[vf == V_EXCLUDED]
+    bad = not_equivalent(d)
     runs = sorted(c for c in d.columns if c.startswith("POR") and c.endswith("_mean"))
     f4 = lambda v: f"{v:.4g}"
     buf = io.StringIO()
@@ -61,14 +67,14 @@ def main() -> None:
                   + ", ".join(f"{k} {v:,}" for k, v in causes.value_counts().items()) + ")\n")
 
     # 1. 결과
-    sec("구간 x 판정", pd.crosstab(d["zone"], d["verdict"], margins=True, margins_name="합계"))
+    sec("구간 x 판정", pd.crosstab(d["zone"], vf, margins=True, margins_name="합계"))
     if len(bad):
         sec("동등 아닌 사유", reason_group(bad["reason"]).value_counts())
     qb = bad[bad["zone"] == "정량"]
     if len(qb):
         base = qb[runs].mean(axis=1).abs().replace(0, np.nan)
         lv = qb["por_median"].abs().replace(0, np.nan)
-        t = pd.DataFrame({"ID": qb["ID"], "UNIT": qb["UNIT"], "verdict": qb["verdict"], "POR 값": qb["por_median"].map(f4)})
+        t = pd.DataFrame({"ID": qb["ID"], "UNIT": qb["UNIT"], "verdict": vf[qb.index], "POR 값": qb["por_median"].map(f4)})
         for c in runs + ["DOE_mean"]:
             t[c.replace("_mean", "")] = ((qb[c] - qb[runs].mean(axis=1)) / base * 100).map(lambda v: f"{v:+.2f}%")
         t["shift %"] = (qb["center"] / lv * 100).map(lambda v: f"{v:+.2f}")
@@ -82,10 +88,11 @@ def main() -> None:
     if len(lb):
         t = lb[["ID", "UNIT", "verdict", "por_median", "LoQ"] + runs + ["DOE_mean", "center", "ci_low", "ci_high", "delta",
                                                                          "doe_center"]].copy()
+        t["verdict"] = vf[lb.index]
         t.columns = ["ID", "UNIT", "verdict", "POR 값", "LoQ"] + [c.replace("_mean", "") for c in runs] + \
                     ["DOE", "shift", "CI low", "CI high", "Δ", "DOE 중심"]
         sec("LoQ 미만 차이·미결: 회차별 평균과 중심 이동", t.head(a.list).to_string(index=False, float_format=f4))
-    fm = pd.crosstab(d["FAMILY"], d["verdict"])
+    fm = pd.crosstab(d["FAMILY"], vf)
     fm = fm[fm.drop(columns="동등", errors="ignore").sum(axis=1) > 0]
     if len(fm):
         sec("항목군별 판정 (동등 아님이 있는 항목군)", fm)

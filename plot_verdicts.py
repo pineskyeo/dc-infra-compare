@@ -25,7 +25,8 @@ from matplotlib.ticker import FuncFormatter, NullFormatter
 
 from infra_compare import load_blank, read_csv_auto
 from por_doe_compare import (
-    ORDER, V_EXCLUDED, add_common_args, ci_rank, judge_item, load_levels, load_wide,
+    ORDER, V_EXCLUDED, add_common_args, add_final_verdict, ci_rank, judge_item, load_levels, load_wide,
+    verdict_col,
 )
 
 FONT_CANDIDATES = (
@@ -316,7 +317,7 @@ def recompute(args: argparse.Namespace) -> pd.DataFrame:
     result = pd.DataFrame(rows)
     if result.empty:
         return result
-    result = result[first + [c for c in result.columns if c not in first]]
+    result = add_final_verdict(result[first + [c for c in result.columns if c not in first]])
     return result.sort_values(
         ["verdict", "ITEM"],
         key=lambda s: s.map(ORDER) if s.name == "verdict" else s,
@@ -588,6 +589,7 @@ def plot_dashboard(
     main, loq, omitted = _split_summary(items)
     if omitted:
         warnings.warn(EXCLUDED_NOTE.format(n=omitted), RuntimeWarning, stacklevel=2)
+    main = main.assign(verdict=verdict_col(main))     # 집계·차이/미결 선택·색은 최종 판정 (옛 CSV 면 verdict)
     flagged = main.loc[main["verdict"].isin(DASHBOARD_FLAGGED)].reset_index(drop=True)
     total = len(flagged)
     ncols, height, shown = dashboard_layout(total)
@@ -839,7 +841,7 @@ def select_detail_items(
             raise ValueError(f"items.csv에 없는 ITEM 코드입니다: {', '.join(missing)}")
         return list(dict.fromkeys(requested))
     selected = [
-        code for code, verdict in zip(codes, items["verdict"].astype(str))
+        code for code, verdict in zip(codes, verdict_col(items).astype(str))
         if verdict in {"차이", "미결"}
     ]
     return list(dict.fromkeys(selected))

@@ -75,6 +75,9 @@ def test_items_csv_is_byte_identical_to_frozen_legacy(por3_data: Path, tmp_path:
                    "sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
     assert new_rows[0][-len(status_cols):] == status_cols
     new_rows = [r[:-len(status_cols)] for r in new_rows]
+    vi = new_rows[0].index("verdict") + 1          # WO-Z: verdict 뒤 verdict_final·verdict_basis 는 레거시에 없음
+    assert new_rows[0][vi:vi + 2] == ["verdict_final", "verdict_basis"]
+    new_rows = [r[:vi] + r[vi + 2:] for r in new_rows]
     legacy_rows = rows(legacy_out / "items.csv")
     header = new_rows[0]
     assert header == legacy_rows[0]
