@@ -1,14 +1,19 @@
 """흔들림 ITEM 의 CI 반폭/Δ: 선형 척도 vs log 척도 비교 (WO-S S2).
 
 입력: por_doe_compare 의 items.csv. 쓰는 열:
-  ITEM, status, verdict, verdict_log, ci_half_over_delta, ci_half_over_delta_log
+  ITEM, status, verdict, verdict_log, ci_half_over_delta, ci_half_over_delta_log, log_fit, decades
+  (log_fit·decades 열이 없으면 NaN)
 대상: por_doe_compare.is_log_target 과 같다. status(';' 로 이은 문자열)에 '작을수록 흔들림' 또는
-'클수록 흔들림' 이 있는 ITEM + verdict ≠ verdict_log ITEM (verdict_log 판정 제외·빈칸은 아님, 마커 P).
+'클수록 흔들림' 이 있는 ITEM + verdict ≠ verdict_log ITEM (verdict_log 판정 제외·빈칸은 아님).
 
 출력 (<out>/, 이 두 파일만 덮어씀):
   log_compare.png  x = 선형 비, y = log 비 (두 축 log), y=x 선. 대각선 아래 = log 쪽 CI 가 좁음.
+                   점 색 = log_fit (0 기준 diverging, colorbar), log_fit NaN 은 회색.
+                   마커 모양 = changed (같음 o, 바뀜 X), 테두리·크기 = target_status (색은 안 씀).
   log_compare.csv  ITEM, target_status, ci_half_over_delta, ci_half_over_delta_log,
-                   verdict, verdict_log, changed
+                   verdict, verdict_log, changed, log_fit, decades
+                   (log_fit = |skew_lin| − |skew_log|, 양수면 log 쪽이 더 대칭. decades = log10(max|x|/min|x|).
+                    둘 다 items.csv 값 그대로)
 
 사용: python log_compare.py items.csv [--out DIR]   (기본 DIR = items.csv 폴더)
 """
@@ -22,6 +27,8 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import TwoSlopeNorm
 from matplotlib.lines import Line2D
 
 from compare_metrics import _save, set_font
@@ -30,11 +37,16 @@ from por_doe_compare import ST_SIZE_JITTER, ST_SIZE_JITTER_POS, log_target_statu
 
 PNG_NAME, CSV_NAME = "log_compare.png", "log_compare.csv"
 X_COL, Y_COL = "ci_half_over_delta", "ci_half_over_delta_log"
-CSV_COLS = ["ITEM", "target_status", X_COL, Y_COL, "verdict", "verdict_log", "changed"]
+FIT_COL = "log_fit"
+CSV_COLS = ["ITEM", "target_status", X_COL, Y_COL, "verdict", "verdict_log", "changed", FIT_COL, "decades"]
 VERDICT_DIFF = "verdict≠verdict_log"     # 흔들림 status 없이 verdict 와 verdict_log 가 달라 대상이 된 ITEM
 
-MARKER = {ST_SIZE_JITTER: "o", ST_SIZE_JITTER_POS: "^", "both": "D", VERDICT_DIFF: "P"}
-C_SAME, C_CHANGED = "#2f6db5", "#d62728"
+MARKER = {False: "o", True: "X"}         # changed
+# target_status → (마커 크기, 검정 테두리 두께). 테두리 유무 × 크기로 네 가지를 무채색으로 구분.
+EDGE = {ST_SIZE_JITTER: (40, 0.0), ST_SIZE_JITTER_POS: (40, 1.4), "both": (90, 1.4), VERDICT_DIFF: (90, 0.0)}
+CMAP = "RdBu"
+C_NAN = "#9e9e9e"
+FIT_DEFAULT_RANGE = 1.0                  # log_fit 이 전부 0/NaN 일 때 colorbar 범위 ±이 값
 
 
 def target_status(status, verdict=None, verdict_log=None) -> str:
@@ -47,12 +59,12 @@ def target_status(status, verdict=None, verdict_log=None) -> str:
 
 def build_table(items: pd.DataFrame) -> pd.DataFrame:
     df = items.copy()
-    for c in ("ITEM", "status", "verdict", "verdict_log", X_COL, Y_COL):
+    for c in ("ITEM", "status", "verdict", "verdict_log", X_COL, Y_COL, FIT_COL, "decades"):
         if c not in df:
             df[c] = np.nan
     df["target_status"] = [target_status(*a) for a in zip(df["status"], df["verdict"], df["verdict_log"])]
     df = df[df["target_status"] != ""].copy()
-    for c in (X_COL, Y_COL):
+    for c in (X_COL, Y_COL, FIT_COL, "decades"):
         df[c] = pd.to_numeric(df[c], errors="coerce")
     v = df["verdict"].fillna("").astype(str)
     vl = df["verdict_log"].fillna("").astype(str)
@@ -66,6 +78,14 @@ def _usable(t: pd.DataFrame) -> pd.Series:
 
 def _marker_key(ts: str) -> str:
     return "both" if ";" in ts else ts
+
+
+def _fit_norm(fit: pd.Series) -> TwoSlopeNorm:
+    """0 중심 대칭 범위 ±max|log_fit|. 전부 0/NaN 이면 ±FIT_DEFAULT_RANGE (TwoSlopeNorm 은 vmin<0<vmax 필요)."""
+    a = np.abs(fit.to_numpy(dtype=float))
+    a = a[np.isfinite(a)]
+    m = float(a.max()) if a.size and a.max() > 0 else FIT_DEFAULT_RANGE
+    return TwoSlopeNorm(vcenter=0.0, vmin=-m, vmax=m)
 
 
 def plot(t: pd.DataFrame, path: Path) -> dict:
@@ -87,12 +107,22 @@ def plot(t: pd.DataFrame, path: Path) -> dict:
         return {"n": 0, "below": 0, "above": 0, "changed": 0, "excluded": n_excl}
 
     keys = d["target_status"].map(_marker_key)
-    for key, mk in MARKER.items():
-        for chg, col in ((False, C_SAME), (True, C_CHANGED)):
-            s = d[(keys == key) & (d["changed"] == chg)]
+    norm = _fit_norm(d[FIT_COL])
+    has_fit = d[FIT_COL].notna()
+    n_nan = int((~has_fit).sum())
+    for key, (size, lw) in EDGE.items():
+        for chg, mk in MARKER.items():
+            g = (keys == key) & (d["changed"] == chg)
+            style = dict(marker=mk, s=size, alpha=0.85, edgecolors="black" if lw else "none",
+                         linewidths=lw, zorder=3)
+            s = d[g & has_fit]
             if not s.empty:
-                ax.scatter(s[X_COL], s[Y_COL], marker=mk, s=36, c=col,
-                           alpha=0.75, edgecolors="white", linewidths=0.5, zorder=3)
+                ax.scatter(s[X_COL], s[Y_COL], c=s[FIT_COL], cmap=CMAP, norm=norm, **style)
+            s = d[g & ~has_fit]
+            if not s.empty:
+                ax.scatter(s[X_COL], s[Y_COL], c=C_NAN, **style)
+    fig.colorbar(ScalarMappable(norm=norm, cmap=CMAP), ax=ax, label=FIT_COL,
+                 fraction=0.046, pad=0.03)
 
     vals = np.concatenate([d[X_COL].to_numpy(), d[Y_COL].to_numpy()])
     lo, hi = vals.min() / 1.5, vals.max() * 1.5
@@ -114,15 +144,19 @@ def plot(t: pd.DataFrame, path: Path) -> dict:
         note += f"\n제외 {n_excl}  (비가 NaN 또는 ≤0)"
     ax.text(0.97, 0.03, note, transform=ax.transAxes, ha="right", va="bottom", fontsize=9)
 
-    present = set(keys)
-    handles = [Line2D([], [], ls="", marker=MARKER[k], color="#777777", markersize=7,
-                      label=("둘 다" if k == "both" else k)) for k in MARKER if k in present]
-    handles += [
-        Line2D([], [], ls="", marker="s", color=C_SAME, markersize=7,
-               label=f"판정 같음 {len(d) - changed}"),
-        Line2D([], [], ls="", marker="s", color=C_CHANGED, markersize=7,
-               label=f"판정 바뀜 (verdict ≠ verdict_log) {changed}"),
+    hollow = dict(ls="", markerfacecolor="#e0e0e0", markeredgecolor="black")
+    handles = [
+        Line2D([], [], marker=MARKER[False], markersize=7, label=f"판정 같음 {len(d) - changed}",
+               **{**hollow, "markeredgewidth": 0}),
+        Line2D([], [], marker=MARKER[True], markersize=7,
+               label=f"판정 바뀜 (verdict ≠ verdict_log) {changed}", **{**hollow, "markeredgewidth": 0}),
     ]
+    present = set(keys)
+    handles += [Line2D([], [], marker="o", markersize=EDGE[k][0] ** 0.5, markeredgewidth=EDGE[k][1],
+                       label=("둘 다" if k == "both" else k), **hollow) for k in EDGE if k in present]
+    if n_nan:
+        handles.append(Line2D([], [], ls="", marker="o", color=C_NAN, markersize=7,
+                              label=f"log_fit 없음 {n_nan}"))
     ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(0.0, 0.9), fontsize=8, framealpha=0.9)
     ax.set_title(f"흔들림 ITEM: 선형 vs log 척도 CI 반폭/Δ  (n={len(d)})", fontsize=11)
     fig.tight_layout()

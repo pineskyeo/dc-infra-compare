@@ -159,4 +159,4 @@ def test_x4b_log_compare_verdict_diff_target(tmp_path):
     t = pd.read_csv(tmp_path / lc.CSV_NAME, encoding="utf-8-sig")
     assert dict(zip(t["ITEM"], t["target_status"])) == {"J1": pdc.ST_SIZE_JITTER, "D1": lc.VERDICT_DIFF}
     assert r["n"] == 2 and r["changed"] == 1
-    assert lc.VERDICT_DIFF in lc.MARKER and len(set(lc.MARKER.values())) == len(lc.MARKER)
+    assert lc.VERDICT_DIFF in lc.EDGE and len(set(lc.EDGE.values())) == len(lc.EDGE)

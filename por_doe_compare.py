@@ -477,7 +477,7 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo
 
 
 def judge_log(Y: np.ndarray, z: np.ndarray, r: float) -> dict:
-    """log 판정 (참고용). 같은 judge() 에 L = log10|Y|, w = log10|z| 를 넣는다. 값에 0 이 없고 부호가 하나일 때만 부른다.
+    """log 판정 (log형 ITEM의 판정). 같은 judge() 에 L = log10|Y|, w = log10|z| 를 넣는다. 값에 0 이 없고 부호가 하나일 때만 부른다.
     정책 허용폭: 선형의 r × |POR| 는 log 공간에서 더하는 폭 log10(1 + r) 이다. judge 는 r × level
     (level = |중앙값(die별 L 회차 평균)|) 로 곱하므로 r_log = log10(1 + r) / level 을 넘겨 policy_margin = log10(1 + r) 이
     되게 한다 (level 0 이면 policy 0). ASSUMED: 'log10(1+r) 로 넘김' 을 judge 의 곱셈 뒤 정책 폭이 log10(1+r) 이 되도록 해석.
