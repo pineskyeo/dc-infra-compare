@@ -181,6 +181,44 @@
 <p class="s">합성 예시 · 실행 결과 아님 · 손계산과 도구 출력이 같은 값</p>
 </section>
 
+<section id="meas-precision"><h2>측정 정밀도</h2>
+<h3>질문</h3>
+<p class="q">σ<sub>die</sub>와 σ<sub>run</sub>을 합쳐 측정 하나의 정밀도를 어떻게 한 숫자로 나타내나</p>
+<h3>쉬운 말로</h3>
+<ul>
+<li>두 산포를 제곱해 더하고 루트를 씀<ul class="chain"><li>→ 서로 독립인 산포는 분산이 더해짐. 표준편차를 단순히 더하면 과대평가</li><li>→ 예: 3과 4 → √(3² + 4²) = 5 (단순 합 7 아님)<sup class="fnref"><a href="#fn11" aria-label="출처 11">11</a></sup></li></ul></li>
+<li>표준 표기: 정밀도는 산포(<a class="g" href="glossary.html#sd"><abbr title="표준편차 · 값이 평균 둘레로 퍼진 보통 크기">표준편차(SD, Standard Deviation)</abbr></a> 또는 <a class="g" href="glossary.html#rsd"><abbr title="상대표준편차 · 흔들림 σ를 값의 크기로 나눈 비율">상대표준편차(RSD, Relative Standard Deviation)</abbr></a>)로 적음<sup class="fnref"><a href="#fn12" aria-label="출처 12">12</a></sup><sup class="fnref"><a href="#fn13" aria-label="출처 13">13</a></sup></li>
+<li>값이 클수록 정밀도가 나쁨. 100 − x로 바꾸지 않음<sup class="fnref"><a href="#fn13" aria-label="출처 13">13</a></sup></li>
+<li>회차(run)가 다른 조건의 흔들림을 σ<sub>run</sub>으로 보는 것은 <a class="g" href="glossary.html#vim"><abbr title="VIM · 국제 계량 용어집(JCGM 200:2012)">VIM(International Vocabulary of Metrology)</abbr></a>의 중간 정밀도(intermediate precision) 조건에 대응시킨 이 문서의 해석임 <span class="badge-int">이 문서의 해석</span><sup class="fnref"><a href="#fn12" aria-label="출처 12">12</a></sup><sup class="fnref"><a href="#fn14" aria-label="출처 14">14</a></sup></li>
+</ul>
+<h3>수식</h3>
+<div class="formula"><div>σ<sub>meas</sub> = √(σ<sub>die</sub>² + σ<sub>run</sub>²)</div><div>측정 정밀도(%) = 100 × σ<sub>meas</sub> / |POR 중앙값| (중앙값 0이면 빈칸)</div><div class="c">σ<sub>meas</sub>/Δ = 미결 원인을 볼 때 쓰는 보조 열</div></div>
+<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
+<tr><td>σ<sub>meas</sub></td><td>측정 하나의 산포. 도구 열 sigma_meas</td><td>1.11055</td></tr>
+<tr><td>측정 정밀도(%)</td><td>σ<sub>meas</sub>를 POR 중앙값 대비 %로 나타낸 값. 도구 열 meas_precision_pct · 표기 이름 '측정 정밀도 (%, 상대표준편차, 낮을수록 좋음)'</td><td>1.11%</td></tr>
+<tr><td>σ<sub>meas</sub>/Δ</td><td>미결 원인을 볼 때 쓰는 보조 열. 도구 열 sigma_meas_over_delta</td><td>—</td></tr>
+<tr><td>σ<sub>die</sub></td><td>반복성. 같은 die를 다시 잴 때의 흔들림</td><td>0.98965</td></tr>
+<tr><td>σ<sub>run</sub></td><td>회차 이동. 회차마다 모든 die가 함께 움직이는 크기</td><td>0.50389</td></tr>
+<tr><td>|POR 중앙값|</td><td><a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건</abbr></a>(POR) 값의 중앙값 절댓값</td><td>100</td></tr>
+</tbody></table></div>
+<ul>
+<li>합성 분산 = 각 분산의 합(무상관 입력)<sup class="fnref"><a href="#fn11" aria-label="출처 11">11</a></sup></li>
+<li>상대표준편차 = σ/μ (<a class="g" href="glossary.html#nist"><abbr title="NIST · 미국 국립표준기술연구소">NIST(National Institute of Standards and Technology)</abbr></a> 1.3.6.6.1 표의 Coefficient of Variation)<sup class="fnref"><a href="#fn13" aria-label="출처 13">13</a></sup></li>
+<li>수준별 표준편차 합성 s<sub>R</sub> = √(s<sub>days</sub>² + s<sub>1</sub>²) (NIST 2.4.3.1)<sup class="fnref"><a href="#fn13" aria-label="출처 13">13</a></sup></li>
+</ul>
+<h3>예시 계산</h3>
+<ol class="calc">
+<li>σ<sub>die</sub>² = 0.98965² = 0.979407, σ<sub>run</sub>² = 0.50389² = 0.253905 <span class="from">위 예시 계산의 σ<sub>die</sub>, σ<sub>run</sub></span></li>
+<li>σ<sub>meas</sub> = √(0.979407 + 0.253905) = √1.233312 = 1.11055</li>
+<li>측정 정밀도 = 100 × 1.11055 / 100 = 1.11% <span class="from">100 = POR 중앙값</span></li>
+<li>단순 합이면 0.98965 + 0.50389 = 1.49354 → 1.49%로 과대</li>
+</ol>
+<ul>
+<li>주의: status가 '산포 0'이면 0%가 나오지만 좋은 값이 아님(분해능·고정값 문제) · <a href="c-resolution.html">분해능과 √12</a></li>
+</ul>
+<p class="s">합성 예시 · 실행 결과 아님</p>
+</section>
+
 <section id="sources"><h2>출처</h2>
 <ol class="fn">
 <li id="fn1"><a class="g" href="glossary.html#nist"><abbr title="NIST · 미국 국립표준기술연구소">NIST(National Institute of Standards and Technology)</abbr></a>/SEMATECH e-Handbook · 1.3.5.6 Measures of Scale · <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda356.htm" rel="noopener" target="_blank">링크</a></li>
@@ -193,6 +231,10 @@
 <li id="fn8"><a class="g" href="glossary.html#iso"><abbr title="ISO · 국제표준화기구">ISO(International Organization for Standardization)</abbr></a> 5725-3 · <a href="https://www.iso.org/standard/69420.html" rel="noopener" target="_blank">링크</a></li>
 <li id="fn9">Wikipedia "Median" · Sampling distribution 절 (Williams 2001 p.165 인용) · <a href="https://en.wikipedia.org/wiki/Median" rel="noopener" target="_blank">링크</a></li>
 <li id="fn10"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 회차 중앙값을 쓰는 것과 (π/2)/n 보정은 이 방법의 변형 · 쉬운 말 설명과 그림</li>
+<li id="fn11">JCGM 100:2008 (GUM) · 5.1.2 식(10) 합성 분산 = 각 분산의 합(무상관 입력), 5.1.5 계수 ±1일 때 u<sub>c</sub>² = Σu² · <a href="https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf" rel="noopener" target="_blank">링크</a></li>
+<li id="fn12">JCGM 200:2012 (VIM) · 2.15 정밀도, NOTE 1 "usually expressed numerically by measures of imprecision, such as standard deviation, variance, or coefficient of variation" · 2.20/2.21 반복성, 2.22/2.23 중간 정밀도(intermediate precision; 회차가 다른 조건), 2.24/2.25 재현성 · <a href="https://www.bipm.org/documents/20126/2071204/JCGM_200_2012.pdf" rel="noopener" target="_blank">링크</a></li>
+<li id="fn13">NIST/SEMATECH e-Handbook · 2.1.1.4 "Good precision implies a small standard deviation." · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section1/mpc114.htm" rel="noopener" target="_blank">링크</a> · 2.4.3.1 Simple design: 수준별 표준편차 합성 s<sub>R</sub> = √(s<sub>days</sub>² + s<sub>1</sub>²) · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section4/mpc431.htm" rel="noopener" target="_blank">링크</a> · 1.3.6.6.1 Normal Distribution 쪽 표 "Coefficient of Variation σ/μ" · <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda3661.htm" rel="noopener" target="_blank">링크</a></li>
+<li id="fn14"><span class="badge-int">이 문서의 해석</span> 회차(run)를 σ<sub>run</sub>으로 보는 것을 VIM 중간 정밀도 조건에 대응시킴</li>
 </ol></section>
 
 <nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="step-2.html">② 흔들림 구하기</a></li><li><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a></li><li><a href="step-0.html">⓪ 표본 크기 정하기</a></li><li><a href="c-mad.html">표준편차 σ와 MAD</a></li><li><a href="c-efficiency.html">중앙값 효율 1.25</a></li></ul></nav>
