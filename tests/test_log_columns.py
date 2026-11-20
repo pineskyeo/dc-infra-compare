@@ -9,7 +9,7 @@ import por_doe_compare as pdc
 from por_doe_compare import LOG_COLS, V_EXCLUDED
 
 R = 0.05
-LOG_NUM = [c for c in LOG_COLS if c not in ("verdict_log", "log_reason", "ci_half_over_delta")]
+LOG_NUM = [c for c in LOG_COLS if c not in ("verdict_log", "log_reason", "ci_half_over_delta", "below_linear_loq")]
 
 
 def parts(s: str) -> list[str]:
@@ -78,7 +78,7 @@ def test_judge_log_policy_is_log10_1_plus_r():
 def test_t2_not_target_gives_nan():
     row = run_item(*log_normal_data())
     assert not {pdc.ST_SIZE_JITTER, pdc.ST_SIZE_JITTER_POS} & set(parts(row["status"]))
-    assert all(math.isnan(row[c]) for c in LOG_COLS if c != "log_reason")
+    assert all(math.isnan(row[c]) for c in LOG_COLS if c not in ("log_reason", "below_linear_loq"))
     assert row["log_reason"] == ""
 
 

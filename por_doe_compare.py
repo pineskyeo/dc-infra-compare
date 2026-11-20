@@ -57,7 +57,8 @@ SHAPE_COLS = ["decades", "skew_lin", "skew_log", "log_fit", "bimodality_log"]   
 STATUS_COLS = ["status", *METRIC_COLS, *SHAPE_COLS, "mean_median_ratio"]
 PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
 LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta",
-            "ci_half_over_delta_log", "spearman_size_jitter_log", "log_reason"]     # 작을수록·클수록 흔들림 ITEM 참고용
+            "ci_half_over_delta_log", "spearman_size_jitter_log", "log_reason",     # 작을수록·클수록 흔들림 ITEM 참고용
+            "sigma_die_log", "sigma_run_log", "below_linear_loq", "policy_margin_log"]   # 분석용, 판정에 안 씀
 POR_GAP_NOISE_K = 3             # 조건 불안정: 짝지은 회차 차 ≥ 이 배수 × 회차 중앙값 차의 표준오차
 ST_OK, ST_UNSTABLE, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "분해능 부족", "산포 0"
 ST_RUN_JITTER, ST_SIZE_JITTER, ST_SIZE_JITTER_POS = "회차 흔들림", "작을수록 흔들림", "클수록 흔들림"
@@ -488,8 +489,15 @@ def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict, status: str) 
     """LOG_COLS. status 에 작을수록·클수록 흔들림이 있는 ITEM 만, 나머지는 NaN·log_reason 빈칸.
     POR·DOE 값에 0 이 있거나 부호가 섞이면 verdict_log 판정 제외, log_reason 에 사유, log 숫자 열 NaN.
     spearman_size_jitter_log = Spearman ρ(log10|회차 평균|, die별 log10|값| 회차 범위), _jitter 와 같은 _size_rho.
-    log_reason 은 log 판정이 된 ITEM 이면 judge_log 의 reason (ASSUMED)."""
+    log_reason 은 log 판정이 된 ITEM 이면 judge_log 의 reason (ASSUMED).
+    분석용 열 (판정에 안 씀): sigma_*_log 는 judge_log 결과의 sigma_die·sigma_run, verdict_log 가 판정 제외면 NaN.
+    policy_margin_log = log10(1 + r), log 판정이 된 ITEM 만. below_linear_loq 는 모든 ITEM:
+    선형 DOE 중심 |POR 중앙값 + center| < 선형 LoQ (judge 의 LoQ zone 비교와 같은 값), LoQ·중심이 NaN 이면 NaN."""
     out = {**dict.fromkeys(LOG_COLS, np.nan), "log_reason": ""}
+    loq = float(res.get("LoQ", np.nan))
+    doe_c = float(res.get("por_median", np.nan)) + float(res.get("center", np.nan))
+    if np.isfinite(loq) and np.isfinite(doe_c):
+        out["below_linear_loq"] = bool(abs(doe_c) < loq)
     if not {ST_SIZE_JITTER, ST_SIZE_JITTER_POS} & set(status.split(";")):
         return out
     out["ci_half_over_delta"] = _ci_half_over_delta(res)
@@ -505,7 +513,9 @@ def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict, status: str) 
            if Y.shape[1] > 1 and ok.sum() >= 3 else np.nan)
     return {**out, "verdict_log": lr["verdict"], "center_log": lr["center"], "ci_low_log": lr["ci_low"],
             "ci_high_log": lr["ci_high"], "delta_log": lr["delta"], "ci_half_over_delta_log": _ci_half_over_delta(lr),
-            "spearman_size_jitter_log": rho, "log_reason": lr["reason"]}
+            "spearman_size_jitter_log": rho, "log_reason": lr["reason"],
+            **({} if lr["verdict"] == V_EXCLUDED else {"sigma_die_log": lr["sigma_die"], "sigma_run_log": lr["sigma_run"]}),
+            "policy_margin_log": float(np.log10(1 + r))}
 
 
 def load_levels(path: str, encoding: str) -> dict[str, ItemInfo]:
