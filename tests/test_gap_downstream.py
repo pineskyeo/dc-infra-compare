@@ -20,7 +20,7 @@ PAIRED = "짝지은 회차 차"
 OLD = "옛 정의(회차 평균 차)"
 OLD_LINE = f"por_gap: {OLD} 1행 (items.csv에 {PAIRED} 열 없음)"
 
-# 회차 평균 100, 100.5, 101 → 평균 차 1, Δ=2 → 옛 정의 gap/Δ = 0.5 (≥ 0.25라 기준 흔들림).
+# 회차 평균 100, 100.5, 101 → 평균 차 1, Δ=2 → 옛 정의 gap/Δ = 0.5 (참고 열일 뿐, 판단에 안 씀).
 # por_median 100.5는 [min, max] 안이라 median_out = 0, CI [-1, 3]은 ±Δ에 걸쳐 차이가 아님.
 ROW = {
     "ID": "G1", "verdict": "미결", "reason": "경계", "por_median": "100.5", "DOE_mean": "100.5",
@@ -44,7 +44,7 @@ def test_fail_evidence_uses_paired_gap(tmp_path):
     assert t.at["G1", "por_gap_over_delta"] == pytest.approx(0.1)
     assert t.at["G1", "por_gap_def"] == PAIRED
     assert t.at["G1", "por_gap_pct"] == pytest.approx(0.1 * 2 / 100.5 * 100)
-    assert t.at["G1", "judgement"] == fe.J_OK
+    assert t.at["G1", "judgement"] == fe.J_PEND  # WO-L 정정: 미결은 하나(J_OK 삭제)
     assert "por_gap:" not in fe.summary_text(t.reset_index())
 
 
@@ -52,7 +52,7 @@ def test_fail_evidence_old_definition_fallback(tmp_path):
     t = fe.evidence_table(fe.read_table(_write(tmp_path, False))).set_index("ID")
     assert t.at["G1", "por_gap_over_delta"] == pytest.approx(0.5)
     assert t.at["G1", "por_gap_def"] == OLD
-    assert t.at["G1", "judgement"] == fe.J_BASE
+    assert t.at["G1", "judgement"] == fe.J_PEND  # WO-L 정정: gap/Δ 0.5여도 미결 하나(J_BASE 삭제)
     assert OLD_LINE in fe.summary_text(t.reset_index())
 
 
@@ -82,7 +82,7 @@ def test_compare_evidence_uses_paired_gap(tmp_path):
     assert ev.at["G1", "por_gap_over_delta"] == pytest.approx(0.1)
     assert ev.at["G1", "por_gap_def"] == PAIRED
     assert ev.at["G1", "por_gap_pct"] == pytest.approx(0.1 * 2 / 100.5 * 100)
-    assert ev.at["G1", "group"] == cba.J_OK
+    assert ev.at["G1", "group"] == cba.J_PEND  # WO-L 정정: 미결은 하나(J_OK 삭제)
 
     out = tmp_path / "ev"
     assert cba.main(["evidence", str(_write(tmp_path, True)), "-o", str(out)]) == 0
@@ -95,7 +95,7 @@ def test_compare_evidence_old_definition_fallback(tmp_path):
     ev = cba.evidence_table(cba.read_result(_write(tmp_path, False))).set_index("ID")
     assert ev.at["G1", "por_gap_over_delta"] == pytest.approx(0.5)
     assert ev.at["G1", "por_gap_def"] == OLD
-    assert ev.at["G1", "group"] == cba.J_BASE
+    assert ev.at["G1", "group"] == cba.J_PEND  # WO-L 정정: gap/Δ 0.5여도 미결 하나(J_BASE 삭제)
 
     out = tmp_path / "ev"
     assert cba.main(["evidence", str(_write(tmp_path, False)), "-o", str(out)]) == 0

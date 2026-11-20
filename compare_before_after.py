@@ -26,30 +26,21 @@ from matplotlib import font_manager as fm  # noqa: E402
 from matplotlib.collections import LineCollection  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 
+from fail_evidence import J_DIFF, J_PEND  # noqa: E402  (fail_evidence와 같은 차이/미결 이름)
 from por_doe_compare import V_EXCLUDED  # noqa: E402
 
 # ---------------------------------------------------------------------------
-# 분류·정렬 상수 (내부 기준).
-#   미결-기준 흔들림: POR 회차 간격/Δ >= POR_GAP_OVER_DELTA
-#                    또는 por_median이 세 회차 평균(POR·DOE) 밖으로
-#                    MEDIAN_OUT_OVER_DELTA·Δ 이상.
-#   POR 회차끼리 일치하고 por_median이 [min, max](POR, DOE) 안이면
-#   median_out=0이라 미결-정상으로 둔다(해상도 부족 미결).
+# 분류·정렬 상수. group은 verdict를 그대로 따른다(차이/미결). 미결은 나누지 않고,
+# 원인(조건 불안정, 회차 흔들림 등)은 items.csv status 열을 참고 열로 옮겨 적기만 한다.
 # ---------------------------------------------------------------------------
-POR_GAP_OVER_DELTA = 0.25
-MEDIAN_OUT_OVER_DELTA = 0.10
 MEDIAN_MISALIGN = 0.20  # 같은 ID인데 |por_median| 상대차가 이 값을 넘으면 정렬 의심
-RATIO_DIGITS = 9
 
-J_DIFF = "차이"
-J_OK = "미결-정상"
-J_BASE = "미결-기준 흔들림"
-GROUP_ORDER = (J_DIFF, J_OK, J_BASE)
+GROUP_ORDER = (J_DIFF, J_PEND)
 
-NAVY, LIGHT, GRAY, RED, BAND, GOLD = (
-    "#3D4C61", "#9AA8BC", "#7F8C9F", "#B5523B", "#E1E6ED", "#C9A27A",
+NAVY, LIGHT, GRAY, RED, BAND = (
+    "#3D4C61", "#9AA8BC", "#7F8C9F", "#B5523B", "#E1E6ED",
 )
-GROUP_COLOR = {J_DIFF: NAVY, J_OK: LIGHT, J_BASE: GOLD}
+GROUP_COLOR = {J_DIFF: NAVY, J_PEND: LIGHT}
 BEFORE_COLOR, AFTER_COLOR, WARN_COLOR = "#7F8C9F", "#3D4C61", "#B5523B"
 
 NUMERIC_COLS = frozenset((
@@ -82,7 +73,7 @@ EVIDENCE_COLS = [
     "ci_halfwidth_over_delta", "loq_ratio",
     "sigma_die_pct", "meas_precision_pct", "sigma_run_pct", "delta_pct",
     "median_outside_runs", "por_gap_over_delta", "por_gap_def", "median_out_over_delta",
-    "judgment",
+    "status", "judgment",
 ]
 GAP_DEF_PAIRED = "짝지은 회차 차"
 GAP_DEF_OLD = "옛 정의(회차 평균 차)"
@@ -224,35 +215,27 @@ def median_out_distance(med: float, means: list[float]) -> float:
     return max(0.0, min(ok) - med, med - max(ok))
 
 
-def classify_group(verdict: str, por_gap_over_delta: float, median_out_over_delta: float) -> str:
-    if verdict == J_DIFF:
-        return J_DIFF
-    if verdict != "미결":
-        return verdict or ""
-    gap_hit = _finite(por_gap_over_delta) and round(por_gap_over_delta, RATIO_DIGITS) >= POR_GAP_OVER_DELTA
-    med_hit = _finite(median_out_over_delta) and round(median_out_over_delta, RATIO_DIGITS) >= MEDIAN_OUT_OVER_DELTA
-    if gap_hit or med_hit:
-        return J_BASE
-    return J_OK
+def classify_group(verdict: str) -> str:
+    """verdict 그대로: 차이, 미결, 그 밖(판정 제외·동등 등)은 verdict 문자열."""
+    return verdict or ""
 
 
 def judgment_text(row: pd.Series) -> str:
     group = row["group"]
     if group == J_DIFF:
-        return "CI 전체가 ±Δ 밖"
-    parts = []
-    if group == J_BASE:
-        if _finite(row["por_gap_over_delta"]) and round(row["por_gap_over_delta"], RATIO_DIGITS) >= POR_GAP_OVER_DELTA:
-            parts.append(f"POR 회차 간격/Δ={row['por_gap_over_delta']:.2f} (≥{POR_GAP_OVER_DELTA:g})")
-        if _finite(row["median_out_over_delta"]) and round(row["median_out_over_delta"], RATIO_DIGITS) >= MEDIAN_OUT_OVER_DELTA:
-            parts.append(f"중앙값이 회차 평균 밖/Δ={row['median_out_over_delta']:.2f} (≥{MEDIAN_OUT_OVER_DELTA:g})")
-        return "기준 조건 흔들림: " + "; ".join(parts) if parts else "기준 조건 흔들림"
-    reason = str(row.get("reason") or "").strip()
-    if "해상도" in reason:
-        return "미결 · 해상도 부족 (CI 반폭 ≥ Δ)"
-    if "경계" in reason:
-        return "미결 · 경계 (CI가 ±Δ에 걸침)"
-    return "미결 · 정상"
+        text = "CI 전체가 ±Δ 밖"
+    else:
+        reason = str(row.get("reason") or "").strip()
+        if "해상도" in reason:
+            text = "미결 · 해상도 부족 (CI 반폭 ≥ Δ)"
+        elif "경계" in reason:
+            text = "미결 · 경계 (CI가 ±Δ에 걸침)"
+        else:
+            text = group
+    status = str(row.get("status") or "").strip()
+    if status and status != "정상":
+        text += f" · 원인(status): {status}"
+    return text
 
 
 def evidence_table(df: pd.DataFrame) -> pd.DataFrame:
@@ -304,10 +287,11 @@ def evidence_table(df: pd.DataFrame) -> pd.DataFrame:
             "por_gap_over_delta": gap_over_d,
             "por_gap_def": gap_def,
             "median_out_over_delta": med_over_d,
+            "status": str(r["status"]) if "status" in r.index else "",  # 참고 열: items.csv 문자열 그대로
             "p1_pct": pct_of_median((_num(r, "POR1_mean") - med) if _finite(_num(r, "POR1_mean")) and _finite(med) else math.nan, med),
             "p2_pct": pct_of_median((_num(r, "POR2_mean") - med) if _finite(_num(r, "POR2_mean")) and _finite(med) else math.nan, med),
         }
-        rec["group"] = classify_group(rec["verdict"], gap_over_d, med_over_d)
+        rec["group"] = classify_group(rec["verdict"])
         rec["judgment"] = judgment_text(pd.Series(rec))
         rows.append(rec)
     out = pd.DataFrame(rows)

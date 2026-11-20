@@ -448,7 +448,7 @@ function summarySlide(pptx) {
   const reasons = [
     ['차이 = 비교 회차 단독 이동', NUM.verdict['차이'] + ' / ' + NUM.n, '기준 조건 2회 차 ' + Math.ceil(maxGap) + '% 미만 · 비교 조건만 이동 · CI 전체가 Δ 밖', 17],
     ['애매한 것은 미결로 보류', NUM.verdict['미결'] + '건', 'CI가 Δ 경계에 걸침 → 차이로 세지 않음 (과잉 Fail 없음)', 17],
-    ['미결 중 기준 조건 흔들림', NUM.group['미결-기준'] + ' / ' + NUM.verdict['미결'], '기준 회차 간 차이 · 중앙값 불일치 → 재측정 대상', 17],
+    ['미결의 원인은 status 열에서 읽음', 'status', '하위 분류 없음 · 조건 불안정(status) 등 → 재측정 대상', 17],
     ['계산 확인 필요', 'sigma_run = 0', '회차 간 표준편차 0 → Δ = 중앙값 5%뿐 (추정: 회차 흔들림 미반영)', 14],
   ];
   const RY0 = TOP + 0.75, RH = (BOT - RY0) / 4;
@@ -499,16 +499,14 @@ function reviewSlide(pptx) {
       ['F31_I3475', '기준 2회 일치 · ' + shift('F31_I3475') + ' (Δ 5%) · CI 전체가 −Δ 밖 · 값이 LoQ의 ' + fmt(it.F31_I3475.median_over_loq, 1) + '배', '진짜 이동'],
       ['F65_I6106', '기준 2회 일치 · ' + shift('F65_I6106') + ' (Δ 5%) · CI 전체가 −Δ 밖 · 값이 LoQ의 ' + fmt(it.F65_I6106.median_over_loq, 1) + '배', '진짜 이동'],
     ]],
-    ['미결 ' + NUM.group['미결-정상'] + '  —  기준 조건 일치, 비교 회차가 Δ 경계 (정상 보류)', '미결-정상', [
+    ['미결 ' + NUM.group['미결'] + '  —  CI가 Δ 경계에 걸림 (보류 · 원인은 status 열)', '미결', [
       ['F54_I5492', '기준 2회 일치 · ' + shift('F54_I5492') + ' · CI가 +Δ에 걸침', '경계 미결'],
       ['F54_I5493', '기준 2회 일치 · ' + shift('F54_I5493') + ' · CI가 −Δ에 걸침', '경계 미결'],
       ['F61_I6003', '기준 2회 일치 · ' + shift('F61_I6003') + ' · CI가 +Δ에 걸침', '경계 미결'],
       ['F59_I5574', '기준 2회 같은 값 · CI 반폭이 Δ의 ' + fmt(it.F59_I5574.half_over_d, 1) + '배 → 해상도 부족', '해상도 미결'],
-    ]],
-    ['미결 ' + NUM.group['미결-기준'] + '  —  기준 조건 흔들림 · 데이터 불일치 (재측정 대상)', '미결-기준', [
-      ['F15_I1403', 'POR1이 POR2의 ' + fmt(it.F15_I1403.por1_over_por2, 1) + '배인데 sigma_run = 0', '기준 흔들림 · 재측정'],
-      ['F23_I2064', 'POR1 · POR2 ' + fmt(it.F23_I2064.por_gap_pct, 0) + '% 차이 · 중앙값이 세 회차 평균보다 큼', '기준 흔들림 · 재측정'],
-      ['F14_I1231', 'POR1 · POR2 ' + fmt(it.F14_I1231.por_gap_pct, 1) + '% 차이 · 중앙값이 세 회차 평균보다 작음', '기준 흔들림 · 재측정'],
+      ['F15_I1403', 'POR1이 POR2의 ' + fmt(it.F15_I1403.por1_over_por2, 1) + '배인데 sigma_run = 0', '조건 불안정(status) · 재측정'],
+      ['F23_I2064', 'POR1 · POR2 ' + fmt(it.F23_I2064.por_gap_pct, 0) + '% 차이 · 중앙값이 세 회차 평균보다 큼', '조건 불안정(status) · 재측정'],
+      ['F14_I1231', 'POR1 · POR2 ' + fmt(it.F14_I1231.por_gap_pct, 1) + '% 차이 · 중앙값이 세 회차 평균보다 작음', '조건 불안정(status) · 재측정'],
       ['F31_I3583', '중앙값이 세 회차 평균보다 ' + fmt(it.F31_I3583.median_gap_min_pct, 0) + '~' + fmt(it.F31_I3583.median_gap_max_pct, 0) + '% 작음 (분포 튐 추정)', '데이터 확인 · 재측정'],
       ['F31_I3870', '중앙값이 세 회차 평균보다 ' + fmt(it.F31_I3870.median_gap_min_pct, 0) + '~' + fmt(it.F31_I3870.median_gap_max_pct, 0) + '% 작음 (분포 튐 추정)', '데이터 확인 · 재측정'],
     ]],
@@ -524,7 +522,7 @@ function reviewSlide(pptx) {
   s.addShape(pptx.shapes.RECTANGLE, { x: cx[2] + 0.025, y: y + 0.24, w: 3.7, h: 0.24, fill: { color: WHITE }, line: { color: WHITE, width: 0 } });
   s.addImage({ path: path.join(W, 'charts/s2_axis.png'), x: cx[2] + 0.025, y: y + 0.245, w: 3.7, h: 3.7 / axAR });
   y += HH;
-  const GC = { '차이': NAVY, '미결-정상': '9AA8BC', '미결-기준': 'C9A27A' };
+  const GC = { '차이': NAVY, '미결': '9AA8BC' };
   groups.forEach(([title, key, items]) => {
     s.addShape(pptx.shapes.RECTANGLE, { x: X, y, w: 12.333, h: GH, fill: { color: TINT }, line: { color: TINT, width: 0 } });
     s.addShape(pptx.shapes.RECTANGLE, { x: X, y, w: 0.06, h: GH, fill: { color: GC[key] }, line: { color: GC[key], width: 0 } });
@@ -536,7 +534,7 @@ function reviewSlide(pptx) {
       s.addText(r.verdict, { x: cx[1], y, w: cw[1], h: RHH, margin: 0, fontSize: 9.5, bold: true, color: key === '차이' ? NAVY : GRAY, fontFace: F, valign: 'middle', align: 'center' });
       s.addImage({ path: path.join(W, 'charts/s2_row_' + id + '.png'), x: cx[2] + 0.025, y: y + (RHH - 0.3) / 2, w: 3.7, h: 0.3 });
       s.addText(why, { x: cx[3] + 0.08, y, w: cw[3] - 0.1, h: RHH, margin: 0, fontSize: 9, color: TXT, fontFace: F, valign: 'middle' });
-      s.addText(judge, { x: cx[4] + 0.06, y, w: cw[4] - 0.06, h: RHH, margin: 0, fontSize: 9.5, bold: true, color: key === '차이' ? NAVY : key === '미결-정상' ? GRAY : 'A0703F', fontFace: F, valign: 'middle' });
+      s.addText(judge, { x: cx[4] + 0.06, y, w: cw[4] - 0.06, h: RHH, margin: 0, fontSize: 9.5, bold: true, color: key === '차이' ? NAVY : GRAY, fontFace: F, valign: 'middle' });
       y += RHH;
       ln(s, pptx, X, y, 12.333, 0, 'E6E8EC', 0.5);
     });
@@ -547,7 +545,7 @@ function reviewSlide(pptx) {
   s.addShape(pptx.shapes.RECTANGLE, { x: 0.5, y: ZY, w: 0.08, h: ZH, fill: { color: NAVY }, line: { color: NAVY, width: 0 } });
   s.addText('다음 조치', { x: 0.75, y: ZY, w: 1.1, h: ZH, margin: 0, fontSize: 12, bold: true, fontFace: F, color: NAVY, valign: 'middle' });
   s.addText([
-    { text: '1  ', options: { bold: true, color: NAVY } }, { text: '기준 흔들림 ' + NUM.group['미결-기준'] + '건: die 원본 분포 확인 · 재측정     ', options: { color: TXT } },
+    { text: '1  ', options: { bold: true, color: NAVY } }, { text: '조건 불안정(status) 미결: die 원본 분포 확인 · 재측정     ', options: { color: TXT } },
     { text: '2  ', options: { bold: true, color: NAVY } }, { text: 'sigma_run = 0 계산 확인 (추정: 회차 마진 미반영)     ', options: { color: TXT } },
     { text: '3  ', options: { bold: true, color: NAVY } }, { text: '차이 ' + NUM.verdict['차이'] + '건: LoQ 근처 값 → 재측정으로 재현 확인', options: { color: TXT } },
   ], { x: 1.85, y: ZY, w: 10.9, h: ZH, margin: 0, fontSize: 11, bold: false, fontFace: F, valign: 'middle' });

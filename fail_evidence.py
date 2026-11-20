@@ -27,22 +27,19 @@ except ImportError:  # plot_verdicts가 없으면 DejaVu 그대로 쓴다.
         return None
 
 # 내부 기준 (README 표와 맞춘다)
-POR_GAP_OVER_DELTA = 0.25      # POR 회차 차/Δ (items.csv의 짝지은 회차 차, 없으면 회차 평균 max−min)
-MEDIAN_OUT_OVER_DELTA = 0.10   # por_median이 POR·DOE 평균들의 [min,max] 밖으로 벗어난 거리/Δ
 ITEM_AXIS_OVER_DELTA = 3.0     # ITEM 그림 x축 범위 = ±(이 값)·Δ%
-RATIO_DIGITS = 9               # 비율을 기준과 비교하기 전 반올림 자릿수(부동소수 잔차 제거)
 
 TARGET_VERDICTS = ("차이", "미결")
 J_DIFF = "차이"
-J_OK = "미결-정상"
-J_BASE = "미결-기준 흔들림"
+# 미결은 나누지 않는다. 원인(조건 불안정, 회차 흔들림 등)은 items.csv status 열에서만 보고 여기서는 옮겨 적기만 한다.
+J_PEND = "미결"
 J_NA = "계산 불가"
 J_SKIP = "대상 아님"
 # por_doe_compare가 통계를 낼 수 없다고 판정한 ITEM. 근거 대상이 아니지만 '대상 아님'(동등 등)과 섞지 않는다.
 J_EXCL = "판정 제외"
-JUDGEMENT_ORDER = (J_DIFF, J_OK, J_BASE, J_NA, J_EXCL, J_SKIP)
-PLOT_ORDER = (J_DIFF, J_OK, J_BASE)
-JUDGEMENT_COLORS = {J_DIFF: "#d62728", J_OK: "#1f77b4", J_BASE: "#ff7f0e"}
+JUDGEMENT_ORDER = (J_DIFF, J_PEND, J_NA, J_EXCL, J_SKIP)
+PLOT_ORDER = (J_DIFF, J_PEND)
+JUDGEMENT_COLORS = {J_DIFF: "#d62728", J_PEND: "#1f77b4"}
 MISMATCH_NOTE = "verdict와 다름"
 GAP_DEF_PAIRED = "짝지은 회차 차"
 GAP_DEF_OLD = "옛 정의(회차 평균 차)"
@@ -139,28 +136,16 @@ def csv_columns(ks: list[int]) -> list[str]:
 
 # ---------------------------------------------------------------- 분류
 
-def classify(ci_low: float, ci_high: float, delta: float,
-             por_gap_ratio: float, median_out_ratio: float,
-             por_gap_limit: float = POR_GAP_OVER_DELTA,
-             median_out_limit: float = MEDIAN_OUT_OVER_DELTA) -> tuple[str, str]:
-    """(judgement, rule_hit). 위에서부터 먼저 맞는 규칙을 쓴다."""
+def classify(ci_low: float, ci_high: float, delta: float) -> tuple[str, str]:
+    """(judgement, rule_hit). CI 전체가 ±Δ 밖이면 차이, 아니면 미결."""
     if ci_high < -delta or ci_low > delta:
         return J_DIFF, "CI 전체가 ±Δ 밖"
-    hits = []
-    if round(por_gap_ratio, RATIO_DIGITS) >= por_gap_limit:
-        hits.append(f"por_gap/Δ >= {por_gap_limit:g}")
-    if round(median_out_ratio, RATIO_DIGITS) >= median_out_limit:
-        hits.append(f"median_out/Δ >= {median_out_limit:g}")
-    if hits:
-        return J_BASE, "; ".join(hits)
-    return J_OK, "CI가 ±Δ 경계에 걸림"
+    return J_PEND, "CI가 ±Δ 경계에 걸림"
 
 
 # ---------------------------------------------------------------- 행 지표
 
-def row_evidence(row: dict, ks: list[int], missing_cols: list[str],
-                 por_gap_limit: float = POR_GAP_OVER_DELTA,
-                 median_out_limit: float = MEDIAN_OUT_OVER_DELTA) -> dict:
+def row_evidence(row: dict, ks: list[int], missing_cols: list[str]) -> dict:
     verdict = str(row.get("verdict", "")).strip()
     out = {c: NAN for c in csv_columns(ks)}
     out.update(ID=str(row.get("ID", "")).strip(), verdict=verdict, rule_hit="", note="", por_gap_def="")
@@ -223,9 +208,7 @@ def row_evidence(row: dict, ks: list[int], missing_cols: list[str],
     out["ci_half_over_delta"] = (vals["ci_high"] - vals["ci_low"]) / 2 / d
     out["loq_multiple"] = abs(med) / vals["LoQ"] if vals["LoQ"] > 0 else NAN
 
-    judgement, hit = classify(vals["ci_low"], vals["ci_high"], d,
-                              out["por_gap_over_delta"], out["median_out_over_delta"],
-                              por_gap_limit, median_out_limit)
+    judgement, hit = classify(vals["ci_low"], vals["ci_high"], d)
     notes = []
     if (verdict == J_DIFF) != (judgement == J_DIFF):
         notes.append(MISMATCH_NOTE)
@@ -237,16 +220,13 @@ def row_evidence(row: dict, ks: list[int], missing_cols: list[str],
     return out
 
 
-def evidence_table(df: pd.DataFrame,
-                   por_gap_limit: float = POR_GAP_OVER_DELTA,
-                   median_out_limit: float = MEDIAN_OUT_OVER_DELTA) -> pd.DataFrame:
+def evidence_table(df: pd.DataFrame) -> pd.DataFrame:
     for c in ("ID", "verdict"):
         if c not in df.columns:
             raise ValueError(f"필수 열 '{c}'이 없습니다.")
     ks = por_ks(df.columns)
     missing = [c for c in NUMERIC_COLUMNS if c not in df.columns]
-    records = [row_evidence(r, ks, missing, por_gap_limit, median_out_limit)
-               for r in df.to_dict("records")]
+    records = [row_evidence(r, ks, missing) for r in df.to_dict("records")]
     return pd.DataFrame(records, columns=csv_columns(ks))
 
 
@@ -254,9 +234,7 @@ def old_gap_line(n: int) -> str:
     return f"por_gap: {GAP_DEF_OLD} {n}행 (items.csv에 {GAP_DEF_PAIRED} 열 없음)"
 
 
-def summary_text(table: pd.DataFrame, input_name: str = "",
-                 por_gap_limit: float = POR_GAP_OVER_DELTA,
-                 median_out_limit: float = MEDIAN_OUT_OVER_DELTA) -> str:
+def summary_text(table: pd.DataFrame, input_name: str = "") -> str:
     counts = table["judgement"].value_counts()
     mismatch = int(table["note"].astype(str).str.contains(MISMATCH_NOTE).sum())
     lines = ["fail_evidence 요약"]
@@ -265,8 +243,6 @@ def summary_text(table: pd.DataFrame, input_name: str = "",
     lines += [f"전체 행: {len(table)}", "", "판단별 개수:"]
     lines += [f"  {j}: {int(counts.get(j, 0))}" for j in JUDGEMENT_ORDER]
     lines += [f"  ({MISMATCH_NOTE}: {mismatch})", "", "사용 상수:",
-              f"  POR_GAP_OVER_DELTA = {por_gap_limit:g}",
-              f"  MEDIAN_OUT_OVER_DELTA = {median_out_limit:g}",
               f"  ITEM_AXIS_OVER_DELTA = {ITEM_AXIS_OVER_DELTA:g}"]
     n_old = int((table["por_gap_def"] == GAP_DEF_OLD).sum()) if "por_gap_def" in table.columns else 0
     if n_old:
@@ -281,7 +257,7 @@ def _footnote(fig, text: str) -> None:
 
 
 def plot_forest(table: pd.DataFrame, path: Path) -> Path:
-    """ITEM별 center/Δ 점 + CI/Δ 막대, ±1 경계선. 정렬=차이→미결-정상→미결-기준 흔들림."""
+    """ITEM별 center/Δ 점 + CI/Δ 막대, ±1 경계선. 정렬=차이→미결."""
     rank = {j: i for i, j in enumerate(PLOT_ORDER)}
     rows = table[table["judgement"].isin(PLOT_ORDER)].copy()
     rows = rows.iloc[rows["judgement"].map(rank).to_numpy().argsort(kind="stable")]

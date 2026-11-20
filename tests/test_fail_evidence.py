@@ -17,17 +17,18 @@ from plot_verdicts import configure_font  # noqa: E402
 
 SYNTH = ROOT / "tests" / "data" / "fail_evidence_synth.tsv"
 
+# WO-L 정정: 미결을 나누지 않는다. por_gap/Δ·median_out/Δ는 참고 열일 뿐이라 경계값 행도 모두 J_PEND.
 EXPECTED = {
     "D1": fe.J_DIFF,
-    "N1": fe.J_OK,
-    "GEQ": fe.J_BASE,   # por_gap/Δ = 0.25 정확히
-    "GLO": fe.J_OK,     # por_gap/Δ = 0.245
-    "MEQ": fe.J_BASE,   # median_out/Δ = 0.10 정확히
-    "MHI": fe.J_BASE,   # median_out/Δ = 0.11
-    "MLO": fe.J_OK,     # median_out/Δ = 0.09
-    "P3": fe.J_BASE,    # POR 3회차, por_gap/Δ = 0.5
-    "NEG": fe.J_OK,
-    "VD": fe.J_OK,      # verdict 차이, 규칙은 미결-정상
+    "N1": fe.J_PEND,
+    "GEQ": fe.J_PEND,   # por_gap/Δ = 0.25 정확히
+    "GLO": fe.J_PEND,   # por_gap/Δ = 0.245
+    "MEQ": fe.J_PEND,   # median_out/Δ = 0.10 정확히
+    "MHI": fe.J_PEND,   # median_out/Δ = 0.11
+    "MLO": fe.J_PEND,   # median_out/Δ = 0.09
+    "P3": fe.J_PEND,    # POR 3회차, por_gap/Δ = 0.5
+    "NEG": fe.J_PEND,
+    "VD": fe.J_PEND,    # verdict 차이, 규칙은 미결
     "VM": fe.J_DIFF,    # verdict 미결, 규칙은 차이
     "OVF": fe.J_NA,     # DOE_mean 엑셀 넘침
     "BLK": fe.J_NA,     # ci_low 빈칸
@@ -42,19 +43,13 @@ def table() -> pd.DataFrame:
 
 
 def test_classify_rules_and_boundaries():
+    # WO-L 정정: classify는 CI와 Δ만 본다(por_gap/median_out 인자·기준 상수 삭제). 경계에 걸리면 모두 미결.
     c = fe.classify
-    assert c(2.0001, 5, 2, 0, 0)[0] == fe.J_DIFF
-    assert c(-5, -2.0001, 2, 0, 0)[0] == fe.J_DIFF
-    assert c(2, 5, 2, 0, 0)[0] == fe.J_OK            # ci_low == Δ 는 밖이 아님
-    assert c(3, 5, 2, 9, 9)[0] == fe.J_DIFF           # 규칙 1이 먼저
-    assert c(-1, 3, 2, 0.25, 0) == (fe.J_BASE, "por_gap/Δ >= 0.25")
-    assert c(-1, 3, 2, 0.2499, 0)[0] == fe.J_OK
-    assert c(-1, 3, 2, 0, 0.10) == (fe.J_BASE, "median_out/Δ >= 0.1")
-    assert c(-1, 3, 2, 0, 0.0999)[0] == fe.J_OK
-    assert c(-1, 3, 2, 0.3, 0.2)[1] == "por_gap/Δ >= 0.25; median_out/Δ >= 0.1"
-    # 상수는 인자로 바꿀 수 있다
-    assert c(-1, 3, 2, 0.3, 0, por_gap_limit=0.5)[0] == fe.J_OK
-    assert c(-1, 3, 2, 0, 0.05, median_out_limit=0.05)[0] == fe.J_BASE
+    assert c(2.0001, 5, 2) == (fe.J_DIFF, "CI 전체가 ±Δ 밖")
+    assert c(-5, -2.0001, 2)[0] == fe.J_DIFF
+    assert c(2, 5, 2) == (fe.J_PEND, "CI가 ±Δ 경계에 걸림")   # ci_low == Δ 는 밖이 아님
+    assert c(-2, -1, 2)[0] == fe.J_PEND                       # ci_high == -Δ 도 밖이 아님
+    assert c(-1, 3, 2)[0] == fe.J_PEND
 
 
 def test_parse_value():
@@ -72,8 +67,9 @@ def test_judgements_and_notes(table):
     assert table.at["D1", "note"] == ""
     assert "DOE_mean 숫자 아님" in table.at["OVF", "note"]
     assert "ci_low 빈칸" in table.at["BLK", "note"]
-    assert table.at["GEQ", "rule_hit"] == "por_gap/Δ >= 0.25"
-    assert table.at["MEQ", "rule_hit"] == "median_out/Δ >= 0.1"
+    # WO-L 정정: por_gap/median_out 기준이 없어져 rule_hit는 CI 문구뿐이다.
+    assert table.at["GEQ", "rule_hit"] == "CI가 ±Δ 경계에 걸림"
+    assert table.at["MEQ", "rule_hit"] == "CI가 ±Δ 경계에 걸림"
     assert table.at["D1", "rule_hit"] == "CI 전체가 ±Δ 밖"
     assert pd.isna(table.at["EQ1", "doe_pct"])
     assert pd.isna(table.at["OVF", "center_over_delta"])
@@ -162,9 +158,11 @@ def test_main_writes_outputs(tmp_path: Path, capsys):
     assert dict(zip(csv["ITEM"], csv["judgement"])) == EXPECTED
 
     summary = (out / "summary.txt").read_text(encoding="utf-8")
-    for line in ("차이: 2", "미결-정상: 5", "미결-기준 흔들림: 4", "계산 불가: 2",
-                 "대상 아님: 1", "POR_GAP_OVER_DELTA = 0.25", "MEDIAN_OUT_OVER_DELTA = 0.1"):
+    # WO-L 정정: 미결 하나로 합쳐 9개(옛 5+4), 삭제된 기준 상수 줄은 없고 ITEM_AXIS 줄만 남는다.
+    for line in ("차이: 2", "미결: 9", "계산 불가: 2",
+                 "대상 아님: 1", "ITEM_AXIS_OVER_DELTA = 3"):
         assert line in summary, line
+    assert "POR_GAP_OVER_DELTA" not in summary and "MEDIAN_OUT_OVER_DELTA" not in summary
     assert "fail_evidence 요약" in capsys.readouterr().out
 
     if configure_font() is None:

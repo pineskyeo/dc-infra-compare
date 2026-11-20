@@ -298,17 +298,16 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 | 상수 | 값 | 뜻 |
 |---|---|---|
-| `POR_GAP_OVER_DELTA` | 0.25 | items.csv의 짝지은 회차 차/Δ(`por_gap_over_delta`). 열이 없는 옛 items.csv면 (max POR_mean − min POR_mean)/Δ |
-| `MEDIAN_OUT_OVER_DELTA` | 0.10 | por_median이 POR·DOE 평균들의 [min, max] 밖으로 벗어난 거리/Δ |
 | `ITEM_AXIS_OVER_DELTA` | 3 | ITEM 그림 x축 범위 ±3·Δ% (밖은 화살표+숫자) |
 
-por_gap은 items.csv에 `por_gap_over_delta` 열이 있고 값이 유한하면 그 값을 씁니다(`por_gap_def` = '짝지은 회차 차'). 아니면 POR 회차 평균 열로 옛 방식대로 계산합니다(`por_gap_def` = '옛 정의(회차 평균 차)'). `por_gap_def` 열은 `por_gap_over_delta` 바로 뒤에 있습니다. 옛 정의로 계산한 행이 있으면 `summary.txt`에 `por_gap: 옛 정의(회차 평균 차) n행 (items.csv에 짝지은 회차 차 열 없음)` 줄이 붙습니다.
+`por_gap_pct`, `por_gap_over_delta`, `por_gap_def`, `median_out_over_delta` 열은 참고용이며 판단에 쓰지 않습니다. por_gap(`por_gap_over_delta`)은 items.csv에 `por_gap_over_delta` 열이 있고 값이 유한하면 그 값을 씁니다(`por_gap_def` = '짝지은 회차 차'). 아니면 POR 회차 평균 열로 옛 방식대로 계산합니다(`por_gap_def` = '옛 정의(회차 평균 차)'). `por_gap_def` 열은 `por_gap_over_delta` 바로 뒤에 있습니다. 옛 정의로 계산한 행이 있으면 `summary.txt`에 `por_gap: 옛 정의(회차 평균 차) n행 (items.csv에 짝지은 회차 차 열 없음)` 줄이 붙습니다.
 
-내부 기준 값이며 비율은 소수 9자리로 반올림한 뒤 비교합니다. 분류(위에서부터 먼저 맞는 것):
+median_out_over_delta는 por_median이 POR·DOE 평균들의 [min, max] 밖으로 벗어난 거리/Δ입니다. 분류:
 
 1. **차이**: CI 전체가 ±Δ 밖 (ci_high < −Δ 또는 ci_low > Δ)
-2. **미결-기준 흔들림**: por_gap/Δ ≥ `POR_GAP_OVER_DELTA` 또는 median_out/Δ ≥ `MEDIAN_OUT_OVER_DELTA`
-3. **미결-정상**: 나머지 (POR 일치, CI가 Δ 경계에 걸림)
+2. **미결**: 나머지 (하위 분류 없음, 원인은 `status` 열)
+
+미결의 원인은 items.csv `status` 열(조건 불안정, 회차 흔들림 …)로만 읽으며, `fail_evidence.csv`는 이 값을 그대로 옮깁니다.
 
 verdict와 규칙 결과가 어긋나면 note에 'verdict와 다름'을 적습니다.
 
@@ -316,7 +315,7 @@ verdict가 '판정 제외'인 행은 근거 대상이 아니며, '계산 불가'
 
 ## 기존·개선 비교 (`compare_before_after.py`)
 
-`python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더>` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. 첫 열 `ITEM`은 ID로 읽고(탭 구분 표의 `ID` 열도 됨), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`, `summary.txt`, σ 짝 비교 그림으로 냅니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 실제 `ITEM` 이름이고, 입력에 summarize.py의 익명 `ID` 열이 같이 있으면 그 옆에 `ID` 열로 붙습니다. 비교 키는 항상 실제 ITEM입니다. 한쪽에만 있는 ITEM은 따로 표시하고 σ 집계에서 뺍니다. 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 `misaligned` 열에 표시만 하고 기본으로 σ 집계에 포함합니다. 빼려면 `--exclude-misaligned`를 붙입니다. `compare.csv`에는 측정 정밀도 열 `meas_precision_pct_before`·`meas_precision_pct_after`·`meas_precision_pct_change`(개선−기존)와 `meas_precision_status`(`sigma_die_status`와 같은 규칙: lower/higher/same, 낮을수록 좋음)도 붙습니다. 입력 items.csv에 `meas_precision_pct` 열이 없으면(예전 결과) 100 × √(σ_die² + σ_run²) / |por_median|으로 계산합니다. `evidence <items.csv> -o <폴더>` 모드도 있고, 그 `evidence.csv`에도 같은 방식의 `meas_precision_pct` 열이 붙습니다. `evidence.csv`의 `por_gap_over_delta`(미결-기준 흔들림 근거)도 fail_evidence.py와 같은 규칙입니다. items.csv의 짝지은 회차 차를 쓰고(`por_gap_def` = '짝지은 회차 차'), 열이 없는 옛 items.csv면 회차 평균의 max − min으로 계산하며(`por_gap_def` = '옛 정의(회차 평균 차)'), 그런 행이 있으면 `summary.txt`에 `por_gap: 옛 정의(회차 평균 차) n행 (items.csv에 짝지은 회차 차 열 없음)` 줄이 붙습니다.
+`python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더>` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. 첫 열 `ITEM`은 ID로 읽고(탭 구분 표의 `ID` 열도 됨), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`, `summary.txt`, σ 짝 비교 그림으로 냅니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 실제 `ITEM` 이름이고, 입력에 summarize.py의 익명 `ID` 열이 같이 있으면 그 옆에 `ID` 열로 붙습니다. 비교 키는 항상 실제 ITEM입니다. 한쪽에만 있는 ITEM은 따로 표시하고 σ 집계에서 뺍니다. 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 `misaligned` 열에 표시만 하고 기본으로 σ 집계에 포함합니다. 빼려면 `--exclude-misaligned`를 붙입니다. `compare.csv`에는 측정 정밀도 열 `meas_precision_pct_before`·`meas_precision_pct_after`·`meas_precision_pct_change`(개선−기존)와 `meas_precision_status`(`sigma_die_status`와 같은 규칙: lower/higher/same, 낮을수록 좋음)도 붙습니다. 입력 items.csv에 `meas_precision_pct` 열이 없으면(예전 결과) 100 × √(σ_die² + σ_run²) / |por_median|으로 계산합니다. `evidence <items.csv> -o <폴더>` 모드도 있고, 그 `evidence.csv`에도 같은 방식의 `meas_precision_pct` 열이 붙습니다. `evidence.csv`의 group은 fail_evidence.py와 같이 '차이'/'미결' 둘뿐입니다. `judgment` 바로 앞의 `status` 열에는 items.csv `status` 값을 그대로 옮기고(열이 없는 옛 items.csv면 빈 칸), status가 '정상'이 아니면 `judgment` 끝에 `원인(status): <status>`를 덧붙입니다. `evidence.csv`의 `por_gap_over_delta`(참고용, 판단에 쓰지 않음)도 fail_evidence.py와 같은 규칙입니다. items.csv의 짝지은 회차 차를 쓰고(`por_gap_def` = '짝지은 회차 차'), 열이 없는 옛 items.csv면 회차 평균의 max − min으로 계산하며(`por_gap_def` = '옛 정의(회차 평균 차)'), 그런 행이 있으면 `summary.txt`에 `por_gap: 옛 정의(회차 평균 차) n행 (items.csv에 짝지은 회차 차 열 없음)` 줄이 붙습니다.
 
 `--plot-top N`(기본 30)은 σ 짝 그림에 |개선−기존| 변화가 큰 ITEM N개만 그리고 제목에 '상위 N / 전체 M'을 적습니다(전체가 N개 이하면 '전체 M'). `run_all.py --plot-top N`으로도 넘길 수 있습니다.
 

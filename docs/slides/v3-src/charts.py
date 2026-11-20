@@ -22,10 +22,10 @@ NAVY, LIGHT, GRAY, RED, BAND = '#3D4C61', '#9AA8BC', '#A6A6A6', '#B5523B', '#E1E
 df = pd.read_csv('/workspace/real_fail_11.tsv', sep='\t')
 # Group = reading of the 11 rows (checked against the descriptors computed below)
 GROUP = {'F31_I3475': '차이', 'F65_I6106': '차이',
-         'F54_I5492': '미결-정상', 'F54_I5493': '미결-정상', 'F61_I6003': '미결-정상', 'F59_I5574': '미결-정상',
-         'F15_I1403': '미결-기준', 'F23_I2064': '미결-기준', 'F14_I1231': '미결-기준', 'F31_I3583': '미결-기준', 'F31_I3870': '미결-기준'}
+         'F54_I5492': '미결', 'F54_I5493': '미결', 'F61_I6003': '미결', 'F59_I5574': '미결',
+         'F15_I1403': '미결', 'F23_I2064': '미결', 'F14_I1231': '미결', 'F31_I3583': '미결', 'F31_I3870': '미결'}
 ORDER = list(GROUP)
-COL = {'차이': NAVY, '미결-정상': LIGHT, '미결-기준': '#C9A27A'}
+COL = {'차이': NAVY, '미결': LIGHT}
 df['group'] = df.ID.map(GROUP)
 df = df.set_index('ID').loc[ORDER].reset_index()
 pm = df.por_median.abs()
@@ -74,7 +74,7 @@ for t, g in zip(ax.get_yticklabels(), df.group):
 ax.set_xlim(-2.6, 2.6); ax.set_xticks([-2, -1, 0, 1, 2], ['−2Δ', '−Δ', '0', '+Δ', '+2Δ'], fontsize=9)
 ax.set_xlabel('차이 중앙값과 90% 신뢰구간 (Δ 단위)', fontsize=9)
 from matplotlib.lines import Line2D
-h = [Line2D([], [], color=COL[k], lw=3, label=l) for k, l in [('차이', '차이'), ('미결-정상', '미결 · 경계'), ('미결-기준', '미결 · 기준 흔들림')]]
+h = [Line2D([], [], color=COL[k], lw=3, label=l) for k, l in [('차이', '차이'), ('미결', '미결')]]
 from matplotlib.patches import Patch
 h.append(Patch(color=BAND, label='동등 범위 ±Δ'))
 ax.legend(handles=h, fontsize=9, frameon=False, loc='lower center', bbox_to_anchor=(0.45, 0.99), ncol=4, handlelength=1.0, columnspacing=0.9, borderaxespad=0)
