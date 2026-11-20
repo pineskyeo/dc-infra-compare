@@ -136,7 +136,7 @@
 <tr><td>por_median</td><td>die별 기준 조건 J회 평균의 중앙값. 구간 나누기와 실용 한계에 씀</td><td><a href="step-3.html">③</a> <a href="step-5.html">⑤</a></td><td>100.000</td></tr>
 <tr><td>POR1_mean … DOE_mean</td><td>회차별 평균. 비교 조건만 벗어났는지 보는 용도</td><td>참고 (<a href="step-1.html">①</a>)</td><td>기준 1~3회 99.4598 · 100.0957 · 100.7094 <span class="from">die 60개 회차 평균 · 손계산 참고값</span> · 비교 —</td></tr>
 <tr><td>sigma_die</td><td>반복성 σ<sub>die</sub></td><td><a href="step-2.html">②</a></td><td>0.98965</td></tr>
-<tr><td>sigma_run</td><td>회차 이동 σ<sub>run</sub></td><td><a href="step-2.html">②</a></td><td>0.50389</td></tr>
+<tr><td>sigma_run</td><td>회차 이동 σ<sub>run</sub>. 회차 중앙값 분산에서 die 잡음 몫을 뺀 값이 0보다 작으면 0</td><td><a href="step-2.html">②</a></td><td>0.50389</td></tr>
 <tr><td>LoQ</td><td>정량한계 = 10 × (σ 후보 중 큰 값)</td><td><a href="step-3.html">③</a></td><td>9.8965</td></tr>
 <tr><td>LoD</td><td>검출한계 = 3.29 × (같은 σ)</td><td><a href="step-3.html">③</a></td><td>3.2559</td></tr>
 <tr><td>limit_source</td><td>LoQ를 정한 쪽: 기준 조건 반복 / 데이터 분해능 / 장비 분해능 / blank</td><td><a href="step-3.html">③</a></td><td>기준 조건 반복 쪽 (σ<sub>die</sub> 0.98965 &gt; 데이터 분해능 0.000289) <span class="from">0.000289 = 0.001/√12</span></td></tr>
@@ -152,8 +152,13 @@
 <tr><td>n_outlier_die · ttest · ttest_p · por_ttest_sig</td><td>참고 지표: 이상치 die 수, t-test 결과와 p 값, 기준 조건 회차끼리 t-test</td><td>참고 (<a href="#ref">아래</a>)</td><td>t-test 유의차 · p 4.2e-07 · 기준 회차끼리 3/3 유의차 · 이상치 die 수 —</td></tr>
 <tr><td>spec_status · level_check · range_por · range_doe · spec_resolution · accuracy_margin · verdict_no_accuracy</td><td>ITEM 정보 표(LEVEL, CALCVAL, DERIVED) 관련: 장비 분해능·정확도, range, 자릿수 점검, 장비 정확도 없이 낸 판정</td><td><a href="step-3.html">③</a> <a href="step-5.html">⑤</a></td><td>—</td></tr>
 <tr><td>blank_item · blank_status · blank_LoQ_item · verdict_no_blank</td><td>blank 관련: 연결된 blank, blank LoQ, blank 없이 낸 판정</td><td><a href="step-3.html">③</a></td><td>—</td></tr>
-<tr><td>status · status_detail · run_jitter_pct · run_jitter_over_delta · spearman_size_jitter · por_gap_over_delta · por_gap_over_noise</td><td>데이터 상태(판정과 별개): <a href="glossary.html#cond-unstable">조건 불안정</a>, <a href="glossary.html#run-jitter">회차 흔들림</a>, <a href="glossary.html#size-jitter">작을수록 흔들림</a>, <a href="glossary.html#size-jitter-pos">클수록 흔들림</a>(ρ ≥ +0.5, detail 예 'ρ +0.62'), 분해능 부족, 산포 0. run_jitter_pct부터 뒤 다섯 열은 기준 조건 회차만 쓰고, 기준 조건이 1회뿐이면 빈 칸. por_gap_over_delta = 짝지은 회차 차 ÷ Δ, por_gap_over_noise = 짝지은 회차 차 ÷ se(die 잡음으로 생기는 회차 차의 크기)</td><td>참고</td><td>—</td></tr>
-<tr><td>verdict_log · center_log · ci_low_log · ci_high_log · delta_log · ci_half_over_delta · ci_half_over_delta_log · spearman_size_jitter_log · log_reason</td><td><a href="glossary.html#log-verdict">log 판정 비교(참고)</a>. 작을수록·클수록 흔들림 ITEM만 log10|값| 공간에서 다시 낸 판정. 참고용이며 판정(verdict)을 바꾸지 않음. 0값·부호 섞임이면 verdict_log = 판정 제외. 마지막 아홉 열</td><td>참고</td><td>—</td></tr>
+<tr><td>status</td><td>데이터 상태(판정과 별개): <a href="glossary.html#cond-unstable">조건 불안정</a>, <a href="glossary.html#run-jitter">회차 흔들림</a>, <a href="glossary.html#size-jitter">작을수록 흔들림</a>, <a href="glossary.html#size-jitter-pos">클수록 흔들림</a>(ρ ≥ +0.5), 분해능 부족, 산포 0, <a href="glossary.html#log-candidate">log 후보</a>, <a href="glossary.html#bimodal">두 덩어리</a>. 여러 개면 이 순서로 ';'로 이음</td><td>참고</td><td>—</td></tr>
+<tr><td>por_gap_over_delta · por_gap_over_noise · run_jitter_pct · run_jitter_over_delta · spearman_size_jitter · resolution_step · resolution_over_delta · fixed_share</td><td><a href="glossary.html#status-metrics">상태 지표 열 8개</a>. por_gap_over_delta = 짝지은 회차 차 ÷ Δ, por_gap_over_noise = 짝지은 회차 차 ÷ se(die 잡음으로 생기는 회차 차의 크기). run_jitter_pct · run_jitter_over_delta · spearman_size_jitter는 기준 조건 회차만 쓰고, 기준 조건이 1회뿐이면 빈 칸. resolution_step = 값 사이 최소 간격, resolution_over_delta = resolution_step ÷ Δ, fixed_share = R·z 최빈값 비율 중 큰 쪽</td><td>참고</td><td>—</td></tr>
+<tr><td>decades · skew_lin · skew_log · log_fit · bimodality_log</td><td><a href="glossary.html#shape-cols">분포 모양 열 5개</a>. log 후보: decades ≥ 2.0이고 log_fit &gt; 0. 두 덩어리: bimodality_log &gt; 5/9이고 die ≥ 10. R에 0이 있거나 부호가 섞이면 skew_lin 말고는 빈 칸</td><td>참고</td><td>—</td></tr>
+<tr><td>mean_median_ratio</td><td>(R 평균 − R 중앙값) ÷ |R 중앙값|. 분포가 한쪽으로 끌려간 정도. 판정에 안 씀</td><td>참고</td><td>—</td></tr>
+<tr><td>verdict_log · center_log · ci_low_log · ci_high_log · delta_log · ci_half_over_delta · ci_half_over_delta_log · spearman_size_jitter_log · log_reason</td><td><a href="glossary.html#log-verdict">log 판정</a>. log형 ITEM의 판정을 log10|값| 공간에서 낸 결과. 선형 판정(verdict)은 그대로 둠. <a href="glossary.html#log-scope">대상</a> = 0이 없고 부호가 하나인 ITEM 전부. 0값·부호 섞임이면 verdict_log = 판정 제외. 허용 범위 <a href="glossary.html#delta-log">Δ<sub>log</sub></a> = log10(1 + r) + sigma_rep_log. 끝에서 14~6째 열</td><td>참고</td><td>—</td></tr>
+<tr><td>sigma_die_log · sigma_run_log · below_linear_loq · policy_margin_log</td><td>log 분석용(판정에 안 씀): <a href="glossary.html#sigma-die-log">sigma_die_log</a>, <a href="glossary.html#sigma-run-log">sigma_run_log</a>, <a href="glossary.html#below-linear-loq">below_linear_loq</a>, <a href="glossary.html#policy-margin-log">policy_margin_log</a> = log10(1 + r). 끝에서 5~2째 열</td><td>참고</td><td>—</td></tr>
+<tr><td>sigma_rep_log</td><td><a href="glossary.html#sigma-rep-log">log 판정의 회차 항</a>. die별 L 회차값 표준편차(ddof=1)의 die 중앙값(유효 회차값 2개 미만 die 제외). 맨 끝 열</td><td>참고</td><td>—</td></tr>
 </tbody></table></div>
 <h3>데이터 상태 예시 계산</h3>
 <p>회차 흔들림 (Δ = 5)</p>
@@ -163,14 +168,14 @@
 <li>die C 회차 5, 6, 4 → 범위 2, 평균 5 → 40%</li>
 <li>run_jitter_pct = 중앙값(80, 60, 40) = 60%</li>
 <li>중앙값(범위) = 중앙값(8, 12, 2) = 8</li>
-<li>run_jitter_over_delta = 8/5 = 1.6 ≥ 1 → 상태 '회차 흔들림', detail '회차 흔들림 60% (1.6Δ)'</li>
+<li>run_jitter_over_delta = 8/5 = 1.6 ≥ 1 → 상태 '회차 흔들림'</li>
 </ul>
 <p>작을수록 흔들림 (die 5개)</p>
 <ul>
 <li>회차 평균 1e-9, 1e-8, 1e-7, 1e-6, 1e-5 → x = −9, −8, −7, −6, −5</li>
 <li>log 범위 y = 0.8, 0.5, 0.3, 0.2, 0.1</li>
 <li>x 순위 1..5, y 순위 5..1 → ρ = −1.00 ≤ −0.5</li>
-<li>유효 die 5 &lt; 10 → 상태는 붙이지 않고 spearman_size_jitter = −1.00만 기록 (같은 모양이 die 10개 이상이면 '작을수록 흔들림', detail 'ρ −1.00')</li>
+<li>유효 die 5 &lt; 10 → 상태는 붙이지 않고 spearman_size_jitter = −1.00만 기록 (같은 모양이 die 10개 이상이면 '작을수록 흔들림')</li>
 </ul>
 <p>조건 불안정 (n = 25, sigma_die = 2, Δ = 1)</p>
 <ul>
@@ -178,7 +183,7 @@
 <li>gap = max(rr) − min(rr)</li>
 <li>se = 1.2533 × 2 × 1.414 / 5 = 0.709 → 3·se = 2.13</li>
 <li>A: rr = (−0.6, +0.1, +0.5) → gap = 1.1 ≥ Δ, 하지만 &lt; 2.13 → 상태 없음. por_gap_over_delta = 1.1, por_gap_over_noise = 1.55</li>
-<li>B: rr = (−1.5, +0.2, +1.3) → gap = 2.8 ≥ Δ, ≥ 2.13 → 상태 '조건 불안정', detail '회차 차 2.8Δ'. por_gap_over_delta = 2.8, por_gap_over_noise = 3.95</li>
+<li>B: rr = (−1.5, +0.2, +1.3) → gap = 2.8 ≥ Δ, ≥ 2.13 → 상태 '조건 불안정'. por_gap_over_delta = 2.8, por_gap_over_noise = 3.95</li>
 <li>예전 규칙(회차별 die 중앙값의 max − min ≥ Δ)은 die 잡음만으로도 붙음. 예제 데이터(make_por3_data.py)에서 3 ITEM → 새 규칙 0 ITEM. IOFF_FLOOR는 gap/Δ 21.9, gap/se 0.85 → die 잡음</li>
 </ul>
 </section>
