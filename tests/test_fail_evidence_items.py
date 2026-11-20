@@ -334,11 +334,11 @@ def test_t7_size_jitter_diff_item_gets_log_diag(tmp_path):
     assert not (_folder(out, ST_RUN_JITTER, "A2") / fe.LOG_DIAG_PNG).exists()
 
 
-def test_t7b_equal_target_gets_summary_and_log_diag_only(tmp_path):
+def test_t7b_equal_target_gets_summary_raw_and_log_diag_only(tmp_path):
     out = tmp_path / "out"
     assert fe.main(["--input", str(_log_items_csv(tmp_path)), "--out", str(out), *_raw_args(tmp_path)]) == 0
     f = _folder(out, ST_SIZE_JITTER, "A3")
-    assert sorted(p.name for p in f.iterdir()) == sorted(["summary.csv", fe.LOG_DIAG_PNG])
+    assert sorted(p.name for p in f.iterdir()) == sorted(["summary.csv", "raw.csv", fe.LOG_DIAG_PNG])
 
 
 def test_t7b_equal_target_without_raw_summary_only(tmp_path):
