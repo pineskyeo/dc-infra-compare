@@ -16,12 +16,12 @@ def normal_data(seed: int = 0, n: int = 200) -> tuple[np.ndarray, np.ndarray]:
     return 100 + rng.normal(0, 1, (n, 3)), 100 + rng.normal(0, 1, n)
 
 
-def test_delta_zero_is_excluded():
+def test_all_zero_is_excluded():
     Y, z = np.zeros((200, 3)), np.zeros(200)
     res, _ = judge(Y, z, R_POLICY)
     assert res["delta"] == 0
     assert res["verdict"] == V_EXCLUDED and res["zone"] == V_EXCLUDED
-    assert "Δ가 0 이하이거나 유효하지 않음 (Δ=0)" in res["reason"]
+    assert res["reason"] == f"{V_EXCLUDED}: die 산포 0 (σ_die=0)"
 
 
 def test_nan_center_is_excluded():
@@ -40,17 +40,26 @@ def test_all_same_value_is_excluded():
     res, _ = judge(Y, z, R_POLICY)
     assert res["delta"] > 0 and res["sigma_die"] == 0 and res["sigma_run"] == 0
     assert res["verdict"] == V_EXCLUDED
-    assert res["reason"] == f"{V_EXCLUDED}: 모든 die가 같은 값 (σ_die=0, σ_run=0, 고정값 100%)"
+    assert res["reason"] == f"{V_EXCLUDED}: die 산포 0 (σ_die=0)"
     assert res["center"] == 0 and res["por_median"] == 400.0     # out 값은 그대로 채움
 
 
-def test_partial_flat_keeps_normal_verdict():
+def test_majority_flat_is_excluded():
     Y, z = normal_data()
-    Y[:120], z[:120] = 100.0, 100.0      # die 60%가 같은 값
+    Y[:120], z[:120] = 100.0, 100.0      # die 60%가 회차마다 같은 값 → 회차 차의 MAD도 0이라 σ_die = 0
+    res, _ = judge(Y, z, R_POLICY)
+    assert res["sigma_die"] == 0
+    assert res["verdict"] == V_EXCLUDED
+    assert res["reason"] == f"{V_EXCLUDED}: die 산포 0 (σ_die=0)"     # 둘 다면 σ_die 문구
+    assert "산포 0" in item_status(Y, z, res["delta"])["status"].split(";")
+
+
+def test_minority_flat_keeps_normal_verdict():
+    Y, z = normal_data()
+    Y[:80], z[:80] = 100.0, 100.0        # die 40%가 같은 값
     res, _ = judge(Y, z, R_POLICY)
     assert res["verdict"] != V_EXCLUDED
     assert res["zone"] == "정량"
-    assert "산포 0" in item_status(Y, z, res["delta"])["status"].split(";")
 
 
 def test_few_dies_still_undecided():

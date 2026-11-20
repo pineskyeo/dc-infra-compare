@@ -16,8 +16,10 @@
    정량 (|POR| ≥ LoQ): 신뢰구간이 ±Δ 안 → 동등, 통째로 밖 → 차이, 걸침 → 미결
    LoQ 미만: 값은 "<LoQ"로 보고한다 (IUPAC). 신뢰구간이 통째로 ±Δ 밖이고 DOE 중심(POR 중앙값 + shift)이
      LoQ 이상이라 보고가 달라질 때만 차이, 그 밖은 동등 ("<LoQ 보고 일치")
-   판정 제외: 통계를 낼 수 없는 ITEM. Δ ≤ 0 또는 NaN/inf, 중심·신뢰구간 NaN/inf,
-     모든 die가 같은 값 (sigma_die = sigma_run = 0, 고정값 100%). 해당하는 원인을 모두 reason에 적는다
+   판정 제외: 통계를 낼 수 없는 ITEM. 아래 순서로 처음 맞는 원인 하나를 reason에 적는다
+     (1) 중심·신뢰구간 NaN/inf (2) die 산포 0: sigma_die = 0 또는 고정값 비율 > 50% (status '산포 0'과 같은 비율)
+     (3) POR 중앙값 0이고 sigma_run 0. 그 밖은 zone 판정: LoQ 미만은 Δ와 무관하게 판정하고,
+     정량은 장비 정확도 대체 후 최종 Δ가 0 이하·NaN일 때만 판정 제외
 
 4. 참고 (판정에 안 씀): t-test (NIST 7.3.1.1), POR 회차끼리 t-test, 튀는 die (|d − 중앙값| > 5 robust σ)
 """
@@ -196,6 +198,11 @@ def _mode_share(v: np.ndarray) -> float:
     return float(np.unique(v, return_counts=True)[1].max() / v.size)
 
 
+def flat_share(R: np.ndarray, z: np.ndarray) -> float:
+    """고정값 비율: POR die 평균 R 과 DOE z 중 한 값이 차지하는 비율이 큰 쪽. status 산포 0 과 판정 제외가 같이 씀."""
+    return max(_mode_share(R), _mode_share(z))
+
+
 def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     """판정과 별개인 데이터 상태. 해당하는 것을 모두 ';'로 잇는다 (status와 status_detail 같은 순서).
     Y: die × 회차 POR 값, z: DOE die 값, delta: 그 ITEM의 최종 Δ.
@@ -241,7 +248,7 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
             details.append(f"간격 {step:.4g} = Δ의 {step / delta:.0%}")
 
     s_die = robust_noise(Y)[0] if Y.shape[1] > 1 else np.nan      # POR 1회면 die 잡음을 못 구함
-    share = max(_mode_share(R), _mode_share(z))
+    share = flat_share(R, z)
     if s_die == 0 or share > 0.5:
         names.append(ST_FLAT)
         details.append(f"고정값 {share:.0%}")
@@ -304,18 +311,21 @@ def reason_group(reason: pd.Series) -> pd.Series:
     return s.where(~s.str.startswith(V_EXCLUDED), s.str.replace(r" \([^)]*\)", "", regex=True))
 
 
-def excluded_reasons(delta: float, center: float, lo: float, hi: float,
-                     s_die: float, s_run: float, R: np.ndarray, z: np.ndarray) -> list[str]:
-    """통계를 낼 수 없는 원인들 (없으면 빈 목록)."""
-    why = []
-    if not np.isfinite(delta) or delta <= 0:
-        why.append(f"{V_EXCLUDED}: Δ가 0 이하이거나 유효하지 않음 (Δ={delta:.4g})")
+def excluded_reason(center: float, lo: float, hi: float, s_die: float, s_run: float,
+                    por_median: float, R: np.ndarray, z: np.ndarray) -> str | None:
+    """zone 판정 전에 보는 판정 제외 사유 (없으면 None). 순서대로 처음 맞는 것 하나.
+    Δ 검사는 여기서 하지 않음: LoQ zone은 Δ와 무관하고, 정량 zone은 accuracy_margin 대체 후 최종 Δ로 judge가 본다."""
     bad = [k for k, v in (("center", center), ("ci_low", lo), ("ci_high", hi)) if not np.isfinite(v)]
     if bad:
-        why.append(f"{V_EXCLUDED}: 중심·신뢰구간 계산 불가 ({', '.join(bad)})")
-    if s_die == 0 and s_run == 0 and max(_mode_share(R), _mode_share(z)) == 1:
-        why.append(f"{V_EXCLUDED}: 모든 die가 같은 값 (σ_die=0, σ_run=0, 고정값 100%)")
-    return why
+        return f"{V_EXCLUDED}: 중심·신뢰구간 계산 불가 ({', '.join(bad)})"
+    if s_die == 0:
+        return f"{V_EXCLUDED}: die 산포 0 (σ_die=0)"
+    share = flat_share(R, z)
+    if share > 0.5:
+        return f"{V_EXCLUDED}: die 산포 0 (고정값 {round(100 * share)}%)"
+    if por_median == 0 and s_run == 0:
+        return f"{V_EXCLUDED}: 고정값 (중앙값 0·σ_run 0)"
+    return None
 
 
 def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo | None = None) -> tuple[dict, np.ndarray]:
@@ -364,9 +374,9 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo
     }
     if n < MIN_DIE:
         return {**out, "zone": "die 부족", "verdict": "미결", "reason": f"die {n}개 (< {MIN_DIE})"}, outlier
-    why = excluded_reasons(delta, center, lo, hi, s_die, s_run, R, z)
+    why = excluded_reason(center, lo, hi, s_die, s_run, out["por_median"], R, z)
     if why:
-        return {**out, "zone": V_EXCLUDED, "verdict": V_EXCLUDED, "reason": "; ".join(why)}, outlier
+        return {**out, "zone": V_EXCLUDED, "verdict": V_EXCLUDED, "reason": why}, outlier
 
     if level < loq:
         zone = "검출한계 이하" if level < lod else "검출~정량"
@@ -382,9 +392,12 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo
     src_d = "정책 + 회차"
     if sp.get("accuracy_margin", 0.0) > delta:
         delta, src_d = sp["accuracy_margin"], "장비 정확도"
-    v, why = tost(center, lo, hi, delta)
     out.update(zone="정량", delta=delta, delta_source=src_d, verdict_no_accuracy=v0,
                rel_shift=center / level if level else np.nan)
+    if not np.isfinite(delta) or delta <= 0:
+        return {**out, "zone": V_EXCLUDED, "verdict": V_EXCLUDED,
+                "reason": f"{V_EXCLUDED}: 최종 Δ가 0 이하이거나 유효하지 않음 (Δ={delta:.4g}, 출처 {src_d})"}, outlier
+    v, why = tost(center, lo, hi, delta)
     return {**out, "verdict": v, "reason": why}, outlier
 
 
