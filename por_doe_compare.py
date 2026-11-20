@@ -26,6 +26,8 @@
 from __future__ import annotations
 
 import argparse
+import multiprocessing
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -63,7 +65,35 @@ LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log
             "ci_half_over_delta_log", "spearman_size_jitter_log", "log_reason",     # 0 없고 부호 하나인 ITEM 참고용
             "sigma_die_log", "sigma_run_log", "below_linear_loq", "policy_margin_log",   # 분석용, 판정에 안 씀
             "sigma_rep_log"]                                                             # log 판정의 회차 항
-POR_GAP_NOISE_K = 3             # 조건 불안정: 짝지은 회차 차 ≥ 이 배수 × 회차 중앙값 차의 표준오차
+def dc_jobs() -> int:
+    """병렬 작업 수: 환경변수 DC_JOBS. 없거나 비었으면 os.cpu_count() or 1, 숫자가 아니거나 1 미만이면 1."""
+    raw = os.environ.get("DC_JOBS", "").strip()
+    if not raw:
+        return os.cpu_count() or 1
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return 1
+
+
+def pool_map(fn, args_list, jobs: int | None = None) -> list:
+    """[fn(*a) for a in args_list] 와 같은 결과를 같은 순서로 돌려준다.
+    jobs(기본 dc_jobs()) ≤ 1 이거나 일이 1개 이하면 직렬, 아니면 fork Pool.starmap(입력 순서 유지).
+    fork 를 못 쓰는 플랫폼이면 직렬. fn 은 자식 프로세스로 넘어가므로 모듈 최상위 함수여야 한다.
+    matplotlib 백엔드는 건드리지 않는다."""
+    args_list = list(args_list)
+    jobs = dc_jobs() if jobs is None else jobs
+    if jobs <= 1 or len(args_list) <= 1:
+        return [fn(*a) for a in args_list]
+    try:
+        ctx = multiprocessing.get_context("fork")
+    except ValueError:
+        return [fn(*a) for a in args_list]
+    with ctx.Pool(processes=min(jobs, len(args_list))) as pool:
+        return pool.starmap(fn, args_list, chunksize=max(1, len(args_list) // (jobs * 4)))
+
+
+POR_GAP_NOISE_K = 3            # 조건 불안정: 짝지은 회차 차 ≥ 이 배수 × 회차 중앙값 차의 표준오차
 ST_OK, ST_UNSTABLE, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "분해능 부족", "산포 0"
 ST_RUN_JITTER, ST_SIZE_JITTER, ST_SIZE_JITTER_POS = "회차 흔들림", "작을수록 흔들림", "클수록 흔들림"
 ST_LOG_CANDIDATE, ST_BIMODAL = "log 후보", "두 덩어리"     # 분포 모양 (SHAPE_COLS)
@@ -504,8 +534,12 @@ def judge_log(Y: np.ndarray, z: np.ndarray, r: float) -> dict:
 
 def sigma_rep_log(L: np.ndarray) -> float:
     """die별 log 회차 흔들림: median over die of std(die 의 L 회차값, ddof=1). L = log10|Y| (die × 회차).
-    die 안에서 유한한 회차 값이 2개 미만인 die 는 빼고, 남는 die 가 없으면 NaN."""
-    sds = [float(np.std(v, ddof=1)) for v in (row[np.isfinite(row)] for row in L) if v.size >= 2]
+    die 안에서 유한한 회차 값이 2개 미만인 die 는 빼고, 남는 die 가 없으면 NaN.
+    L 이 전부 유한하고 회차가 2개 이상이면 행렬 한 번에 std(axis=1) (빠른 경로, die 0개면 NaN).
+    아니면 die 마다 유한한 값만 골라 std 하는 리스트 경로. 두 경로의 값은 같다."""
+    if L.ndim == 2 and L.shape[1] >= 2 and np.isfinite(L).all():
+        return float(np.median(np.std(L, axis=1, ddof=1))) if L.shape[0] else np.nan
+    sds =[float(np.std(v, ddof=1)) for v in (row[np.isfinite(row)] for row in L) if v.size >= 2]
     return float(np.median(sds)) if sds else np.nan
 
 
@@ -678,6 +712,14 @@ def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: 
     return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **status, **prec, **logs}, mask
 
 
+def _judge_group(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: float,
+                 levels: dict[str, ItemInfo], blank: pd.DataFrame, bmap: dict,
+                 die_cols: list[str]) -> tuple[dict, pd.DataFrame | None]:
+    """pool_map 용 최상위 함수: judge_item 결과 행과 튀는 die 표(없으면 None)."""
+    res, mask = judge_item(item, g, por_cols, units, r, levels, blank, bmap)
+    return res, (g.loc[mask, die_cols + ["ITEM"] + por_cols + ["DOE"]] if mask.any() else None)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--por", nargs="+", action="append", required=True,
@@ -707,12 +749,11 @@ def main() -> None:
         bmap = dict(zip(mp["ITEM"], mp["BLANK_ITEM"]))
     levels = load_levels(a.level, a.encoding) if a.level else {}
 
-    rows, outl = [], []
-    for item, g in wide.groupby("ITEM", sort=False):
-        res, mask = judge_item(item, g, por_cols, units, a.r, levels, blank, bmap)
-        rows.append(res)
-        if mask.any():
-            outl.append(g.loc[mask, die_cols + ["ITEM"] + por_cols + ["DOE"]])
+    tasks = [(item, g, por_cols, units, a.r, levels, blank, bmap, die_cols)
+             for item, g in wide.groupby("ITEM", sort=False)]
+    results = pool_map(_judge_group, tasks)
+    rows = [res for res, _ in results]
+    outl = [o for _, o in results if o is not None]
 
     first = ["ITEM", "UNIT", "zone", "verdict", "reason"]
     res = pd.DataFrame(rows)

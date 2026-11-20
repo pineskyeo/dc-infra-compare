@@ -28,7 +28,7 @@ from compare_metrics import safe_group_name  # noqa: E402
 from por_doe_compare import (  # noqa: E402
     POR_GAP_NOISE_K, ST_BIMODAL, ST_FLAT, ST_LOG_CANDIDATE, ST_OK, ST_RESOLUTION, ST_RUN_JITTER, ST_SETUP_ERROR,
     ST_SIZE_JITTER, ST_SIZE_JITTER_POS, ST_UNSTABLE, is_log_target,
-    add_common_args, load_blank, load_wide, read_csv_auto,
+    add_common_args, load_blank, load_wide, pool_map, read_csv_auto,
 )
 
 try:
@@ -883,6 +883,43 @@ def reset_items_dir(d: Path) -> None:
                                   encoding="utf-8")
 
 
+# main 이 pool_map 전에 채운다: "plain"(items.csv 표), "raw"(ITEM ID -> 그 ITEM 의 원데이터 행, 원데이터 없으면 None).
+# fork 자식이 그대로 물려받으므로 큰 표를 피클로 넘기지 않는다.
+_SHARED: dict = {}
+
+
+def _split_raw(raw: pd.DataFrame, ids: list[str]) -> dict[str, pd.DataFrame]:
+    """raw[raw["ITEM"].astype(str) == id] 와 같은 행·열·dtype 을 ID마다 한 번에. 없는 ID 는 같은 열의 빈 표."""
+    groups = dict(list(raw.groupby(raw["ITEM"].astype(str), sort=False)))
+    return {i: groups.get(i, raw.iloc[0:0]) for i in ids}
+
+
+def _write_item(rec: dict, out: Path, cmp: pd.DataFrame | None, log_only: bool) -> None:
+    """items/<폴더>/ 하나: summary.csv, (원데이터 있으면) raw.csv 와 그림. log_only 면 log_diag.png 만."""
+    plain, raw = _SHARED["plain"], _SHARED["raw"]
+    folder = out / rec["폴더"]
+    folder.mkdir(parents=True)
+    isum = item_summary(plain, rec["ID"], cmp)
+    isum.to_csv(folder / "summary.csv", index=False, encoding="utf-8-sig")
+    srow = isum.iloc[0].to_dict() if not isum.empty else {}
+    if raw is None:
+        return
+    rows = raw[rec["ID"]]
+    if log_only:
+        rows.to_csv(folder / "raw.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
+        if not rows.empty:
+            plot_log_diag(rows, srow, rec["ID"], folder / LOG_DIAG_PNG)
+        return
+    if rows.empty:
+        print(f"{rec['ID']}: 원데이터에 행 없음 (raw.csv는 머리줄만, {DRILL_PNG} 없음)")
+    rows.to_csv(folder / "raw.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
+    if not rows.empty:
+        plot_drill(rows, srow, rec["ID"], folder / DRILL_PNG)
+        plot_status_panels(rows, srow, rec["ID"], rec["status"], folder)
+        if rec["log_target"]:
+            plot_log_diag(rows, srow, rec["ID"], folder / LOG_DIAG_PNG)
+
+
 # ---------------------------------------------------------------- CLI
 
 OWN_OUTPUTS = ("fail_evidence.csv", "summary.txt", "forest.png", ITEMS_INDEX)   # items/ 는 표식으로 따로 지운다
@@ -947,27 +984,13 @@ def main(argv: list[str] | None = None) -> int:
     plot_forest(table, out / "forest.png")
 
     reset_items_dir(items_dir)
-    for rec in index.to_dict("records"):
-        folder = out / rec["폴더"]
-        folder.mkdir(parents=True)
-        isum = item_summary(plain, rec["ID"], cmp)
-        isum.to_csv(folder / "summary.csv", index=False, encoding="utf-8-sig")
-        srow = isum.iloc[0].to_dict() if not isum.empty else {}
-        if raw is not None and rec["ID"] in log_only:
-            rows = raw[raw["ITEM"].astype(str) == rec["ID"]]
-            rows.to_csv(folder / "raw.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
-            if not rows.empty:
-                plot_log_diag(rows, srow, rec["ID"], folder / LOG_DIAG_PNG)
-        elif raw is not None:
-            rows = raw[raw["ITEM"].astype(str) == rec["ID"]]
-            if rows.empty:
-                print(f"{rec['ID']}: 원데이터에 행 없음 (raw.csv는 머리줄만, {DRILL_PNG} 없음)")
-            rows.to_csv(folder / "raw.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
-            if not rows.empty:
-                plot_drill(rows, srow, rec["ID"], folder / DRILL_PNG)
-                plot_status_panels(rows, srow, rec["ID"], rec["status"], folder)
-                if rec["log_target"]:
-                    plot_log_diag(rows, srow, rec["ID"], folder / LOG_DIAG_PNG)
+    records = index.to_dict("records")
+    _SHARED["plain"] = plain
+    _SHARED["raw"] = None if raw is None else _split_raw(raw, [r["ID"] for r in records])
+    try:
+        pool_map(_write_item, [(rec, out, cmp, rec["ID"] in log_only) for rec in records])
+    finally:
+        _SHARED.clear()
     index.to_csv(out / ITEMS_INDEX, index=False, encoding="utf-8-sig")
 
     summary = summary_text(table, Path(args.input).name)
