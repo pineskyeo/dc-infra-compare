@@ -23,9 +23,9 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from matplotlib import font_manager as fm  # noqa: E402
-from matplotlib.collections import LineCollection  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 
+import compare_metrics  # noqa: E402
 from fail_evidence import J_DIFF, J_PEND, remove_own_outputs  # noqa: E402  (fail_evidence와 같은 차이/미결 이름)
 from por_doe_compare import V_EXCLUDED  # noqa: E402
 
@@ -65,6 +65,7 @@ COMPARE_COLS = [
     "por_median_before", "por_median_after",
     "sigma_die_before", "sigma_die_after",
     "sigma_run_before", "sigma_run_after",
+    "center_delta_before", "center_delta_after",
 ]
 
 EVIDENCE_COLS = [
@@ -81,7 +82,12 @@ GAP_DEF_OLD = "옛 정의(회차 평균 차)"
 # 실행 시작 때 지우는 자기 그림(--out 기준 glob). 개수가 바뀌거나 건너뛸 수 있는 그림이 남지 않게 한다.
 OWN_OUTPUTS = {
     "evidence": ("forest.png", "strip_*.png"),
-    "compare": ("sigma_die_paired.png", "sigma_run_paired.png", "scatter_before_after.png"),
+    "compare": (
+        *(f"{name}.png" for name in compare_metrics.METRICS),
+        "stability_overall.csv", "worst_items.csv",
+        # 예전 이름: 재실행 때 옛 결과도 지운다
+        "sigma_die_paired.png", "sigma_run_paired.png", "scatter_before_after.png",
+    ),
 }
 
 
@@ -437,7 +443,16 @@ def _side_metrics(row: pd.Series, side: str) -> dict:
         f"meas_precision_pct_{side}": meas_precision_pct(row),
         f"delta_pct_{side}": pct_of_median(_num(row, "delta"), med),
         f"ci_width_pct_{side}": pct_of_median(ci_w, med),
+        f"center_delta_{side}": _center_over_delta(row),
     }
+
+
+def _center_over_delta(row: pd.Series) -> float:
+    """center / delta. center 열이 없거나 delta 가 0 이하·NaN 이면 NaN."""
+    center, delta = _num(row, "center"), _num(row, "delta")
+    if not (_finite(center) and _finite(delta)) or delta <= 0:
+        return math.nan
+    return center / delta
 
 
 def _empty_side(side: str) -> dict:
@@ -447,6 +462,7 @@ def _empty_side(side: str) -> dict:
         f"sigma_die_pct_{side}", f"sigma_run_pct_{side}",
         f"meas_precision_pct_{side}",
         f"delta_pct_{side}", f"ci_width_pct_{side}",
+        f"center_delta_{side}",
     ]
     out = {k: math.nan for k in keys}
     out[f"verdict_{side}"] = ""
@@ -608,91 +624,19 @@ def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> 
     return "\n".join(lines) + "\n"
 
 
-def _top_changed(ok: pd.DataFrame, before_col: str, after_col: str, top: int) -> tuple[pd.DataFrame, int]:
-    """그릴 행(기존·개선 중 하나라도 finite)에서 상위 top개와 전체 개수.
-
-    둘 다 finite인 행을 |개선−기존| 내림차순(동점은 원래 순서)으로 먼저, 한쪽만 finite인 행을
-    원래 순서로 뒤에 둔다.
-    """
-    b = pd.to_numeric(ok[before_col], errors="coerce").to_numpy(dtype=float)
-    a = pd.to_numeric(ok[after_col], errors="coerce").to_numpy(dtype=float)
-    fb, fa = np.isfinite(b), np.isfinite(a)
-    both = np.flatnonzero(fb & fa)
-    one = np.flatnonzero(fb ^ fa)
-    both = both[np.argsort(-np.abs(a[both] - b[both]), kind="stable")]
-    order = np.concatenate([both, one])
-    return ok.iloc[order[:top]], len(order)
-
-
-def _paired_title(title: str, n_total: int, top: int) -> str:
-    return f"{title} (상위 {top} / 전체 {n_total})" if n_total > top else f"{title} (전체 {n_total})"
-
-
-def _paired_plot(ok: pd.DataFrame, before_col: str, after_col: str, title: str, xlabel: str, path: Path,
-                 top: int = 30) -> str | None:
-    """σ 짝 그림. 변화가 큰 상위 top개 ITEM만 그리고, 붙인 제목을 돌려준다(그릴 행이 없으면 None)."""
-    sub, n_total = _top_changed(ok, before_col, after_col, top)
-    if not n_total:
-        return None
-    full_title = _paired_title(title, n_total, top)
-    b = pd.to_numeric(sub[before_col], errors="coerce").to_numpy(dtype=float)
-    a = pd.to_numeric(sub[after_col], errors="coerce").to_numpy(dtype=float)
-    fb, fa = np.isfinite(b), np.isfinite(a)
-    fig, ax = plt.subplots(figsize=(5.4, max(2.0, 0.32 * len(sub) + 0.9)), dpi=200)
-    y = np.arange(len(sub))[::-1]  # 첫 행(변화가 가장 큰 행)이 맨 위
-    both = fb & fa
-    if both.any():
-        bb, aa, yy = b[both], a[both], y[both]
-        colors = np.where(aa < bb, AFTER_COLOR, np.where(aa > bb, WARN_COLOR, GRAY))
-        segs = np.stack([np.column_stack([bb, yy]), np.column_stack([aa, yy])], axis=1)
-        ax.add_collection(LineCollection(segs, colors=list(colors), linewidths=1.4, zorder=2))
-    # ms=6 (지름 6pt) → scatter s는 면적(pt²)
-    ax.scatter(b[fb], y[fb], s=36, color=BEFORE_COLOR, edgecolors="white", linewidths=0.5, zorder=3)
-    ax.scatter(a[fa], y[fa], s=36, color=AFTER_COLOR, edgecolors="white", linewidths=0.5, zorder=3)
-    ax.autoscale_view()
-    ax.set_yticks(y, sub["ID"].tolist())
-    ax.set_xlabel(xlabel)
-    ax.set_title(full_title, fontsize=10, loc="left", color="#404040")
-    ax.legend(
-        handles=[
-            Line2D([], [], color=BEFORE_COLOR, marker="o", lw=0, label="기존"),
-            Line2D([], [], color=AFTER_COLOR, marker="o", lw=0, label="개선"),
-        ],
-        frameon=False, loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=2,
-    )
-    fig.savefig(path, bbox_inches="tight", pad_inches=0.08)
-    plt.close(fig)
-    return full_title
-
-
-def _scatter_plot(ok: pd.DataFrame, path: Path) -> None:
-    specs = (
-        ("sigma_die_pct_before", "sigma_die_pct_after", "σ_die / |중앙값| (%)"),
-        ("sigma_run_pct_before", "sigma_run_pct_after", "σ_run / |중앙값| (%)"),
-        ("meas_precision_pct_before", "meas_precision_pct_after", "측정정밀도 (%)"),
-    )
-    fig, axes = plt.subplots(1, len(specs), figsize=(3.8 * len(specs), 3.6), dpi=200)
-    for ax, (xb, xa, title) in zip(axes, specs):
-        x = ok[xb].astype(float)
-        y = ok[xa].astype(float)
-        mask = np.isfinite(x) & np.isfinite(y)
-        ax.scatter(x[mask], y[mask], s=28, color=AFTER_COLOR, zorder=3, edgecolors="white", linewidths=0.5)
-        vals = pd.concat([x[mask], y[mask]])
-        if len(vals):
-            lo, hi = float(vals.min()), float(vals.max())
-            pad = (hi - lo) * 0.1 if hi > lo else max(abs(hi), 1) * 0.1
-            lo, hi = lo - pad, hi + pad
-            ax.plot([lo, hi], [lo, hi], color="#BFBFBF", lw=1, ls="--", zorder=1, label="y = x")
-            ax.set_xlim(lo, hi)
-            ax.set_ylim(lo, hi)
-        ax.set_xlabel("기존")
-        ax.set_ylabel("개선")
-        ax.set_title(title, fontsize=10, loc="left", color="#404040")
-        ax.set_aspect("equal", adjustable="box")
-        ax.legend(frameon=False, loc="upper left", fontsize=8)
-    fig.tight_layout()
-    fig.savefig(path, bbox_inches="tight", pad_inches=0.08)
-    plt.close(fig)
+def _write_metric_tables(d: pd.DataFrame, out: Path, top: int) -> None:
+    """stability_overall.csv (전체 한 행)와 worst_items.csv (지표별 악화 상위 top)."""
+    if d["sigma_die_pct_before"].isna().all() and d["sigma_die_pct_after"].isna().all():
+        print("stability_overall.csv 건너뜀: σ_die % 값이 기존·개선 모두 없음")
+    else:
+        pd.DataFrame([{"그룹": "전체", **compare_metrics.stability_row(d)}]).to_csv(
+            out / "stability_overall.csv", index=False, encoding="utf-8-sig")
+    parts = [
+        compare_metrics.worst_items(d, m, top).assign(metric=m)
+        for m in compare_metrics.METRIC_RATIO
+    ]
+    worst = pd.concat(parts, ignore_index=True)[["metric", "ID", "before", "after", "ratio"]]
+    worst.to_csv(out / "worst_items.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
 
 
 def _with_anon(df: pd.DataFrame, *sources: pd.DataFrame) -> pd.DataFrame:
@@ -709,7 +653,7 @@ def _with_anon(df: pd.DataFrame, *sources: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def run_compare(before_path: str, after_path: str, out_dir: str, plot_top: int = 30) -> pd.DataFrame:
+def run_compare(before_path: str, after_path: str, out_dir: str, plot_top: int = 10) -> pd.DataFrame:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     remove_own_outputs(out, OWN_OUTPUTS["compare"])
@@ -720,12 +664,9 @@ def run_compare(before_path: str, after_path: str, out_dir: str, plot_top: int =
     text = compare_summary(cmp_df, before_path, after_path)
     (out / "summary.txt").write_text(text, encoding="utf-8")
     print(text)
-    ok = _valid_matched(cmp_df)
-    _paired_plot(ok, "sigma_die_pct_before", "sigma_die_pct_after",
-                 "ITEM별 σ_die (%)", "σ_die / |중앙값| (%)", out / "sigma_die_paired.png", top=plot_top)
-    _paired_plot(ok, "sigma_run_pct_before", "sigma_run_pct_after",
-                 "ITEM별 σ_run (%)", "σ_run / |중앙값| (%)", out / "sigma_run_paired.png", top=plot_top)
-    _scatter_plot(ok, out / "scatter_before_after.png")
+    d = compare_metrics.with_pct(_valid_matched(cmp_df))
+    compare_metrics.draw_all(d, out, top=plot_top)
+    _write_metric_tables(d, out, plot_top)
     return cmp_df
 
 
@@ -745,8 +686,8 @@ def main(argv: list[str] | None = None) -> int:
     p_cmp.add_argument("-o", required=True, dest="out")
     p_cmp.add_argument("--exclude-misaligned", action="store_true",
                        help="정렬 의심(POR 중앙값 상대차 > 20%%) ITEM을 비교에서 뺀다 (기본: 포함)")
-    p_cmp.add_argument("--plot-top", type=int, default=30,
-                       help="σ 짝 그림에 |개선−기존| 변화가 큰 ITEM N개만 그린다 (기본 30)")
+    p_cmp.add_argument("--plot-top", type=int, default=10,
+                       help="지표별 그림의 악화 상위 표에 ITEM N개 (기본 10)")
 
     args = parser.parse_args(argv)
     if args.cmd == "compare" and args.plot_top < 1:

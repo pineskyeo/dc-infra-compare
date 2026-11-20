@@ -19,6 +19,10 @@ from compare_before_after import main  # noqa: E402
 DATA = Path(__file__).parent / "data"
 BEFORE = DATA / "compare_ba_before.tsv"
 AFTER = DATA / "compare_ba_after.tsv"
+METRIC_PNGS = (
+    "sigma_die_ratio.png", "sigma_run_ratio.png", "meas_precision_ratio.png",
+    "stability_sigma_die_pct.png", "stability_meas_precision_pct.png", "verdict_center_delta.png",
+)
 
 
 def _run_compare(out_dir: Path) -> int:
@@ -31,9 +35,8 @@ def test_compare_writes_all_outputs(tmp_path):
     for name in (
         "compare.csv",
         "summary.txt",
-        "sigma_die_paired.png",
-        "sigma_run_paired.png",
-        "scatter_before_after.png",
+        *METRIC_PNGS,
+        "stability_overall.csv",
     ):
         assert (out / name).is_file(), f"missing output: {name}"
 
@@ -159,49 +162,22 @@ def test_evidence_has_meas_precision_pct(tmp_path):
     assert a1 == pytest.approx(math.hypot(8.0, 2.0))
 
 
-# ---------------------------------------------------------------- σ 짝 그림 상위 N (--plot-top)
+# ---------------------------------------------------------------- 지표별 그림·표 (compare_metrics, --plot-top)
 
-NAN = float("nan")
+def test_compare_alone_writes_metric_pngs_and_tables(tmp_path):
+    out = tmp_path / "out"
+    top = 1
+    assert main(["compare", str(BEFORE), str(AFTER), "-o", str(out), "--plot-top", str(top)]) == 0
+    for name in METRIC_PNGS:
+        assert (out / name).is_file(), f"missing output: {name}"
 
+    worst = pd.read_csv(out / "worst_items.csv", encoding="utf-8-sig")
+    assert list(worst.columns) == ["metric", "ID", "before", "after", "ratio"]
+    assert worst.groupby("metric").size().le(top).all()
+    assert set(worst["metric"]) <= {"sigma_die_ratio", "sigma_run_ratio", "meas_precision_ratio"}
 
-def _paired_df() -> pd.DataFrame:
-    # |변화|: P1 1, P2 5, P3 3, P4 한쪽만, P5 5(P2와 동점, 뒤), P6 둘 다 NaN(제외), P7 한쪽만
-    return pd.DataFrame({
-        "ID": ["P1", "P2", "P3", "P4", "P5", "P6", "P7"],
-        "b": [1.0, 10.0, 4.0, 2.0, 6.0, NAN, NAN],
-        "a": [2.0, 5.0, 7.0, NAN, 1.0, NAN, 3.0],
-    })
-
-
-def test_top_changed_order_and_count():
-    from compare_before_after import _top_changed
-
-    sub, n = _top_changed(_paired_df(), "b", "a", 100)
-    assert n == 6
-    assert sub["ID"].tolist() == ["P2", "P5", "P3", "P1", "P4", "P7"]
-
-    sub3, n3 = _top_changed(_paired_df(), "b", "a", 3)
-    assert n3 == 6
-    assert sub3["ID"].tolist() == ["P2", "P5", "P3"]
-
-    sub5, _ = _top_changed(_paired_df(), "b", "a", 5)
-    assert sub5["ID"].tolist() == ["P2", "P5", "P3", "P1", "P4"]
-
-
-def test_paired_plot_title(tmp_path):
-    from compare_before_after import _paired_plot
-
-    title = _paired_plot(_paired_df(), "b", "a", "T", "x", tmp_path / "p.png", top=3)
-    assert title == "T (상위 3 / 전체 6)"
-    assert (tmp_path / "p.png").is_file()
-
-    title_all = _paired_plot(_paired_df(), "b", "a", "T", "x", tmp_path / "q.png", top=6)
-    assert title_all == "T (전체 6)"
-    assert "상위" not in title_all
-
-    empty = pd.DataFrame({"ID": ["E"], "b": [NAN], "a": [NAN]})
-    assert _paired_plot(empty, "b", "a", "T", "x", tmp_path / "e.png", top=3) is None
-    assert not (tmp_path / "e.png").exists()
+    cmp_df = pd.read_csv(out / "compare.csv", encoding="utf-8-sig")
+    assert {"center_delta_before", "center_delta_after"} <= set(cmp_df.columns)
 
 
 def test_cli_plot_top(tmp_path, monkeypatch):
@@ -209,12 +185,12 @@ def test_cli_plot_top(tmp_path, monkeypatch):
 
     seen = {}
     monkeypatch.setattr(cba, "run_compare",
-                        lambda b, a, o, plot_top=30: seen.setdefault("top", plot_top))
+                        lambda b, a, o, plot_top=10: seen.setdefault("top", plot_top))
     assert cba.main(["compare", "b.tsv", "a.tsv", "-o", str(tmp_path), "--plot-top", "7"]) == 0
     assert seen["top"] == 7
     seen.clear()
     assert cba.main(["compare", "b.tsv", "a.tsv", "-o", str(tmp_path)]) == 0
-    assert seen["top"] == 30
+    assert seen["top"] == 10
     with pytest.raises(SystemExit):
         cba.main(["compare", "b.tsv", "a.tsv", "-o", str(tmp_path), "--plot-top", "0"])
 
@@ -222,7 +198,7 @@ def test_cli_plot_top(tmp_path, monkeypatch):
 def test_compare_with_plot_top_runs(tmp_path):
     out = tmp_path / "out"
     assert main(["compare", str(BEFORE), str(AFTER), "-o", str(out), "--plot-top", "2"]) == 0
-    assert (out / "sigma_die_paired.png").is_file()
+    assert (out / "sigma_die_ratio.png").is_file()
 
 
 def test_run_all_forwards_plot_top(tmp_path):

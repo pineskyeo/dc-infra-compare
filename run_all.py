@@ -30,7 +30,20 @@ DESCRIPTIONS = [
     ("fail_evidence/forest.png", "Fail 근거 전체 그림"),
     ("fail_evidence/items/*.png", "ITEM별 근거 그림"),
     ("plots/*.png", "판정 요약 그림"),
+    # compare/ (--before): compare_before_after.py compare
+    ("compare/compare.csv", "ITEM별 기존·개선 비교"),
+    ("compare/summary.txt", "기존·개선 비교 요약"),
+    ("compare/stability_overall.csv", "전체 안정성 (group_summary '전체' 행과 같은 값)"),
+    ("compare/worst_items.csv", "비율 지표별 악화 상위 ITEM"),
+    ("compare/*.png", "기존·개선 지표 그림"),
     ("compare/*", "기존·개선 비교"),
+    # groups/ (--before + --groups): group_summary.py
+    ("groups/group_summary.csv", "그룹별 요약 (맨 위 '전체' 행)"),
+    ("groups/verdict_by_group.csv", "그룹별 판정 변화"),
+    ("groups/stability_by_group.csv", "그룹별 안정성"),
+    ("groups/group_dirs.csv", "그룹 이름 → 폴더 이름"),
+    ("groups/*/*.png", "그룹 하나의 지표 그림"),
+    ("groups/*.png", "그룹 비교 지표 그림"),
     ("groups/*", "그룹별 요약"),
 ]
 
@@ -50,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--groups", help="ITEM,그룹 파일. 주면 그룹별 대시보드(plots/summary_group_*.png)를 그리고, "
                                      "--before도 주면 그룹별 비교 요약 단계(groups/) 추가")
     ap.add_argument("--plot-top", type=int, default=None,
-                    help="비교 단계 σ 짝 그림에 변화가 큰 ITEM N개만 그린다 (compare_before_after.py 기본 30)")
+                    help="비율 지표 그림의 악화 상위 표 ITEM 수 (compare 기본 10)")
     return ap
 
 

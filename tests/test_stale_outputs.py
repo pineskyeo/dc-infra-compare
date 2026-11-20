@@ -91,3 +91,17 @@ def test_compare_evidence_rerun_leaves_only_current_strips(tmp_path):
     assert 0 < len(second_ids) < len(first_ids)
     assert len(list(out.glob("strip_*.png"))) == len(second_ids)
     assert (out / "notes.txt").is_file()
+
+
+def test_compare_rerun_removes_old_named_outputs(tmp_path):
+    out = tmp_path / "cmp"
+    out.mkdir()
+    old = ("sigma_die_paired.png", "sigma_run_paired.png", "scatter_before_after.png")
+    for name in old:
+        (out / name).write_bytes(b"old")
+    (out / "notes.txt").write_text("user", encoding="utf-8")
+
+    cba.run_compare(str(DATA / "compare_ba_before.tsv"), str(DATA / "compare_ba_after.tsv"), str(out))
+    assert not any((out / name).exists() for name in old)
+    assert (out / "sigma_die_ratio.png").is_file()
+    assert (out / "notes.txt").is_file()

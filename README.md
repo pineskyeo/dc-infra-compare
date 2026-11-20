@@ -35,16 +35,28 @@ python run_all.py --por POR1/ --por POR2/ --por POR3/ --doe DOE/ \
 [단계 4/4] plot_verdicts
 
 생성 파일
-fail_evidence/fail_evidence.csv  Fail 근거
-fail_evidence/forest.png  Fail 근거 전체 그림
 items.csv  ITEM별 판정·상태
-outlier_dies.csv  튀는 die
-plots/summary.png  판정 요약 그림
-plots/summary_loq.png  판정 요약 그림
-summary_items.txt  summarize 출력
+…
 ```
 
-`--groups`를 주면 `plots/summary_group_<이름>.png`가 그룹 수만큼 더 생깁니다. 모든 ITEM을 장으로 나눈 `summary_001.png …`는 `plot_verdicts.py --full`로 따로 돌릴 때만 생깁니다.
+끝에 보이는 "생성 파일" 목록은 아래 표의 파일 중 실제로 생긴 것입니다.
+
+### 출력 폴더 구조
+
+경로는 `--out`(예: `결과/`) 기준입니다. 지표 그림 6장은 `sigma_die_ratio.png`, `sigma_run_ratio.png`, `meas_precision_ratio.png`, `stability_sigma_die_pct.png`, `stability_meas_precision_pct.png`, `verdict_center_delta.png`입니다(`compare_metrics.METRICS`).
+
+| 경로 | 파일 | 만드는 도구·옵션 |
+|---|---|---|
+| `./` | `items.csv`(ITEM별 판정·상태), `outlier_dies.csv`(튀는 die) | `por_doe_compare.py` (항상) |
+| `./` | `summary_items.txt`(summarize 출력) | `summarize.py` (항상) |
+| `fail_evidence/` | `fail_evidence.csv`(Fail 근거), `forest.png`(전체 그림) 등 | `fail_evidence.py` (항상) |
+| `plots/` | `summary.png`, `summary_loq.png`(판정 요약 그림) | `plot_verdicts.py` (항상) |
+| `plots/` | `summary_group_<이름>.png`(그룹 수만큼) | `plot_verdicts.py`, `--groups` |
+| `compare/` | `compare.csv`, `summary.txt`, `stability_overall.csv`, `worst_items.csv`, 지표 그림 6장 | `compare_before_after.py compare`, `--before` (`--groups` 없어도 생김) |
+| `groups/` | `group_summary.csv`, `verdict_by_group.csv`, `stability_by_group.csv`, `group_dirs.csv`, 지표 그림 6장(그룹 비교) | `group_summary.py`, `--before`와 `--groups` 둘 다 |
+| `groups/<그룹>/` | 지표 그림 6장(그 그룹만) | `group_summary.py`, `--before`와 `--groups` 둘 다 |
+
+모든 ITEM을 장으로 나눈 `summary_001.png …`는 `plot_verdicts.py --full`로 따로 돌릴 때만 생깁니다. `compare/`·`groups/` 파일 설명은 아래 [기존·개선 비교](#기존개선-비교-compare_before_afterpy)와 [그룹별 요약](#그룹별-요약-group_summarypy)에 있습니다.
 
 환경변수 `RUN_ALL_FAIL_STEP=<단계 이름>`은 테스트용입니다(그 단계를 일부러 실패시킴).
 
@@ -324,15 +336,19 @@ verdict가 '판정 제외'인 행은 근거 대상이 아니며, '계산 불가'
 
 ## 기존·개선 비교 (`compare_before_after.py`)
 
-`python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더>` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. 첫 열 `ITEM`은 ID로 읽고(탭 구분 표의 `ID` 열도 됨), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`, `summary.txt`, σ 짝 비교 그림으로 냅니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 실제 `ITEM` 이름이고, 입력에 summarize.py의 익명 `ID` 열이 같이 있으면 그 옆에 `ID` 열로 붙습니다. 비교 키는 항상 실제 ITEM입니다. 한쪽에만 있는 ITEM은 따로 표시하고 σ 집계에서 뺍니다. 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 `misaligned` 열에 표시만 하고 기본으로 σ 집계에 포함합니다. 빼려면 `--exclude-misaligned`를 붙입니다. `compare.csv`에는 측정 정밀도 열 `meas_precision_pct_before`·`meas_precision_pct_after`·`meas_precision_pct_change`(개선−기존)와 `meas_precision_status`(`sigma_die_status`와 같은 규칙: lower/higher/same, 낮을수록 좋음)도 붙습니다. 입력 items.csv에 `meas_precision_pct` 열이 없으면(예전 결과) 100 × √(σ_die² + σ_run²) / |por_median|으로 계산합니다. `evidence <items.csv> -o <폴더>` 모드도 있고, 그 `evidence.csv`에도 같은 방식의 `meas_precision_pct` 열이 붙습니다. `evidence.csv`의 group은 fail_evidence.py와 같이 '차이'/'미결' 둘뿐입니다. `judgment` 바로 앞의 `status` 열에는 items.csv `status` 값을 그대로 옮기고(열이 없는 옛 items.csv면 빈 칸), status가 '정상'이 아니면 `judgment` 끝에 `원인(status): <status>`를 덧붙입니다. `evidence.csv`의 `por_gap_over_delta`(참고용, 판단에 쓰지 않음)도 fail_evidence.py와 같은 규칙입니다. items.csv의 짝지은 회차 차를 쓰고(`por_gap_def` = '짝지은 회차 차'), 열이 없는 옛 items.csv면 회차 평균의 max − min으로 계산하며(`por_gap_def` = '옛 정의(회차 평균 차)'), 그런 행이 있으면 `summary.txt`에 `por_gap: 옛 정의(회차 평균 차) n행 (items.csv에 짝지은 회차 차 열 없음)` 줄이 붙습니다.
+`python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더>` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. 첫 열 `ITEM`은 ID로 읽고(탭 구분 표의 `ID` 열도 됨), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`(`center_delta_before`·`center_delta_after` 열 포함), `summary.txt`, `stability_overall.csv`(전체 안정성 한 행, group_summary.py 결과의 '전체' 행과 같은 값), `worst_items.csv`(비율 지표별 악화 상위 N ITEM), 지표 그림 6장(`sigma_die_ratio.png`, `sigma_run_ratio.png`, `meas_precision_ratio.png`, `stability_sigma_die_pct.png`, `stability_meas_precision_pct.png`, `verdict_center_delta.png`)으로 냅니다. run_all.py에서는 `--before`만 주면(`--groups` 없이도) `결과/compare/`에 생깁니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 실제 `ITEM` 이름이고, 입력에 summarize.py의 익명 `ID` 열이 같이 있으면 그 옆에 `ID` 열로 붙습니다. 비교 키는 항상 실제 ITEM입니다. 한쪽에만 있는 ITEM은 따로 표시하고 σ 집계에서 뺍니다. 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 `misaligned` 열에 표시만 하고 기본으로 σ 집계에 포함합니다. 빼려면 `--exclude-misaligned`를 붙입니다. `compare.csv`에는 측정 정밀도 열 `meas_precision_pct_before`·`meas_precision_pct_after`·`meas_precision_pct_change`(개선−기존)와 `meas_precision_status`(`sigma_die_status`와 같은 규칙: lower/higher/same, 낮을수록 좋음)도 붙습니다. 입력 items.csv에 `meas_precision_pct` 열이 없으면(예전 결과) 100 × √(σ_die² + σ_run²) / |por_median|으로 계산합니다. `evidence <items.csv> -o <폴더>` 모드도 있고, 그 `evidence.csv`에도 같은 방식의 `meas_precision_pct` 열이 붙습니다. `evidence.csv`의 group은 fail_evidence.py와 같이 '차이'/'미결' 둘뿐입니다. `judgment` 바로 앞의 `status` 열에는 items.csv `status` 값을 그대로 옮기고(열이 없는 옛 items.csv면 빈 칸), status가 '정상'이 아니면 `judgment` 끝에 `원인(status): <status>`를 덧붙입니다. `evidence.csv`의 `por_gap_over_delta`(참고용, 판단에 쓰지 않음)도 fail_evidence.py와 같은 규칙입니다. items.csv의 짝지은 회차 차를 쓰고(`por_gap_def` = '짝지은 회차 차'), 열이 없는 옛 items.csv면 회차 평균의 max − min으로 계산하며(`por_gap_def` = '옛 정의(회차 평균 차)'), 그런 행이 있으면 `summary.txt`에 `por_gap: 옛 정의(회차 평균 차) n행 (items.csv에 짝지은 회차 차 열 없음)` 줄이 붙습니다.
 
-`--plot-top N`(기본 30)은 σ 짝 그림에 |개선−기존| 변화가 큰 ITEM N개만 그리고 제목에 '상위 N / 전체 M'을 적습니다(전체가 N개 이하면 '전체 M'). `run_all.py --plot-top N`으로도 넘길 수 있습니다.
+`--plot-top N`(기본 10, 1 이상)은 각 비율 지표 그림 아래 악화 상위 표와 `worst_items.csv`에 넣을 ITEM 수입니다. 그림 자체는 모든 ITEM의 분포를 그립니다. `run_all.py --plot-top N`으로도 넘길 수 있습니다.
+
+지표 그림 공통 규칙: 비율·σ%는 로그 축, 축 범위는 1~99 백분위이고 밖의 값은 경계에 붙여 그 개수를 적습니다. 0·음수 값은 로그 축에 그릴 수 없어 빼고 그 개수를 적습니다. 기준선은 비율 1, center/Δ 그림은 0과 ±1입니다. n과 중앙값을 적고, 제목은 한 줄 한글입니다.
 
 기존·개선 어느 쪽이든 판정 제외인 행은 σ 집계에서 빼고, 1개 이상이면 `summary.txt`에 "- 판정 제외 (기존 또는 개선, σ 집계에서 뺌): n" 줄을 넣습니다.
 
 ## 그룹별 요약 (`group_summary.py`)
 
-`python group_summary.py --compare compare.csv --groups 그룹.csv --out group_out` — `compare_before_after.py compare`가 만든 `compare.csv`를 ITEM 그룹별로 요약합니다. 그룹 파일은 첫 열 ITEM, 둘째 열 그룹(쉼표 또는 탭, 헤더는 있어도 없어도 됨)이고, 그룹 파일 ITEM은 이름 그대로 먼저 맞추고, 안 맞으면 앞의 `F<숫자>_` 접두어를 떼고 다시 맞춥니다. 그래도 없는 ITEM은 '미지정'으로 묶습니다. presence=matched인 행을 씁니다. 정렬 의심 행도 기본으로 포함하고, `--exclude-misaligned`를 주면 뺍니다(제외 열 이름은 기본 '제외(짝 없음)', 옵션을 주면 '제외(짝 없음, 정렬 의심)'). `stability_panel.png`의 σ_run 막대에는 값이 적히고, 중앙값이 0이면 '0 (σ_run=0 xx%)'로 표시합니다. 출력은 `group_summary.csv`(맨 위 '전체' 행), `verdict_by_group.csv`(그룹별 판정 변화), `ratio_hist.png`(σ_die 개선/기존 비 히스토그램), `density_die.png`(σ_die 기존 대 개선 산점도), `group_panel.png`(그룹별 비교, 그룹 10~20개 기준), `stability_by_group.csv`(그룹별 안정성: 기존끼리·개선끼리 σ_die%·σ_run% 중앙값과 사분위, 측정정밀도% 중앙값·25%·75%, σ_run=0 비율, 안정 순위), `stability_panel.png`(그룹별 안정성 그림)입니다. 안정성은 compare.csv의 `sigma_*_pct_*`·`meas_precision_pct_*` 열을 쓰고, 없으면 σ와 `por_median_*`로 계산하며, 둘 다 없으면 그림을 건너뜁니다.
+`python group_summary.py --compare compare.csv --groups 그룹.csv --out group_out` — `compare_before_after.py compare`가 만든 `compare.csv`를 ITEM 그룹별로 요약합니다. 그룹 파일은 첫 열 ITEM, 둘째 열 그룹(쉼표 또는 탭, 헤더는 있어도 없어도 됨)이고, 그룹 파일 ITEM은 이름 그대로 먼저 맞추고, 안 맞으면 앞의 `F<숫자>_` 접두어를 떼고 다시 맞춥니다. 그래도 없는 ITEM은 '미지정'으로 묶습니다. presence=matched인 행을 씁니다. 정렬 의심 행도 기본으로 포함하고, `--exclude-misaligned`를 주면 뺍니다(제외 열 이름은 기본 '제외(짝 없음)', 옵션을 주면 '제외(짝 없음, 정렬 의심)'). 출력은 `group_summary.csv`(맨 위 '전체' 행), `verdict_by_group.csv`(그룹별 판정 변화), `stability_by_group.csv`(그룹별 안정성: 기존끼리·개선끼리 σ_die%·σ_run% 중앙값과 사분위, 측정정밀도% 중앙값·25%·75%, σ_run=0 비율, 안정 순위), `group_dirs.csv`(그룹 이름 → 폴더 이름 변환표), compare와 같은 이름의 지표 그림 6장(그룹 비교: 가로 배치, 그룹별 분포와 전체 기준선), 그리고 그룹마다 `<폴더 이름>/` 안에 같은 6장(그 그룹 ITEM만)입니다. 그림 규칙은 위 compare 지표 그림과 같습니다. 안정성은 compare.csv의 `sigma_*_pct_*`·`meas_precision_pct_*` 열을 쓰고, 없으면 σ와 `por_median_*`로 계산하며, 둘 다 없으면 그림을 건너뜁니다.
+
+그룹 폴더 이름(`compare_metrics.safe_group_name`): 한글·영문·숫자·`-`·`_`만 남기고 나머지는 `_`로 바꾸며, 빈 이름은 `_`입니다. 바꾼 이름이 겹치면 뒤에 `_2`, `_3`…을 붙입니다. 실제 대응은 `group_dirs.csv`에서 확인합니다.
 
 판정 제외 행은 쓰는 행에서 빼고, 그런 행이 있을 때만 '판정 제외' 열을 붙입니다.
 
