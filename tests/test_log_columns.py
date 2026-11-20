@@ -72,6 +72,7 @@ def test_judge_log_policy_is_log10_1_plus_r():
     lr = pdc.judge_log(Y, z, R)
     assert lr["policy_margin"] == pytest.approx(math.log10(1 + R))
     assert lr["delta"] == pytest.approx(math.log10(1 + R) + lr["run_margin"])
+    assert lr["run_margin"] == lr["sigma_rep_log"]          # WO-W: 회차 항 = die별 log 회차 흔들림
     assert "blank_status" not in lr and "accuracy_margin" not in lr
 
 

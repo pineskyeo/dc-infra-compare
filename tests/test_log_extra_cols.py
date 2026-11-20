@@ -71,7 +71,7 @@ def is_target(row: dict) -> bool:
 
 
 def test_w1_names_and_position():
-    assert LOG_COLS[-4:] == EXTRA
+    assert LOG_COLS[-5:] == EXTRA + ["sigma_rep_log"]       # WO-W: sigma_rep_log 이 policy_margin_log 뒤
     assert len(set(LOG_COLS)) == len(LOG_COLS)
     row = run_item(pdc, *size_jitter_data())
     assert list(row)[-len(LOG_COLS):] == LOG_COLS
@@ -140,6 +140,7 @@ def test_w5_verdicts_same_as_head(data):
     Y, z = data()
     a, b = run_item(pdc, Y, z), run_item(old, Y, z)
     assert a["verdict"] == b["verdict"]
-    va, vb = a["verdict_log"], b["verdict_log"]
-    # HEAD 는 흔들림 status ITEM 만 채웠다 (WO-U-A2 에서 대상 확대). HEAD 가 채운 곳은 같아야 한다.
-    assert va == vb or (isinstance(vb, float) and math.isnan(vb))
+    # WO-W: verdict_log 은 Δ_log 의 회차 항이 sigma_rep_log 로 바뀌어 HEAD 와 같을 필요가 없다.
+    # 판정 제외 (0값·부호 섞임) 는 그대로.
+    if b["verdict_log"] == V_EXCLUDED and b["log_reason"] in ("0값 있음", "부호 섞임", "0값 있음; 부호 섞임"):
+        assert a["verdict_log"] == V_EXCLUDED and a["log_reason"] == b["log_reason"]

@@ -58,7 +58,8 @@ STATUS_COLS = ["status", *METRIC_COLS, *SHAPE_COLS, "mean_median_ratio"]
 PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
 LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta",
             "ci_half_over_delta_log", "spearman_size_jitter_log", "log_reason",     # 0 없고 부호 하나인 ITEM 참고용
-            "sigma_die_log", "sigma_run_log", "below_linear_loq", "policy_margin_log"]   # 분석용, 판정에 안 씀
+            "sigma_die_log", "sigma_run_log", "below_linear_loq", "policy_margin_log",   # 분석용, 판정에 안 씀
+            "sigma_rep_log"]                                                             # log 판정의 회차 항
 POR_GAP_NOISE_K = 3             # 조건 불안정: 짝지은 회차 차 ≥ 이 배수 × 회차 중앙값 차의 표준오차
 ST_OK, ST_UNSTABLE, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "분해능 부족", "산포 0"
 ST_RUN_JITTER, ST_SIZE_JITTER, ST_SIZE_JITTER_POS = "회차 흔들림", "작을수록 흔들림", "클수록 흔들림"
@@ -398,8 +399,10 @@ def excluded_reason(center: float, lo: float, hi: float, s_die: float, s_run: fl
     return f"{V_EXCLUDED}: {'; '.join(causes)}" if causes else None
 
 
-def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo | None = None) -> tuple[dict, np.ndarray]:
-    """ITEM 하나 판정. (결과, 튀는 die 표시)"""
+def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo | None = None,
+          run_term: float | None = None) -> tuple[dict, np.ndarray]:
+    """ITEM 하나 판정. (결과, 튀는 die 표시)
+    run_term 이 None 이면 회차 항 = t(0.95, J−1) × √(1 + 1/J) × sigma_run, 값을 주면 Δ = r × level + run_term."""
     n, J = Y.shape
     R = Y.mean(axis=1)
     level = abs(float(np.median(R)))
@@ -430,7 +433,9 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo
     p_t = paired_t_p(d)
     por_pairs = [paired_t_p(Y[:, j] - Y[:, i]) for i in range(J) for j in range(i + 1, J)]
     center, lo, hi = ci_median(d)
-    policy, run_term = r * level, run_factor(J) * s_run
+    policy = r * level
+    if run_term is None:
+        run_term = run_factor(J) * s_run
     delta = policy + run_term
     out = {
         "n_die": n, "por_median": float(np.median(R)),
@@ -476,13 +481,22 @@ def judge_log(Y: np.ndarray, z: np.ndarray, r: float) -> dict:
     정책 허용폭: 선형의 r × |POR| 는 log 공간에서 더하는 폭 log10(1 + r) 이다. judge 는 r × level
     (level = |중앙값(die별 L 회차 평균)|) 로 곱하므로 r_log = log10(1 + r) / level 을 넘겨 policy_margin = log10(1 + r) 이
     되게 한다 (level 0 이면 policy 0). ASSUMED: 'log10(1+r) 로 넘김' 을 judge 의 곱셈 뒤 정책 폭이 log10(1+r) 이 되도록 해석.
-    Δ_log = log10(1 + r) + t(0.95, J−1) × √(1 + 1/J) × sigma_run(L).
+    Δ_log = log10(1 + r) + sigma_rep_log (t·√(1 + 1/J) 배수 없음). sigma_rep_log 은 sigma_rep_log() 참고.
+    sigma_run(L) (웨이퍼 공통 회차 이동) 은 결과의 sigma_run 에 남지만 Δ_log 에는 안 쓴다.
     blank_lim·info(LoQ 하한·장비 분해능·장비 정확도)는 원측정값 단위라 넘기지 않는다 (None).
     ASSUMED: LoQ 는 judge 가 L 에서 구한 값을 그대로 쓴다 (|L| < LoQ_log 면 log 판정도 '<LoQ' 쪽으로 감)."""
     L, w = np.log10(np.abs(Y)), np.log10(np.abs(z))
     level = abs(float(np.median(L.mean(axis=1))))
     r_log = float(np.log10(1 + r)) / level if level > 0 else 0.0
-    return judge(L, w, r_log, None, None)[0]
+    rep = sigma_rep_log(L)
+    return {**judge(L, w, r_log, None, None, run_term=rep)[0], "sigma_rep_log": rep}
+
+
+def sigma_rep_log(L: np.ndarray) -> float:
+    """die별 log 회차 흔들림: median over die of std(die 의 L 회차값, ddof=1). L = log10|Y| (die × 회차).
+    die 안에서 유한한 회차 값이 2개 미만인 die 는 빼고, 남는 die 가 없으면 NaN."""
+    sds = [float(np.std(v, ddof=1)) for v in (row[np.isfinite(row)] for row in L) if v.size >= 2]
+    return float(np.median(sds)) if sds else np.nan
 
 
 def _ci_half_over_delta(res: dict) -> float:
@@ -496,8 +510,11 @@ def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict) -> dict:
     spearman_size_jitter_log = Spearman ρ(log10|회차 평균|, die별 log10|값| 회차 범위), _jitter 와 같은 _size_rho.
     log_reason 은 log 판정이 된 ITEM 이면 judge_log 의 reason (ASSUMED).
     분석용 열 (판정에 안 씀): sigma_*_log 는 judge_log 결과의 sigma_die·sigma_run, verdict_log 가 판정 제외면 NaN.
+    sigma_run_log (웨이퍼 공통 회차 이동) 은 판정에 안 씀.
     policy_margin_log = log10(1 + r), log 판정이 된 ITEM 만. below_linear_loq 는 모든 ITEM:
-    선형 DOE 중심 |POR 중앙값 + center| < 선형 LoQ (judge 의 LoQ zone 비교와 같은 값), LoQ·중심이 NaN 이면 NaN."""
+    선형 DOE 중심 |POR 중앙값 + center| < 선형 LoQ (judge 의 LoQ zone 비교와 같은 값), LoQ·중심이 NaN 이면 NaN.
+    sigma_rep_log = verdict_log 의 회차 항 (Δ_log = log10(1 + r) + sigma_rep_log), log 판정이 된 ITEM 만
+    (0값·부호 섞임이면 NaN)."""
     out = {**dict.fromkeys(LOG_COLS, np.nan), "log_reason": ""}
     loq = float(res.get("LoQ", np.nan))
     doe_c = float(res.get("por_median", np.nan)) + float(res.get("center", np.nan))
@@ -518,7 +535,7 @@ def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict) -> dict:
             "ci_high_log": lr["ci_high"], "delta_log": lr["delta"], "ci_half_over_delta_log": _ci_half_over_delta(lr),
             "spearman_size_jitter_log": rho, "log_reason": lr["reason"],
             **({} if lr["verdict"] == V_EXCLUDED else {"sigma_die_log": lr["sigma_die"], "sigma_run_log": lr["sigma_run"]}),
-            "policy_margin_log": float(np.log10(1 + r))}
+            "policy_margin_log": float(np.log10(1 + r)), "sigma_rep_log": lr["sigma_rep_log"]}
 
 
 LOG_TARGET_STATUSES = (ST_SIZE_JITTER, ST_SIZE_JITTER_POS)
