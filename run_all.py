@@ -47,6 +47,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--out", default="run_all_out", help="모든 산출물을 둘 폴더 (기본 run_all_out)")
     ap.add_argument("--before", help="기존(이전) 결과 items.csv. 주면 기존·개선 비교 단계 추가")
     ap.add_argument("--groups", help="ITEM,그룹 파일. 주면 그룹별 요약 단계 추가 (--before 필요)")
+    ap.add_argument("--plot-top", type=int, default=None,
+                    help="비교 단계 σ 짝 그림에 변화가 큰 ITEM N개만 그린다 (compare_before_after.py 기본 30)")
     return ap
 
 
@@ -88,8 +90,10 @@ def plan_steps(ap: argparse.ArgumentParser, a: argparse.Namespace, out: Path) ->
         ("plot_verdicts", ["plot_verdicts.py", "--items-csv", items, "--summary", "--out", str(out / "plots")], None),
     ]
     if a.before:
-        steps.append(("compare_before_after",
-                      ["compare_before_after.py", "compare", _abs(a.before), items, "-o", str(out / "compare")], None))
+        cmp_args = ["compare_before_after.py", "compare", _abs(a.before), items, "-o", str(out / "compare")]
+        if a.plot_top is not None:
+            cmp_args += ["--plot-top", str(a.plot_top)]
+        steps.append(("compare_before_after", cmp_args, None))
     if a.groups:
         steps.append(("group_summary",
                       ["group_summary.py", "--compare", str(out / "compare" / "compare.csv"),

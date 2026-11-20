@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from matplotlib import font_manager as fm  # noqa: E402
+from matplotlib.collections import LineCollection  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -576,28 +577,51 @@ def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> 
     return "\n".join(lines) + "\n"
 
 
-def _paired_plot(ok: pd.DataFrame, before_col: str, after_col: str, title: str, xlabel: str, path: Path) -> None:
-    rows = []
-    for _, r in ok.iterrows():
-        if _finite(r[before_col]) or _finite(r[after_col]):
-            rows.append(r)
-    if not rows:
-        return
-    sub = pd.DataFrame(rows)
+def _top_changed(ok: pd.DataFrame, before_col: str, after_col: str, top: int) -> tuple[pd.DataFrame, int]:
+    """그릴 행(기존·개선 중 하나라도 finite)에서 상위 top개와 전체 개수.
+
+    둘 다 finite인 행을 |개선−기존| 내림차순(동점은 원래 순서)으로 먼저, 한쪽만 finite인 행을
+    원래 순서로 뒤에 둔다.
+    """
+    b = pd.to_numeric(ok[before_col], errors="coerce").to_numpy(dtype=float)
+    a = pd.to_numeric(ok[after_col], errors="coerce").to_numpy(dtype=float)
+    fb, fa = np.isfinite(b), np.isfinite(a)
+    both = np.flatnonzero(fb & fa)
+    one = np.flatnonzero(fb ^ fa)
+    both = both[np.argsort(-np.abs(a[both] - b[both]), kind="stable")]
+    order = np.concatenate([both, one])
+    return ok.iloc[order[:top]], len(order)
+
+
+def _paired_title(title: str, n_total: int, top: int) -> str:
+    return f"{title} (상위 {top} / 전체 {n_total})" if n_total > top else f"{title} (전체 {n_total})"
+
+
+def _paired_plot(ok: pd.DataFrame, before_col: str, after_col: str, title: str, xlabel: str, path: Path,
+                 top: int = 30) -> str | None:
+    """σ 짝 그림. 변화가 큰 상위 top개 ITEM만 그리고, 붙인 제목을 돌려준다(그릴 행이 없으면 None)."""
+    sub, n_total = _top_changed(ok, before_col, after_col, top)
+    if not n_total:
+        return None
+    full_title = _paired_title(title, n_total, top)
+    b = pd.to_numeric(sub[before_col], errors="coerce").to_numpy(dtype=float)
+    a = pd.to_numeric(sub[after_col], errors="coerce").to_numpy(dtype=float)
+    fb, fa = np.isfinite(b), np.isfinite(a)
     fig, ax = plt.subplots(figsize=(5.4, max(2.0, 0.32 * len(sub) + 0.9)), dpi=200)
-    y = np.arange(len(sub))[::-1]
-    for yy, (_, r) in zip(y, sub.iterrows()):
-        b, a = r[before_col], r[after_col]
-        if _finite(b) and _finite(a):
-            color = AFTER_COLOR if a < b else (WARN_COLOR if a > b else GRAY)
-            ax.plot([b, a], [yy, yy], color=color, lw=1.4, zorder=2)
-        if _finite(b):
-            ax.plot(b, yy, "o", color=BEFORE_COLOR, ms=6, mec="white", mew=0.5, zorder=3)
-        if _finite(a):
-            ax.plot(a, yy, "o", color=AFTER_COLOR, ms=6, mec="white", mew=0.5, zorder=3)
+    y = np.arange(len(sub))[::-1]  # 첫 행(변화가 가장 큰 행)이 맨 위
+    both = fb & fa
+    if both.any():
+        bb, aa, yy = b[both], a[both], y[both]
+        colors = np.where(aa < bb, AFTER_COLOR, np.where(aa > bb, WARN_COLOR, GRAY))
+        segs = np.stack([np.column_stack([bb, yy]), np.column_stack([aa, yy])], axis=1)
+        ax.add_collection(LineCollection(segs, colors=list(colors), linewidths=1.4, zorder=2))
+    # ms=6 (지름 6pt) → scatter s는 면적(pt²)
+    ax.scatter(b[fb], y[fb], s=36, color=BEFORE_COLOR, edgecolors="white", linewidths=0.5, zorder=3)
+    ax.scatter(a[fa], y[fa], s=36, color=AFTER_COLOR, edgecolors="white", linewidths=0.5, zorder=3)
+    ax.autoscale_view()
     ax.set_yticks(y, sub["ID"].tolist())
     ax.set_xlabel(xlabel)
-    ax.set_title(title, fontsize=10, loc="left", color="#404040")
+    ax.set_title(full_title, fontsize=10, loc="left", color="#404040")
     ax.legend(
         handles=[
             Line2D([], [], color=BEFORE_COLOR, marker="o", lw=0, label="기존"),
@@ -607,6 +631,7 @@ def _paired_plot(ok: pd.DataFrame, before_col: str, after_col: str, title: str, 
     )
     fig.savefig(path, bbox_inches="tight", pad_inches=0.08)
     plt.close(fig)
+    return full_title
 
 
 def _scatter_plot(ok: pd.DataFrame, path: Path) -> None:
@@ -619,7 +644,7 @@ def _scatter_plot(ok: pd.DataFrame, path: Path) -> None:
     for ax, (xb, xa, title) in zip(axes, specs):
         x = ok[xb].astype(float)
         y = ok[xa].astype(float)
-        mask = x.map(_finite) & y.map(_finite)
+        mask = np.isfinite(x) & np.isfinite(y)
         ax.scatter(x[mask], y[mask], s=28, color=AFTER_COLOR, zorder=3, edgecolors="white", linewidths=0.5)
         vals = pd.concat([x[mask], y[mask]])
         if len(vals):
@@ -653,7 +678,7 @@ def _with_anon(df: pd.DataFrame, *sources: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def run_compare(before_path: str, after_path: str, out_dir: str) -> pd.DataFrame:
+def run_compare(before_path: str, after_path: str, out_dir: str, plot_top: int = 30) -> pd.DataFrame:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     configure_font()
@@ -665,9 +690,9 @@ def run_compare(before_path: str, after_path: str, out_dir: str) -> pd.DataFrame
     print(text)
     ok = _valid_matched(cmp_df)
     _paired_plot(ok, "sigma_die_pct_before", "sigma_die_pct_after",
-                 "ITEM별 σ_die (%)", "σ_die / |중앙값| (%)", out / "sigma_die_paired.png")
+                 "ITEM별 σ_die (%)", "σ_die / |중앙값| (%)", out / "sigma_die_paired.png", top=plot_top)
     _paired_plot(ok, "sigma_run_pct_before", "sigma_run_pct_after",
-                 "ITEM별 σ_run (%)", "σ_run / |중앙값| (%)", out / "sigma_run_paired.png")
+                 "ITEM별 σ_run (%)", "σ_run / |중앙값| (%)", out / "sigma_run_paired.png", top=plot_top)
     _scatter_plot(ok, out / "scatter_before_after.png")
     return cmp_df
 
@@ -688,14 +713,18 @@ def main(argv: list[str] | None = None) -> int:
     p_cmp.add_argument("-o", required=True, dest="out")
     p_cmp.add_argument("--exclude-misaligned", action="store_true",
                        help="정렬 의심(POR 중앙값 상대차 > 20%%) ITEM을 비교에서 뺀다 (기본: 포함)")
+    p_cmp.add_argument("--plot-top", type=int, default=30,
+                       help="σ 짝 그림에 |개선−기존| 변화가 큰 ITEM N개만 그린다 (기본 30)")
 
     args = parser.parse_args(argv)
+    if args.cmd == "compare" and args.plot_top < 1:
+        parser.error("--plot-top 은 1 이상이어야 합니다")
     global INCLUDE_MISALIGNED
     INCLUDE_MISALIGNED = not getattr(args, "exclude_misaligned", False)
     if args.cmd == "evidence":
         run_evidence(args.result, args.out)
     else:
-        run_compare(args.before, args.after, args.out)
+        run_compare(args.before, args.after, args.out, plot_top=args.plot_top)
     return 0
 
 

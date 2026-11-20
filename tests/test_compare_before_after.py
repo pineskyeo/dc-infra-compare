@@ -157,3 +157,87 @@ def test_evidence_has_meas_precision_pct(tmp_path):
     assert cols.index("meas_precision_pct") == cols.index("sigma_die_pct") + 1
     a1 = ev.set_index("ITEM").loc["SYNTH_A1", "meas_precision_pct"]
     assert a1 == pytest.approx(math.hypot(8.0, 2.0))
+
+
+# ---------------------------------------------------------------- σ 짝 그림 상위 N (--plot-top)
+
+NAN = float("nan")
+
+
+def _paired_df() -> pd.DataFrame:
+    # |변화|: P1 1, P2 5, P3 3, P4 한쪽만, P5 5(P2와 동점, 뒤), P6 둘 다 NaN(제외), P7 한쪽만
+    return pd.DataFrame({
+        "ID": ["P1", "P2", "P3", "P4", "P5", "P6", "P7"],
+        "b": [1.0, 10.0, 4.0, 2.0, 6.0, NAN, NAN],
+        "a": [2.0, 5.0, 7.0, NAN, 1.0, NAN, 3.0],
+    })
+
+
+def test_top_changed_order_and_count():
+    from compare_before_after import _top_changed
+
+    sub, n = _top_changed(_paired_df(), "b", "a", 100)
+    assert n == 6
+    assert sub["ID"].tolist() == ["P2", "P5", "P3", "P1", "P4", "P7"]
+
+    sub3, n3 = _top_changed(_paired_df(), "b", "a", 3)
+    assert n3 == 6
+    assert sub3["ID"].tolist() == ["P2", "P5", "P3"]
+
+    sub5, _ = _top_changed(_paired_df(), "b", "a", 5)
+    assert sub5["ID"].tolist() == ["P2", "P5", "P3", "P1", "P4"]
+
+
+def test_paired_plot_title(tmp_path):
+    from compare_before_after import _paired_plot
+
+    title = _paired_plot(_paired_df(), "b", "a", "T", "x", tmp_path / "p.png", top=3)
+    assert title == "T (상위 3 / 전체 6)"
+    assert (tmp_path / "p.png").is_file()
+
+    title_all = _paired_plot(_paired_df(), "b", "a", "T", "x", tmp_path / "q.png", top=6)
+    assert title_all == "T (전체 6)"
+    assert "상위" not in title_all
+
+    empty = pd.DataFrame({"ID": ["E"], "b": [NAN], "a": [NAN]})
+    assert _paired_plot(empty, "b", "a", "T", "x", tmp_path / "e.png", top=3) is None
+    assert not (tmp_path / "e.png").exists()
+
+
+def test_cli_plot_top(tmp_path, monkeypatch):
+    import compare_before_after as cba
+
+    seen = {}
+    monkeypatch.setattr(cba, "run_compare",
+                        lambda b, a, o, plot_top=30: seen.setdefault("top", plot_top))
+    assert cba.main(["compare", "b.tsv", "a.tsv", "-o", str(tmp_path), "--plot-top", "7"]) == 0
+    assert seen["top"] == 7
+    seen.clear()
+    assert cba.main(["compare", "b.tsv", "a.tsv", "-o", str(tmp_path)]) == 0
+    assert seen["top"] == 30
+    with pytest.raises(SystemExit):
+        cba.main(["compare", "b.tsv", "a.tsv", "-o", str(tmp_path), "--plot-top", "0"])
+
+
+def test_compare_with_plot_top_runs(tmp_path):
+    out = tmp_path / "out"
+    assert main(["compare", str(BEFORE), str(AFTER), "-o", str(out), "--plot-top", "2"]) == 0
+    assert (out / "sigma_die_paired.png").is_file()
+
+
+def test_run_all_forwards_plot_top(tmp_path):
+    import run_all
+
+    ap = run_all.build_parser()
+    base = ["--por", "p1", "--doe", "d1", "--before", "b.csv"]
+
+    def cmp_args(argv):
+        a = ap.parse_args(argv)
+        steps = dict((name, args) for name, args, _ in run_all.plan_steps(ap, a, tmp_path))
+        return steps["compare_before_after"]
+
+    with_top = cmp_args(base + ["--plot-top", "5"])
+    assert with_top[-2:] == ["--plot-top", "5"]
+    without = cmp_args(base)
+    assert "--plot-top" not in without
+    assert without[-2:] == ["-o", str(tmp_path / "compare")]
