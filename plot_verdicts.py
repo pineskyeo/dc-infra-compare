@@ -21,6 +21,7 @@ import pandas as pd
 from matplotlib import font_manager, rcParams
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Rectangle
+from matplotlib.ticker import FuncFormatter, NullFormatter
 
 from infra_compare import load_blank, read_csv_auto
 from por_doe_compare import (
@@ -71,9 +72,36 @@ LOQ_ZONES = ("검출한계 이하", "검출~정량")
 # 각 함수가 시작할 때 지우는 자기 그림(--out 기준 glob). 장 수가 줄거나 건너뛴 그림이 남지 않게 한다.
 OWN_OUTPUTS = {
     "summary": ("summary_[0-9][0-9][0-9].png",),
+    "dashboard": ("summary.png",),
+    "group": ("summary_group_*.png",),
     "loq": ("summary_loq.png",),
     "detail": ("detail/*.png",),
 }
+
+# 한 장 대시보드(summary.png). 높이는 SUMMARY_MAX_HEIGHT_IN을 넘지 않는다.
+SUMMARY_MAX_HEIGHT_IN = 16.0
+DASHBOARD_TOP_IN = 4.0            # 위 패널(히스토그램·LoQ) 축 높이
+DASHBOARD_TOP_MARGIN_IN = 0.8     # 제목
+DASHBOARD_GAP_IN = 1.1            # 히스토그램 x라벨 + 아래 열 제목
+DASHBOARD_BOTTOM_MARGIN_IN = 0.7  # 아래 x축 설명·생략 안내
+DASHBOARD_FIXED_IN = DASHBOARD_TOP_IN + DASHBOARD_TOP_MARGIN_IN + DASHBOARD_GAP_IN + DASHBOARD_BOTTOM_MARGIN_IN
+DASHBOARD_ROW_IN = 0.16           # 여유가 있을 때 한 행 높이
+DASHBOARD_MIN_ROW_IN = 0.06       # 이보다 좁으면 읽을 수 없어 열을 늘리거나 잘라낸다
+DASHBOARD_EMPTY_IN = 1.0          # 아래 패널 최소 높이
+DASHBOARD_MAX_COLS = 6
+DASHBOARD_COL_WIDTH_IN = 3.0
+DASHBOARD_MIN_WIDTH_IN = 13.0
+DASHBOARD_BINS = 48
+DASHBOARD_FLAGGED = ("차이", "미결")
+DASHBOARD_HIST_ORDER = ("동등", "미결", "차이")
+DASHBOARD_HIST_TITLE = "정량 zone center/Δ 분포"
+DASHBOARD_HIST_XLABEL = "center / Δ (끝 막대에 범위 밖 포함)"
+DASHBOARD_HIST_YLABEL = "ITEM 수"
+DASHBOARD_COUNTS = "동등 {eq:,} · 미결 {und:,} · 차이 {diff:,} · 판정 제외 {excl:,} · LoQ 미만 {loq:,}"
+DASHBOARD_FLAGGED_TITLE = "차이·미결"
+DASHBOARD_NO_FLAGGED = "차이·미결 ITEM 없음"
+DASHBOARD_NO_LOQ = "LoQ 미만 없음"
+DASHBOARD_TRUNCATED = "표시 {shown:,} / 전체 {total:,} · 나머지는 --full"
 
 
 def remove_own_outputs(out: Path, patterns) -> None:
@@ -89,6 +117,17 @@ LOQ_YLABEL = "|center| / Δ"
 LOQ_FOOTNOTE = "도구의 차이 규칙: CI가 통째로 ±Δ 밖(lo > Δ 또는 hi < -Δ); |center|/Δ ≥ 1이 아님."
 NO_LOQ_ITEMS = "해당 ITEM 없음"
 NO_VALID_POINTS = "표시할 유효한 좌표 없음"
+# LoQ 패널은 두 축 모두 log. 범위 밖·0 이하·무한대 값은 축 끝에 다른 마커로 붙인다.
+LOQ_AXIS_MIN = 1e-3
+LOQ_AXIS_MAX = 1e3
+LOQ_CLIPPED_NOTE = "축 끝 클리핑 {n}개 (0값 {zero}개 포함)"
+# (x, y, 문구): x>1은 DOE 중심이 LoQ 위, y>1은 이동이 Δ 초과.
+LOQ_QUADRANT_NOTES = (
+    (0.98, 0.98, "LoQ 위 · 이동 Δ 초과"),
+    (0.02, 0.98, "LoQ 아래 · 이동 Δ 초과"),
+    (0.98, 0.02, "LoQ 위 · 이동 Δ 이내"),
+    (0.02, 0.02, "LoQ 아래 · 이동 Δ 이내"),
+)
 DETAIL_LEFT_TITLE = "POR 회차별 / DOE die 값"
 DETAIL_RIGHT_TITLE = "d = DOE - POR 평균 (정렬)"
 DETAIL_LEFT_YLABEL = "측정값"
@@ -118,6 +157,14 @@ KOREAN_TEXTS = tuple(dict.fromkeys(
         V_EXCLUDED,
         EXCLUDED_NOTE.format(n=1),
         NO_MAIN_ITEMS,
+        DASHBOARD_HIST_TITLE,
+        DASHBOARD_HIST_XLABEL,
+        DASHBOARD_HIST_YLABEL,
+        DASHBOARD_COUNTS.format(eq=1, und=2, diff=3, excl=4, loq=5),
+        DASHBOARD_FLAGGED_TITLE,
+        DASHBOARD_NO_FLAGGED,
+        DASHBOARD_NO_LOQ,
+        DASHBOARD_TRUNCATED.format(shown=1, total=2),
         LOQ_TITLE,
         LOQ_XLABEL,
         LOQ_YLABEL,
@@ -126,6 +173,8 @@ KOREAN_TEXTS = tuple(dict.fromkeys(
         LOQ_FOOTNOTE,
         NO_LOQ_ITEMS,
         NO_VALID_POINTS,
+        LOQ_CLIPPED_NOTE.format(n=3, zero=1),
+        *(note for _, _, note in LOQ_QUADRANT_NOTES),
         DETAIL_LEFT_TITLE,
         DETAIL_RIGHT_TITLE,
         DETAIL_LEFT_YLABEL,
@@ -214,7 +263,12 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--out", default="por_doe_out/plots/", help="PNG output directory")
     ap.add_argument("--dpi", type=int, default=100, help="PNG 해상도 (기본 100)")
     ap.add_argument("--font", metavar="PATH", help="한글 폰트 파일 경로")
-    ap.add_argument("--per-page", type=int, default=1200, help="요약 한 장의 최대 ITEM 수 (기본 1200)")
+    ap.add_argument("--full", action="store_true",
+                    help="summary.png에 더해 모든 정량 ITEM을 그린 summary_NNN.png도 작성 (--per-page)")
+    ap.add_argument("--groups", metavar="FILE",
+                    help="ITEM,group 두 열 파일. 주면 그룹마다 summary_group_<이름>.png도 작성 "
+                         "(파일에 없는 ITEM은 '(그룹 없음)')")
+    ap.add_argument("--per-page", type=int, default=1200, help="--full 요약 한 장의 최대 ITEM 수 (기본 1200)")
     ap.add_argument("--xlim", type=_positive_float, default=DEFAULT_XLIM, metavar="X",
                     help=f"요약 본 패널 x축 범위 ±X (차이/Δ, 기본 {DEFAULT_XLIM:g}). 밖은 끝에서 잘라 화살표로 표시")
 
@@ -355,6 +409,51 @@ def summary_legend_labels(
     return labels
 
 
+def _draw_ci_rows(
+    ax, page: pd.DataFrame, xlim: float, key: str, colors: dict,
+    slots: int | None = None, marker_scale: float = 1.0,
+) -> None:
+    """clip_summary()를 거친 행을 위에서부터 한 줄씩 CI 가로선 + 중심점으로 그리고 ±1 띠를 깐다.
+    key 열 값으로 colors의 색을 고른다. slots를 주면 y축을 그 줄 수에 맞춰(위 정렬) 열끼리 눈금을 맞춘다."""
+    count = len(page)
+    slots = max(slots or count, 1)
+    y = (slots - 1) - np.arange(count)
+    for name, color in colors.items():
+        in_group = (page[key] == name) & page["_valid"]
+        mask = in_group.to_numpy()
+        if not mask.any():
+            continue
+        ax.hlines(
+            y[mask], page.loc[mask, "_low_x"], page.loc[mask, "_high_x"],
+            color=color, linewidth=0.55, alpha=0.8, zorder=2,
+        )
+        center = (in_group & page["_center_in"]).to_numpy()
+        ax.scatter(
+            page.loc[center, "_center"], y[center], s=12 * marker_scale, color=color,
+            edgecolors="white", linewidths=0.25, zorder=3,
+        )
+        for side, x, marker in (("_cut_low", -xlim, "<"), ("_cut_high", xlim, ">")):
+            cut = (in_group & page[side]).to_numpy()
+            if cut.any():
+                ax.scatter(
+                    np.full(int(cut.sum()), x), y[cut], s=14 * marker_scale, marker=marker,
+                    color=color, linewidths=0, zorder=4, clip_on=False,
+                )
+
+    ax.axvspan(-1, 1, color="#0072B2", alpha=0.07, zorder=0)
+    ax.axvline(-1, color="#666666", linewidth=0.7, linestyle="--", zorder=1)
+    ax.axvline(1, color="#666666", linewidth=0.7, linestyle="--", zorder=1)
+    ax.axvline(0, color="#999999", linewidth=0.5, zorder=1)
+    ax.set_xlim(-xlim * 1.03, xlim * 1.03)
+    ax.set_ylim(-1, slots)
+    ax.set_yticks([])
+    ax.tick_params(axis="y", length=0)
+    ax.set_axisbelow(True)
+    ax.grid(axis="x", color="#DDDDDD", linewidth=0.5)
+    for spine in ("top", "right", "left"):
+        ax.spines[spine].set_visible(False)
+
+
 def plot_summary(
     items: pd.DataFrame, out: Path, dpi: int = 100, per_page: int = 1200, xlim: float = DEFAULT_XLIM,
 ) -> list[Path]:
@@ -381,38 +480,7 @@ def plot_summary(
         height = max(3.5, min(30.0, 1.8 + 0.018 * max(count, 1)))
         fig, ax = plt.subplots(figsize=(10, height))
         try:
-            y = np.arange(count)[::-1]
-            for category in CATEGORY_ORDER:
-                in_category = (page["_category"] == category) & page["_valid"]
-                mask = in_category.to_numpy()
-                if not mask.any():
-                    continue
-                color = CATEGORY_COLORS[category]
-                ax.hlines(
-                    y[mask], page.loc[mask, "_low_x"], page.loc[mask, "_high_x"],
-                    color=color, linewidth=0.55, alpha=0.8, zorder=2,
-                )
-                center = (in_category & page["_center_in"]).to_numpy()
-                ax.scatter(
-                    page.loc[center, "_center"], y[center], s=12, color=color,
-                    edgecolors="white", linewidths=0.25, zorder=3,
-                )
-                for side, x, marker in (("_cut_low", -xlim, "<"), ("_cut_high", xlim, ">")):
-                    cut = (in_category & page[side]).to_numpy()
-                    if cut.any():
-                        ax.scatter(
-                            np.full(int(cut.sum()), x), y[cut], s=14, marker=marker,
-                            color=color, linewidths=0, zorder=4, clip_on=False,
-                        )
-
-            ax.axvspan(-1, 1, color="#0072B2", alpha=0.07, zorder=0)
-            ax.axvline(-1, color="#666666", linewidth=0.7, linestyle="--", zorder=1)
-            ax.axvline(1, color="#666666", linewidth=0.7, linestyle="--", zorder=1)
-            ax.axvline(0, color="#999999", linewidth=0.5, zorder=1)
-            ax.set_xlim(-xlim * 1.03, xlim * 1.03)
-            ax.set_ylim(-1, max(count, 1))
-            ax.set_yticks([])
-            ax.tick_params(axis="y", length=0)
+            _draw_ci_rows(ax, page, xlim, "_category", CATEGORY_COLORS)
             ax.set_xlabel(SUMMARY_XLABEL)
             ax.set_ylabel(SUMMARY_YLABEL)
             start = (page_number - 1) * per_page
@@ -421,10 +489,6 @@ def plot_summary(
             else:
                 ax.set_title(SUMMARY_TITLE)
                 ax.text(0.5, 0.5, NO_MAIN_ITEMS, transform=ax.transAxes, ha="center", va="center")
-            ax.set_axisbelow(True)
-            ax.grid(axis="x", color="#DDDDDD", linewidth=0.5)
-            for spine in ("top", "right", "left"):
-                ax.spines[spine].set_visible(False)
 
             clipped_count = int((page["_cut_low"] | page["_cut_high"]).sum())
             labels = summary_legend_labels(page, loq, clipped_count, xlim)
@@ -450,12 +514,185 @@ def plot_summary(
     return paths
 
 
-def plot_loq(items: pd.DataFrame, out: Path, dpi: int = 100) -> Path:
-    """LoQ 미만 zone의 DOE 중심/LoQ와 center/delta 산점도를 저장한다."""
-    remove_own_outputs(out, OWN_OUTPUTS["loq"])
-    _require_columns(items, {"zone", "doe_center", "LoQ", "center", "delta", "verdict"})
+def dashboard_layout(n_rows: int) -> tuple[int, float, int]:
+    """차이·미결 n_rows개를 그릴 (열 수, 그림 높이 inch, 표시할 행 수).
+
+    높이는 SUMMARY_MAX_HEIGHT_IN을 넘지 않는다. 한 행이 DASHBOARD_MIN_ROW_IN보다 좁아지면 열을
+    DASHBOARD_MAX_COLS까지 늘리고, 그래도 모자라면 앞쪽(정렬 순) 행만 표시한다."""
+    avail = SUMMARY_MAX_HEIGHT_IN - DASHBOARD_FIXED_IN
+    if n_rows <= 0:
+        return 1, min(SUMMARY_MAX_HEIGHT_IN, DASHBOARD_FIXED_IN + DASHBOARD_EMPTY_IN), 0
+    per_col_max = max(1, int(avail // DASHBOARD_MIN_ROW_IN))
+    ncols = min(DASHBOARD_MAX_COLS, -(-n_rows // per_col_max))
+    shown = min(n_rows, ncols * per_col_max)
+    rows_per_col = -(-shown // ncols)
+    bottom = min(avail, max(DASHBOARD_EMPTY_IN, rows_per_col * DASHBOARD_ROW_IN))
+    return ncols, min(SUMMARY_MAX_HEIGHT_IN, DASHBOARD_FIXED_IN + bottom), shown
+
+
+def _draw_verdict_histogram(ax, main: pd.DataFrame, xlim: float, omitted: int, n_loq: int) -> None:
+    """정량 zone center/Δ를 판정별로 쌓은 히스토그램. ±xlim 밖 값은 끝 막대에 넣고 개수를 적는다."""
+    centers = main["_center"].to_numpy(dtype=float)
+    values = np.clip(centers, -xlim, xlim)
+    n_clipped = int((np.abs(centers) > xlim).sum())
+    edges = np.linspace(-xlim, xlim, DASHBOARD_BINS + 1)
+    stacked = np.zeros(DASHBOARD_BINS)
+    verdicts = main["verdict"].astype(str).to_numpy()
+    counts = {}
+    for verdict in DASHBOARD_HIST_ORDER:
+        mask = verdicts == verdict
+        counts[verdict] = int(mask.sum())
+        heights, _ = np.histogram(values[mask], bins=edges)
+        ax.bar(
+            edges[:-1], heights, width=np.diff(edges), bottom=stacked, align="edge",
+            color=TOOL_VERDICT_COLORS[verdict], edgecolor="white", linewidth=0.3,
+            label=verdict, zorder=2,
+        )
+        stacked += heights
+    ax.axvline(-1, color="#666666", linewidth=0.8, linestyle="--", zorder=3)
+    ax.axvline(1, color="#666666", linewidth=0.8, linestyle="--", zorder=3)
+    ax.set_xlim(-xlim * 1.03, xlim * 1.03)
+    ax.text(
+        0.01, 0.98,
+        DASHBOARD_COUNTS.format(
+            eq=counts["동등"], und=counts["미결"], diff=counts["차이"], excl=omitted, loq=n_loq,
+        ) + f"\n{CLIPPED_LABEL} ±{xlim:g}: {n_clipped:,}",
+        transform=ax.transAxes, ha="left", va="top", fontsize=8,
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.8},
+    )
+    if main.empty:
+        ax.text(0.5, 0.5, NO_MAIN_ITEMS, transform=ax.transAxes, ha="center", va="center")
+    ax.legend(loc="upper right", fontsize=8)
+    ax.set_title(DASHBOARD_HIST_TITLE, fontsize=10)
+    ax.set_xlabel(DASHBOARD_HIST_XLABEL, fontsize=9)
+    ax.set_ylabel(DASHBOARD_HIST_YLABEL, fontsize=9)
+    ax.set_axisbelow(True)
+    ax.grid(axis="y", color="#E2E2E2", linewidth=0.5)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+
+
+def plot_dashboard(
+    items: pd.DataFrame, out: Path, dpi: int = 100, xlim: float = DEFAULT_XLIM,
+    name: str = "summary.png", title_suffix: str = "",
+) -> Path:
+    """한 장 요약 summary.png: 위는 정량 zone center/Δ 히스토그램과 LoQ 미만 작은 패널,
+    아래는 차이·미결 ITEM의 CI 막대(여러 열). 높이는 SUMMARY_MAX_HEIGHT_IN 이하.
+    그룹별 대시보드는 name(파일명)과 title_suffix(제목 뒤 그룹 이름)만 바꿔 같은 배치로 그린다."""
     if dpi < 1:
         raise ValueError("--dpi는 1 이상이어야 합니다.")
+    if not np.isfinite(xlim) or xlim <= 0:
+        raise ValueError("--xlim은 양수여야 합니다.")
+    out.mkdir(parents=True, exist_ok=True)
+    (out / name).unlink(missing_ok=True)
+    main, loq, omitted = _split_summary(items)
+    if omitted:
+        warnings.warn(EXCLUDED_NOTE.format(n=omitted), RuntimeWarning, stacklevel=2)
+    flagged = main.loc[main["verdict"].isin(DASHBOARD_FLAGGED)].reset_index(drop=True)
+    total = len(flagged)
+    ncols, height, shown = dashboard_layout(total)
+    rows_per_col = max(1, -(-shown // ncols))
+    width = max(DASHBOARD_MIN_WIDTH_IN, ncols * DASHBOARD_COL_WIDTH_IN + 0.8)
+    bottom_h = height - DASHBOARD_FIXED_IN
+
+    fig = plt.figure(figsize=(width, height))
+    try:
+        def box(left: float, bottom: float, w: float, h: float):
+            return fig.add_axes([left / width, bottom / height, w / width, h / height])
+
+        top_y = height - DASHBOARD_TOP_MARGIN_IN - DASHBOARD_TOP_IN
+        hist_w = (width - 1.2) * 0.58
+        _draw_verdict_histogram(box(0.8, top_y, hist_w, DASHBOARD_TOP_IN), main, xlim, omitted, len(loq))
+        loq_left = 0.8 + hist_w + 1.3
+        loq_ax = box(loq_left, top_y, width - 0.4 - loq_left, DASHBOARD_TOP_IN)
+        if loq.empty:
+            loq_ax.set_axis_off()
+            loq_ax.set_title(LOQ_TITLE, fontsize=7)
+            loq_ax.text(0.5, 0.5, DASHBOARD_NO_LOQ, transform=loq_ax.transAxes, ha="center", va="center")
+        else:
+            draw_loq(loq_ax, loq, compact=True)
+
+        gap = 0.3
+        col_w = (width - 0.8 - gap * (ncols - 1)) / ncols
+        marker_scale = float(np.clip(bottom_h / rows_per_col / DASHBOARD_ROW_IN, 0.3, 1.0))
+        for col in range(ncols):
+            ax = box(0.4 + col * (col_w + gap), DASHBOARD_BOTTOM_MARGIN_IN, col_w, bottom_h)
+            start = col * rows_per_col
+            chunk = flagged.iloc[start:min(start + rows_per_col, shown)]
+            if chunk.empty:
+                ax.set_axis_off()
+                if shown == 0:
+                    ax.text(0.5, 0.5, DASHBOARD_NO_FLAGGED, transform=ax.transAxes, ha="center", va="center")
+                continue
+            _draw_ci_rows(
+                ax, clip_summary(chunk, xlim), xlim, "verdict", TOOL_VERDICT_COLORS,
+                slots=rows_per_col, marker_scale=marker_scale,
+            )
+            ax.set_title(f"{DASHBOARD_FLAGGED_TITLE} {start + 1}–{start + len(chunk)} / {total:,}", fontsize=8)
+            ax.tick_params(axis="x", labelsize=7)
+
+        fig.suptitle(f"{SUMMARY_TITLE}{title_suffix}", y=1 - 0.3 / height)
+        fig.text(0.5, 0.3 / height, SUMMARY_XLABEL, ha="center", va="center", fontsize=8)
+        if shown < total:
+            fig.text(
+                1 - 0.4 / width, 0.12 / height, DASHBOARD_TRUNCATED.format(shown=shown, total=total),
+                ha="right", va="bottom", fontsize=9, color=TOOL_VERDICT_COLORS["차이"],
+            )
+        path = out / name
+        # bbox_inches="tight"를 쓰지 않는다: 그림 크기(높이 상한)를 그대로 지킨다.
+        fig.savefig(path, dpi=dpi, facecolor="white")
+        return path
+    finally:
+        plt.close(fig)
+
+
+NO_GROUP = "(그룹 없음)"
+NO_GROUP_WARNING = "그룹 파일에 없는 ITEM {n:,}개 → '" + NO_GROUP + "' 그룹으로 그림"
+
+
+def read_groups(path) -> pd.DataFrame:
+    """ITEM,group 두 열 파일(쉼표/탭, 헤더 선택). group_summary.read_groups와 같은 형식이며,
+    plot_verdicts를 단독으로 쓸 수 있게 따로 둔다."""
+    p = Path(path)
+    raw = p.read_text(encoding="utf-8-sig")
+    sep = "\t" if "\t" in raw.splitlines()[0] else ","
+    g = pd.read_csv(p, sep=sep, header=None, dtype=str, encoding="utf-8-sig").iloc[:, :2]
+    g.columns = ["ITEM", "group"]
+    g = g.apply(lambda s: s.str.strip())
+    if g.iloc[0, 0].upper() in ("ITEM", "ID"):  # 헤더 줄
+        g = g.iloc[1:]
+    return g.dropna(subset=["ITEM"]).drop_duplicates("ITEM", keep="first")
+
+
+def plot_group_dashboards(
+    items: pd.DataFrame, groups: pd.DataFrame, out: Path, dpi: int = 100, xlim: float = DEFAULT_XLIM,
+) -> list[Path]:
+    """그룹마다 summary.png와 같은 배치의 summary_group_<안전한 이름>.png.
+    그룹 파일에 없는 ITEM은 NO_GROUP 그룹으로 모은다. 안전한 이름이 겹치면 _2, _3을 붙인다."""
+    mapping = dict(zip(groups["ITEM"], groups["group"].fillna(NO_GROUP)))
+    group_of = items["ITEM"].astype(str).str.strip().map(mapping)
+    missing = int(group_of.isna().sum())
+    if missing:
+        print(NO_GROUP_WARNING.format(n=missing))
+    group_of = group_of.fillna(NO_GROUP)
+    paths, used = [], set()
+    for group in sorted(group_of.unique(), key=lambda g: (g == NO_GROUP, g)):
+        base = f"summary_group_{safe_item_name(group)}"
+        stem, k = base, 1
+        while stem in used:
+            k += 1
+            stem = f"{base}_{k}"
+        used.add(stem)
+        rows = items.loc[group_of == group].reset_index(drop=True)
+        paths.append(plot_dashboard(rows, out, dpi=dpi, xlim=xlim, name=f"{stem}.png", title_suffix=f" · {group}"))
+    return paths
+
+
+def _loq_points(items: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """LoQ 패널 대상 행과, 축 범위로 자른 좌표(_x, _y)·_clipped·_zero를 붙인 그릴 행을 돌려준다.
+
+    NaN 좌표(0/0, 빈 값)는 놓을 자리가 없어 경고 후 뺀다. 0 이하·무한대·범위 밖은 축 끝으로 자른다."""
+    _require_columns(items, {"zone", "doe_center", "LoQ", "center", "delta", "verdict"})
     in_panel = items["zone"].isin(LOQ_ZONES) & (items["verdict"].astype(str) != V_EXCLUDED)
     selected = items.loc[in_panel].copy()
     for column in ("doe_center", "LoQ", "center", "delta"):
@@ -463,46 +700,78 @@ def plot_loq(items: pd.DataFrame, out: Path, dpi: int = 100) -> Path:
     with np.errstate(divide="ignore", invalid="ignore"):
         selected["_x"] = selected["doe_center"].abs() / selected["LoQ"]
         selected["_y"] = selected["center"].abs() / selected["delta"]
-    valid = np.isfinite(selected[["_x", "_y"]]).all(axis=1)
+    valid = selected[["_x", "_y"]].notna().all(axis=1)
     invalid_count = int((~valid).sum())
     if invalid_count:
         warnings.warn(
             f"LoQ 패널 좌표가 유효하지 않아 제외한 ITEM {invalid_count}개",
             RuntimeWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
-    points = selected.loc[valid]
+    points = selected.loc[valid].copy()
     unknown = sorted(set(points["verdict"]) - set(TOOL_VERDICT_ORDER))
     if unknown:
         raise ValueError(f"알 수 없는 판정입니다: {', '.join(map(str, unknown))}")
+    xy = points[["_x", "_y"]]
+    points["_zero"] = (xy <= 0).any(axis=1)
+    points["_clipped"] = ((xy < LOQ_AXIS_MIN) | (xy > LOQ_AXIS_MAX)).any(axis=1)
+    points[["_x", "_y"]] = xy.clip(LOQ_AXIS_MIN, LOQ_AXIS_MAX)
+    return selected, points
 
-    out.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(8.5, 6.5))
-    try:
-        xmax = max(1.25, float(points["_x"].max()) * 1.05) if len(points) else 1.5
-        ymax = max(1.25, float(points["_y"].max()) * 1.05) if len(points) else 1.5
-        ax.set_xlim(0, xmax)
-        ax.set_ylim(0, ymax)
-        ax.add_patch(Rectangle(
-            (1, 1), xmax - 1, ymax - 1, facecolor="#D55E00", alpha=0.10,
-            edgecolor="none", zorder=0,
-        ))
-        ax.axvline(1, color="#777777", linewidth=0.8, linestyle="--", zorder=1)
-        ax.axhline(1, color="#777777", linewidth=0.8, linestyle="--", zorder=1)
-        for verdict in TOOL_VERDICT_ORDER:
-            group = points.loc[points["verdict"] == verdict]
-            if group.empty:
+
+def draw_loq(ax, items: pd.DataFrame, compact: bool = False) -> dict:
+    """주어진 Axes에 LoQ 미만 zone의 |DOE 중심|/LoQ 대 |center|/Δ log-log 산점도를 그린다.
+
+    compact=True면 사분면 문구와 범례를 빼고 글자를 줄인다(대시보드 작은 패널용).
+    반환: {"n": 그린 점, "clipped": 축 끝으로 자른 점, "zero": 그중 0 이하 값, "excluded": NaN이라 뺀 행}."""
+    selected, points = _loq_points(items)
+    n_clipped = int(points["_clipped"].sum())
+    n_zero = int(points["_zero"].sum())
+    fontsize = 7 if compact else 9
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlim(LOQ_AXIS_MIN, LOQ_AXIS_MAX)
+    ax.set_ylim(LOQ_AXIS_MIN, LOQ_AXIS_MAX)
+    # mathtext 눈금(10^-1)은 한글 폰트에 U+2212 글리프가 없어 깨진다. 일반 텍스트로 찍는다.
+    for axis in (ax.xaxis, ax.yaxis):
+        axis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+        axis.set_minor_formatter(NullFormatter())
+    ax.add_patch(Rectangle(
+        (1, 1), LOQ_AXIS_MAX - 1, LOQ_AXIS_MAX - 1, facecolor="#D55E00", alpha=0.10,
+        edgecolor="none", zorder=0,
+    ))
+    ax.axvline(1, color="#888888", linewidth=0.7, linestyle="--", zorder=1)
+    ax.axhline(1, color="#888888", linewidth=0.7, linestyle="--", zorder=1)
+    size = 20 if compact else 36
+    for verdict in TOOL_VERDICT_ORDER:
+        group = points.loc[points["verdict"] == verdict]
+        for clipped, marker in ((False, "o"), (True, "^")):
+            part = group.loc[group["_clipped"] == clipped]
+            if part.empty:
                 continue
             ax.scatter(
-                group["_x"], group["_y"], s=36, label=verdict,
+                part["_x"], part["_y"], s=size, marker=marker,
                 color=TOOL_VERDICT_COLORS[verdict], edgecolors="white", linewidths=0.7,
-                alpha=0.9, zorder=3,
+                alpha=0.9, zorder=3, clip_on=False,
             )
-        if selected.empty:
-            ax.text(0.5, 0.5, NO_LOQ_ITEMS, transform=ax.transAxes, ha="center", va="center")
-        elif points.empty:
-            ax.text(0.5, 0.5, NO_VALID_POINTS, transform=ax.transAxes, ha="center", va="center")
+    if selected.empty:
+        ax.text(0.5, 0.5, NO_LOQ_ITEMS, transform=ax.transAxes, ha="center", va="center")
+    elif points.empty:
+        ax.text(0.5, 0.5, NO_VALID_POINTS, transform=ax.transAxes, ha="center", va="center")
 
+    clipped_note = LOQ_CLIPPED_NOTE.format(n=n_clipped, zero=n_zero)
+    if compact:
+        ax.text(
+            0.5, 0.02, clipped_note, transform=ax.transAxes, ha="center", va="bottom",
+            fontsize=fontsize, color="#555555",
+        )
+    else:
+        for x, y, note in LOQ_QUADRANT_NOTES:
+            ax.text(
+                x, y, note, transform=ax.transAxes, fontsize=8, color="#555555",
+                ha="right" if x > 0.5 else "left", va="top" if y > 0.5 else "bottom",
+            )
         handles = [Patch(facecolor="#D55E00", alpha=0.10, label="차이 영역")]
         counts = points["verdict"].value_counts()
         handles.extend(
@@ -512,16 +781,40 @@ def plot_loq(items: pd.DataFrame, out: Path, dpi: int = 100) -> Path:
             )
             for verdict in TOOL_VERDICT_ORDER
         )
+        handles.append(Line2D(
+            [0], [0], color="#555555", marker="^", linestyle="none", markersize=6,
+            label=clipped_note,
+        ))
         ax.legend(handles=handles, title="도구 판정", loc="upper left", bbox_to_anchor=(1.01, 1.0))
-        ax.set_title(LOQ_TITLE)
-        ax.set_xlabel(LOQ_XLABEL)
-        ax.set_ylabel(LOQ_YLABEL)
-        ax.set_axisbelow(True)
-        ax.grid(color="#E2E2E2", linewidth=0.5)
-        for spine in ("top", "right"):
-            ax.spines[spine].set_visible(False)
+    label_kw = {"fontsize": fontsize} if compact else {}
+    ax.set_title(LOQ_TITLE, **label_kw)
+    ax.set_xlabel(LOQ_XLABEL, **label_kw)
+    ax.set_ylabel(LOQ_YLABEL, **label_kw)
+    if compact:
+        ax.tick_params(labelsize=fontsize - 1)
+    ax.set_axisbelow(True)
+    ax.grid(which="major", color="#E2E2E2", linewidth=0.5)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    return {
+        "n": len(points),
+        "clipped": n_clipped,
+        "zero": n_zero,
+        "excluded": len(selected) - len(points),
+    }
+
+
+def plot_loq(items: pd.DataFrame, out: Path, dpi: int = 100) -> Path:
+    """LoQ 미만 zone 산점도(draw_loq)를 summary_loq.png로 저장한다."""
+    remove_own_outputs(out, OWN_OUTPUTS["loq"])
+    if dpi < 1:
+        raise ValueError("--dpi는 1 이상이어야 합니다.")
+    fig, ax = plt.subplots(figsize=(8.5, 6.5))
+    try:
+        draw_loq(ax, items)
         fig.text(0.08, 0.025, LOQ_FOOTNOTE, fontsize=9, ha="left")
         fig.subplots_adjust(left=0.10, right=0.75, top=0.90, bottom=0.18)
+        out.mkdir(parents=True, exist_ok=True)
         path = out / "summary_loq.png"
         fig.savefig(path, dpi=dpi, facecolor="white", bbox_inches="tight")
         return path
@@ -760,8 +1053,17 @@ def main(argv: list[str] | None = None) -> None:
     out = Path(args.out)
     paths = []
     if args.summary:
-        paths.extend(plot_summary(items, out, dpi=args.dpi, per_page=args.per_page, xlim=args.xlim))
+        # 그룹 수가 줄거나 --groups를 빼고 다시 돌린 경우 예전 그룹 그림이 남지 않게 먼저 지운다.
+        remove_own_outputs(out, OWN_OUTPUTS["group"])
+        paths.append(plot_dashboard(items, out, dpi=args.dpi, xlim=args.xlim))
+        if args.groups:
+            paths.extend(plot_group_dashboards(items, read_groups(args.groups), out, dpi=args.dpi, xlim=args.xlim))
         paths.append(plot_loq(items, out, dpi=args.dpi))
+        if args.full:
+            paths.extend(plot_summary(items, out, dpi=args.dpi, per_page=args.per_page, xlim=args.xlim))
+        else:
+            # 예전 실행의 summary_NNN.png가 이번 결과처럼 보이지 않게 지운다.
+            remove_own_outputs(out, OWN_OUTPUTS["summary"])
     if args.detail:
         raw = _load_recompute_inputs(args, "상세 그림")
         paths.extend(plot_details(items, raw, args))

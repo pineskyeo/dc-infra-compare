@@ -12,9 +12,10 @@ import pytest
 
 # plot_verdicts selects Agg before pyplot is imported.
 from plot_verdicts import (
-    CATEGORY_ORDER, KOREAN_TEXTS, build_parser, clip_summary, configure_font, detail_text,
-    plot_summary, recompute, safe_item_name, split_summary, summary_legend_labels,
-    verdict_category,
+    CATEGORY_ORDER, KOREAN_TEXTS, LOQ_AXIS_MAX, LOQ_AXIS_MIN, NO_GROUP, SUMMARY_MAX_HEIGHT_IN, build_parser,
+    clip_summary, configure_font, dashboard_layout, detail_text, draw_loq, main, plot_dashboard,
+    plot_loq, plot_summary, recompute, safe_item_name, split_summary, summary_legend_labels,
+    verdict_category, V_EXCLUDED,
 )
 import matplotlib.pyplot as plt
 
@@ -106,10 +107,11 @@ def test_summary_and_loq_pngs_are_written(por3_results: tuple[Path, Path], tmp_p
     ])
 
     assert completed.returncode == 0
-    for name in ("summary_001.png", "summary_loq.png"):
+    for name in ("summary.png", "summary_loq.png"):
         path = plots / name
         assert path.is_file(), f"만들어지지 않은 그림: {path}"
         assert path.stat().st_size > 0
+    assert not list(plots.glob("summary_[0-9][0-9][0-9].png"))
 
 
 def test_noisy_doe_item_is_undecided_for_resolution(por3_results: tuple[Path, Path]):
@@ -188,6 +190,182 @@ def test_plot_summary_writes_pngs_with_custom_xlim_and_without_main_items(tmp_pa
 
     with pytest.raises(ValueError):
         plot_summary(frame, tmp_path / "bad", xlim=0)
+
+
+def png_size(path: Path) -> tuple[int, int]:
+    """PNG IHDR에서 (가로, 세로) 픽셀."""
+    header = path.read_bytes()[:24]
+    assert header[:8] == b"\x89PNG\r\n\x1a\n"
+    return int.from_bytes(header[16:20], "big"), int.from_bytes(header[20:24], "big")
+
+
+def dashboard_frame(n: int = 2000) -> pd.DataFrame:
+    """정량 ITEM n개(대부분 차이/미결, 일부 범위 밖)와 LoQ 미만 2개, 판정 제외 1개."""
+    rows = []
+    for i in range(n):
+        verdict = ("차이", "미결", "차이", "미결", "동등")[i % 5]
+        reason = {"차이": "shift", "미결": "경계 (신뢰구간이 Δ에 걸침)", "동등": "90% 신뢰구간이 ±Δ 안"}[verdict]
+        center = (i % 97) / 10 - 4.8
+        rows.append({
+            "ITEM": f"Q{i:05d}", "zone": "정량", "verdict": verdict, "reason": reason,
+            "center": center, "ci_low": center - 0.5, "ci_high": center + 0.5, "delta": 1.0,
+            "doe_center": 10.0, "LoQ": 1.0,
+        })
+    rows += [
+        {"ITEM": "L1", "zone": "검출~정량", "verdict": "동등", "reason": "<LoQ 보고 일치",
+         "center": 0.1, "ci_low": 0.0, "ci_high": 0.2, "delta": 1.0, "doe_center": 0.5, "LoQ": 1.0},
+        {"ITEM": "L2", "zone": "검출한계 이하", "verdict": "차이", "reason": "shift",
+         "center": 3.0, "ci_low": 2.0, "ci_high": 4.0, "delta": 1.0, "doe_center": 0.1, "LoQ": 1.0},
+        {"ITEM": "X1", "zone": "정량", "verdict": V_EXCLUDED, "reason": "통계 불가",
+         "center": float("nan"), "ci_low": float("nan"), "ci_high": float("nan"), "delta": 1.0,
+         "doe_center": 1.0, "LoQ": 1.0},
+    ]
+    return pd.DataFrame(rows)
+
+
+def test_dashboard_layout_never_exceeds_max_height():
+    previous_shown = 0
+    for n in (0, 1, 10, 100, 300, 1000, 2000, 50_000):
+        ncols, height, shown = dashboard_layout(n)
+        assert height <= SUMMARY_MAX_HEIGHT_IN
+        assert 1 <= ncols <= 6
+        assert shown <= n and shown >= previous_shown
+        previous_shown = shown
+    assert dashboard_layout(10)[0] == 1 and dashboard_layout(10)[2] == 10
+    ncols, _, shown = dashboard_layout(2000)
+    assert ncols > 1 and shown < 2000  # 열을 늘려도 모자라 앞쪽만 표시
+
+
+def test_plot_dashboard_writes_one_png_within_height_limit(tmp_path: Path):
+    frame = dashboard_frame(2000)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)  # 판정 제외 경고
+        path = plot_dashboard(frame, tmp_path, dpi=40)
+    assert path == tmp_path / "summary.png"
+    assert [p.name for p in tmp_path.iterdir()] == ["summary.png"]
+    _, height_px = png_size(path)
+    assert height_px <= SUMMARY_MAX_HEIGHT_IN * 40
+
+    # LoQ 행·차이/미결 행이 없어도 그린다.
+    quiet = summary_frame().loc[lambda f: f["zone"] == "정량"].assign(verdict="동등", reason="안")
+    assert plot_dashboard(quiet, tmp_path / "quiet", dpi=40).stat().st_size > 0
+
+
+def test_main_writes_summary_pages_only_with_full(tmp_path: Path):
+    csv = tmp_path / "items.csv"
+    dashboard_frame(50).to_csv(csv, index=False, encoding="utf-8-sig")
+    plots = tmp_path / "plots"
+    plots.mkdir()
+    (plots / "summary_007.png").write_bytes(b"stale")
+    base = ["--items-csv", str(csv), "--out", str(plots), "--dpi", "40"]
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        main(base)
+        assert sorted(p.name for p in plots.glob("summary*.png")) == ["summary.png", "summary_loq.png"]
+
+        main([*base, "--full", "--per-page", "30"])
+        assert sorted(p.name for p in plots.glob("summary*.png")) == [
+            "summary.png", "summary_001.png", "summary_002.png", "summary_loq.png",
+        ]
+
+        main(base)
+        assert not list(plots.glob("summary_[0-9][0-9][0-9].png"))
+
+
+def write_groups(path: Path, mapping: dict) -> Path:
+    lines = ["ITEM,group", *(f"{item},{group}" for item, group in mapping.items())]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def test_main_groups_writes_one_dashboard_per_group_and_cleans_up(tmp_path: Path, capsys):
+    frame = dashboard_frame(30)
+    csv = tmp_path / "items.csv"
+    frame.to_csv(csv, index=False, encoding="utf-8-sig")
+    plots = tmp_path / "plots"
+    base = ["--items-csv", str(csv), "--out", str(plots), "--dpi", "30"]
+    names = ("G1", "그룹 B", "C/D")
+    every = {item: names[i % 3] for i, item in enumerate(frame["ITEM"])}
+    expected = ["summary_group_B.png", "summary_group_C_D.png", "summary_group_G1.png"]
+
+    def group_pngs():
+        return sorted(p.name for p in plots.glob("summary_group_*.png"))
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        main([*base, "--groups", str(write_groups(tmp_path / "all.csv", every))])
+        assert group_pngs() == expected
+        assert "그룹 없음" not in capsys.readouterr().out
+
+        # 그룹 파일에 없는 ITEM(L1, L2, X1) → '(그룹 없음)' 한 장 + 경고 한 줄.
+        partial = {k: v for k, v in every.items() if k.startswith("Q")}
+        main([*base, "--groups", str(write_groups(tmp_path / "partial.csv", partial))])
+        no_group = f"summary_group_{safe_item_name(NO_GROUP)}.png"
+        assert group_pngs() == sorted([*expected, no_group])
+        warning_lines = [line for line in capsys.readouterr().out.splitlines() if NO_GROUP in line]
+        assert len(warning_lines) == 1 and "3개" in warning_lines[0]
+
+        # --groups 없이 다시 돌리면 예전 그룹 그림이 남지 않는다.
+        main(base)
+        assert group_pngs() == []
+        assert (plots / "summary.png").is_file()
+
+
+def loq_frame() -> pd.DataFrame:
+    """LoQ 미만 zone 4개(범위 안 1, x 범위 위 1, y 범위 아래 1, center 0 1)와 정량 1개."""
+    return pd.DataFrame({
+        "ITEM": ["L_IN", "L_X_HIGH", "L_Y_LOW", "L_ZERO", "Q_SKIP"],
+        "zone": ["검출~정량", "검출~정량", "검출한계 이하", "검출한계 이하", "정량"],
+        "verdict": ["동등", "차이", "미결", "동등", "동등"],
+        "doe_center": [2.0, 5000.0, -0.5, 0.5, 1.0],
+        "LoQ": [1.0, 1.0, 1.0, 1.0, 1.0],
+        "center": [0.5, 3.0, -1e-5, 0.0, 0.1],
+        "delta": [1.0, 1.0, 1.0, 1.0, 1.0],
+    })
+
+
+def test_draw_loq_uses_log_axes_and_counts_clipped_points():
+    fig, ax = plt.subplots()
+    try:
+        counts = draw_loq(ax, loq_frame())
+        assert ax.get_xscale() == "log" and ax.get_yscale() == "log"
+        assert ax.get_xlim() == pytest.approx((LOQ_AXIS_MIN, LOQ_AXIS_MAX))
+        assert ax.get_ylim() == pytest.approx((LOQ_AXIS_MIN, LOQ_AXIS_MAX))
+        assert ax.get_legend() is not None
+    finally:
+        plt.close(fig)
+    assert counts == {"n": 4, "clipped": 3, "zero": 1, "excluded": 0}
+
+
+def test_draw_loq_compact_drops_legend_and_plot_loq_writes_png(tmp_path: Path):
+    fig, ax = plt.subplots()
+    try:
+        counts = draw_loq(ax, loq_frame(), compact=True)
+        assert ax.get_legend() is None
+        assert ax.get_xscale() == "log"
+    finally:
+        plt.close(fig)
+    assert counts["clipped"] == 3
+
+    path = plot_loq(loq_frame(), tmp_path / "plots", dpi=60)
+    assert path.name == "summary_loq.png" and path.stat().st_size > 0
+
+
+def test_draw_loq_major_tick_labels_are_plain_text():
+    fig, ax = plt.subplots()
+    try:
+        draw_loq(ax, loq_frame())
+        fig.canvas.draw()
+        for axis in (ax.xaxis, ax.yaxis):
+            labels = [t.get_text() for t in axis.get_majorticklabels() if t.get_text()]
+            assert labels, "major tick labels must exist on log axes"
+            for text in labels:
+                assert "−" not in text, text
+                assert "$" not in text, text
+            assert "1" in labels and "0.1" in labels, labels
+    finally:
+        plt.close(fig)
 
 
 def assert_detail_pngs(plots: Path, expected_items) -> None:

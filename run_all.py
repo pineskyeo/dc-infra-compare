@@ -1,7 +1,8 @@
 """POR/DOE 판정부터 요약·근거·그림(선택: 기존·개선 비교, 그룹 요약)까지 한 번에 실행한다.
 
   python run_all.py --por POR1/ --por POR2/ --por POR3/ --doe DOE/ --level item_info.csv --out 결과
-  python run_all.py ... --before 이전결과/items.csv --groups groups.csv
+  python run_all.py ... --groups groups.csv        (그룹별 대시보드 그림)
+  python run_all.py ... --before 이전결과/items.csv --groups groups.csv   (+ 그룹별 비교 요약)
 
 각 단계는 repo 안 스크립트를 별도 프로세스로 실행하고, 실패하면 그 단계에서 멈춘다.
 RUN_ALL_FAIL_STEP=<단계 이름> 환경변수는 테스트용이다(그 단계를 rc=3으로 강제 실패시킴).
@@ -46,7 +47,8 @@ def build_parser() -> argparse.ArgumentParser:
     add_common_args(ap)
     ap.add_argument("--out", default="run_all_out", help="모든 산출물을 둘 폴더 (기본 run_all_out)")
     ap.add_argument("--before", help="기존(이전) 결과 items.csv. 주면 기존·개선 비교 단계 추가")
-    ap.add_argument("--groups", help="ITEM,그룹 파일. 주면 그룹별 요약 단계 추가 (--before 필요)")
+    ap.add_argument("--groups", help="ITEM,그룹 파일. 주면 그룹별 대시보드(plots/summary_group_*.png)를 그리고, "
+                                     "--before도 주면 그룹별 비교 요약 단계(groups/) 추가")
     ap.add_argument("--plot-top", type=int, default=None,
                     help="비교 단계 σ 짝 그림에 변화가 큰 ITEM N개만 그린다 (compare_before_after.py 기본 30)")
     return ap
@@ -80,19 +82,22 @@ def compare_forward_args(ap: argparse.ArgumentParser, a: argparse.Namespace) -> 
 def plan_steps(ap: argparse.ArgumentParser, a: argparse.Namespace, out: Path) -> list[tuple[str, list[str], Path | None]]:
     """(이름, 스크립트 인자, stdout 저장 파일) 목록."""
     items = str(out / "items.csv")
+    plot_args = ["plot_verdicts.py", "--items-csv", items, "--summary", "--out", str(out / "plots")]
+    if a.groups:
+        plot_args += ["--groups", _abs(a.groups)]
     steps = [
         ("por_doe_compare", ["por_doe_compare.py", *compare_forward_args(ap, a), "--out", str(out)], None),
         ("summarize", ["summarize.py", items], out / "summary_items.txt"),
         ("fail_evidence", ["fail_evidence.py", "--input", items, "--out", str(out / "fail_evidence")], None),
         # 요약 그림은 items.csv만 쓴다 (POR/DOE 원자료는 상세 그림에서만 필요).
-        ("plot_verdicts", ["plot_verdicts.py", "--items-csv", items, "--summary", "--out", str(out / "plots")], None),
+        ("plot_verdicts", plot_args, None),
     ]
     if a.before:
         cmp_args = ["compare_before_after.py", "compare", _abs(a.before), items, "-o", str(out / "compare")]
         if a.plot_top is not None:
             cmp_args += ["--plot-top", str(a.plot_top)]
         steps.append(("compare_before_after", cmp_args, None))
-    if a.groups:
+    if a.before and a.groups:
         steps.append(("group_summary",
                       ["group_summary.py", "--compare", str(out / "compare" / "compare.csv"),
                        "--groups", _abs(a.groups), "--out", str(out / "groups")], None))
@@ -110,8 +115,6 @@ def _env() -> dict:
 def main(argv: list[str] | None = None) -> int:
     ap = build_parser()
     a = ap.parse_args(argv)
-    if a.groups and not a.before:
-        ap.error("--groups 는 --before 와 함께 써야 합니다 (그룹 요약은 비교 결과 compare.csv를 씀)")
     out = Path(a.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
 

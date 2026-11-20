@@ -24,7 +24,7 @@ python run_all.py --por POR1/ --por POR2/ --por POR3/ --doe DOE/ \
 ```
 
 - `--before 이전결과/items.csv`: 기존·개선 비교(`compare_before_after.py compare`)를 추가해 `결과/compare/`에 둡니다.
-- `--groups groups.csv`: ITEM,그룹 파일로 그룹별 요약(`group_summary.py`)을 추가해 `결과/groups/`에 둡니다. `--before`가 있어야 합니다.
+- `--groups groups.csv`: ITEM,그룹 두 열 파일입니다. 그룹마다 대시보드 `결과/plots/summary_group_<이름>.png`를 그립니다. `--before`도 함께 주면 그룹별 비교 요약(`group_summary.py`)을 추가해 `결과/groups/`에 둡니다.
 
 어느 단계든 실패하면 `[실패] 단계 N/M <이름>: <명령>`, `rc=…`, 그 단계 오류 끝 20줄을 보여 주고 멈춥니다. 출력 형태 예시(실제 실행값이 아님):
 
@@ -39,9 +39,12 @@ fail_evidence/fail_evidence.csv  Fail 근거
 fail_evidence/forest.png  Fail 근거 전체 그림
 items.csv  ITEM별 판정·상태
 outlier_dies.csv  튀는 die
-plots/summary_01.png  판정 요약 그림
+plots/summary.png  판정 요약 그림
+plots/summary_loq.png  판정 요약 그림
 summary_items.txt  summarize 출력
 ```
+
+`--groups`를 주면 `plots/summary_group_<이름>.png`가 그룹 수만큼 더 생깁니다. 모든 ITEM을 장으로 나눈 `summary_001.png …`는 `plot_verdicts.py --full`로 따로 돌릴 때만 생깁니다.
 
 환경변수 `RUN_ALL_FAIL_STEP=<단계 이름>`은 테스트용입니다(그 단계를 일부러 실패시킴).
 
@@ -229,11 +232,17 @@ python summarize.py p3/out/items.csv
 
 `plot_verdicts.py`는 `items.csv`로 요약 그림을 만들고, 원시 측정 데이터를 함께 주면 ITEM별 상세 그림도 만듭니다.
 
-- **요약**은 기본으로 만듭니다. `summary_001.png`부터 장을 나누어 저장하며, 한 장에는 최대 `--per-page`개의 ITEM을 넣습니다(기본 1200). 점은 차이/Δ의 중심이고 가로선은 90% 신뢰구간입니다. LoQ 미만 ITEM을 모은 `summary_loq.png` 패널도 함께 만듭니다.
+- **요약**은 기본으로 만듭니다. 한 장짜리 대시보드 `summary.png`와 `summary_loq.png`를 저장합니다.
+  - `summary.png` 위쪽은 정량 ITEM의 중심/Δ 히스토그램입니다. 판정별로 색을 쌓고 판정별 개수와 ±1 선을 표시합니다. `--xlim X`(기본 범위 ±X) 밖의 값은 끝에 모아 그립니다.
+  - 아래쪽은 차이·미결 ITEM만 막대로 여러 열에 나누어 그립니다. 그림 높이는 16 in까지이며, 다 못 넣으면 '표시 n / 전체 m · 나머지는 --full'이라고 적습니다. 작은 LoQ 패널도 함께 들어갑니다.
+  - `--full`을 주면 모든 정량 ITEM을 그린 `summary_001.png`, `summary_002.png` …도 만듭니다. 한 장에는 최대 `--per-page`개의 ITEM을 넣습니다(기본 1200). 점은 차이/Δ의 중심이고 가로선은 90% 신뢰구간입니다.
+  - `--groups FILE`(ITEM,group 두 열)을 주면 그룹마다 같은 모양의 `summary_group_<이름>.png`를 만듭니다. 파일에 없는 ITEM은 '(그룹 없음)'으로 모으고 경고를 냅니다.
 - **상세**는 `--detail`을 줄 때만 만듭니다. 대상을 정하지 않으면 차이와 미결 ITEM을 그리고, `--items A,B`로 ITEM 코드를 고르거나 `--all`로 전체를 고릅니다. `--jobs N`은 상세 그림을 그리는 작업 프로세스 수입니다(기본 1).
 - 그림에는 `item_map.csv`의 실제 항목 이름을 쓰지 않습니다. 상세 파일은 `detail/` 아래에 저장하며, 파일명은 ITEM 코드를 `safe_item_name()`에 통과시켜 만듭니다.
 
 판정 제외 ITEM은 요약·LoQ 그림에서 빠지고, 경고 '판정 제외 n개'가 나옵니다.
+
+`summary_loq.png` 읽는 법: x축은 |DOE 중심|/LoQ, y축은 |중심|/Δ이고 두 축 모두 로그 눈금입니다. x=1 선 왼쪽은 DOE 값이 LoQ보다 작고, y=1 선 위쪽은 차이가 Δ보다 큽니다. 두 선이 만드는 네 칸에 각 칸의 뜻을 적어 두었습니다. 축 범위를 벗어난 값과 0인 값(로그 눈금에 못 그림)은 축 끝에 다른 모양의 점으로 그리고, 그 개수를 따로 적습니다.
 
 요약만 그릴 때는 판정 결과 `items.csv` 하나면 충분합니다.
 

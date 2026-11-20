@@ -101,12 +101,30 @@ def test_run_all_before_and_groups(por3_data: Path, tmp_path: Path):
     assert "[단계 6/6] group_summary" in proc.stdout
     assert (out / "compare" / "compare.csv").is_file()
     assert [p for p in (out / "groups").rglob("*") if p.is_file()]
+    assert sorted(p.name for p in (out / "plots").glob("summary_group_*.png")) == [
+        "summary_group_A.png", "summary_group_B.png",
+    ]
 
 
-def test_run_all_groups_requires_before(por3_data: Path, tmp_path: Path):
-    proc = run_script(RUN_ALL, [*compare_args(por3_data, tmp_path / "out"), "--groups", tmp_path / "g.csv"])
-    assert proc.returncode != 0
-    assert "--before" in proc.stderr
+def _planned(tmp_path: Path, *extra: str) -> dict:
+    import run_all
+
+    ap = run_all.build_parser()
+    a = ap.parse_args(["--por", "p1", "--por", "p2", "--doe", "d", *extra])
+    return {name: args for name, args, _ in run_all.plan_steps(ap, a, tmp_path / "out")}
+
+
+def test_run_all_groups_without_before_passes_groups_to_plot_verdicts(tmp_path: Path):
+    groups = str((tmp_path / "g.csv").resolve())
+    steps = _planned(tmp_path, "--groups", str(tmp_path / "g.csv"))
+    plot = steps["plot_verdicts"]
+    assert plot[plot.index("--groups") + 1] == groups
+    assert "group_summary" not in steps and "compare_before_after" not in steps
+
+    steps = _planned(tmp_path, "--groups", groups, "--before", str(tmp_path / "b.csv"))
+    assert "--groups" in steps["plot_verdicts"] and "group_summary" in steps
+
+    assert "--groups" not in _planned(tmp_path)["plot_verdicts"]
 
 
 def test_run_all_stops_at_failed_step(por3_data: Path, tmp_path: Path):
