@@ -1,6 +1,5 @@
 """조건 불안정: 짝지은 회차 차(die별 회차 평균을 뺀 값)와 그 열(GAP_COLS) 테스트. 합성 데이터만."""
 import math
-import re
 
 import numpy as np
 import pytest
@@ -31,10 +30,7 @@ def test_large_run_offset_is_unstable():
     base = base_values()
     Y = base[:, None] + np.array([0.0, 5.0, -5.0]) + rng.normal(0, 0.3, (60, 3))
     st = item_status(Y, base.copy(), 2.0)
-    names, details = parts(st["status"]), parts(st["status_detail"])
-    assert "조건 불안정" in names
-    m = re.fullmatch(r"회차 차 ([0-9.]+)Δ", details[names.index("조건 불안정")])
-    assert m and float(m.group(1)) == pytest.approx(5.0, abs=0.2)
+    assert "조건 불안정" in parts(st["status"])
     assert st["por_gap_over_delta"] == pytest.approx(5.0, abs=0.2)
     assert st["por_gap_over_noise"] >= POR_GAP_NOISE_K
 

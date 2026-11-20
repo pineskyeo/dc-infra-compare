@@ -116,16 +116,15 @@ def with_anon(table: pd.DataFrame, src: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-STATUS_COLUMNS = ("status", "status_detail", "mean_median_ratio")
-JITTER_COLUMNS = ("run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter")
-GAP_COLUMNS = ("por_gap_over_noise",)    # por_gap_over_delta는 이 파일이 따로 계산하는 열과 이름이 같아 복사하지 않음
+# status 와 지표 묶음(items.csv 순서). por_gap_over_delta는 이 파일이 따로 계산하는 열과 이름이 같아 복사하지 않음
+STATUS_COLUMNS = tuple(c for c in por_doe_compare.STATUS_COLS if c != "por_gap_over_delta")
 PRECISION_COLUMNS = ("sigma_meas", "meas_precision_pct", "sigma_meas_over_delta")
 
 
 def with_status(table: pd.DataFrame, src: pd.DataFrame) -> pd.DataFrame:
-    """입력의 데이터 상태 열을 행 순서 그대로(값은 문자열 그대로) 끝에 붙인다. 입력에 없으면 빈 칸."""
+    """입력의 데이터 상태·지표 열을 행 순서 그대로(값은 문자열 그대로) 끝에 붙인다. 입력에 없으면 빈 칸."""
     out = table.copy()
-    for c in STATUS_COLUMNS + JITTER_COLUMNS + GAP_COLUMNS + PRECISION_COLUMNS:
+    for c in STATUS_COLUMNS + PRECISION_COLUMNS:
         out[c] = src[c].tolist() if c in src.columns else ""
     return out
 

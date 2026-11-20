@@ -119,7 +119,7 @@ OLD_COLS = [
     "center", "ci_low", "ci_high", "delta", "policy_margin", "run_margin", "sigma_die", "sigma_run",
     "LoQ", "LoD", "limit_source", "n_outlier_die", "ttest", "ttest_p", "por_ttest_sig",
     "zone", "verdict", "reason",
-    *pdc.STATUS_COLS, *pdc.JITTER_COLS, *pdc.GAP_COLS, *pdc.PRECISION_COLS,
+    *pdc.STATUS_COLS, *pdc.PRECISION_COLS,
 ]
 
 

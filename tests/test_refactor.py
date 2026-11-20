@@ -67,11 +67,11 @@ def test_items_csv_is_byte_identical_to_frozen_legacy(por3_data: Path, tmp_path:
     new_rows = rows(refactored_out / "items.csv")
     assert new_rows[0][-len(LOG_COLS):] == LOG_COLS
     new_rows = [r[:-len(LOG_COLS)] for r in new_rows]
-    assert new_rows[0][-11:] == ["status", "status_detail", "mean_median_ratio",
+    assert new_rows[0][-13:] ==["status", "por_gap_over_delta", "por_gap_over_noise",
                                  "run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter",
-                                 "por_gap_over_delta", "por_gap_over_noise",
+                                 "resolution_step", "resolution_over_delta", "fixed_share", "mean_median_ratio",
                                  "sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
-    new_rows = [r[:-11] for r in new_rows]
+    new_rows = [r[:-13] for r in new_rows]
     legacy_rows = rows(legacy_out / "items.csv")
     header = new_rows[0]
     assert header == legacy_rows[0]

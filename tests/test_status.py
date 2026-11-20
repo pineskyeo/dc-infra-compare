@@ -2,7 +2,6 @@
 import csv
 import math
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -11,9 +10,8 @@ import numpy as np
 import pandas as pd
 
 import fail_evidence
-from por_doe_compare import LOG_COLS, item_status
+from por_doe_compare import LOG_COLS, PRECISION_COLS, STATUS_COLS, item_status
 
-JITTER = ["run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter"]
 ROOT = Path(__file__).resolve().parents[1]
 SYNTH_TSV = ROOT / "tests" / "data" / "fail_evidence_synth.tsv"
 DELTA = 5.0
@@ -40,8 +38,7 @@ def test_run_shift_is_unstable():
     Y[:, 2] += 2 * DELTA
     st = item_status(Y, z, DELTA)
     assert "조건 불안정" in parts(st["status"])
-    m = re.search(r"회차 차 ([0-9.]+)Δ", st["status_detail"])
-    assert m and 1.5 <= float(m.group(1)) <= 2.5
+    assert 1.5 <= st["por_gap_over_delta"] <= 2.5
 
 
 def test_coarse_resolution():
@@ -54,19 +51,15 @@ def test_normal_data_is_ok():
     Y, z = normal_data()
     st = item_status(Y, z, DELTA)
     assert st["status"] == "정상"
-    assert st["status_detail"] == ""
 
 
 def test_two_statuses_are_joined_in_same_order():
     Y, z = normal_data()
     Y[:, 2] += 2 * DELTA
     st = item_status(np.round(Y), np.round(z), DELTA)
-    names, details = parts(st["status"]), parts(st["status_detail"])
     # 3회차만 2Δ 밀리면 die별 회차 범위도 ≈ 2Δ라 회차 흔들림도 같이 붙는다
-    assert names == ["조건 불안정", "회차 흔들림", "분해능 부족"]
-    assert len(details) == 3
-    assert details[0].startswith("회차 차") and details[1].startswith("회차 흔들림")
-    assert details[2].startswith("간격")
+    assert parts(st["status"]) == ["조건 불안정", "회차 흔들림", "분해능 부족"]
+    assert st["resolution_step"] == 1.0 and st["resolution_over_delta"] == 1.0 / DELTA
 
 
 def test_delta_nan_skips_delta_checks():
@@ -93,25 +86,25 @@ def test_fail_evidence_copies_status_columns(tmp_path: Path):
     src = fail_evidence.read_table(SYNTH_TSV)
     n = len(src)
     status = ["정상" if i % 2 else "조건 불안정;분해능 부족" for i in range(n)]
-    detail = ["" if i % 2 else "회차 차 1.2Δ;간격 1 = Δ의 20%" for i in range(n)]
+    share = ["" if i % 2 else "0.75" for i in range(n)]
     ratio = [f"{0.001 * i:.4g}" if i % 3 else "" for i in range(n)]
-    src = src.assign(status=status, status_detail=detail, mean_median_ratio=ratio)
+    src = src.assign(status=status, fixed_share=share, mean_median_ratio=ratio)
     inp = tmp_path / "with_status.tsv"
     src.to_csv(inp, sep="\t", index=False)
 
     assert fail_evidence.main(["--input", str(inp), "--out", str(tmp_path / "out")]) == 0
     out = read_out(tmp_path / "out" / "fail_evidence.csv")
-    assert list(out.columns[-10:-7]) == ["status", "status_detail", "mean_median_ratio"]
+    assert list(out.columns[-12:-3]) == list(fail_evidence.STATUS_COLUMNS)
     assert out["status"].tolist() == status
-    assert out["status_detail"].tolist() == detail
+    assert out["fixed_share"].tolist() == share
     assert out["mean_median_ratio"].tolist() == ratio
 
 
 def test_fail_evidence_without_status_columns(tmp_path: Path):
     assert fail_evidence.main(["--input", str(SYNTH_TSV), "--out", str(tmp_path / "out")]) == 0
     out = read_out(tmp_path / "out" / "fail_evidence.csv")
-    assert list(out.columns[-10:-7]) == ["status", "status_detail", "mean_median_ratio"]
-    for c in ("status", "status_detail", "mean_median_ratio", *JITTER):
+    assert list(out.columns[-12:-3]) == list(fail_evidence.STATUS_COLUMNS)
+    for c in fail_evidence.STATUS_COLUMNS:
         assert (out[c] == "").all()
 
 
@@ -134,6 +127,6 @@ def test_compare_cli_writes_status_columns(tmp_path: Path):
     assert rows[0][-len(LOG_COLS):] == LOG_COLS
     rows = [r[:-len(LOG_COLS)] for r in rows]
     header = rows[0]
-    assert header[-11:-5] == ["status", "status_detail", "mean_median_ratio", *JITTER]
+    assert header[-len(STATUS_COLS) - len(PRECISION_COLS):-len(PRECISION_COLS)] == STATUS_COLS
     assert len(rows) > 1
     assert all(r[header.index("status")] for r in rows[1:])

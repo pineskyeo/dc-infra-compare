@@ -45,9 +45,12 @@ RUN_JITTER_OVER_DELTA = 1.0     # 회차 흔들림: die별 회차 범위 중앙�
 SIZE_JITTER_RHO = -0.5          # 작을수록 흔들림: Spearman ρ(크기, log 범위) ≤ 이 값
 SIZE_JITTER_RHO_POS = 0.5       # 클수록 흔들림: Spearman ρ(크기, log 범위) ≥ 이 값
 SIZE_JITTER_MIN_DIE = 10
-STATUS_COLS = ["status", "status_detail", "mean_median_ratio"]
 JITTER_COLS = ["run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter"]
 GAP_COLS = ["por_gap_over_delta", "por_gap_over_noise"]
+RESOLUTION_COLS = ["resolution_step", "resolution_over_delta"]
+# status 바로 뒤 지표 묶음: 조건 불안정 → 회차 흔들림 → 크기-흔들림 → 분해능 부족 → 산포 0
+METRIC_COLS = GAP_COLS + JITTER_COLS + RESOLUTION_COLS + ["fixed_share"]
+STATUS_COLS = ["status", *METRIC_COLS, "mean_median_ratio"]
 PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
 LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta",
             "ci_half_over_delta_log", "spearman_size_jitter_log", "log_reason"]     # 작을수록·클수록 흔들림 ITEM 참고용
@@ -210,7 +213,10 @@ def flat_share(R: np.ndarray, z: np.ndarray) -> float:
 
 
 def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
-    """판정과 별개인 데이터 상태. 해당하는 것을 모두 ';'로 잇는다 (status와 status_detail 같은 순서).
+    """판정과 별개인 데이터 상태. 해당하는 이름을 모두 ';'로 잇고, 판단에 쓴 값을 METRIC_COLS 로 같이 돌려준다.
+    지표는 status 여부와 무관하게 계산할 수 있으면 채우고 못 하면 NaN.
+    resolution_step = 값(POR 전 회차·DOE) 고유값 간 최소 차, resolution_over_delta = step / Δ,
+    fixed_share = flat_share(R, z) (산포 0·판정 제외 '고정값 NN%'와 같은 값).
     Y: die × 회차 POR 값, z: DOE die 값, delta: 그 ITEM의 최종 Δ.
     Δ ≤ 0 또는 NaN이면 조건 불안정·회차 흔들림·분해능 부족은 건너뜀. 회차 흔들림·작을수록 흔들림은 POR 회차만 씀
     (POR 1회면 JITTER_COLS 모두 NaN).
@@ -221,7 +227,7 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     Y, z = np.asarray(Y, float), np.asarray(z, float)
     R = Y.mean(axis=1)
     has_delta = bool(delta > 0)     # NaN도 False
-    names, details = [], []
+    names = []
 
     gap_cols = dict.fromkeys(GAP_COLS, np.nan)
     if Y.ndim == 2 and Y.shape[1] > 1:
@@ -235,36 +241,34 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
             gap_cols["por_gap_over_noise"] = gap / se
         if has_delta and gap >= delta and (not noisy or gap >= POR_GAP_NOISE_K * se):
             names.append(ST_UNSTABLE)
-            details.append(f"회차 차 {gap / delta:.1f}Δ")
 
     jit, n_size = _jitter(Y, delta)
     over, rho = jit["run_jitter_over_delta"], jit["spearman_size_jitter"]
     if over >= RUN_JITTER_OVER_DELTA:      # NaN이면 False
         names.append(ST_RUN_JITTER)
-        details.append(f"회차 흔들림 {round(jit['run_jitter_pct'])}% ({over:.1f}Δ)")
     if rho <= SIZE_JITTER_RHO and n_size >= SIZE_JITTER_MIN_DIE:
         names.append(ST_SIZE_JITTER)
-        details.append(f"ρ {rho:.2f}".replace("-", "−"))
     if rho >= SIZE_JITTER_RHO_POS and n_size >= SIZE_JITTER_MIN_DIE:
         names.append(ST_SIZE_JITTER_POS)
-        details.append(f"ρ {rho:+.2f}")
 
+    res_cols = dict.fromkeys(RESOLUTION_COLS, np.nan)
     vals = np.unique(np.concatenate([Y.ravel(), z]))
-    if has_delta and vals.size > 1:
+    if vals.size > 1:
         step = float(np.diff(vals).min())
-        if step >= 0.1 * delta:
-            names.append(ST_RESOLUTION)
-            details.append(f"간격 {step:.4g} = Δ의 {step / delta:.0%}")
+        res_cols["resolution_step"] = step
+        if has_delta:
+            res_cols["resolution_over_delta"] = step / delta
+            if step >= 0.1 * delta:
+                names.append(ST_RESOLUTION)
 
     s_die = robust_noise(Y)[0] if Y.shape[1] > 1 else np.nan      # POR 1회면 die 잡음을 못 구함
     share = flat_share(R, z)
     if s_die == 0 or share > 0.5:
         names.append(ST_FLAT)
-        details.append(f"고정값 {share:.0%}")
 
     med = float(np.median(R))
-    return {"status": ";".join(names) or ST_OK, "status_detail": ";".join(details),
-            "mean_median_ratio": (float(R.mean()) - med) / abs(med) if med != 0 else np.nan, **jit, **gap_cols}
+    return {"status": ";".join(names) or ST_OK, **gap_cols, **jit, **res_cols, "fixed_share": share,
+            "mean_median_ratio": (float(R.mean()) - med) / abs(med) if med != 0 else np.nan}
 
 
 def meas_precision(sigma_die: float, sigma_run: float, por_median: float, delta: float) -> dict:
@@ -330,7 +334,7 @@ def excluded_reason(center: float, lo: float, hi: float, s_die: float, s_run: fl
     bad = [k for k, v in (("center", center), ("ci_low", lo), ("ci_high", hi)) if not np.isfinite(v)]
     if bad:
         causes.append(f"중심·신뢰구간 계산 불가 ({', '.join(bad)})")
-    share = flat_share(R, z)
+    share = flat_share(R, z)        # items.csv fixed_share 와 같은 값
     if s_die == 0:
         causes.append("die 산포 0 (σ_die=0)")
     elif share > 0.5:
@@ -565,7 +569,7 @@ def main() -> None:
 
     first = ["ITEM", "UNIT", "zone", "verdict", "reason"]
     res = pd.DataFrame(rows)
-    tail = STATUS_COLS + JITTER_COLS + GAP_COLS + PRECISION_COLS + LOG_COLS
+    tail = STATUS_COLS + PRECISION_COLS + LOG_COLS
     res = res[first + [c for c in res.columns if c not in first + tail] + tail]
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
     out = Path(a.out)

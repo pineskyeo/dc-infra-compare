@@ -1,7 +1,6 @@
 """회차 흔들림·작을수록 흔들림 상태와 그 열(JITTER_COLS) 테스트. 합성 데이터만."""
 import math
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -50,7 +49,6 @@ def test_all_dies_jitter_is_run_jitter():
     Y, z = run_jitter_data()
     st = item_status(Y, z, 1e-4)
     assert "회차 흔들림" in parts(st["status"])
-    assert re.search(r"회차 흔들림 \d+% \(\d+\.\dΔ\)", st["status_detail"])
     assert st["run_jitter_pct"] == pytest.approx(60.0)
     assert st["run_jitter_over_delta"] >= 1
 
@@ -61,8 +59,6 @@ def test_smaller_die_jitters_more():
     assert "작을수록 흔들림" in parts(st["status"])
     assert "회차 흔들림" not in parts(st["status"])
     assert st["spearman_size_jitter"] <= -0.5
-    detail = parts(st["status_detail"])[parts(st["status"]).index("작을수록 흔들림")]
-    assert detail.startswith("ρ −")
 
 
 def test_size_jitter_needs_min_die():
@@ -127,7 +123,6 @@ def test_u1_larger_die_jitters_more():
     assert st["spearman_size_jitter"] == pytest.approx(0.6256, abs=1e-4)
     names = parts(st["status"])
     assert "클수록 흔들림" in names and "작을수록 흔들림" not in names
-    assert parts(st["status_detail"])[names.index("클수록 흔들림")] == "ρ +0.63"
 
 
 def test_u2_larger_jitter_needs_min_die():
@@ -171,7 +166,9 @@ def test_fail_evidence_copies_jitter_columns(tmp_path: Path):
     assert fail_evidence.main(["--input", str(inp), "--out", str(tmp_path / "out")]) == 0
     out = pd.read_csv(tmp_path / "out" / "fail_evidence.csv", encoding="utf-8-sig",
                       dtype=str, keep_default_na=False)
-    assert list(out.columns[-7:-4]) == JITTER_COLS
+    cols_out = list(out.columns)
+    i = cols_out.index("run_jitter_pct")
+    assert cols_out[i:i + 3] == JITTER_COLS and cols_out[i - 2:i] == ["status", "por_gap_over_noise"]
     for c, v in cols.items():
         assert out[c].tolist() == v
 
