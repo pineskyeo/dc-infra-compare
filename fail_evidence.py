@@ -343,6 +343,17 @@ def safe_name(item_id: str) -> str:
 
 # ---------------------------------------------------------------- CLI
 
+OWN_OUTPUTS = ("fail_evidence.csv", "summary.txt", "forest.png", "items/*.png")
+
+
+def remove_own_outputs(out: Path, patterns) -> None:
+    """같은 --out에 다시 돌릴 때 지난 실행의 자기 출력 파일만 지운다(폴더·다른 파일은 그대로)."""
+    for pat in patterns:
+        for p in out.glob(pat):
+            if p.is_file():
+                p.unlink()
+
+
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Fail(차이·미결) ITEM별 근거를 규칙으로 계산한다.")
     p.add_argument("--input", required=True, help="por_doe_compare.py 결과 TSV")
@@ -362,6 +373,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"오류: {e}", file=sys.stderr)
         return 2
 
+    remove_own_outputs(out, OWN_OUTPUTS)
     with_status(with_anon(table, src), src).to_csv(out / "fail_evidence.csv", index=False, encoding="utf-8-sig")
     summary = summary_text(table, Path(args.input).name)
     (out / "summary.txt").write_text(summary, encoding="utf-8")

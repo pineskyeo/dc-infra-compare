@@ -30,6 +30,16 @@ from matplotlib import font_manager as fm
 
 UNGROUPED = "미지정"
 V_EXCLUDED = "판정 제외"  # por_doe_compare.V_EXCLUDED와 같은 값 (scipy 의존 없이 단독 실행되게 로컬로 둠)
+# 실행 시작 때 지우는 자기 그림(--out 기준 glob). stability_panel.png처럼 건너뛴 그림이 남지 않게 한다.
+OWN_OUTPUTS = ("ratio_hist.png", "density_die.png", "group_panel.png", "stability_panel.png")
+
+
+def remove_own_outputs(out, patterns):
+    """지난 실행의 자기 출력 파일만 지운다(폴더·다른 파일은 그대로)."""
+    for pat in patterns:
+        for p in out.glob(pat):
+            if p.is_file():
+                p.unlink()
 
 
 def set_font():
@@ -102,6 +112,7 @@ def main():
     set_font()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
+    remove_own_outputs(out, OWN_OUTPUTS)
 
     c = read_table(a.compare)
     if "ITEM" not in c.columns and "ID" in c.columns:

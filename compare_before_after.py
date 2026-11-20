@@ -26,7 +26,7 @@ from matplotlib import font_manager as fm  # noqa: E402
 from matplotlib.collections import LineCollection  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 
-from fail_evidence import J_DIFF, J_PEND  # noqa: E402  (fail_evidence와 같은 차이/미결 이름)
+from fail_evidence import J_DIFF, J_PEND, remove_own_outputs  # noqa: E402  (fail_evidence와 같은 차이/미결 이름)
 from por_doe_compare import V_EXCLUDED  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -77,6 +77,12 @@ EVIDENCE_COLS = [
 ]
 GAP_DEF_PAIRED = "짝지은 회차 차"
 GAP_DEF_OLD = "옛 정의(회차 평균 차)"
+
+# 실행 시작 때 지우는 자기 그림(--out 기준 glob). 개수가 바뀌거나 건너뛸 수 있는 그림이 남지 않게 한다.
+OWN_OUTPUTS = {
+    "evidence": ("forest.png", "strip_*.png"),
+    "compare": ("sigma_die_paired.png", "sigma_run_paired.png", "scatter_before_after.png"),
+}
 
 
 # ---------------------------------------------------------------- 글꼴·읽기
@@ -352,6 +358,7 @@ def plot_strips(ev: pd.DataFrame, out_dir: Path) -> None:
 def run_evidence(result_path: str, out_dir: str) -> pd.DataFrame:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
+    remove_own_outputs(out, OWN_OUTPUTS["evidence"])
     configure_font()
     df_src = read_result(result_path)
     ev = evidence_table(df_src)
@@ -705,6 +712,7 @@ def _with_anon(df: pd.DataFrame, *sources: pd.DataFrame) -> pd.DataFrame:
 def run_compare(before_path: str, after_path: str, out_dir: str, plot_top: int = 30) -> pd.DataFrame:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
+    remove_own_outputs(out, OWN_OUTPUTS["compare"])
     configure_font()
     cmp_df = compare_tables(read_result(before_path), read_result(after_path))
     _with_anon(cmp_df, read_result(before_path), read_result(after_path)).to_csv(

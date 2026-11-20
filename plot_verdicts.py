@@ -68,6 +68,20 @@ CLIPPED_LABEL = "x축 범위 밖 (끝에서 자름)"
 EXCLUDED_NOTE = "판정 제외 {n}개 (요약 그림에서 뺌)"
 NO_MAIN_ITEMS = "정량 zone ITEM 없음 (LoQ 미만은 summary_loq.png)"
 LOQ_ZONES = ("검출한계 이하", "검출~정량")
+# 각 함수가 시작할 때 지우는 자기 그림(--out 기준 glob). 장 수가 줄거나 건너뛴 그림이 남지 않게 한다.
+OWN_OUTPUTS = {
+    "summary": ("summary_[0-9][0-9][0-9].png",),
+    "loq": ("summary_loq.png",),
+    "detail": ("detail/*.png",),
+}
+
+
+def remove_own_outputs(out: Path, patterns) -> None:
+    """지난 실행의 자기 출력 파일만 지운다(폴더·다른 파일은 그대로)."""
+    for pat in patterns:
+        for p in out.glob(pat):
+            if p.is_file():
+                p.unlink()
 DEFAULT_XLIM = 3.0
 LOQ_TITLE = "LoQ 미만: DOE 중심과 이동"
 LOQ_XLABEL = "|DOE 중심| / LoQ"
@@ -358,6 +372,7 @@ def plot_summary(
         warnings.warn(excluded_note, RuntimeWarning, stacklevel=2)
 
     out.mkdir(parents=True, exist_ok=True)
+    remove_own_outputs(out, OWN_OUTPUTS["summary"])
     pages = [work.iloc[start:start + per_page] for start in range(0, len(work), per_page)] or [work]
     paths = []
     for page_number, page in enumerate(pages, 1):
@@ -437,6 +452,7 @@ def plot_summary(
 
 def plot_loq(items: pd.DataFrame, out: Path, dpi: int = 100) -> Path:
     """LoQ 미만 zone의 DOE 중심/LoQ와 center/delta 산점도를 저장한다."""
+    remove_own_outputs(out, OWN_OUTPUTS["loq"])
     _require_columns(items, {"zone", "doe_center", "LoQ", "center", "delta", "verdict"})
     if dpi < 1:
         raise ValueError("--dpi는 1 이상이어야 합니다.")
@@ -701,6 +717,8 @@ def plot_details(items: pd.DataFrame, raw: tuple, args: argparse.Namespace) -> l
     names = [safe_item_name(item) for item in selected]
     if len(set(names)) != len(names):
         raise ValueError("ITEM 코드를 파일시스템 안전 문자로 바꾼 이름이 중복됩니다.")
+    out = Path(args.out) / "detail"
+    remove_own_outputs(Path(args.out), OWN_OUTPUTS["detail"])
     if not selected:
         return []
 
@@ -710,7 +728,6 @@ def plot_details(items: pd.DataFrame, raw: tuple, args: argparse.Namespace) -> l
     if missing:
         raise ValueError(f"원시 데이터에서 찾지 못한 ITEM 코드입니다: {', '.join(missing)}")
 
-    out = Path(args.out) / "detail"
     out.mkdir(parents=True, exist_ok=True)
     payloads = []
     for item in selected:

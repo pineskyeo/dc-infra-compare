@@ -16,7 +16,7 @@ pip install -r requirements.txt   # Python 3.9+, pandas, numpy, scipy
 
 ### run_all.py로 한 번에
 
-판정 → 요약 → Fail 근거 → 판정 요약 그림을 차례로 돌리고, 모든 산출물을 `--out` 폴더 하나에 모읍니다. 입력 옵션은 `por_doe_compare.py`와 같습니다(아래 표).
+판정 → 요약 → Fail 근거 → 판정 요약 그림을 차례로 돌리고, 모든 산출물을 `--out` 폴더 하나에 모읍니다. 입력 옵션은 `por_doe_compare.py`와 같습니다(아래 표). 각 도구는 실행을 시작할 때 같은 --out 폴더에서 자기가 만드는 그림·표 파일만 지우고 다시 만듭니다(다른 파일은 그대로).
 
 ```bash
 python run_all.py --por POR1/ --por POR2/ --por POR3/ --doe DOE/ \
