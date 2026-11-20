@@ -205,6 +205,51 @@ def test_z3_real_name_wins_over_anon_id(tmp_path):
     assert fe.select_items(plain, ["X04", "X9"]) == (["A1", "A2", "A4", "A5"], ["X9"])
 
 
+# ---------------------------------------------------------------- --only
+
+def test_only_two_items_real_and_anon(tmp_path, monkeypatch, capsys):
+    monkeypatch.setitem(VALUES, "A4", ([7.0, 8.0, 9.0], [7.1, 8.1, 9.1], [7.5, 8.5, 9.5]))
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_anon_items_csv(tmp_path)), "--out", str(out), *_raw_args(tmp_path),
+                    "--only", "A4,X03", "NOPE"]) == 0
+    folders = sorted(p.name for p in (out / fe.ITEMS_DIR).iterdir() if p.is_dir())
+    a3, a4 = _folder(out, "동등", "A3"), _folder(out, fe.item_type(ST_OK, V_EXCLUDED), "A4")
+    assert folders == sorted([a3.name, a4.name])                                # 차이·미결 기본 대상 없음
+    for f, item in ((a3, "A3"), (a4, "A4")):
+        for name in ("summary.csv", "raw.csv", fe.DRILL_PNG):
+            assert (f / name).is_file(), (f, name)
+        assert set(pd.read_csv(f / "raw.csv", encoding="utf-8-sig")["ITEM"]) == {item}
+    assert list(_index(out)["ID"]) == ["A3", "A4"]
+    ev = pd.read_csv(out / "fail_evidence.csv", encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    assert list(ev["ITEM"]) == ["A3", "A4"] and list(ev["ID"]) == ["X03", "X04"]
+    assert "입력에 없는 ID: NOPE" in capsys.readouterr().out
+
+
+def test_only_read_side_returns_only_given_items(tmp_path):
+    from infra_compare import load_side
+    p = _dcnormal(tmp_path / "por1.result", 0)
+    got = fe.read_side_items([str(p)], "POR1", "auto", ["A1", "A3"])
+    assert set(got["ITEM"]) == {"A1", "A3"}
+    full = load_side([str(p)], "POR1", "auto")
+    want = full[full["ITEM"].astype(str).isin({"A1", "A3"})].reset_index(drop=True)
+    pd.testing.assert_frame_equal(got, want)
+
+
+def test_only_load_wide_items_matches_full_filter(tmp_path):
+    a = fe.parse_args(["--input", "x", "--out", "y", *_raw_args(tmp_path)])
+    got, por_cols = fe.load_wide_items(a, ["A2"])
+    full, full_cols, _ = fe.load_wide(a)
+    want = full[full["ITEM"].astype(str) == "A2"].reset_index(drop=True)
+    assert por_cols == full_cols
+    pd.testing.assert_frame_equal(got, want)
+
+
+def test_only_and_items_together_is_error(tmp_path):
+    with pytest.raises(SystemExit) as e:
+        fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(tmp_path / "o"), "--only", "A1", "--items", "A3"])
+    assert e.value.code == 2
+
+
 def test_rerun_with_marker_rebuilds(tmp_path):
     src = _items_csv(tmp_path)
     out = tmp_path / "out"

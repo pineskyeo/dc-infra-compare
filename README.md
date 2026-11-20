@@ -364,7 +364,7 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 ## Fail ITEM 근거 (`fail_evidence.py`)
 
-`python fail_evidence.py --input <items.csv> --out <폴더> [--items ID,...]` — por_doe_compare.py 결과 표(`--out` 폴더의 `items.csv`, 탭 구분 표도 됨. `ITEM` 열과 `<이름>_mean` 회차 열은 compare_before_after.py와 같은 방식으로 읽음)에서 verdict가 '차이'·'미결'인 ITEM의 근거를 규칙으로 계산해 `fail_evidence.csv`, `forest.png`, `items/<ID>.png`, `summary.txt`를 만듭니다. `fail_evidence.csv` 첫 열은 실제 `ITEM` 이름이고, 익명 `ID` 열이 있으면 그 옆에 붙습니다. `--items`를 주면 그 ID만 ITEM 그림을 그립니다(CSV·forest는 전체).
+`python fail_evidence.py --input <items.csv> --out <폴더> [--items ID,...]` — por_doe_compare.py 결과 표(`--out` 폴더의 `items.csv`, 탭 구분 표도 됨. `ITEM` 열과 `<이름>_mean` 회차 열은 compare_before_after.py와 같은 방식으로 읽음)에서 verdict가 '차이'·'미결'인 ITEM의 근거를 규칙으로 계산해 `fail_evidence.csv`, `forest.png`, `items/<ID>.png`, `summary.txt`를 만듭니다. `fail_evidence.csv` 첫 열은 실제 `ITEM` 이름이고, 익명 `ID` 열이 있으면 그 옆에 붙습니다. `--items`를 주면 그 ID만 ITEM 그림을 그립니다(CSV·forest는 전체). `--only ID,...`(`--items`와 같이 쓸 수 없음)는 차이·미결 기본 대상 없이 지정 ITEM(실제 이름 또는 익명 ID, 판정 제외 ITEM 포함)만 폴더를 만들고, 원데이터도 그 ITEM 행만 읽으며 `fail_evidence.csv`·`forest.png`·`items_index`도 그 ITEM만 담습니다.
 
 입력에 items.csv의 `status`~`mean_median_ratio` 열(`por_gap_over_delta`는 이 도구가 따로 계산해 빼고, 열 순서는 위 items.csv 순서)과 `sigma_meas`, `meas_precision_pct`, `sigma_meas_over_delta` 열이 있으면 `fail_evidence.csv` 맨 끝에 이 순서로 값을 그대로 옮기고, 없으면 빈 칸 열로 둡니다(판정에는 쓰지 않음).
 

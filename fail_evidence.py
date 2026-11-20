@@ -1,7 +1,7 @@
 """Fail(차이·미결) ITEM별 근거를 규칙으로 계산해 CSV·차트·요약을 내고, ITEM마다 items/<유형>_<ID>/ 폴더를 만든다.
 
 입력은 por_doe_compare.py 결과 표(--out 폴더의 items.csv, 쉼표 구분) 또는 같은 열의 탭 구분 표이다.
-    python fail_evidence.py --input <items.csv> --out <폴더> [--items ID ...] [--compare <compare.csv>]
+    python fail_evidence.py --input <items.csv> --out <폴더> [--items ID ... | --only ID ...] [--compare <compare.csv>]
         [--por <회차1> --por <회차2> ... --doe <DOE> [--blank ...] [--blank-map ...] [--key ...] [--encoding ...]]
 원데이터 인자(--por, --doe 등)는 por_doe_compare.py 와 같고, 주면 ITEM 폴더에 raw.csv(die별 값)를 더 쓴다.
 """
@@ -25,6 +25,7 @@ from matplotlib.lines import Line2D  # noqa: E402
 
 import por_doe_compare  # noqa: E402
 from compare_metrics import safe_group_name  # noqa: E402
+from infra_compare import find_files, read_dcnormal  # noqa: E402
 from por_doe_compare import (  # noqa: E402
     POR_GAP_NOISE_K, ST_BIMODAL, ST_FLAT, ST_LOG_CANDIDATE, ST_OK, ST_RESOLUTION, ST_RUN_JITTER, ST_SETUP_ERROR,
     ST_SIZE_JITTER, ST_SIZE_JITTER_POS, ST_UNSTABLE, is_log_target,
@@ -341,9 +342,9 @@ def item_type(status: str, verdict: str) -> str:
     return min(names, key=lambda s: rank.get(s, len(rank)))
 
 
-def select_items(plain: pd.DataFrame, extra: list[str]) -> tuple[list[str], list[str]]:
+def select_items(plain: pd.DataFrame, extra: list[str], base: bool = True) -> tuple[list[str], list[str]]:
     """폴더를 만들 ITEM(최종 판정 차이·미결 + extra, 입력 순서)과 입력에 없는 extra ID.
-    최종 판정 = verdict_final, 열이 없는 옛 CSV 면 verdict.
+    최종 판정 = verdict_final, 열이 없는 옛 CSV 면 verdict. base=False(--only)면 차이·미결 없이 extra 만.
     extra 는 실제 ITEM 이름이나 익명 ID(ITEM 열과 같이 있는 ID 열, read_table 의 ANON_ID). 둘 다 맞으면 실제 이름 우선."""
     key = key_column(plain)
     ids = plain[key].astype(str).str.strip()
@@ -354,7 +355,7 @@ def select_items(plain: pd.DataFrame, extra: list[str]) -> tuple[list[str], list
         anon = {a: i for a, i in zip(plain["ID"].astype(str).str.strip(), ids) if a}
     known = set(ids)
     wanted = {e if e in known else anon.get(e, e) for e in extra}
-    chosen = ids[verdict.isin(TARGET_VERDICTS) | ids.isin(wanted)]
+    chosen = ids[(verdict.isin(TARGET_VERDICTS) & base) | ids.isin(wanted)]
     return list(dict.fromkeys(chosen)), sorted(wanted - known)
 
 
@@ -417,9 +418,33 @@ def add_raw_args(p: argparse.ArgumentParser) -> None:
             act.required = False
 
 
-def load_raw(a: argparse.Namespace, items: list[str]) -> pd.DataFrame:
-    """die별 원데이터: die 좌표(--key의 ITEM 밖 열), ITEM, POR 회차별, DOE, (blank), d = DOE − POR 회차 평균, por_range."""
-    wide, por_cols, _ = load_wide(a)
+def read_side_items(inputs: list[str], label: str, encoding: str, items) -> pd.DataFrame:
+    """infra_compare.load_side 와 같은 측정 행이되 파일마다 읽자마자 ITEM 이 items 인 행만 남긴다.
+    결과는 load_side 전체를 읽고 ITEM 으로 거른 것과 같다(행 순서·열·dtype)."""
+    files = find_files(inputs)
+    if not files:
+        sys.exit(f"{label}: DCNORMAL 파일이 없습니다 ({inputs})")
+    keep = {str(i) for i in items}
+    parts = [df[df["ITEM"].astype(str).isin(keep)] for df in (read_dcnormal(f, encoding) for f in files)]
+    return pd.concat(parts, ignore_index=True).dropna(subset=["DATA"]).reset_index(drop=True)
+
+
+def load_wide_items(a: argparse.Namespace, items) -> tuple[pd.DataFrame, list[str]]:
+    """por_doe_compare.load_wide 의 wide 표·POR 열을 items 행만 읽어 만든다(--only)."""
+    key = a.key.split(",")
+    side = [(paths, f"POR{i + 1}") for i, paths in enumerate(a.por)] + [(a.doe, "DOE")]
+    cols = [read_side_items(paths, label, a.encoding, items).groupby(key)["DATA"].median().rename(label)
+            for paths, label in side]
+    wide = pd.concat(cols, axis=1, join="inner").reset_index()
+    por_cols = [f"POR{i + 1}" for i in range(len(a.por))]
+    print(f"원데이터: --only ITEM {len(set(items)):,}개 행만 읽음, 모든 회차에 있는 die·ITEM {len(wide):,}개")
+    return wide, por_cols
+
+
+def load_raw(a: argparse.Namespace, items: list[str], only: bool = False) -> pd.DataFrame:
+    """die별 원데이터: die 좌표(--key의 ITEM 밖 열), ITEM, POR 회차별, DOE, (blank), d = DOE − POR 회차 평균, por_range.
+    only 면 원데이터를 읽을 때부터 items 행만 남긴다(load_wide_items)."""
+    wide, por_cols = load_wide_items(a, items) if only else load_wide(a)[:2]
     wide = wide[wide["ITEM"].astype(str).isin(items)].copy()
     por = wide[por_cols].astype(float)
     if a.blank:
@@ -937,8 +962,11 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Fail(차이·미결) ITEM별 근거를 규칙으로 계산한다.")
     p.add_argument("--input", required=True, help="por_doe_compare.py 결과 items.csv")
     p.add_argument("--out", required=True, help="출력 폴더")
-    p.add_argument("--items", nargs="*", default=[], metavar="ID",
-                   help="ITEM 폴더를 더 만들 ID(공백 또는 쉼표 구분, 실제 ITEM 이름 또는 익명 ID, 겹치면 실제 이름). 기본 대상 = verdict 차이·미결")
+    sel = p.add_mutually_exclusive_group()
+    sel.add_argument("--items", nargs="*", default=[], metavar="ID",
+                     help="ITEM 폴더를 더 만들 ID(공백 또는 쉼표 구분, 실제 ITEM 이름 또는 익명 ID, 겹치면 실제 이름). 기본 대상 = verdict 차이·미결")
+    sel.add_argument("--only", nargs="+", metavar="ID",
+                     help="기본 대상 없이 이 ITEM 만(--items 와 같은 형식, 판정 제외 ITEM 도 가능). 원데이터·출력 표도 이 ITEM 만")
     p.add_argument("--compare", help="compare_before_after.py compare 결과 compare.csv. 같은 ITEM 행을 summary.csv에 cmp_ 열로 붙임")
     raw = p.add_argument_group("원데이터 (por_doe_compare.py 와 같은 인자, 주면 raw.csv 작성)")
     add_raw_args(raw)
@@ -950,12 +978,20 @@ def main(argv: list[str] | None = None) -> int:
     if bool(args.por) != bool(args.doe):
         print("오류: 원데이터는 --por 와 --doe 를 같이 주어야 합니다.", file=sys.stderr)
         return 2
+    only = args.only is not None
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    extra = [s.strip() for arg in (args.only if only else args.items) for s in arg.split(",") if s.strip()]
     try:
         src = read_table(args.input)
-        table = evidence_table(src)
         plain = read_plain(args.input)
+        ids, unknown = select_items(plain, extra, base=not only)
+        if only:
+            if not ids:
+                raise ValueError(f"--only 에 입력과 맞는 ITEM 이 없습니다 (입력에 없는 ID: {', '.join(unknown)}).")
+            if "ID" in src.columns:
+                src = src[src["ID"].astype(str).str.strip().isin(ids)].reset_index(drop=True)
+        table = evidence_table(src)
         cmp = read_compare(args.compare) if args.compare else None
     except ValueError as e:
         print(f"오류: {e}", file=sys.stderr)
@@ -967,14 +1003,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"오류: {blocked}", file=sys.stderr)
         return 3
 
-    extra = [s.strip() for arg in args.items for s in arg.split(",") if s.strip()]
-    ids, unknown = select_items(plain, extra)
     if unknown:
         print(f"입력에 없는 ID: {', '.join(unknown)}")
-    log_ids = log_only_items(plain, ids)
+    log_ids = [] if only else log_only_items(plain, ids)
     log_only = set(log_ids)
     index = items_index(plain, ids + log_ids)
-    raw = load_raw(args, list(index["ID"])) if args.por else None
+    raw = load_raw(args, list(index["ID"]), only) if args.por else None
 
     remove_own_outputs(out, OWN_OUTPUTS)
     with_status(with_anon(table, src), src).to_csv(out / "fail_evidence.csv", index=False, encoding="utf-8-sig")
