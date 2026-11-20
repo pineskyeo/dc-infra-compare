@@ -209,7 +209,7 @@ function indexSlide(pptx) {
     [K('log_fit'), C('|skew_lin| − |skew_log|'), C('> 0'), C('log 쪽이 대칭')],
     [K('bimodality_log'), C('log 값의 BC'), C('> 0.555\ndie ≥10'), C("'두 덩어리'")],
     [C("'log 후보'", { bold: true, color: NAVY }), C('decades 와 log_fit 조합'), C('decades ≥2\n그리고 log_fit > 0'), C('log 축으로 보기 권장')],
-    [C('판정 제외', { bold: true, color: ACCENT }), C('σ_die = 0 또는 고정값 비율 > 50%'), C('해당 시'), C('산포 0 → 지표 계산 안 함')],
+    [C('판정 제외', { bold: true, color: ACCENT }), C('σ_die = 0 또는 고정값 비율 > 50%'), C('해당 시'), C('verdict 만 판정 제외, status 는 계산됨')],
     [K('verdict_log'), C('log 축으로 낸 판정'), C('참고'), C('verdict(판정)는 불변')],
   ];
   s.addTable(rows, { x: TX, y: top + 0.45, w: TW, colW: [1.85, 2.2, 1.45, 1.75],

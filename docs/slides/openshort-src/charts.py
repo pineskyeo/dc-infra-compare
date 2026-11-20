@@ -12,6 +12,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import font_manager
+from matplotlib.ticker import LogLocator, NullFormatter, NullLocator
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "charts"
@@ -119,8 +120,16 @@ for j, (name, x) in enumerate(shapes):
     a_lin.set_title(name, fontsize=11, color=TXT, fontweight="bold")
     a_lin.ticklabel_format(axis="x", style="sci", scilimits=(-2, 3))
     lo, hi = np.log10(x.min()) - 0.1, np.log10(x.max()) + 0.1
-    a_log.hist(x, bins=np.logspace(lo, hi, 18), color=ACCENT, alpha=0.85)
+    counts, _, _ = a_log.hist(x, bins=np.logspace(lo, hi, 18), color=ACCENT, alpha=0.85)
     a_log.set_xscale("log")
+    # 주석(3줄)이 막대와 겹치지 않도록 y 위쪽 여백을 늘린다
+    a_log.set_ylim(0, counts.max() * 1.6)
+    if name == "전부 Open":
+        # 좁은 범위(0.04 dex)라 기본 log 눈금이 빽빽하다 → 주눈금 3개, 보조눈금 제거, 글자 작게
+        a_log.xaxis.set_major_locator(LogLocator(numticks=3))
+        a_log.xaxis.set_minor_locator(NullLocator())
+        a_log.xaxis.set_minor_formatter(NullFormatter())
+        a_log.tick_params(axis="x", labelsize=6.5)
     a_lin.text(0.97, 0.95, f"skew_lin {m['skew_lin']:+.1f}", transform=a_lin.transAxes,
                ha="right", va="top", fontsize=8, color="#595959")
     a_log.text(0.97, 0.95,
