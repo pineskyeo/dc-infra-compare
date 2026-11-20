@@ -47,7 +47,7 @@ SIZE_JITTER_RHO_POS = 0.5       # 클수록 흔들림: Spearman ρ(크기, log �
 SIZE_JITTER_MIN_DIE = 10
 LOG_DECADES_MIN = 1.0           # log 후보: decades ≥ 이 값 그리고 log_fit > 0
 BIMODAL_BC_MIN = 5 / 9          # 두 덩어리: bimodality_log > 이 값 (균일분포 BC = 5/9 ≈ 0.555). 기준값 추천(검토 필요)
-BIMODAL_MIN_DIE = 10            # 두 덩어리: POR 회차평균이 유한한 die ≥ 이 수. 기준값 추천(검토 필요)
+BIMODAL_MIN_DIE = 10            # 두 덩어리: POR 회차평균이 유한한 die ≥ 이 수, Open 코드(|x| ≥ 1E+90) die는 세지 않음. 기준값 추천(검토 필요)
 JITTER_COLS = ["run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter"]
 GAP_COLS = ["por_gap_over_delta", "por_gap_over_noise"]
 RESOLUTION_COLS = ["resolution_step", "resolution_over_delta"]
@@ -280,7 +280,7 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     (se가 0이거나 유한하지 않으면 gap ≥ Δ 만). GAP_COLS: por_gap_over_delta = gap / Δ, por_gap_over_noise = gap / se,
     계산할 수 없으면 NaN (POR 1회면 둘 다 NaN, 조건 불안정 없음). 작을수록·클수록 흔들림은 0값 없는 die가 SIZE_JITTER_MIN_DIE개 이상일 때만.
     분포 모양 SHAPE_COLS = shape_cols(die별 POR 회차평균). log 후보: decades ≥ LOG_DECADES_MIN 그리고 log_fit > 0.
-    두 덩어리: bimodality_log > BIMODAL_BC_MIN 그리고 die ≥ BIMODAL_MIN_DIE. 판정(judge)과 다른 status는 바꾸지 않는다."""
+    두 덩어리: bimodality_log > BIMODAL_BC_MIN 그리고 die ≥ BIMODAL_MIN_DIE (Open 코드(|x| ≥ 1E+90) die는 세지 않음). 판정(judge)과 다른 status는 바꾸지 않는다."""
     Y, z = np.asarray(Y, float), np.asarray(z, float)
     R = Y.mean(axis=1)
     has_delta = bool(delta > 0)     # NaN도 False
@@ -326,7 +326,8 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     shape = shape_cols(R)
     if shape["decades"] >= LOG_DECADES_MIN and shape["log_fit"] > 0:      # NaN이면 False
         names.append(ST_LOG_CANDIDATE)
-    if shape["bimodality_log"] > BIMODAL_BC_MIN and int(np.isfinite(R).sum()) >= BIMODAL_MIN_DIE:
+    n_shape = int((np.isfinite(R) & (np.abs(R) < SHAPE_EXCLUDE_ABS)).sum())
+    if shape["bimodality_log"] > BIMODAL_BC_MIN and n_shape >= BIMODAL_MIN_DIE:
         names.append(ST_BIMODAL)
 
     med = float(np.median(R))

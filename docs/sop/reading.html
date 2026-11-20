@@ -131,6 +131,7 @@
 <div class="tw"><table><thead><tr><th>열 이름</th><th>쉬운 말</th><th>단계</th><th>합성 예시 값</th></tr></thead><tbody>
 <tr><td>zone</td><td>구간. 정량 · 검출~정량 · 검출한계 이하</td><td><a href="step-3.html">③</a></td><td>정량</td></tr>
 <tr><td>verdict</td><td>판정. 동등 · 차이 · 미결 · 판정 제외</td><td><a href="step-6.html">⑥</a></td><td>동등</td></tr>
+<tr><td>verdict_final · verdict_basis</td><td><a href="glossary.html#verdict-final">최종 판정</a>과 근거('log'/'linear'). log 후보면 verdict_log, 그 외나 verdict_log가 판정 제외·빈 칸이면 verdict. 판정 집계와 차이·미결 선택(summarize, plot_verdicts, fail_evidence, group_summary)은 verdict_final 기준</td><td><a href="step-6.html">⑥</a></td><td>—</td></tr>
 <tr><td>reason</td><td>판정 사유</td><td><a href="step-6.html">⑥</a></td><td>'90% 신뢰구간이 ±Δ 안'</td></tr>
 <tr><td>ID</td><td>익명 번호 (item_map.csv와 짝)</td><td>—</td><td>—</td></tr>
 <tr><td>por_median</td><td>die별 기준 조건 J회 평균의 중앙값. 구간 나누기와 실용 한계에 씀</td><td><a href="step-3.html">③</a> <a href="step-5.html">⑤</a></td><td>100.000</td></tr>

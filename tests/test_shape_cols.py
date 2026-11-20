@@ -10,7 +10,7 @@ import pytest
 from scipy import stats
 
 import fail_evidence
-from por_doe_compare import (BIMODAL_BC_MIN, LOG_DECADES_MIN, METRIC_COLS, SHAPE_COLS, SHAPE_EXCLUDE_ABS, ST_BIMODAL,
+from por_doe_compare import (BIMODAL_BC_MIN, BIMODAL_MIN_DIE, LOG_DECADES_MIN, METRIC_COLS, SHAPE_COLS, SHAPE_EXCLUDE_ABS, ST_BIMODAL,
                              ST_LOG_CANDIDATE, ST_OK, STATUS_COLS, bimodality_coef, item_status, judge, shape_cols)
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -181,6 +181,18 @@ def test_z1_open_code_die_excluded_in_item_status():
     z2 = np.append(z, 1e97)
     a, b = item_status(Y, z, DELTA), item_status(Y2, z2, DELTA)
     assert same_shape(a, b)
+
+
+def test_z2_open_code_die_not_counted_for_bimodal():
+    """두 덩어리 die 수 조건에서 1E+97 die는 세지 않는다. 1 근처 3개 + 1000 근처 6·7개 (점 질량, BC 손계산 ≈ 0.61·0.67)."""
+    def item(n_hi: int) -> dict:
+        x = np.array([1.0] * 3 + [1000.0] * n_hi + [1e97])
+        return item_status(np.repeat(x[:, None], 3, axis=1), x.copy(), DELTA)
+    nine, ten = item(6), item(7)      # 유한 die 9개 + 코드 1, 유한 die 10개 + 코드 1
+    assert BIMODAL_MIN_DIE == 10
+    assert nine["bimodality_log"] > BIMODAL_BC_MIN and ten["bimodality_log"] > BIMODAL_BC_MIN
+    assert ST_BIMODAL not in names(nine)
+    assert ST_BIMODAL in names(ten)
 
 
 def test_z1_single_outlier_does_not_pin_skew():

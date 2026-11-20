@@ -182,6 +182,7 @@ VT_N1,SHORT_V
 | 열 | 내용 |
 |---|---|
 | `zone`, `verdict`, `reason` | 구간, 판정, 사유 |
+| `verdict_final`, `verdict_basis` | 최종 판정과 그 근거(`log`/`linear`). `verdict` 바로 뒤 열. `status`에 `log 후보`가 있으면 `verdict_log`, 그 외나 `verdict_log`가 판정 제외·빈 칸이면 `verdict`. 판정 집계와 차이/미결 선택(`summarize`, `plot_verdicts`, `fail_evidence`, `group_summary`)은 `verdict_final` 기준 |
 | `por_median`, `POR1_mean` …, `DOE_mean` | POR 값, 회차별 평균 |
 | `center`, `ci_low`, `ci_high`, `rel_shift` | shift와 90% 신뢰구간, POR 대비 비율 |
 | `delta`, `policy_margin`, `run_margin`, `delta_source` | 허용폭과 그 구성 |
@@ -242,16 +243,16 @@ log 진단 대상(`is_log_target`: `fail_evidence.py`의 log 진단 그림, `log
 | `분해능 부족` | `resolution_step` ≥ 0.1·Δ. 값이 1개뿐이거나 Δ ≤ 0·NaN이면 건너뜀 | |
 | `산포 0` | sigma_die = 0, 또는 `fixed_share` > 50%. 이 ITEM은 판정 제외 | |
 | `log 후보` | `decades` ≥ 1.0이고 `log_fit` > 0 | `LOG_DECADES_MIN` = 1.0 |
-| `두 덩어리` | `bimodality_log` > 5/9(≈ 0.556)이고 R이 유한한 die ≥ 10 | `BIMODAL_BC_MIN` = 5/9, `BIMODAL_MIN_DIE` = 10 |
+| `두 덩어리` | `bimodality_log` > 5/9(≈ 0.556)이고 R이 유한한 die ≥ 10 (\|R\| ≥ 1E+90 die는 세지 않음) | `BIMODAL_BC_MIN` = 5/9, `BIMODAL_MIN_DIE` = 10 |
 | `조건 설정 오류` | 예약 값. 판정할 입력이 없어 지금은 판정하지 않음 | |
 
 상태 지표 열 8개(`METRIC_COLS`)는 `por_gap_over_delta`, `por_gap_over_noise`, `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter`, `resolution_step`, `resolution_over_delta`, `fixed_share`입니다. 상태와 상관없이 계산할 수 있으면 채우고, 못 하면 빈 칸입니다.
 - `resolution_step` = POR 전 회차·DOE 값의 서로 다른 값 사이 최소 간격, `resolution_over_delta` = `resolution_step` / Δ
 - `fixed_share` = R과 z 각각에서 가장 흔한 값의 die 비율 중 큰 쪽 (판정 제외 '고정값 NN%'와 같은 값)
 
-분포 모양 열 5개(`SHAPE_COLS`)는 R(POR die별 회차 평균, 유한한 값만)로 구합니다. R에 0이 있거나 부호가 섞이면 `skew_lin` 말고는 빈 칸입니다.
-- `decades` = log10(max\|R\| / min\|R\|). 값이 몇 자릿수에 걸쳐 있는지
-- `skew_lin` = R의 표본 왜도, `skew_log` = log10\|R\|의 표본 왜도 (보정식. die < 3이거나 값이 모두 같으면 빈 칸)
+분포 모양 열 5개(`SHAPE_COLS`)는 R(POR die별 회차 평균, 유한한 값만)로 구합니다. R에 0이 있거나 부호가 섞이면 `skew_lin` 말고는 빈 칸입니다. \|R\| ≥ 1E+90(Open 코드 등)인 die는 분포 모양 계산에서만 뺍니다.
+- `decades` = log10(P99\|R\| / P1\|R\|). 값이 몇 자릿수에 걸쳐 있는지
+- `skew_lin` = R의 Bowley 사분위 왜도 (Q3 + Q1 − 2·Q2) / (Q3 − Q1), `skew_log` = log10\|R\|의 같은 값 (범위 −1~1. IQR이 0이면 빈 칸)
 - `log_fit` = \|`skew_lin`\| − \|`skew_log`\|. 양수면 log 쪽이 더 대칭
 - `bimodality_log` = log10\|R\|의 bimodality coefficient BC = (g² + 1) / (k + 3(n−1)² / ((n−2)(n−3))). g = 표본 왜도, k = 표본 초과 첨도. die < 4이거나 값이 모두 같으면 빈 칸. 균일분포의 BC가 5/9
 
