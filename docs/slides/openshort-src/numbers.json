@@ -1,0 +1,66 @@
+{
+ "seed": 20261120,
+ "n_die": 60,
+ "shapes": [
+  {
+   "name": "전부 Open",
+   "decades": 0.138,
+   "skew_lin": 0.081,
+   "skew_log": -0.066,
+   "log_fit": 0.014,
+   "bimodality_log": 0.414
+  },
+  {
+   "name": "전부 Short",
+   "decades": 0.235,
+   "skew_lin": -0.018,
+   "skew_log": -0.442,
+   "log_fit": -0.424,
+   "bimodality_log": 0.256
+  },
+  {
+   "name": "Open 정도 차이",
+   "decades": 2.786,
+   "skew_lin": 3.84,
+   "skew_log": -0.473,
+   "log_fit": 3.368,
+   "bimodality_log": 0.384
+  },
+  {
+   "name": "Short 정도 차이",
+   "decades": 2.195,
+   "skew_lin": 2.401,
+   "skew_log": -0.214,
+   "log_fit": 2.187,
+   "bimodality_log": 0.429
+  },
+  {
+   "name": "Open·Short 혼재",
+   "decades": 4.445,
+   "skew_lin": 0.091,
+   "skew_log": -0.269,
+   "log_fit": -0.178,
+   "bimodality_log": 0.861
+  }
+ ],
+ "runs": {
+  "run_sd_ln": 0.2,
+  "contact_sd_ln": 0.25,
+  "r": 0.05,
+  "n_item": 400,
+  "inside_delta_frac": 0.13,
+  "median_abs_shift_pct": 19.9,
+  "same_die_fold_median": 2.16,
+  "same_die_fold_max": 3.73
+ },
+ "linlog": {
+  "n_run": 5,
+  "spearman_size_jitter_lin": 0.95,
+  "spearman_size_jitter_log": 0.08,
+  "decades": 3.594,
+  "skew_lin": 4.697,
+  "skew_log": 0.046,
+  "log_fit": 4.651,
+  "bimodality_log": 0.35
+ }
+}
