@@ -1,5 +1,4 @@
 """같은 --out에 다시 돌려도 지난 실행의 그림이 남지 않고, 사용자 파일은 그대로인지 확인한다(합성 데이터)."""
-import math
 import sys
 from pathlib import Path
 
@@ -26,29 +25,29 @@ def _subset_tsv(src: Path, dst: Path, keep_ids) -> Path:
     return dst
 
 
-def _plotted_ids(path: Path) -> list[str]:
-    table = fe.evidence_table(fe.read_table(path))
-    rows = table[table["judgement"].isin(fe.PLOT_ORDER)]
-    return [r["ID"] for r in rows.to_dict("records") if math.isfinite(r["delta_pct"])]
+def _folder_ids(path: Path) -> list[str]:
+    plain = fe.read_plain(path)
+    return fe.select_items(plain, [])[0]
 
 
-def test_fail_evidence_rerun_leaves_only_current_item_pngs(tmp_path):
+def test_fail_evidence_rerun_leaves_only_current_item_folders(tmp_path):
+    # WO-P: items/ 는 표식(.fail_evidence_items)이 있어 통째로 fail_evidence 것이다. --out 바로 아래 사용자 파일만 남는다.
     src = DATA / "fail_evidence_synth.tsv"
-    first_ids = _plotted_ids(src)
+    first_ids = _folder_ids(src)
     assert len(first_ids) >= 3
     out = tmp_path / "out"
     assert fe.main(["--input", str(src), "--out", str(out)]) == 0
-    assert len(list((out / "items").glob("*.png"))) == len(first_ids)
+    assert len([p for p in (out / "items").iterdir() if p.is_dir()]) == len(first_ids)
     (out / "notes.txt").write_text("user", encoding="utf-8")
-    (out / "items" / "notes.txt").write_text("user", encoding="utf-8")
 
     small = _subset_tsv(src, tmp_path / "small.tsv", first_ids[:2])
-    second_ids = _plotted_ids(small)
+    second_ids = _folder_ids(small)
     assert 0 < len(second_ids) < len(first_ids)
     assert fe.main(["--input", str(small), "--out", str(out)]) == 0
-    assert sorted(p.stem for p in (out / "items").glob("*.png")) == sorted(fe.safe_name(i) for i in second_ids)
+    assert len([p for p in (out / "items").iterdir() if p.is_dir()]) == len(second_ids)
+    assert (out / "items" / fe.ITEMS_MARKER).is_file()
     assert (out / "forest.png").is_file()
-    assert (out / "notes.txt").is_file() and (out / "items" / "notes.txt").is_file()
+    assert (out / "notes.txt").is_file()
 
 
 def _summary_frame(n: int) -> pd.DataFrame:

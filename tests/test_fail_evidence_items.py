@@ -1,0 +1,205 @@
+"""WO-P (a): fail_evidence ITEM별 폴더(items/<유형>_<ID>/summary.csv·raw.csv), items_index.csv, 표식 기반 지우기. 합성 데이터만."""
+import sys
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+
+import pandas as pd  # noqa: E402
+import pytest  # noqa: E402
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import fail_evidence as fe  # noqa: E402
+from compare_metrics import safe_group_name  # noqa: E402
+from infra_compare import MEASURE_COLS  # noqa: E402
+from por_doe_compare import ST_OK, ST_RUN_JITTER, ST_SIZE_JITTER, ST_UNSTABLE, V_EXCLUDED  # noqa: E402
+
+ITEMS = [
+    # ITEM, verdict, status
+    ("A1", "차이", ST_OK),
+    ("A2", "미결", f"{ST_RUN_JITTER};{ST_UNSTABLE}"),
+    ("A3", "동등", ST_OK),
+    ("A4", V_EXCLUDED, ST_OK),
+    ("A5", "미결", ""),
+]
+DIES = ["1_1", "2_2", "3_3"]
+# 회차별 die 값: ITEM -> (POR1, POR2, DOE) 각 die 순서
+VALUES = {
+    "A1": ([1.0, 2.0, 3.0], [1.2, 2.2, 3.4], [2.0, 3.0, 4.0]),
+    "A2": ([10.0, 11.0, 12.0], [10.5, 11.0, 12.5], [10.0, 10.0, 10.0]),
+    "A3": ([5.0, 5.0, 5.0], [5.0, 5.0, 5.0], [5.0, 5.0, 5.0]),
+}
+
+
+def _items_csv(tmp_path: Path) -> Path:
+    path = tmp_path / "items.csv"
+    pd.DataFrame([{"ITEM": i, "UNIT": "A", "verdict": v, "reason": "r", "status": s, "extra_col": f"x{i}"}
+                  for i, v, s in ITEMS]).to_csv(path, index=False, encoding="utf-8-sig")
+    return path
+
+
+def _dcnormal(path: Path, k: int) -> Path:
+    """k: 0,1 = POR 회차, 2 = DOE."""
+    lines = ["#HeaderStart", "WAFERID=W1", "#HeaderEnd", "#MeasureDataStart", ",".join(MEASURE_COLS)]
+    for item, runs in VALUES.items():
+        for die, v in zip(DIES, runs[k]):
+            row = dict.fromkeys(MEASURE_COLS, "")
+            row.update(COORD_X_Y=die, ITEM=item, UNIT="[A]", DATA=str(v))
+            lines.append(",".join(row[c] for c in MEASURE_COLS))
+    lines += ["#MeasureDataEnd", "[EOF]"]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def _raw_args(tmp_path: Path) -> list[str]:
+    p1, p2, d = (_dcnormal(tmp_path / f"{n}.result", k) for k, n in enumerate(("por1", "por2", "doe")))
+    blank = tmp_path / "blank.csv"
+    blank.write_text("ITEM,SIGMA0\nA1,0.01\n", encoding="utf-8")
+    return ["--por", str(p1), "--por", str(p2), "--doe", str(d), "--blank", str(blank),
+            "--key", "WAFERID,COORD_X_Y,ITEM", "--encoding", "auto"]
+
+
+def _index(out: Path) -> pd.DataFrame:
+    return pd.read_csv(out / fe.ITEMS_INDEX, encoding="utf-8-sig", dtype=str, keep_default_na=False)
+
+
+def _folder(out: Path, typ: str, item: str) -> Path:
+    return out / fe.ITEMS_DIR / safe_group_name(f"{typ}_{item}")
+
+
+def test_item_type_priority():
+    assert fe.item_type(f"{ST_RUN_JITTER};{ST_UNSTABLE}", "미결") == ST_UNSTABLE
+    assert fe.item_type(f"{ST_SIZE_JITTER};{ST_RUN_JITTER}", "차이") == ST_RUN_JITTER
+    assert fe.item_type(ST_OK, "차이") == "차이"
+    assert fe.item_type("", "미결") == "미결"
+    assert fe.item_type("새 상태", "미결") == "새 상태"          # 표에 없는 이름도 그대로 대표
+    assert fe.STATUS_PRIORITY.index(ST_UNSTABLE) < fe.STATUS_PRIORITY.index(ST_RUN_JITTER)
+
+
+def test_folders_summary_and_raw(tmp_path):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out), *_raw_args(tmp_path)]) == 0
+
+    a1, a2, a5 = _folder(out, "차이", "A1"), _folder(out, ST_UNSTABLE, "A2"), _folder(out, "미결", "A5")
+    for f in (a1, a2, a5):
+        assert (f / "summary.csv").is_file(), f
+        assert (f / "raw.csv").is_file(), f
+
+    s = pd.read_csv(a1 / "summary.csv", encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    assert list(s.columns) == ["ITEM", "UNIT", "verdict", "reason", "status", "extra_col"]
+    assert s.loc[0, "extra_col"] == "xA1"
+
+    raw = pd.read_csv(a1 / "raw.csv", encoding="utf-8-sig")
+    assert list(raw["COORD_X_Y"]) == DIES
+    assert {"WAFERID", "ITEM", "POR1", "POR2", "DOE", "blank_item", "blank_sigma0", "d", "por_range"} <= set(raw.columns)
+    assert raw["d"].tolist() == pytest.approx([2.0 - 1.1, 3.0 - 2.1, 4.0 - 3.2])
+    assert raw["por_range"].tolist() == pytest.approx([0.2, 0.2, 0.4])
+    assert raw["blank_sigma0"].tolist() == pytest.approx([0.01] * 3)
+
+    # A5 는 원데이터에 없어 머리줄만
+    assert pd.read_csv(a5 / "raw.csv", encoding="utf-8-sig").empty
+    assert fe.NO_RAW_MSG not in (out / "summary.txt").read_text(encoding="utf-8")
+
+
+def test_excluded_and_equal_have_no_folder(tmp_path):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out)]) == 0
+    folders = sorted(p.name for p in (out / fe.ITEMS_DIR).iterdir() if p.is_dir())
+    assert folders == sorted(safe_group_name(n) for n in ("차이_A1", f"{ST_UNSTABLE}_A2", "미결_A5"))
+
+
+def test_items_index_contents(tmp_path):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out)]) == 0
+    idx = _index(out)
+    assert list(idx.columns) == list(fe.INDEX_COLUMNS)
+    assert idx.to_dict("records") == [
+        {"ID": "A1", "유형": "차이", "verdict": "차이", "status": ST_OK,
+         "폴더": f"items/{safe_group_name('차이_A1')}"},
+        {"ID": "A2", "유형": ST_UNSTABLE, "verdict": "미결", "status": f"{ST_RUN_JITTER};{ST_UNSTABLE}",
+         "폴더": f"items/{safe_group_name(f'{ST_UNSTABLE}_A2')}"},
+        {"ID": "A5", "유형": "미결", "verdict": "미결", "status": "",
+         "폴더": f"items/{safe_group_name('미결_A5')}"},
+    ]
+    for rel in idx["폴더"]:
+        assert (out / rel).is_dir()
+
+
+def test_no_raw_writes_summary_only(tmp_path, capsys):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out)]) == 0
+    f = _folder(out, "차이", "A1")
+    assert sorted(p.name for p in f.iterdir()) == ["summary.csv"]
+    assert fe.NO_RAW_MSG in capsys.readouterr().out
+    assert fe.NO_RAW_MSG in (out / "summary.txt").read_text(encoding="utf-8")
+
+
+def test_por_without_doe_is_error(tmp_path):
+    p1 = _dcnormal(tmp_path / "por1.result", 0)
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(tmp_path / "o"), "--por", str(p1)]) == 2
+
+
+def test_compare_columns_prefixed(tmp_path):
+    cmp = tmp_path / "compare.csv"
+    pd.DataFrame({"ITEM": ["A1", "Z9"], "verdict_before": ["동등", "동등"], "verdict_after": ["차이", "동등"]}).to_csv(
+        cmp, index=False, encoding="utf-8-sig")
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out), "--compare", str(cmp)]) == 0
+    s1 = pd.read_csv(_folder(out, "차이", "A1") / "summary.csv", encoding="utf-8-sig", dtype=str)
+    assert s1.loc[0, "cmp_verdict_after"] == "차이" and s1.loc[0, "cmp_ITEM"] == "A1"
+    s5 = pd.read_csv(_folder(out, "미결", "A5") / "summary.csv", encoding="utf-8-sig", dtype=str)
+    assert not any(c.startswith(fe.CMP_PREFIX) for c in s5.columns)
+
+
+def test_items_option_adds_folders(tmp_path, capsys):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out), "--items", "A3", "NOPE"]) == 0
+    assert list(_index(out)["ID"]) == ["A1", "A2", "A3", "A5"]
+    assert _folder(out, "동등", "A3").is_dir()
+    assert "NOPE" in capsys.readouterr().out
+
+
+def test_rerun_with_marker_rebuilds(tmp_path):
+    src = _items_csv(tmp_path)
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(src), "--out", str(out), "--items", "A3"]) == 0
+    items = out / fe.ITEMS_DIR
+    assert (items / fe.ITEMS_MARKER).is_file()
+    a3 = _folder(out, "동등", "A3")
+    (a3 / "left.txt").write_text("old", encoding="utf-8")
+    (out / "notes.txt").write_text("user", encoding="utf-8")
+
+    assert fe.main(["--input", str(src), "--out", str(out)]) == 0
+    assert not a3.exists()
+    assert (items / fe.ITEMS_MARKER).is_file()
+    assert sorted(p.name for p in items.iterdir() if p.is_dir()) == sorted(
+        safe_group_name(n) for n in ("차이_A1", f"{ST_UNSTABLE}_A2", "미결_A5"))
+    assert (out / "notes.txt").is_file()
+
+
+def test_no_marker_with_user_files_stops(tmp_path, capsys):
+    out = tmp_path / "out"
+    items = out / fe.ITEMS_DIR
+    (items / "mine").mkdir(parents=True)
+    (items / "mine" / "keep.txt").write_text("user", encoding="utf-8")
+    (items / "old.png").write_bytes(b"png")
+    (out / "fail_evidence.csv").write_text("old", encoding="utf-8")
+
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out)]) != 0
+    assert fe.ITEMS_MARKER in capsys.readouterr().err
+    assert (items / "mine" / "keep.txt").read_text(encoding="utf-8") == "user"
+    assert (items / "old.png").is_file()
+    assert not (items / fe.ITEMS_MARKER).exists()
+    assert (out / "fail_evidence.csv").read_text(encoding="utf-8") == "old"   # 다른 출력도 건드리지 않음
+    assert not (out / fe.ITEMS_INDEX).exists()
+
+
+def test_empty_items_dir_without_marker_is_used(tmp_path):
+    out = tmp_path / "out"
+    (out / fe.ITEMS_DIR).mkdir(parents=True)
+    assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out)]) == 0
+    assert (out / fe.ITEMS_DIR / fe.ITEMS_MARKER).is_file()

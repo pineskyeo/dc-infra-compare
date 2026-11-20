@@ -34,7 +34,13 @@ EXPECTED = {
     "BLK": fe.J_NA,     # ci_low 빈칸
     "EQ1": fe.J_SKIP,
 }
-PLOTTED = sorted(k for k, v in EXPECTED.items() if v in fe.PLOT_ORDER)
+# ITEM 폴더 대상 = verdict 차이·미결 (계산 불가도 verdict가 차이·미결이면 포함, 대상 아님은 제외)
+FOLDER_IDS = sorted(k for k, v in EXPECTED.items() if v != fe.J_SKIP)
+
+
+def _index_ids(out: Path) -> list[str]:
+    idx = pd.read_csv(out / fe.ITEMS_INDEX, encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    return sorted(idx["ID"])
 
 
 @pytest.fixture()
@@ -147,7 +153,8 @@ def test_main_writes_outputs(tmp_path: Path, capsys):
 
     for name in ("fail_evidence.csv", "forest.png", "summary.txt"):
         assert (out / name).stat().st_size > 0, name
-    assert sorted(p.stem for p in (out / "items").glob("*.png")) == PLOTTED
+    assert not list((out / "items").glob("*.png"))     # WO-P: ITEM 그림 대신 ITEM 폴더
+    assert _index_ids(out) == FOLDER_IDS
 
     csv = pd.read_csv(out / "fail_evidence.csv", encoding="utf-8-sig",
                       dtype={"ITEM": str}, keep_default_na=False, na_values=[""])
@@ -158,11 +165,12 @@ def test_main_writes_outputs(tmp_path: Path, capsys):
     assert dict(zip(csv["ITEM"], csv["judgement"])) == EXPECTED
 
     summary = (out / "summary.txt").read_text(encoding="utf-8")
-    # WO-L 정정: 미결 하나로 합쳐 9개(옛 5+4), 삭제된 기준 상수 줄은 없고 ITEM_AXIS 줄만 남는다.
+    # WO-L 정정: 미결 하나로 합쳐 9개(옛 5+4), 삭제된 기준 상수 줄은 없다. WO-P: ITEM 그림이 없어져 ITEM_AXIS 줄도 없다.
     for line in ("차이: 2", "미결: 9", "계산 불가: 2",
-                 "대상 아님: 1", "ITEM_AXIS_OVER_DELTA = 3"):
+                 "대상 아님: 1", fe.NO_RAW_MSG):
         assert line in summary, line
     assert "POR_GAP_OVER_DELTA" not in summary and "MEDIAN_OUT_OVER_DELTA" not in summary
+    assert "ITEM_AXIS_OVER_DELTA" not in summary
     assert "fail_evidence 요약" in capsys.readouterr().out
 
     if configure_font() is None:
@@ -170,8 +178,9 @@ def test_main_writes_outputs(tmp_path: Path, capsys):
     assert not _glyph_warnings(caught), _glyph_warnings(caught)
 
 
-def test_main_items_filter(tmp_path: Path):
+def test_main_items_adds_to_targets(tmp_path: Path):
+    # WO-P: --items 는 거르기가 아니라 기본 대상(차이·미결)에 더하기. 대상 아님(EQ1)도 지정하면 폴더가 생긴다.
     out = tmp_path / "out"
     assert fe.main(["--input", str(SYNTH), "--out", str(out), "--items", "D1,P3,EQ1"]) == 0
-    assert sorted(p.stem for p in (out / "items").glob("*.png")) == ["D1", "P3"]
+    assert _index_ids(out) == sorted(FOLDER_IDS + ["EQ1"])
     assert (out / "forest.png").stat().st_size > 0

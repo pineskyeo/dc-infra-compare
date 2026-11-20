@@ -1,12 +1,15 @@
-"""Fail(차이·미결) ITEM별 근거를 규칙으로 계산해 CSV·차트·요약을 낸다.
+"""Fail(차이·미결) ITEM별 근거를 규칙으로 계산해 CSV·차트·요약을 내고, ITEM마다 items/<유형>_<ID>/ 폴더를 만든다.
 
 입력은 por_doe_compare.py 결과 표(--out 폴더의 items.csv, 쉼표 구분) 또는 같은 열의 탭 구분 표이다.
-    python fail_evidence.py --input <items.csv> --out <폴더> [--items ID,...]
+    python fail_evidence.py --input <items.csv> --out <폴더> [--items ID ...] [--compare <compare.csv>]
+        [--por <회차1> --por <회차2> ... --doe <DOE> [--blank ...] [--blank-map ...] [--key ...] [--encoding ...]]
+원데이터 인자(--por, --doe 등)는 por_doe_compare.py 와 같고, 주면 ITEM 폴더에 raw.csv(die별 값)를 더 쓴다.
 """
 from __future__ import annotations
 
 import argparse
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -19,15 +22,18 @@ import pandas as pd  # noqa: E402
 from matplotlib import rcParams  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 
+from compare_metrics import safe_group_name  # noqa: E402
+from por_doe_compare import (  # noqa: E402
+    ST_FLAT, ST_OK, ST_RESOLUTION, ST_RUN_JITTER, ST_SETUP_ERROR, ST_SIZE_JITTER, ST_UNSTABLE,
+    add_common_args, load_blank, load_wide, read_csv_auto,
+)
+
 try:
     from plot_verdicts import configure_font
 except ImportError:  # plot_verdicts가 없으면 DejaVu 그대로 쓴다.
     def configure_font(font_path: str | None = None) -> str | None:
         rcParams["axes.unicode_minus"] = False
         return None
-
-# 내부 기준 (README 표와 맞춘다)
-ITEM_AXIS_OVER_DELTA = 3.0     # ITEM 그림 x축 범위 = ±(이 값)·Δ%
 
 TARGET_VERDICTS = ("차이", "미결")
 J_DIFF = "차이"
@@ -46,7 +52,6 @@ GAP_DEF_OLD = "옛 정의(회차 평균 차)"
 
 NUMERIC_COLUMNS = ("por_median", "DOE_mean", "center", "ci_low", "ci_high", "delta", "LoQ")
 POR_MEAN_RE = re.compile(r"^POR(\d+)_mean$")
-POR_PCT_RE = re.compile(r"^por(\d+)_pct$")
 NAN = math.nan
 
 
@@ -56,17 +61,32 @@ KEY_NAMES = ("ID", "ITEM")
 RUN_MEAN_RE = re.compile(r"^.+_mean$")
 
 
+def read_plain(path: str | Path) -> pd.DataFrame:
+    """표를 열 이름·값(문자열) 그대로 읽는다. 탭·쉼표 구분 모두 받는다."""
+    with open(path, encoding="utf-8-sig") as f:
+        header = f.readline()
+    sep = "\t" if header.count("\t") >= header.count(",") else ","
+    df = pd.read_csv(path, sep=sep, dtype=str, keep_default_na=False, encoding="utf-8-sig")
+    df.columns = [str(c).strip().strip('"') for c in df.columns]
+    return df
+
+
+def key_column(df: pd.DataFrame) -> str:
+    """ITEM 이름이 든 열. ITEM 열이 없으면 ID 열(예전 표)."""
+    for want in ("ITEM", "ID"):
+        col = next((c for c in df.columns if c.upper() == want), None)
+        if col is not None:
+            return col
+    raise ValueError("ITEM 열이 없습니다.")
+
+
 def read_table(path: str | Path) -> pd.DataFrame:
     """결과 표를 읽는다. 탭·쉼표 구분 모두 받는다(por_doe_compare.py items.csv는 쉼표).
 
     ITEM 열을 키(내부 이름 ID)로 쓰고, 익명 ID 열이 같이 있으면 ANON_ID로 남긴다. POR1_mean이 없으면 DOE_mean을 뺀 '<이름>_mean' 열을
     나온 순서대로 POR1_mean, POR2_mean, ...으로 바꾼다.
     """
-    with open(path, encoding="utf-8-sig") as f:
-        header = f.readline()
-    sep = "\t" if header.count("\t") >= header.count(",") else ","
-    df = pd.read_csv(path, sep=sep, dtype=str, keep_default_na=False, encoding="utf-8-sig")
-    df.columns = [str(c).strip().strip('"') for c in df.columns]
+    df = read_plain(path)
     # 키는 실제 ITEM 이름이다. summarize.py가 넣은 익명 ID 열이 같이 있으면 ANON_ID로 따로 남긴다.
     item_col = next((c for c in df.columns if c.upper() == "ITEM"), None)
     if item_col is not None:
@@ -242,8 +262,7 @@ def summary_text(table: pd.DataFrame, input_name: str = "") -> str:
         lines.append(f"입력: {input_name}")
     lines += [f"전체 행: {len(table)}", "", "판단별 개수:"]
     lines += [f"  {j}: {int(counts.get(j, 0))}" for j in JUDGEMENT_ORDER]
-    lines += [f"  ({MISMATCH_NOTE}: {mismatch})", "", "사용 상수:",
-              f"  ITEM_AXIS_OVER_DELTA = {ITEM_AXIS_OVER_DELTA:g}"]
+    lines.append(f"  ({MISMATCH_NOTE}: {mismatch})")
     n_old = int((table["por_gap_def"] == GAP_DEF_OLD).sum()) if "por_gap_def" in table.columns else 0
     if n_old:
         lines.append(old_gap_line(n_old))
@@ -298,52 +317,128 @@ def plot_forest(table: pd.DataFrame, path: Path) -> Path:
     return path
 
 
-def plot_item(rec: dict, path: Path, axis_over_delta: float = ITEM_AXIS_OVER_DELTA) -> Path:
-    """0(=por_median) 기준선 위 POR 회차·DOE의 % 위치와 ±Δ% 띠. 축 밖 값은 화살표+숫자."""
-    ks = sorted(int(m.group(1)) for c in rec if (m := POR_PCT_RE.match(str(c))))
-    points = [(f"POR{k}", rec[f"por{k}_pct"], "#555555") for k in ks
-              if isinstance(rec[f"por{k}_pct"], float) and math.isfinite(rec[f"por{k}_pct"])]
-    points.append(("DOE", rec["doe_pct"], JUDGEMENT_COLORS.get(rec["judgement"], "#000000")))
-    d = rec["delta_pct"]
-    lim = axis_over_delta * d
-    n = len(points)
-    fig, ax = plt.subplots(figsize=(6.5, 0.45 * n + 1.9))
-    ax.axvspan(-d, d, color="#cfe3f5", alpha=0.7, label=f"±Δ ({d:.3g}%)")
-    ax.axvline(0, color="#333333", lw=1)
-    for y, (_, v, color) in enumerate(points):
-        if abs(v) <= lim:
-            ax.plot(v, y, "o", color=color, ms=6)
-            ax.annotate(f"{v:+.2f}%", (v, y), xytext=(0, 7), textcoords="offset points",
-                        ha="center", fontsize=7, color=color)
-        else:
-            sign = 1 if v > 0 else -1
-            ax.annotate(f"{v:+.1f}%", xy=(sign * lim * 0.98, y), xytext=(sign * lim * 0.6, y),
-                        ha="center", va="center", fontsize=8, color=color,
-                        arrowprops=dict(arrowstyle="->", color=color, lw=1.2))
-    ax.set_yticks(list(range(n)))
-    ax.set_yticklabels([p[0] for p in points])
-    ax.set_ylim(n - 0.4, -0.6)
-    ax.set_xlim(-lim, lim)
-    ax.set_xlabel("por_median 대비 (%)")
-    ax.set_title(f"{rec['ID']}  {rec['judgement']}  (verdict {rec['verdict']})", fontsize=10)
-    ax.legend(loc="lower right", fontsize=8)
-    ax.grid(axis="x", alpha=0.3)
-    _footnote(fig, f"{rec['rule_hit']} | por_gap/Δ={rec['por_gap_over_delta']:.3g}, "
-                   f"median_out/Δ={rec['median_out_over_delta']:.3g}, "
-                   f"center/Δ={rec['center_over_delta']:.3g}")
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
-    fig.savefig(path, dpi=120)
-    plt.close(fig)
-    return path
+# ---------------------------------------------------------------- ITEM별 폴더
+
+ITEMS_DIR = "items"
+ITEMS_MARKER = ".fail_evidence_items"
+ITEMS_INDEX = "items_index.csv"
+INDEX_COLUMNS = ("ID", "유형", "verdict", "status", "폴더")
+CMP_PREFIX = "cmp_"
+NO_RAW_MSG = "원데이터 없음: raw.csv·drill.png 건너뜀"
+# 대표 status(폴더 <유형>): 여러 status가 ';'로 붙어 있으면 이 표에서 앞에 있는 것. 표에 없는 이름은 맨 뒤(나온 순서).
+STATUS_PRIORITY = (ST_SETUP_ERROR, ST_UNSTABLE, ST_FLAT, ST_RESOLUTION, ST_RUN_JITTER, ST_SIZE_JITTER)
 
 
-def safe_name(item_id: str) -> str:
-    return re.sub(r"[^\w.-]", "_", str(item_id)) or "_"
+def item_type(status: str, verdict: str) -> str:
+    """대표 status. status가 비었거나 정상이면 verdict."""
+    names = [s.strip() for s in str(status).split(";") if s.strip() and s.strip() != ST_OK]
+    if not names:
+        return verdict
+    rank = {s: i for i, s in enumerate(STATUS_PRIORITY)}
+    return min(names, key=lambda s: rank.get(s, len(rank)))
+
+
+def select_items(plain: pd.DataFrame, extra: list[str]) -> tuple[list[str], list[str]]:
+    """폴더를 만들 ITEM(verdict 차이·미결 + extra, 입력 순서)과 입력에 없는 extra ID."""
+    key = key_column(plain)
+    ids = plain[key].astype(str).str.strip()
+    verdict = plain["verdict"].astype(str).str.strip() if "verdict" in plain.columns else pd.Series("", index=plain.index)
+    wanted = set(extra)
+    chosen = ids[verdict.isin(TARGET_VERDICTS) | ids.isin(wanted)]
+    return list(dict.fromkeys(chosen)), sorted(wanted - set(ids))
+
+
+def items_index(plain: pd.DataFrame, ids: list[str]) -> pd.DataFrame:
+    """ID, 유형, verdict, status, 폴더(--out 기준 상대 경로). 이름이 겹치면 _2, _3 을 붙인다."""
+    key = key_column(plain)
+    first = plain.assign(_k=plain[key].astype(str).str.strip()).drop_duplicates("_k").set_index("_k")
+    rows, used = [], set()
+    for item in ids:
+        r = first.loc[item]
+        verdict = str(r.get("verdict", "")).strip()
+        status = str(r.get("status", "")).strip()
+        typ = item_type(status, verdict)
+        name = base = safe_group_name(f"{typ}_{item}")
+        n = 2
+        while name in used:
+            name, n = f"{base}_{n}", n + 1
+        used.add(name)
+        rows.append(dict(zip(INDEX_COLUMNS, (item, typ, verdict, status, f"{ITEMS_DIR}/{name}"))))
+    return pd.DataFrame(rows, columns=list(INDEX_COLUMNS))
+
+
+def read_compare(path: str | Path) -> pd.DataFrame:
+    """compare_before_after.py compare 결과(compare.csv). 키 열은 _k, 나머지 열은 cmp_ 접두사."""
+    df = read_plain(path)
+    key = key_column(df)
+    out = df.rename(columns={c: CMP_PREFIX + c for c in df.columns})
+    out.insert(0, "_k", df[key].astype(str).str.strip())
+    return out.drop_duplicates("_k")
+
+
+def item_summary(plain: pd.DataFrame, item: str, cmp: pd.DataFrame | None) -> pd.DataFrame:
+    """items.csv의 그 ITEM 행(모든 열) + compare 결과에 같은 ITEM이 있으면 cmp_ 열."""
+    rows = plain[plain[key_column(plain)].astype(str).str.strip() == item].reset_index(drop=True)
+    if cmp is not None:
+        hit = cmp[cmp["_k"] == item].drop(columns="_k")
+        if not hit.empty:
+            rows = pd.concat([rows, pd.concat([hit] * len(rows), ignore_index=True)], axis=1)
+    return rows
+
+
+def add_raw_args(p: argparse.ArgumentParser) -> None:
+    """por_doe_compare.py 와 같은 원데이터 인자(add_common_args 그대로). 여기서는 --por/--doe 가 선택이다."""
+    add_common_args(p)
+    for act in p._actions:
+        if act.dest in ("por", "doe"):
+            act.required = False
+
+
+def load_raw(a: argparse.Namespace, items: list[str]) -> pd.DataFrame:
+    """die별 원데이터: die 좌표(--key의 ITEM 밖 열), ITEM, POR 회차별, DOE, (blank), d = DOE − POR 회차 평균, por_range."""
+    wide, por_cols, _ = load_wide(a)
+    wide = wide[wide["ITEM"].astype(str).isin(items)].copy()
+    por = wide[por_cols].astype(float)
+    if a.blank:
+        blank = load_blank(a.blank, a.encoding).set_index("BLANK_ITEM")
+        bmap = {}
+        if a.blank_map:
+            mp = read_csv_auto(Path(a.blank_map), a.encoding)
+            mp.columns = [c.strip().upper() for c in mp.columns]
+            bmap = dict(zip(mp["ITEM"], mp["BLANK_ITEM"]))
+        bitem = wide["ITEM"].map(lambda it: bmap.get(it, it))
+        wide["blank_item"] = bitem.where(bitem.isin(blank.index), "")
+        for col, name in (("sigma0", "blank_sigma0"), ("blank_offset", "blank_offset")):
+            wide[name] = bitem.map(blank[col]) if col in blank.columns else math.nan
+    wide["d"] = wide["DOE"].astype(float) - por.mean(axis=1)
+    wide["por_range"] = por.max(axis=1) - por.min(axis=1)
+    return wide
+
+
+def items_dir_blocked(d: Path) -> str | None:
+    """표식 없이 파일이 든 items/ 이면 이유 문장, 아니면 None."""
+    if d.is_dir() and not (d / ITEMS_MARKER).is_file() and any(d.iterdir()):
+        return (f"{d} 에 표식 파일 {ITEMS_MARKER} 이 없는데 파일이 있어 아무것도 지우지 않고 멈춥니다. "
+                f"fail_evidence 가 만든 폴더가 아니면 다른 --out 을 쓰고, 맞으면 {d} 를 직접 비운 뒤 다시 실행하세요.")
+    return None
+
+
+def reset_items_dir(d: Path) -> None:
+    """표식이 있는 items/ 아래를 모두 지우고(rmtree 없이 파일·빈 폴더 단위로) 표식을 다시 쓴다."""
+    d.mkdir(parents=True, exist_ok=True)
+    for root, dirs, files in os.walk(d, topdown=False):
+        for name in files:
+            Path(root, name).unlink()
+        for name in dirs:
+            p = Path(root, name)
+            p.unlink() if p.is_symlink() else p.rmdir()
+    (d / ITEMS_MARKER).write_text("fail_evidence.py 가 만든 폴더. 다시 실행하면 이 폴더 안을 모두 지우고 새로 만든다.\n",
+                                  encoding="utf-8")
 
 
 # ---------------------------------------------------------------- CLI
 
-OWN_OUTPUTS = ("fail_evidence.csv", "summary.txt", "forest.png", "items/*.png")
+OWN_OUTPUTS = ("fail_evidence.csv", "summary.txt", "forest.png", ITEMS_INDEX)   # items/ 는 표식으로 따로 지운다
 
 
 def remove_own_outputs(out: Path, patterns) -> None:
@@ -356,47 +451,69 @@ def remove_own_outputs(out: Path, patterns) -> None:
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Fail(차이·미결) ITEM별 근거를 규칙으로 계산한다.")
-    p.add_argument("--input", required=True, help="por_doe_compare.py 결과 TSV")
+    p.add_argument("--input", required=True, help="por_doe_compare.py 결과 items.csv")
     p.add_argument("--out", required=True, help="출력 폴더")
-    p.add_argument("--items", default="", help="ITEM 그림을 그릴 ID 목록(쉼표 구분). 기본=전체")
+    p.add_argument("--items", nargs="*", default=[], metavar="ID",
+                   help="ITEM 폴더를 더 만들 ID(공백 또는 쉼표 구분). 기본 대상 = verdict 차이·미결")
+    p.add_argument("--compare", help="compare_before_after.py compare 결과 compare.csv. 같은 ITEM 행을 summary.csv에 cmp_ 열로 붙임")
+    raw = p.add_argument_group("원데이터 (por_doe_compare.py 와 같은 인자, 주면 raw.csv 작성)")
+    add_raw_args(raw)
     return p.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if bool(args.por) != bool(args.doe):
+        print("오류: 원데이터는 --por 와 --doe 를 같이 주어야 합니다.", file=sys.stderr)
+        return 2
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     try:
         src = read_table(args.input)
         table = evidence_table(src)
+        plain = read_plain(args.input)
+        cmp = read_compare(args.compare) if args.compare else None
     except ValueError as e:
         print(f"오류: {e}", file=sys.stderr)
         return 2
 
+    items_dir = out / ITEMS_DIR
+    blocked = items_dir_blocked(items_dir)
+    if blocked:
+        print(f"오류: {blocked}", file=sys.stderr)
+        return 3
+
+    extra = [s.strip() for arg in args.items for s in arg.split(",") if s.strip()]
+    ids, unknown = select_items(plain, extra)
+    if unknown:
+        print(f"입력에 없는 ID: {', '.join(unknown)}")
+    index = items_index(plain, ids)
+    raw = load_raw(args, ids) if args.por else None
+
     remove_own_outputs(out, OWN_OUTPUTS)
     with_status(with_anon(table, src), src).to_csv(out / "fail_evidence.csv", index=False, encoding="utf-8-sig")
-    summary = summary_text(table, Path(args.input).name)
-    (out / "summary.txt").write_text(summary, encoding="utf-8")
 
     configure_font()
     rcParams["axes.unicode_minus"] = False
     plot_forest(table, out / "forest.png")
 
-    plottable = table[table["judgement"].isin(PLOT_ORDER)]
-    wanted = [s.strip() for s in args.items.split(",") if s.strip()]
-    if wanted:
-        unknown = sorted(set(wanted) - set(plottable["ID"]))
-        if unknown:
-            print(f"그림 대상이 아니거나 없는 ID: {', '.join(unknown)}")
-        plottable = plottable[plottable["ID"].isin(wanted)]
-    items_dir = out / "items"
-    items_dir.mkdir(exist_ok=True)
-    for rec in plottable.to_dict("records"):
-        if not math.isfinite(rec["delta_pct"]):
-            print(f"{rec['ID']}: por_median=0이라 ITEM 그림 생략")
-            continue
-        plot_item(rec, items_dir / f"{safe_name(rec['ID'])}.png")
+    reset_items_dir(items_dir)
+    for rec in index.to_dict("records"):
+        folder = out / rec["폴더"]
+        folder.mkdir(parents=True)
+        item_summary(plain, rec["ID"], cmp).to_csv(folder / "summary.csv", index=False, encoding="utf-8-sig")
+        if raw is not None:
+            rows = raw[raw["ITEM"].astype(str) == rec["ID"]]
+            if rows.empty:
+                print(f"{rec['ID']}: 원데이터에 행 없음 (raw.csv는 머리줄만)")
+            rows.to_csv(folder / "raw.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
+    index.to_csv(out / ITEMS_INDEX, index=False, encoding="utf-8-sig")
 
+    summary = summary_text(table, Path(args.input).name)
+    summary += f"\nITEM 폴더: {len(index)}개 ({ITEMS_DIR}/, 목록 {ITEMS_INDEX})\n"
+    if raw is None:
+        summary += NO_RAW_MSG + "\n"
+    (out / "summary.txt").write_text(summary, encoding="utf-8")
     print(summary, end="")
     return 0
 
