@@ -356,7 +356,7 @@ def _row_log_target(r) -> bool:
 
 
 def log_only_items(plain: pd.DataFrame, ids: list[str]) -> list[str]:
-    """log 대상(is_log_target)인데 ids(차이·미결·--items)에 없는 ITEM(입력 순서). 폴더에 summary.csv·log_diag.png 만 쓴다."""
+    """log 대상(is_log_target)인데 ids(차이·미결·--items)에 없는 ITEM(입력 순서). 폴더에 summary.csv·raw.csv(원데이터 있을 때)·log_diag.png 만 쓴다."""
     if plain.empty:
         return []
     keys = plain[key_column(plain)].astype(str).str.strip()
@@ -948,6 +948,7 @@ def main(argv: list[str] | None = None) -> int:
         srow = isum.iloc[0].to_dict() if not isum.empty else {}
         if raw is not None and rec["ID"] in log_only:
             rows = raw[raw["ITEM"].astype(str) == rec["ID"]]
+            rows.to_csv(folder / "raw.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
             if not rows.empty:
                 plot_log_diag(rows, srow, rec["ID"], folder / LOG_DIAG_PNG)
         elif raw is not None:
