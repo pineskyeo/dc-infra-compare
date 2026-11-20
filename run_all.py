@@ -14,6 +14,7 @@ import sys
 import subprocess
 from pathlib import Path
 
+from fail_evidence import add_raw_args
 from por_doe_compare import add_common_args
 
 ROOT = Path(__file__).resolve().parent
@@ -28,8 +29,14 @@ DESCRIPTIONS = [
     ("fail_evidence/fail_evidence.csv", "Fail 근거"),
     ("fail_evidence/summary.txt", "Fail 근거 요약"),
     ("fail_evidence/forest.png", "Fail 근거 전체 그림"),
-    ("fail_evidence/items/*.png", "ITEM별 근거 그림"),
+    ("fail_evidence/items_index.csv", "ITEM별 근거 폴더 목록"),
+    ("fail_evidence/items/*/summary.csv", "ITEM 하나의 판정 열 전체"),
+    ("fail_evidence/items/*/raw.csv", "ITEM 하나의 die별 원데이터"),
+    ("fail_evidence/items/*/*.png", "ITEM 하나의 근거 그림"),
     ("plots/*.png", "판정 요약 그림"),
+    ("log_compare/log_compare.csv", "ITEM별 선형·log CI 비 비교"),
+    ("log_compare/log_compare.png", "선형·log 판정 비교 그림"),
+    ("log_compare/*", "선형·log 판정 비교"),
     # compare/ (--before): compare_before_after.py compare
     ("compare/compare.csv", "ITEM별 기존·개선 비교"),
     ("compare/summary.txt", "기존·개선 비교 요약"),
@@ -92,16 +99,36 @@ def compare_forward_args(ap: argparse.ArgumentParser, a: argparse.Namespace) -> 
     return args
 
 
+def raw_forward_args(args: list[str]) -> list[str]:
+    """compare_forward_args 결과에서 fail_evidence 의 add_raw_args 가 받는 옵션(과 그 값)만 남긴다."""
+    probe = argparse.ArgumentParser(add_help=False)
+    add_raw_args(probe)
+    accepted = {s for act in probe._actions for s in act.option_strings}
+    kept: list[str] = []
+    keep = False
+    for tok in args:
+        if tok.startswith("--"):
+            keep = tok in accepted
+        if keep:
+            kept.append(tok)
+    return kept
+
+
 def plan_steps(ap: argparse.ArgumentParser, a: argparse.Namespace, out: Path) -> list[tuple[str, list[str], Path | None]]:
     """(이름, 스크립트 인자, stdout 저장 파일) 목록."""
     items = str(out / "items.csv")
     plot_args = ["plot_verdicts.py", "--items-csv", items, "--summary", "--out", str(out / "plots")]
     if a.groups:
         plot_args += ["--groups", _abs(a.groups)]
+    raw_args = compare_forward_args(ap, a)
     steps = [
-        ("por_doe_compare", ["por_doe_compare.py", *compare_forward_args(ap, a), "--out", str(out)], None),
+        ("por_doe_compare", ["por_doe_compare.py", *raw_args, "--out", str(out)], None),
         ("summarize", ["summarize.py", items], out / "summary_items.txt"),
-        ("fail_evidence", ["fail_evidence.py", "--input", items, "--out", str(out / "fail_evidence")], None),
+        ("log_compare", ["log_compare.py", items, "--out", str(out / "log_compare")], None),
+        # 원데이터 인자를 주면 fail_evidence/items/<유형>_<ID>/ 에 raw.csv·drill.png 도 만든다.
+        # --compare 는 안 넘긴다 (compare 단계가 이 단계보다 뒤).
+        ("fail_evidence", ["fail_evidence.py", "--input", items, "--out", str(out / "fail_evidence"),
+                           *raw_forward_args(raw_args)], None),
         # 요약 그림은 items.csv만 쓴다 (POR/DOE 원자료는 상세 그림에서만 필요).
         ("plot_verdicts", plot_args, None),
     ]
