@@ -119,11 +119,11 @@ def test_items_index_contents(tmp_path):
     assert list(idx.columns) == list(fe.INDEX_COLUMNS)
     assert idx.to_dict("records") == [
         {"ID": "A1", "유형": "차이", "verdict": "차이", "status": ST_OK,
-         "폴더": f"items/{safe_group_name('차이_A1')}"},
+         "폴더": f"items/{safe_group_name('차이_A1')}", "log_target": "False"},
         {"ID": "A2", "유형": ST_UNSTABLE, "verdict": "미결", "status": f"{ST_RUN_JITTER};{ST_UNSTABLE}",
-         "폴더": f"items/{safe_group_name(f'{ST_UNSTABLE}_A2')}"},
+         "폴더": f"items/{safe_group_name(f'{ST_UNSTABLE}_A2')}", "log_target": "False"},
         {"ID": "A5", "유형": "미결", "verdict": "미결", "status": "",
-         "폴더": f"items/{safe_group_name('미결_A5')}"},
+         "폴더": f"items/{safe_group_name('미결_A5')}", "log_target": "False"},
     ]
     for rel in idx["폴더"]:
         assert (out / rel).is_dir()
@@ -298,3 +298,79 @@ def test_no_raw_no_status_png(tmp_path):
     out = tmp_path / "out"
     assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out)]) == 0
     assert not list((out / fe.ITEMS_DIR).rglob("status_*.png"))
+
+
+# ---------------------------------------------------------------- WO-S S3: log_diag.png
+
+LOG_ITEMS = [
+    # ITEM, verdict, status, verdict_log
+    ("A1", "차이", ST_SIZE_JITTER, "동등"),
+    ("A2", "미결", ST_RUN_JITTER, "미결"),
+    ("A3", "동등", f"{ST_OK};{ST_SIZE_JITTER}", "동등"),
+]
+LOG_COLS = {"center": "0.5", "ci_low": "0.3", "ci_high": "0.7", "delta": "0.4",
+            "center_log": "0.05", "ci_low_log": "0.01", "ci_high_log": "0.09", "delta_log": "0.1",
+            "spearman_size_jitter": "-0.8", "spearman_size_jitter_log": "-0.1", "log_reason": ""}
+
+
+def _log_items_csv(tmp_path: Path, with_log: bool = True) -> Path:
+    path = tmp_path / "items.csv"
+    rows = []
+    for i, v, s, vl in LOG_ITEMS:
+        r = {"ITEM": i, "UNIT": "A", "verdict": v, "reason": "r", "status": s, **LOG_COLS, "verdict_log": vl}
+        if not with_log:
+            r = {k: x for k, x in r.items() if not k.endswith("_log") and k != "log_reason"}
+        rows.append(r)
+    pd.DataFrame(rows).to_csv(path, index=False, encoding="utf-8-sig")
+    return path
+
+
+def test_t7_size_jitter_diff_item_gets_log_diag(tmp_path):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_log_items_csv(tmp_path)), "--out", str(out), *_raw_args(tmp_path)]) == 0
+    f = _folder(out, ST_SIZE_JITTER, "A1")
+    assert (f / fe.LOG_DIAG_PNG).is_file()
+    assert (f / fe.DRILL_PNG).is_file() and (f / "raw.csv").is_file()
+    assert not (_folder(out, ST_RUN_JITTER, "A2") / fe.LOG_DIAG_PNG).exists()
+
+
+def test_t7b_equal_target_gets_summary_and_log_diag_only(tmp_path):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_log_items_csv(tmp_path)), "--out", str(out), *_raw_args(tmp_path)]) == 0
+    f = _folder(out, ST_SIZE_JITTER, "A3")
+    assert sorted(p.name for p in f.iterdir()) == sorted(["summary.csv", fe.LOG_DIAG_PNG])
+
+
+def test_t7b_equal_target_without_raw_summary_only(tmp_path):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_log_items_csv(tmp_path)), "--out", str(out)]) == 0
+    f = _folder(out, ST_SIZE_JITTER, "A3")
+    assert [p.name for p in f.iterdir()] == ["summary.csv"]
+
+
+def test_t7c_items_index_log_target(tmp_path):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_log_items_csv(tmp_path)), "--out", str(out)]) == 0
+    idx = _index(out)
+    assert "log_target" in idx.columns
+    assert dict(zip(idx["ID"], idx["log_target"])) == {"A1": "True", "A2": "False", "A3": "True"}
+    for rel in idx["폴더"]:
+        assert (out / rel).is_dir()
+    # 클수록 흔들림 이름도 대상
+    assert fe.is_log_target(f"{ST_OK};{fe.LOG_TARGET_STATUSES[1]}")
+    assert not fe.is_log_target(ST_RUN_JITTER)
+
+
+def test_t7d_input_without_log_columns(tmp_path):
+    out = tmp_path / "out"
+    assert fe.main(["--input", str(_log_items_csv(tmp_path, with_log=False)), "--out", str(out),
+                    *_raw_args(tmp_path)]) == 0
+    assert (_folder(out, ST_SIZE_JITTER, "A1") / fe.LOG_DIAG_PNG).is_file()
+    assert (_folder(out, ST_SIZE_JITTER, "A3") / fe.LOG_DIAG_PNG).is_file()
+
+
+def test_t7d_plot_log_diag_zero_values_and_empty_summary(tmp_path):
+    rows = _drill_rows()
+    rows.loc[0, "POR1"] = 0.0
+    assert fe.plot_log_diag(rows, {}, "Z", tmp_path / "a.png").is_file()
+    assert fe.plot_log_diag(_drill_rows(), {**SUMMARY, "log_reason": "음수 있음"}, "Z", tmp_path / "b.png").is_file()

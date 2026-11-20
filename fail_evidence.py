@@ -324,7 +324,7 @@ def plot_forest(table: pd.DataFrame, path: Path) -> Path:
 ITEMS_DIR = "items"
 ITEMS_MARKER = ".fail_evidence_items"
 ITEMS_INDEX = "items_index.csv"
-INDEX_COLUMNS = ("ID", "유형", "verdict", "status", "폴더")
+INDEX_COLUMNS = ("ID", "유형", "verdict", "status", "폴더", "log_target")
 CMP_PREFIX = "cmp_"
 NO_RAW_MSG = "원데이터 없음: raw.csv·drill.png 건너뜀"
 # 대표 status(폴더 <유형>): 여러 status가 ';'로 붙어 있으면 이 표에서 앞에 있는 것. 표에 없는 이름은 맨 뒤(나온 순서).
@@ -350,8 +350,27 @@ def select_items(plain: pd.DataFrame, extra: list[str]) -> tuple[list[str], list
     return list(dict.fromkeys(chosen)), sorted(wanted - set(ids))
 
 
+# ST_SIZE_JITTER_POS 는 다른 브랜치에서 들어온다. 그 전까지 이 한 곳만 이름 기본값을 쓴다.
+LOG_TARGET_STATUSES = (ST_SIZE_JITTER, getattr(por_doe_compare, "ST_SIZE_JITTER_POS", "클수록 흔들림"))
+
+
+def is_log_target(status) -> bool:
+    """status(';' 구분)에 작을수록·클수록 흔들림이 있으면 True."""
+    text = "" if pd.isna(status) else str(status)
+    return any(s.strip() in LOG_TARGET_STATUSES for s in text.split(";"))
+
+
+def log_only_items(plain: pd.DataFrame, ids: list[str]) -> list[str]:
+    """log 대상인데 ids(차이·미결·--items)에 없는 ITEM(입력 순서). 폴더에 summary.csv·log_diag.png 만 쓴다."""
+    if "status" not in plain.columns:
+        return []
+    keys = plain[key_column(plain)].astype(str).str.strip()
+    hit = keys[plain["status"].map(is_log_target)]
+    return [i for i in dict.fromkeys(hit) if i not in set(ids)]
+
+
 def items_index(plain: pd.DataFrame, ids: list[str]) -> pd.DataFrame:
-    """ID, 유형, verdict, status, 폴더(--out 기준 상대 경로). 이름이 겹치면 _2, _3 을 붙인다."""
+    """ID, 유형, verdict, status, 폴더(--out 기준 상대 경로), log_target. 이름이 겹치면 _2, _3 을 붙인다."""
     key = key_column(plain)
     first = plain.assign(_k=plain[key].astype(str).str.strip()).drop_duplicates("_k").set_index("_k")
     rows, used = [], set()
@@ -365,7 +384,7 @@ def items_index(plain: pd.DataFrame, ids: list[str]) -> pd.DataFrame:
         while name in used:
             name, n = f"{base}_{n}", n + 1
         used.add(name)
-        rows.append(dict(zip(INDEX_COLUMNS, (item, typ, verdict, status, f"{ITEMS_DIR}/{name}"))))
+        rows.append(dict(zip(INDEX_COLUMNS, (item, typ, verdict, status, f"{ITEMS_DIR}/{name}", is_log_target(status)))))
     return pd.DataFrame(rows, columns=list(INDEX_COLUMNS))
 
 
@@ -718,6 +737,109 @@ def plot_status_panels(rows: pd.DataFrame, summary: dict, item: str, status: str
     return paths
 
 
+# ---------------------------------------------------------------- 선형 vs log 진단 (log_diag.png)
+
+LOG_DIAG_PNG = "log_diag.png"
+LOG_SUFFIX = "_log"
+CI_KEYS = ("center", "ci_low", "ci_high", "delta")
+
+
+def _sub_summary(s: dict, suffix: str) -> dict:
+    """center·ci_low·ci_high·delta 를 suffix 열(예: center_log)에서 꺼낸 dict."""
+    return {k: s.get(k + suffix) for k in CI_KEYS}
+
+
+def _log_missing_text(s: dict) -> str:
+    reason = s.get("log_reason")
+    return str(reason).strip() if reason is not None and not pd.isna(reason) and str(reason).strip() else "log 열 없음"
+
+
+def _log_verdict(ax, s: dict, suffix: str, title: str) -> None:
+    """(a) 판정 한 칸: CI 막대 + center 점 + ±Δ 선 + verdict 글자."""
+    sub = _sub_summary(s, suffix)
+    center, lo, hi, delta = (_num(sub, k) for k in CI_KEYS)
+    if not all(math.isfinite(v) for v in (center, lo, hi)):
+        _no_data(ax, _log_missing_text(s) if suffix else "center·CI 없음")
+    else:
+        ax.errorbar([center], [0], xerr=[[max(0.0, center - lo)], [max(0.0, hi - center)]], fmt="o", color=D_COLOR, capsize=6, lw=2,
+                    label="center·CI")
+        _center_lines(ax, sub, vertical=True)
+        verdict = s.get("verdict" + suffix)
+        text = str(verdict).strip() if verdict is not None and not pd.isna(verdict) else "verdict 없음"
+        ax.text(0.03, 0.92, text, transform=ax.transAxes, ha="left", va="top", fontsize=12, weight="bold")
+        ax.set_yticks([])
+        ax.set_ylim(-1, 1)
+        ax.legend(fontsize=7, loc="lower right")
+    ax.set_title(title, fontsize=10)
+
+
+def _log_size_scatter(ax, rows: pd.DataFrame, s: dict, por_cols: list[str]) -> None:
+    """(b) log10|회차 평균| vs 회차 범위: 선형 범위(왼쪽 축)와 log 범위(오른쪽 축) + 두 ρ."""
+    P = _por_matrix(rows, por_cols)
+    if P.shape[1] >= 2:
+        P = P[(P != 0).all(axis=1) & (P.mean(axis=1) != 0)]
+    if P.shape[1] < 2 or P.empty:
+        _no_data(ax, "0 아닌 POR 회차 2개 이상 필요")
+    else:
+        size = np.log10(P.mean(axis=1).abs())
+        lg = np.log10(P.abs())
+        ax.scatter(size, P.max(axis=1) - P.min(axis=1), s=20, color=POR_COLOR, alpha=0.7, label="선형 범위")
+        ax.set_ylabel("선형 범위 (max − min)", fontsize=8, color=POR_COLOR)
+        ax2 = ax.twinx()
+        ax2.scatter(size, lg.max(axis=1) - lg.min(axis=1), s=20, marker="^", color=DOE_COLOR, alpha=0.7, label="log 범위")
+        ax2.set_ylabel("log10 |값| 범위", fontsize=8, color=DOE_COLOR)
+        lines = []
+        for name, col in (("선형", "spearman_size_jitter"), ("log", "spearman_size_jitter" + LOG_SUFFIX)):
+            rho = _num(s, col)
+            lines.append(f"ρ {name} = {rho:.2f}".replace("-", "−") if math.isfinite(rho) else f"ρ {name} 없음")
+        ax.text(0.97, 0.95, "\n".join(lines), transform=ax.transAxes, ha="right", va="top", fontsize=10)
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax2.get_legend_handles_labels()
+        ax.legend(h1 + h2, l1 + l2, fontsize=7, loc="upper left")
+        ax.set_xlabel("log10 |회차 평균|", fontsize=8)
+        ax.grid(alpha=0.3)
+    ax.set_title("크기 vs 회차 흔들림 (선형·log)", fontsize=10)
+
+
+def _log_d(rows: pd.DataFrame, por_cols: list[str]) -> pd.Series | None:
+    """log d = log10|DOE| − 회차 평균 log10|POR|. POR·DOE 에 0값이 있으면 None."""
+    vals = rows[por_cols + ["DOE"]].apply(pd.to_numeric, errors="coerce") if "DOE" in rows.columns else pd.DataFrame()
+    if vals.empty or (vals == 0).any().any():
+        return None
+    return (np.log10(vals["DOE"].abs()) - np.log10(vals[por_cols].abs()).mean(axis=1)).dropna()
+
+
+def plot_log_diag(rows: pd.DataFrame, summary: dict, item: str, path: Path) -> Path:
+    """작을수록·클수록 흔들림 ITEM: (a) 선형 vs log 판정 (b) 크기 vs 회차 흔들림 (c) 선형·log d 분포."""
+    rows = rows.reset_index(drop=True)
+    por_cols = [c for c in rows.columns if POR_COL_RE.match(str(c))]
+    fig = plt.figure(figsize=(11, 11))
+    gs = fig.add_gridspec(3, 2)
+    _log_verdict(fig.add_subplot(gs[0, 0]), summary, "", "선형 판정")
+    _log_verdict(fig.add_subplot(gs[0, 1]), summary, LOG_SUFFIX, "log 판정")
+    _log_size_scatter(fig.add_subplot(gs[1, :]), rows, summary, por_cols)
+    d = pd.to_numeric(rows["d"], errors="coerce").dropna() if "d" in rows.columns else pd.Series(dtype=float)
+    ax = fig.add_subplot(gs[2, 0])
+    _drill_d_hist(ax, d, summary)
+    ax.set_title("선형 d 분포", fontsize=10)
+    ax = fig.add_subplot(gs[2, 1])
+    dlog = _log_d(rows, por_cols)
+    if dlog is None:
+        _no_data(ax, "0값 있음")
+    else:
+        _drill_d_hist(ax, dlog, _sub_summary(summary, LOG_SUFFIX))
+        if not dlog.empty:
+            ax.set_xlabel("log d = log10|DOE| − 회차 평균 log10|POR|", fontsize=8)
+    ax.set_title("log d 분포", fontsize=10)
+    parts = [item, summary.get("status")]
+    fig.suptitle(" · ".join(str(p).strip() for p in parts if not pd.isna(p) and str(p).strip()) + " · 선형 vs log")
+    _footnote(fig, "실선 = center, 점선 = ±Δ, 주황 띠 = CI. log 열은 items.csv 의 *_log 열")
+    fig.tight_layout(rect=(0, 0.03, 1, 0.96))
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+    return path
+
+
 def items_dir_blocked(d: Path) -> str | None:
     """표식 없이 파일이 든 items/ 이면 이유 문장, 아니면 None."""
     if d.is_dir() and not (d / ITEMS_MARKER).is_file() and any(d.iterdir()):
@@ -790,8 +912,10 @@ def main(argv: list[str] | None = None) -> int:
     ids, unknown = select_items(plain, extra)
     if unknown:
         print(f"입력에 없는 ID: {', '.join(unknown)}")
-    index = items_index(plain, ids)
-    raw = load_raw(args, ids) if args.por else None
+    log_ids = log_only_items(plain, ids)
+    log_only = set(log_ids)
+    index = items_index(plain, ids + log_ids)
+    raw = load_raw(args, list(index["ID"])) if args.por else None
 
     remove_own_outputs(out, OWN_OUTPUTS)
     with_status(with_anon(table, src), src).to_csv(out / "fail_evidence.csv", index=False, encoding="utf-8-sig")
@@ -806,15 +930,21 @@ def main(argv: list[str] | None = None) -> int:
         folder.mkdir(parents=True)
         isum = item_summary(plain, rec["ID"], cmp)
         isum.to_csv(folder / "summary.csv", index=False, encoding="utf-8-sig")
-        if raw is not None:
+        srow = isum.iloc[0].to_dict() if not isum.empty else {}
+        if raw is not None and rec["ID"] in log_only:
+            rows = raw[raw["ITEM"].astype(str) == rec["ID"]]
+            if not rows.empty:
+                plot_log_diag(rows, srow, rec["ID"], folder / LOG_DIAG_PNG)
+        elif raw is not None:
             rows = raw[raw["ITEM"].astype(str) == rec["ID"]]
             if rows.empty:
                 print(f"{rec['ID']}: 원데이터에 행 없음 (raw.csv는 머리줄만, {DRILL_PNG} 없음)")
             rows.to_csv(folder / "raw.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
             if not rows.empty:
-                srow = isum.iloc[0].to_dict() if not isum.empty else {}
                 plot_drill(rows, srow, rec["ID"], folder / DRILL_PNG)
                 plot_status_panels(rows, srow, rec["ID"], rec["status"], folder)
+                if rec["log_target"]:
+                    plot_log_diag(rows, srow, rec["ID"], folder / LOG_DIAG_PNG)
     index.to_csv(out / ITEMS_INDEX, index=False, encoding="utf-8-sig")
 
     summary = summary_text(table, Path(args.input).name)
