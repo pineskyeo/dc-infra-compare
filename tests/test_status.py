@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 import fail_evidence
-from por_doe_compare import item_status
+from por_doe_compare import LOG_COLS, item_status
 
 JITTER = ["run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter"]
 ROOT = Path(__file__).resolve().parents[1]
@@ -131,6 +131,8 @@ def test_compare_cli_writes_status_columns(tmp_path: Path):
     ])
     with open(out / "items.csv", encoding="utf-8-sig", newline="") as f:
         rows = list(csv.reader(f))
+    assert rows[0][-len(LOG_COLS):] == LOG_COLS
+    rows = [r[:-len(LOG_COLS)] for r in rows]
     header = rows[0]
     assert header[-11:-5] == ["status", "status_detail", "mean_median_ratio", *JITTER]
     assert len(rows) > 1

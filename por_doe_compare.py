@@ -16,7 +16,7 @@
    정량 (|POR| ≥ LoQ): 신뢰구간이 ±Δ 안 → 동등, 통째로 밖 → 차이, 걸침 → 미결
    LoQ 미만: 값은 "<LoQ"로 보고한다 (IUPAC). 신뢰구간이 통째로 ±Δ 밖이고 DOE 중심(POR 중앙값 + shift)이
      LoQ 이상이라 보고가 달라질 때만 차이, 그 밖은 동등 ("<LoQ 보고 일치")
-   판정 제외: 통계를 낼 수 없는 ITEM. 아래 순서로 처음 맞는 원인 하나를 reason에 적는다
+   판정 제외: 통계를 낼 수 없는 ITEM. 맞는 원인 모두를 아래 순서로 '; ' 구분해 reason에 적는다
      (1) 중심·신뢰구간 NaN/inf (2) die 산포 0: sigma_die = 0 또는 고정값 비율 > 50% (status '산포 0'과 같은 비율)
      (3) POR 중앙값 0이고 sigma_run 0. 그 밖은 zone 판정: LoQ 미만은 Δ와 무관하게 판정하고,
      정량은 장비 정확도 대체 후 최종 Δ가 0 이하·NaN일 때만 판정 제외
@@ -43,14 +43,17 @@ MIN_DIE = 10
 OUTLIER_K = 5.0
 RUN_JITTER_OVER_DELTA = 1.0     # 회차 흔들림: die별 회차 범위 중앙값 ≥ 이 배수 × Δ
 SIZE_JITTER_RHO = -0.5          # 작을수록 흔들림: Spearman ρ(크기, log 범위) ≤ 이 값
+SIZE_JITTER_RHO_POS = 0.5       # 클수록 흔들림: Spearman ρ(크기, log 범위) ≥ 이 값
 SIZE_JITTER_MIN_DIE = 10
 STATUS_COLS = ["status", "status_detail", "mean_median_ratio"]
 JITTER_COLS = ["run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter"]
 GAP_COLS = ["por_gap_over_delta", "por_gap_over_noise"]
 PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
+LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta",
+            "ci_half_over_delta_log", "spearman_size_jitter_log", "log_reason"]     # 작을수록·클수록 흔들림 ITEM 참고용
 POR_GAP_NOISE_K = 3             # 조건 불안정: 짝지은 회차 차 ≥ 이 배수 × 회차 중앙값 차의 표준오차
 ST_OK, ST_UNSTABLE, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "분해능 부족", "산포 0"
-ST_RUN_JITTER, ST_SIZE_JITTER = "회차 흔들림", "작을수록 흔들림"
+ST_RUN_JITTER, ST_SIZE_JITTER, ST_SIZE_JITTER_POS = "회차 흔들림", "작을수록 흔들림", "클수록 흔들림"
 ST_SETUP_ERROR = "조건 설정 오류"     # 예약 값. 판정에 필요한 입력이 없어 지금은 쓰지 않음
 V_EXCLUDED = "판정 제외"
 ORDER = {"차이": 0, "미결": 1, "동등": 2, V_EXCLUDED: 3}
@@ -188,10 +191,13 @@ def _jitter(Y: np.ndarray, delta: float) -> tuple[dict, int]:
     n = int(ok.sum())
     if n >= 3:
         x, lg = np.log10(np.abs(m[ok])), np.log10(np.abs(Y[ok]))
-        y = lg.max(axis=1) - lg.min(axis=1)
-        if np.ptp(x) > 0 and np.ptp(y) > 0:
-            out["spearman_size_jitter"] = float(stats.spearmanr(x, y)[0])
+        out["spearman_size_jitter"] = _size_rho(x, lg.max(axis=1) - lg.min(axis=1))
     return out, n
+
+
+def _size_rho(x: np.ndarray, y: np.ndarray) -> float:
+    """Spearman ρ(크기 x, 흔들림 y). 어느 한쪽이 모두 같으면 NaN."""
+    return float(stats.spearmanr(x, y)[0]) if np.ptp(x) > 0 and np.ptp(y) > 0 else np.nan
 
 
 def _mode_share(v: np.ndarray) -> float:
@@ -211,7 +217,7 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     조건 불안정은 짝지은 회차 차: die별 회차 평균을 뺀 값의 회차별 중앙값 rr, gap = max(rr) − min(rr).
     se = 1.2533 · sigma_die · √2 / √n (n = die 수, 두 중앙값 차의 표준오차). gap ≥ Δ 이고 gap ≥ POR_GAP_NOISE_K · se 일 때
     (se가 0이거나 유한하지 않으면 gap ≥ Δ 만). GAP_COLS: por_gap_over_delta = gap / Δ, por_gap_over_noise = gap / se,
-    계산할 수 없으면 NaN (POR 1회면 둘 다 NaN, 조건 불안정 없음). 작을수록 흔들림은 0값 없는 die가 SIZE_JITTER_MIN_DIE개 이상일 때만."""
+    계산할 수 없으면 NaN (POR 1회면 둘 다 NaN, 조건 불안정 없음). 작을수록·클수록 흔들림은 0값 없는 die가 SIZE_JITTER_MIN_DIE개 이상일 때만."""
     Y, z = np.asarray(Y, float), np.asarray(z, float)
     R = Y.mean(axis=1)
     has_delta = bool(delta > 0)     # NaN도 False
@@ -239,6 +245,9 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     if rho <= SIZE_JITTER_RHO and n_size >= SIZE_JITTER_MIN_DIE:
         names.append(ST_SIZE_JITTER)
         details.append(f"ρ {rho:.2f}".replace("-", "−"))
+    if rho >= SIZE_JITTER_RHO_POS and n_size >= SIZE_JITTER_MIN_DIE:
+        names.append(ST_SIZE_JITTER_POS)
+        details.append(f"ρ {rho:+.2f}")
 
     vals = np.unique(np.concatenate([Y.ravel(), z]))
     if has_delta and vals.size > 1:
@@ -313,19 +322,22 @@ def reason_group(reason: pd.Series) -> pd.Series:
 
 def excluded_reason(center: float, lo: float, hi: float, s_die: float, s_run: float,
                     por_median: float, R: np.ndarray, z: np.ndarray) -> str | None:
-    """zone 판정 전에 보는 판정 제외 사유 (없으면 None). 순서대로 처음 맞는 것 하나.
+    """zone 판정 전에 보는 판정 제외 사유 (없으면 None). 맞는 원인 모두, (1) 중심·CI NaN/inf
+    (2) die 산포 0 (3) 중앙값 0·σ_run 0 순서로 '; ' 구분.
+    첫 원인만 "판정 제외: " 로 시작. die 산포 0은 σ_die=0이면 그 문구, 아니면 고정값 비율 문구 하나.
     Δ 검사는 여기서 하지 않음: LoQ zone은 Δ와 무관하고, 정량 zone은 accuracy_margin 대체 후 최종 Δ로 judge가 본다."""
+    causes = []
     bad = [k for k, v in (("center", center), ("ci_low", lo), ("ci_high", hi)) if not np.isfinite(v)]
     if bad:
-        return f"{V_EXCLUDED}: 중심·신뢰구간 계산 불가 ({', '.join(bad)})"
-    if s_die == 0:
-        return f"{V_EXCLUDED}: die 산포 0 (σ_die=0)"
+        causes.append(f"중심·신뢰구간 계산 불가 ({', '.join(bad)})")
     share = flat_share(R, z)
-    if share > 0.5:
-        return f"{V_EXCLUDED}: die 산포 0 (고정값 {round(100 * share)}%)"
+    if s_die == 0:
+        causes.append("die 산포 0 (σ_die=0)")
+    elif share > 0.5:
+        causes.append(f"die 산포 0 (고정값 {round(100 * share)}%)")
     if por_median == 0 and s_run == 0:
-        return f"{V_EXCLUDED}: 고정값 (중앙값 0·σ_run 0)"
-    return None
+        causes.append("고정값 (중앙값 0·σ_run 0)")
+    return f"{V_EXCLUDED}: {'; '.join(causes)}" if causes else None
 
 
 def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo | None = None) -> tuple[dict, np.ndarray]:
@@ -401,6 +413,49 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo
     return {**out, "verdict": v, "reason": why}, outlier
 
 
+def judge_log(Y: np.ndarray, z: np.ndarray, r: float) -> dict:
+    """log 판정 (참고용). 같은 judge() 에 L = log10|Y|, w = log10|z| 를 넣는다. 값에 0 이 없고 부호가 하나일 때만 부른다.
+    정책 허용폭: 선형의 r × |POR| 는 log 공간에서 더하는 폭 log10(1 + r) 이다. judge 는 r × level
+    (level = |중앙값(die별 L 회차 평균)|) 로 곱하므로 r_log = log10(1 + r) / level 을 넘겨 policy_margin = log10(1 + r) 이
+    되게 한다 (level 0 이면 policy 0). ASSUMED: 'log10(1+r) 로 넘김' 을 judge 의 곱셈 뒤 정책 폭이 log10(1+r) 이 되도록 해석.
+    Δ_log = log10(1 + r) + t(0.95, J−1) × √(1 + 1/J) × sigma_run(L).
+    blank_lim·info(LoQ 하한·장비 분해능·장비 정확도)는 원측정값 단위라 넘기지 않는다 (None).
+    ASSUMED: LoQ 는 judge 가 L 에서 구한 값을 그대로 쓴다 (|L| < LoQ_log 면 log 판정도 '<LoQ' 쪽으로 감)."""
+    L, w = np.log10(np.abs(Y)), np.log10(np.abs(z))
+    level = abs(float(np.median(L.mean(axis=1))))
+    r_log = float(np.log10(1 + r)) / level if level > 0 else 0.0
+    return judge(L, w, r_log, None, None)[0]
+
+
+def _ci_half_over_delta(res: dict) -> float:
+    lo, hi, delta = (float(res.get(k, np.nan)) for k in ("ci_low", "ci_high", "delta"))
+    return (hi - lo) / 2 / delta if np.isfinite(delta) and delta > 0 else np.nan
+
+
+def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict, status: str) -> dict:
+    """LOG_COLS. status 에 작을수록·클수록 흔들림이 있는 ITEM 만, 나머지는 NaN·log_reason 빈칸.
+    POR·DOE 값에 0 이 있거나 부호가 섞이면 verdict_log 판정 제외, log_reason 에 사유, log 숫자 열 NaN.
+    spearman_size_jitter_log = Spearman ρ(log10|회차 평균|, die별 log10|값| 회차 범위), _jitter 와 같은 _size_rho.
+    log_reason 은 log 판정이 된 ITEM 이면 judge_log 의 reason (ASSUMED)."""
+    out = {**dict.fromkeys(LOG_COLS, np.nan), "log_reason": ""}
+    if not {ST_SIZE_JITTER, ST_SIZE_JITTER_POS} & set(status.split(";")):
+        return out
+    out["ci_half_over_delta"] = _ci_half_over_delta(res)
+    vals = np.concatenate([Y.ravel(), z])
+    causes = [c for c, bad in (("0값 있음", (vals == 0).any()),
+                               ("부호 섞임", (vals > 0).any() and (vals < 0).any())) if bad]
+    if causes:
+        return {**out, "verdict_log": V_EXCLUDED, "log_reason": "; ".join(causes)}
+    lr = judge_log(Y, z, r)
+    L = np.log10(np.abs(Y))
+    ok = np.isfinite(L).all(axis=1)
+    rho = (_size_rho(np.log10(np.abs(Y[ok].mean(axis=1))), np.ptp(L[ok], axis=1))
+           if Y.shape[1] > 1 and ok.sum() >= 3 else np.nan)
+    return {**out, "verdict_log": lr["verdict"], "center_log": lr["center"], "ci_low_log": lr["ci_low"],
+            "ci_high_log": lr["ci_high"], "delta_log": lr["delta"], "ci_half_over_delta_log": _ci_half_over_delta(lr),
+            "spearman_size_jitter_log": rho, "log_reason": lr["reason"]}
+
+
 def load_levels(path: str, encoding: str) -> dict[str, ItemInfo]:
     lv = read_csv_auto(Path(path), encoding)
     lv.columns = [c.strip().upper() for c in lv.columns]
@@ -468,7 +523,8 @@ def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: 
         extra["verdict_no_blank"] = judge(Y, z, r, None, info)[0]["verdict"]
     status = item_status(Y, z, res["delta"])
     prec = meas_precision(*(res.get(k, np.nan) for k in ("sigma_die", "sigma_run", "por_median", "delta")))
-    return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **status, **prec}, mask
+    logs = log_columns(Y, z, r, res, status["status"])
+    return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **status, **prec, **logs}, mask
 
 
 def main() -> None:
@@ -509,7 +565,7 @@ def main() -> None:
 
     first = ["ITEM", "UNIT", "zone", "verdict", "reason"]
     res = pd.DataFrame(rows)
-    tail = STATUS_COLS + JITTER_COLS + GAP_COLS + PRECISION_COLS
+    tail = STATUS_COLS + JITTER_COLS + GAP_COLS + PRECISION_COLS + LOG_COLS
     res = res[first + [c for c in res.columns if c not in first + tail] + tail]
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
     out = Path(a.out)

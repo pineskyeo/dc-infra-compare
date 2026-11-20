@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from por_doe_compare import ci_median, ci_rank
+from por_doe_compare import LOG_COLS, ci_median, ci_rank
 
 ROOT = Path(__file__).resolve().parents[1]
 GENERATOR = ROOT / "examples" / "make_por3_data.py"
@@ -65,6 +65,8 @@ def test_items_csv_is_byte_identical_to_frozen_legacy(por3_data: Path, tmp_path:
             return list(csv.reader(f))
 
     new_rows = rows(refactored_out / "items.csv")
+    assert new_rows[0][-len(LOG_COLS):] == LOG_COLS
+    new_rows = [r[:-len(LOG_COLS)] for r in new_rows]
     assert new_rows[0][-11:] == ["status", "status_detail", "mean_median_ratio",
                                  "run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter",
                                  "por_gap_over_delta", "por_gap_over_noise",

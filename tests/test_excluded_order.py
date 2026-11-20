@@ -30,7 +30,7 @@ def test_s1_sigma_die_zero():
     res, _ = judge(Y, z, 0.05)
     assert res["sigma_die"] == 0
     assert res["verdict"] == V_EXCLUDED and res["zone"] == V_EXCLUDED
-    assert res["reason"] == f"{V_EXCLUDED}: die 산포 0 (σ_die=0)"
+    assert res["reason"].startswith(f"{V_EXCLUDED}: ") and "die 산포 0 (σ_die=0)" in res["reason"]
 
 
 def test_s2_majority_flat():
@@ -40,7 +40,7 @@ def test_s2_majority_flat():
     res, _ = judge(Y, z, 0.05)
     assert res["sigma_die"] > 0
     assert res["verdict"] == V_EXCLUDED
-    assert res["reason"] == f"{V_EXCLUDED}: die 산포 0 (고정값 60%)"
+    assert "die 산포 0 (고정값 60%)" in res["reason"]
     assert "산포 0" in item_status(Y, z, res["delta"])["status"].split(";")
 
 
@@ -58,7 +58,7 @@ def test_r1_median_zero_and_no_run_shift():
     res, _ = judge(Y, z, 0.05)
     assert res["por_median"] == 0 and res["sigma_run"] == 0 and res["sigma_die"] > 0
     assert res["verdict"] == V_EXCLUDED
-    assert res["reason"] == f"{V_EXCLUDED}: 고정값 (중앙값 0·σ_run 0)"
+    assert "고정값 (중앙값 0·σ_run 0)" in res["reason"]
 
 
 def test_r2_median_zero_with_run_shift_goes_to_loq_zone():
@@ -100,7 +100,16 @@ def test_quant_zone_final_delta_zero_is_excluded():
     Y, z = make(1.0 + np.arange(N) * 1e-3, scale=1e-4)
     res, _ = judge(Y, z, 0.0)
     assert res["verdict"] == V_EXCLUDED and res["zone"] == V_EXCLUDED
-    assert res["reason"] == f"{V_EXCLUDED}: 최종 Δ가 0 이하이거나 유효하지 않음 (Δ=0, 출처 정책 + 회차)"
+    assert "최종 Δ가 0 이하이거나 유효하지 않음 (Δ=0, 출처 정책 + 회차)" in res["reason"]
+
+
+def test_all_causes_joined_in_order():
+    # center NaN (1) + 중앙값 0·σ_run 0 (3) 이 둘 다 맞음. 첫 원인만 접두사, '; ' 로 순서대로
+    Y, z = make(sym_base())
+    z[0] = np.nan
+    res, _ = judge(Y, z, 0.05)
+    assert res["verdict"] == V_EXCLUDED
+    assert res["reason"] == (f"{V_EXCLUDED}: 중심·신뢰구간 계산 불가 (center); 고정값 (중앙값 0·σ_run 0)")
 
 
 def test_loq_zone_zero_delta_status_has_no_inf():

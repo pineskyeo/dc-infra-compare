@@ -107,7 +107,7 @@ UNIT, SPECLOW, SPECHIGH 열은 판정에 쓰지 않습니다(값이 잘못 들�
 | 정량 (≥ LoQ) | 신뢰구간이 ±Δ 안 → **동등**, 통째로 밖 → **차이**, 걸침 → **미결** (반폭 ≥ Δ면 해상도 부족, 아니면 경계) |
 | LoQ 미만 | LoQ 미만 값은 "<LoQ"로 보고합니다(IUPAC). 신뢰구간이 통째로 ±Δ 밖이고 **DOE 중심(POR 중앙값 + shift)이 LoQ 이상**이라 보고가 달라질 때만 **차이**, 그 밖은 **동등**("<LoQ 보고 일치") |
 
-**판정 제외**는 통계를 낼 수 없어 판정하지 않은 ITEM입니다. 아래 순서로 보고 처음 맞는 원인 하나만 `reason`에 적습니다(여러 개를 "; "로 잇지 않습니다).
+**판정 제외**는 통계를 낼 수 없어 판정하지 않은 ITEM입니다. 아래 1~3을 모두 보고, 맞는 원인을 모두 이 순서대로 `; `로 이어 `reason`에 적습니다. `판정 제외: `는 첫 원인 앞에만 붙습니다. 예: `판정 제외: die 산포 0 (σ_die=0); 고정값 (중앙값 0·σ_run 0)`.
 
 1. center·ci_low·ci_high 중 하나가 NaN이나 inf → `판정 제외: 중심·신뢰구간 계산 불가 (…)`
 2. die 산포 0: `sigma_die` = 0이면 `판정 제외: die 산포 0 (σ_die=0)`, 아니고 고정값 비율(R·z 최빈 비율 중 큰 쪽)이 50%를 넘으면 `판정 제외: die 산포 0 (고정값 NN%)`. 즉 `status`가 `산포 0`인 ITEM은 판정 제외입니다.
@@ -186,14 +186,26 @@ VT_N1,SHORT_V
 | `n_outlier_die`, `ttest`, `ttest_p`, `por_ttest_sig` | 참고 지표 |
 | `spec_status`, `level_check`, `range_por`, `range_doe`, `spec_resolution`, `accuracy_margin`, `verdict_no_accuracy` | `--level` 관련 |
 | `blank_item`, `blank_status`, `blank_LoQ_item`, `verdict_no_blank` | `--blank` 관련 |
-| `status`, `status_detail`, `mean_median_ratio` | 데이터 상태 (아래). 끝에서 아홉째~열한째 열 |
-| `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter` | 데이터 상태 근거 값 (아래). 끝에서 여섯째~여덟째 열 |
-| `por_gap_over_delta`, `por_gap_over_noise` | 조건 불안정 근거 값 (아래). 끝에서 넷째~다섯째 열 |
+| `status`, `status_detail`, `mean_median_ratio` | 데이터 상태 (아래). 끝에서 열여덟째~스무째 열 |
+| `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter` | 데이터 상태 근거 값 (아래). 끝에서 열다섯째~열일곱째 열 |
+| `por_gap_over_delta`, `por_gap_over_noise` | 조건 불안정 근거 값 (아래). 끝에서 열셋째~열넷째 열 |
 | `sigma_meas` | 측정 산포 = √(`sigma_die`² + `sigma_run`²). 낮을수록 좋음 |
 | `meas_precision_pct` | 측정 정밀도 (%, 상대표준편차, 낮을수록 좋음) = 100 × `sigma_meas` / \|`por_median`\|. `por_median`이 0이면 빈 칸 |
 | `sigma_meas_over_delta` | `sigma_meas` / `delta`. 허용폭 대비 측정 산포. 낮을수록 좋음. `delta`가 0이면 빈 칸 |
+| `verdict_log`, `center_log`, `ci_low_log`, `ci_high_log`, `delta_log`, `ci_half_over_delta`, `ci_half_over_delta_log`, `spearman_size_jitter_log`, `log_reason` | log 판정 비교 (참고, 아래). 마지막 아홉 열 |
 
-`items.csv`의 마지막 열한 열은 항상 `status`, `status_detail`, `mean_median_ratio`, `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter`, `por_gap_over_delta`, `por_gap_over_noise`, `sigma_meas`, `meas_precision_pct`, `sigma_meas_over_delta` 순서입니다.
+`items.csv`의 마지막 스무 열은 항상 `status`, `status_detail`, `mean_median_ratio`, `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter`, `por_gap_over_delta`, `por_gap_over_noise`, `sigma_meas`, `meas_precision_pct`, `sigma_meas_over_delta`, `verdict_log`, `center_log`, `ci_low_log`, `ci_high_log`, `delta_log`, `ci_half_over_delta`, `ci_half_over_delta_log`, `spearman_size_jitter_log`, `log_reason` 순서입니다.
+
+### log 판정 비교 (참고)
+
+`status`에 `작을수록 흔들림`이나 `클수록 흔들림`이 있는 ITEM만 같은 판정을 log 공간에서 한 번 더 해서 마지막 아홉 열에 적습니다. 참고용이며 `verdict`·`reason`은 바꾸지 않습니다. 다른 ITEM은 숫자 열이 빈 칸, `log_reason`도 빈 칸입니다.
+
+- POR·DOE 값에 0이 있거나 부호가 섞이면 log를 취할 수 없어 `verdict_log` = `판정 제외`, `log_reason`에 `0값 있음`, `부호 섞임` 중 맞는 것을 `; `로 잇고, `_log` 숫자 열은 빈 칸입니다(`ci_half_over_delta`는 선형 값이라 그대로 씁니다).
+- 그 밖은 L = log10\|Y\|(POR), w = log10\|z\|(DOE)를 선형 판정과 같은 절차(중심·90% CI·zone·TOST)에 넣습니다. `log_reason`은 그 판정의 사유입니다.
+- Δ_log = log10(1 + r) + t(0.95, J−1) × √(1 + 1/J) × σ_run(L). 정책 항은 선형의 r × \|POR\|가 log 공간에서 더하는 폭 log10(1 + r)이고, run 항은 L에서 구한 σ_run입니다.
+- LoQ는 L에서 구한 값을 그대로 씁니다. blank LoQ, 장비 분해능, 장비 정확도는 원측정값 단위라 쓰지 않습니다.
+- `ci_half_over_delta` = (`ci_high` − `ci_low`) / 2 / `delta`(선형), `ci_half_over_delta_log`는 같은 값을 log 판정으로 계산. Δ ≤ 0이나 NaN이면 빈 칸입니다. 두 값을 비교해 어느 공간에서 해상도가 나은지 봅니다.
+- `spearman_size_jitter_log` = Spearman ρ(log10\|회차 평균\|, die별 L 회차 범위). `spearman_size_jitter`와 같은 계산이며, POR가 1회뿐이거나 유효 die < 3이면 빈 칸입니다.
 
 `sigma_meas`를 제곱합의 제곱근으로 잡는 이유: die 간 산포와 회차 산포는 서로 독립이므로 분산이 더해집니다. 표준편차를 단순히 더하면 과대 추정이 됩니다.
 
@@ -207,6 +219,7 @@ VT_N1,SHORT_V
 | `조건 불안정` | 짝지은 회차 차 gap ≥ Δ 이고 gap ≥ 3·se (아래). se가 0이거나 유한하지 않으면 gap ≥ Δ만 봄. Δ ≤ 0이나 NaN이면 건너뜀 | `회차 차 1.8Δ` | `POR_GAP_NOISE_K` = 3 |
 | `회차 흔들림` | `run_jitter_over_delta` ≥ 1. die가 회차마다 다 같이 움직이는 ITEM(short, mA급). Δ가 없으면 열만 쓰고 상태는 붙이지 않음 | `회차 흔들림 40% (1.6Δ)` | `RUN_JITTER_OVER_DELTA` = 1.0 |
 | `작을수록 흔들림` | `spearman_size_jitter` ≤ −0.5이고 유효 die ≥ 10 | `ρ −0.62` | `SIZE_JITTER_RHO` = −0.5, `SIZE_JITTER_MIN_DIE` = 10 |
+| `클수록 흔들림` | `spearman_size_jitter` ≥ +0.5이고 유효 die ≥ 10. 값이 큰 die일수록 log 범위가 큼 | `ρ +0.62` | `SIZE_JITTER_RHO_POS` = 0.5, `SIZE_JITTER_MIN_DIE` = 10 |
 | `분해능 부족` | POR·DOE 전체 값의 서로 다른 값 사이 최소 간격 ≥ 0.1·Δ. 값이 1개뿐이거나 Δ ≤ 0·NaN이면 건너뜀 | `간격 0.1 = Δ의 12%` | |
 | `산포 0` | sigma_die = 0, 또는 R이나 z에서 가장 흔한 값의 die 비율 > 50%. 이 ITEM은 판정 제외 | `고정값 85%` (R·z 중 큰 최빈 비율) | |
 | `조건 설정 오류` | 예약 값. 판정할 입력이 없어 지금은 판정하지 않음 | | |

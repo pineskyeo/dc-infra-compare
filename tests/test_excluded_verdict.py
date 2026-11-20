@@ -21,7 +21,7 @@ def test_all_zero_is_excluded():
     res, _ = judge(Y, z, R_POLICY)
     assert res["delta"] == 0
     assert res["verdict"] == V_EXCLUDED and res["zone"] == V_EXCLUDED
-    assert res["reason"] == f"{V_EXCLUDED}: die 산포 0 (σ_die=0)"
+    assert res["reason"] == f"{V_EXCLUDED}: die 산포 0 (σ_die=0); 고정값 (중앙값 0·σ_run 0)"
 
 
 def test_nan_center_is_excluded():
@@ -40,7 +40,7 @@ def test_all_same_value_is_excluded():
     res, _ = judge(Y, z, R_POLICY)
     assert res["delta"] > 0 and res["sigma_die"] == 0 and res["sigma_run"] == 0
     assert res["verdict"] == V_EXCLUDED
-    assert res["reason"] == f"{V_EXCLUDED}: die 산포 0 (σ_die=0)"
+    assert "die 산포 0 (σ_die=0)" in res["reason"]
     assert res["center"] == 0 and res["por_median"] == 400.0     # out 값은 그대로 채움
 
 
@@ -50,7 +50,7 @@ def test_majority_flat_is_excluded():
     res, _ = judge(Y, z, R_POLICY)
     assert res["sigma_die"] == 0
     assert res["verdict"] == V_EXCLUDED
-    assert res["reason"] == f"{V_EXCLUDED}: die 산포 0 (σ_die=0)"     # 둘 다면 σ_die 문구
+    assert "die 산포 0 (σ_die=0)" in res["reason"] and "고정값 6" not in res["reason"]  # 둘 다면 σ_die 문구 하나
     assert "산포 0" in item_status(Y, z, res["delta"])["status"].split(";")
 
 

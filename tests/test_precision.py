@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 import fail_evidence
-from por_doe_compare import GAP_COLS, JITTER_COLS, PRECISION_COLS, STATUS_COLS, meas_precision
+from por_doe_compare import GAP_COLS, JITTER_COLS, LOG_COLS, PRECISION_COLS, STATUS_COLS, meas_precision
 
 ROOT = Path(__file__).resolve().parents[1]
 SYNTH_TSV = ROOT / "tests" / "data" / "fail_evidence_synth.tsv"
@@ -73,6 +73,8 @@ def test_compare_cli_writes_precision_columns(tmp_path: Path):
     ])
     with open(out / "items.csv", encoding="utf-8-sig", newline="") as f:
         rows = list(csv.reader(f))
+    assert rows[0][-len(LOG_COLS):] == LOG_COLS
+    rows = [r[:-len(LOG_COLS)] for r in rows]
     header = rows[0]
     assert header[-11:] == STATUS_COLS + JITTER_COLS + GAP_COLS + PRECISION_COLS
     assert len(rows) > 1

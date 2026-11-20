@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 
 import fail_evidence
+import por_doe_compare as pdc
 import run_all
 from por_doe_compare import JITTER_COLS, item_status
 
@@ -97,6 +98,58 @@ def test_no_delta_records_columns_without_run_jitter(delta):
     assert math.isfinite(st["spearman_size_jitter"])
     assert math.isnan(st["run_jitter_over_delta"])
     assert "회차 흔들림" not in parts(st["status"])
+
+
+def ranked_jitter_data(rank: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """die i (크기 오름차순)의 log10 범위 순위 = rank[i]. Spearman ρ = 1 − 6Σd²/(n(n²−1)) 를 그대로 만든다."""
+    n = len(rank)
+    size = 10 ** np.linspace(-12, -6, n)
+    half = 0.02 + 0.01 * np.asarray(rank, float)
+    return size[:, None] * 10 ** (half[:, None] * np.array([1.0, 0.0, -1.0])), size.copy()
+
+
+def reversed_blocks(*lens: int) -> np.ndarray:
+    """앞에서부터 길이 lens 구간마다 순위를 뒤집는다. 구간 길이 k 의 Σd² = k(k²−1)/3."""
+    out, start = [], 0
+    for k in lens:
+        out.extend(range(start + k - 1, start - 1, -1))
+        start += k
+    return np.array(out)
+
+
+# n = 20: (10, 8, 1, 1) → Σd² 498, ρ = 0.6256 / (11, 9) → Σd² 680, ρ = 0.4887
+RANK_POS = reversed_blocks(10, 8, 1, 1)
+RANK_JUST_UNDER = reversed_blocks(11, 9)
+
+
+def test_u1_larger_die_jitters_more():
+    st = item_status(*ranked_jitter_data(RANK_POS), 1.0)
+    assert st["spearman_size_jitter"] == pytest.approx(0.6256, abs=1e-4)
+    names = parts(st["status"])
+    assert "클수록 흔들림" in names and "작을수록 흔들림" not in names
+    assert parts(st["status_detail"])[names.index("클수록 흔들림")] == "ρ +0.63"
+
+
+def test_u2_larger_jitter_needs_min_die():
+    st = item_status(*ranked_jitter_data(np.arange(9)), 1.0)       # die 9개, ρ = 1
+    assert st["spearman_size_jitter"] == pytest.approx(1.0)
+    assert "클수록 흔들림" not in parts(st["status"])
+
+
+def test_u3_rho_just_under_threshold():
+    st = item_status(*ranked_jitter_data(RANK_JUST_UNDER), 1.0)
+    assert f"{st['spearman_size_jitter']:+.2f}" == "+0.49"
+    assert "클수록 흔들림" not in parts(st["status"])
+
+
+def test_u4_larger_jitter_does_not_change_verdict(monkeypatch):
+    Y, z = ranked_jitter_data(RANK_POS)
+    res, _ = pdc.judge(Y, z, 0.05)
+    monkeypatch.setattr(pdc, "SIZE_JITTER_RHO_POS", 2.0)        # 클수록 흔들림이 안 붙게
+    assert "클수록 흔들림" not in parts(item_status(Y, z, res["delta"])["status"])
+    res2, _ = pdc.judge(Y, z, 0.05)
+    assert (res["verdict"], res["zone"], res["reason"]) == (res2["verdict"], res2["zone"], res2["reason"])
+    assert res["verdict"] != pdc.V_EXCLUDED
 
 
 def test_zero_dies_skipped_in_size_jitter():
