@@ -453,10 +453,9 @@ def _verdict_with_accuracy(center: float, lo: float, hi: float, delta: float, ma
     return tost(center, lo, hi, d)[0] if d > 0 else V_EXCLUDED
 
 
-def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo | None = None,
-          run_term: float | None = None) -> tuple[dict, np.ndarray]:
-    """ITEM 하나 판정. (결과, 튀는 die 표시)
-    run_term 이 None 이면 회차 항 = t(0.95, J−1) × √(1 + 1/J) × sigma_run, 값을 주면 Δ = r × level + run_term."""
+def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None,
+          info: ItemInfo | None = None) -> tuple[dict, np.ndarray]:
+    """ITEM 하나 판정. (결과, 튀는 die 표시)"""
     n, J = Y.shape
     R = Y.mean(axis=1)
     level = abs(float(np.median(R)))
@@ -488,8 +487,7 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo
     por_pairs = [paired_t_p(Y[:, j] - Y[:, i]) for i in range(J) for j in range(i + 1, J)]
     center, lo, hi = ci_median(d)
     policy = r * level
-    if run_term is None:
-        run_term = run_factor(J) * s_run
+    run_term = run_factor(J) * s_run
     delta = policy + run_term
     out = {
         "n_die": n, "por_median": float(np.median(R)),
