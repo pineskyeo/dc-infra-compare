@@ -2,3 +2,4 @@ td/
 __pycache__/
 *_out/
 infra_compare_out/
+combos.ini
