@@ -116,7 +116,7 @@ def test_t4b_zero_and_mixed_sign():
 
 
 # 수정 전 judge_item 이 모든 zone 경로에서 내던 열 (blank·level 없음, POR 3회). 이 순서로 들어 있어야 한다.
-# zone 경로별 열(doe_center, range_doe, delta_source, verdict_no_accuracy, rel_shift)은 zone 과 verdict 사이에 낀다.
+# zone 경로별 열(doe_center, range_doe, delta_source, verdict_with_accuracy, rel_shift)은 zone 과 verdict 사이에 낀다.
 OLD_COLS = [
     "ITEM", "UNIT", "n_die", "por_median", "POR1_mean", "POR2_mean", "POR3_mean", "DOE_mean",
     "center", "ci_low", "ci_high", "delta", "policy_margin", "run_margin", "sigma_die", "sigma_run",
@@ -135,7 +135,7 @@ def is_subsequence(sub: list, seq: list) -> bool:
 def test_t5_old_columns_unchanged(monkeypatch, data):
     Y, z = data()
     row = run_item(Y, z)
-    monkeypatch.setattr(pdc, "log_columns", lambda *a, **k: {})      # log 열을 안 붙이던 수정 전 경로
+    monkeypatch.setattr(pdc, "OPTIONS", ())      # 옵션 열을 안 붙이던 수정 전 경로
     old = run_item(Y, z)
     assert is_subsequence(OLD_COLS, list(old))
     assert list(old)[-len(OLD_COLS[-11:]):] == OLD_COLS[-11:]

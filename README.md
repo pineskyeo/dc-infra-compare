@@ -182,7 +182,7 @@ VT_N1,SHORT_V
 | 열 | 내용 |
 |---|---|
 | `zone`, `verdict`, `reason` | 구간, 판정, 사유 |
-| `verdict_final`, `verdict_basis` | 최종 판정과 그 근거(`log`/`linear`). `verdict` 바로 뒤 열. 선형 먼저: `verdict`가 동등이면 `verdict`, 동등이 아니고 `status`에 `log 후보`가 있고 `verdict_log`가 판정 제외·빈 칸이 아니면 `verdict_log`, 그 밖은 `verdict`. 판정 집계와 차이/미결 선택(`summarize`, `plot_verdicts`, `fail_evidence`, `group_summary`)은 `verdict_final` 기준 |
+| `verdict_final`, `verdict_basis` | 최종 판정과 그 근거(`log`/`linear`). `verdict` 바로 뒤 열. 기본 판정 먼저: `verdict`가 동등이나 판정 제외면 `verdict` 그대로. 차이·미결이면 +@ 옵션(`OPTIONS`, 지금은 log 하나)을 순서대로 보고, `status`에 그 옵션의 태그(log는 `log 후보`)가 있고 옵션 판정(`verdict_log`)이 동등·차이·미결인 첫 옵션의 판정, 없으면 `verdict`. 판정 집계와 차이/미결 선택(`summarize`, `plot_verdicts`, `fail_evidence`, `group_summary`)은 `verdict_final` 기준 |
 | `por_median`, `POR1_mean` …, `DOE_mean` | POR 값, 회차별 평균 |
 | `center`, `ci_low`, `ci_high`, `rel_shift` | shift와 90% 신뢰구간, POR 대비 비율 |
 | `delta`, `policy_margin`, `run_margin`, `delta_source` | 허용폭과 그 구성 |
@@ -208,14 +208,14 @@ VT_N1,SHORT_V
 
 ### log 판정 (`verdict_log`)
 
-`verdict_log`는 log형 ITEM의 판정입니다. 같은 판정을 L = log10\|값\| 공간에서 한 번 더 해서 `LOG_COLS`(마지막 열네 열)에 적습니다. 선형 `verdict`·`reason`은 그대로 둡니다.
+`verdict_log`는 log형 ITEM의 판정입니다. L = log10\|값\| 공간에서 TOST만 해서 `LOG_COLS`(마지막 열네 열)에 적습니다. 선형 `verdict`·`reason`은 그대로 둡니다.
 
 - 대상: `status`와 무관하게 POR·DOE 값에 0이 없고 부호가 하나인 ITEM 전부입니다.
 - POR·DOE 값에 0이 있거나 부호가 섞이면 log를 취할 수 없어 `verdict_log` = `판정 제외`, `log_reason`에 `0값 있음`, `부호 섞임` 중 맞는 것을 `; `로 잇고, `_log` 숫자 열은 빈 칸입니다(`ci_half_over_delta`, `below_linear_loq`는 선형 값이라 그대로 씁니다).
-- 그 밖은 L = log10\|Y\|(POR), w = log10\|z\|(DOE)를 선형 판정과 같은 절차(중심·90% CI·zone·TOST)에 넣습니다. `log_reason`은 그 판정의 사유입니다.
+- 그 밖은 L = log10\|Y\|(POR), w = log10\|z\|(DOE)에서 die별 d = w − L 회차 평균, 중앙값과 부호검정 90% CI를 구해 TOST로 판정합니다. die가 10개 미만이면 미결, 판정 제외 1~2(중심·CI 계산 불가, die 산포 0)나 Δ_log ≤ 0이면 판정 제외입니다. `log_reason`은 그 판정의 사유입니다.
 - Δ_log = log10(1 + r) + `sigma_rep_log`. 정책 항은 선형의 r × \|POR\|가 log 공간에서 더하는 폭 log10(1 + r)입니다. 회차 항에는 t(0.95, J−1) × √(1 + 1/J) 배수가 없습니다.
 - `sigma_rep_log` = die마다 L 회차값의 표준편차(ddof=1) → 그 die 중앙값. 유효한 회차값이 2개 미만인 die는 빼고, 남는 die가 없으면 빈 칸입니다.
-- LoQ는 L에서 구한 값을 그대로 씁니다. blank LoQ, 장비 분해능, 장비 정확도는 원측정값 단위라 쓰지 않습니다.
+- LoQ 판정은 하지 않습니다. L이 0 근처라는 것은 그 단위에서 값이 1 근처라는 뜻일 뿐이라, 단위(kΩ, Ω)를 바꾸면 달라지기 때문입니다. blank, 장비 분해능, 장비 정확도도 원측정값 단위라 쓰지 않습니다.
 - `ci_half_over_delta` = (`ci_high` − `ci_low`) / 2 / `delta`(선형), `ci_half_over_delta_log`는 같은 값을 log 판정으로 계산. Δ ≤ 0이나 NaN이면 빈 칸입니다. 두 값을 비교해 어느 공간에서 해상도가 나은지 봅니다.
 - `spearman_size_jitter_log` = Spearman ρ(log10\|회차 평균\|, die별 L 회차 범위). `spearman_size_jitter`와 같은 계산이며, POR가 1회뿐이거나 유효 die < 3이면 빈 칸입니다.
 

@@ -23,6 +23,10 @@
      정량은 Δ가 0 이하·NaN일 때만 판정 제외
 
 4. 참고 (판정에 안 씀): t-test (NIST 7.3.1.1), POR 회차끼리 t-test, 튀는 die (|d − 중앙값| > 5 robust σ)
+
+5. 최종 판정 verdict_final: 위 판정(verdict)이 차이·미결인 ITEM만 +@ 옵션(OPTIONS)이 재판정한다.
+   동등과 판정 제외는 그대로. 옵션마다 대상 조건(status 태그)과 판정 규칙이 따로 있고, 대상인 첫 옵션이 정한다.
+   log 옵션: status 'log 후보' ITEM을 log10 값에서 TOST로만 판정 (LoQ 판정 없음, judge_log)
 """
 from __future__ import annotations
 
@@ -31,6 +35,7 @@ import multiprocessing
 import os
 import re
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -524,19 +529,30 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo
 
 
 def judge_log(Y: np.ndarray, z: np.ndarray, r: float) -> dict:
-    """log 판정 (log형 ITEM의 판정). 같은 judge() 에 L = log10|Y|, w = log10|z| 를 넣는다. 값에 0 이 없고 부호가 하나일 때만 부른다.
-    정책 허용폭: 선형의 r × |POR| 는 log 공간에서 더하는 폭 log10(1 + r) 이다. judge 는 r × level
-    (level = |중앙값(die별 L 회차 평균)|) 로 곱하므로 r_log = log10(1 + r) / level 을 넘겨 policy_margin = log10(1 + r) 이
-    되게 한다 (level 0 이면 policy 0). ASSUMED: 'log10(1+r) 로 넘김' 을 judge 의 곱셈 뒤 정책 폭이 log10(1+r) 이 되도록 해석.
-    Δ_log = log10(1 + r) + sigma_rep_log (t·√(1 + 1/J) 배수 없음). sigma_rep_log 은 sigma_rep_log() 참고.
-    sigma_run(L) (웨이퍼 공통 회차 이동) 은 결과의 sigma_run 에 남지만 Δ_log 에는 안 쓴다.
-    blank_lim·info(LoQ 하한·장비 분해능·장비 정확도)는 원측정값 단위라 넘기지 않는다 (None).
-    ASSUMED: LoQ 는 judge 가 L 에서 구한 값을 그대로 쓴다 (|L| < LoQ_log 면 log 판정도 '<LoQ' 쪽으로 감)."""
+    """log 판정: L = log10|Y|, w = log10|z| 에서 TOST 만 한다. 값에 0 이 없고 부호가 하나일 때만 부른다.
+    die별 d = w − L 회차 평균, 중앙값과 부호검정 90% CI (ci_median). Δ_log = log10(1 + r) + sigma_rep_log
+    (t·√(1 + 1/J) 배수 없음). LoQ zone 은 없다: log 값이 0 근처라는 것은 그 단위에서 1 근처라는 뜻일 뿐이라
+    단위를 바꾸면 달라진다. blank·장비 사양은 원측정값 단위라 쓰지 않는다.
+    die < MIN_DIE 면 미결, excluded_reason (중앙값 0 원인 제외) 이나 Δ_log ≤ 0·NaN 이면 판정 제외."""
     L, w = np.log10(np.abs(Y)), np.log10(np.abs(z))
-    level = abs(float(np.median(L.mean(axis=1))))
-    r_log = float(np.log10(1 + r)) / level if level > 0 else 0.0
+    R = L.mean(axis=1)
+    s_die, s_run = robust_noise(L)
+    center, lo, hi = ci_median(w - R)
     rep = sigma_rep_log(L)
-    return {**judge(L, w, r_log, None, None, run_term=rep)[0], "sigma_rep_log": rep}
+    policy = float(np.log10(1 + r))
+    delta = policy + rep
+    out = {"center": center, "ci_low": lo, "ci_high": hi, "delta": delta, "policy_margin": policy,
+           "run_margin": rep, "sigma_die": s_die, "sigma_run": s_run, "sigma_rep_log": rep}
+    if len(w) < MIN_DIE:
+        return {**out, "verdict": "미결", "reason": f"die {len(w)}개 (< {MIN_DIE})"}
+    why = excluded_reason(center, lo, hi, s_die, s_run, np.nan, R, w)
+    if why:
+        return {**out, "verdict": V_EXCLUDED, "reason": why}
+    if not np.isfinite(delta) or delta <= 0:
+        return {**out, "verdict": V_EXCLUDED,
+                "reason": f"{V_EXCLUDED}: 최종 Δ가 0 이하이거나 유효하지 않음 (Δ_log={delta:.4g})"}
+    v, why = tost(center, lo, hi, delta)
+    return {**out, "verdict": v, "reason": why}
 
 
 def sigma_rep_log(L: np.ndarray) -> float:
@@ -559,7 +575,7 @@ def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict) -> dict:
     """LOG_COLS. 모든 ITEM (status 무관): POR·DOE 값에 0 이 없고 부호가 하나면 log 판정 값을 채운다.
     0 이 있거나 부호가 섞이면 verdict_log 판정 제외, log_reason 에 사유, log 숫자 열 NaN.
     spearman_size_jitter_log = Spearman ρ(log10|회차 평균|, die별 log10|값| 회차 범위), _jitter 와 같은 _size_rho.
-    log_reason 은 log 판정이 된 ITEM 이면 judge_log 의 reason (ASSUMED).
+    log_reason 은 log 판정이 된 ITEM 이면 judge_log 의 reason.
     분석용 열 (판정에 안 씀): sigma_*_log 는 judge_log 결과의 sigma_die·sigma_run, verdict_log 가 판정 제외면 NaN.
     sigma_run_log (웨이퍼 공통 회차 이동) 은 판정에 안 씀.
     policy_margin_log = log10(1 + r), log 판정이 된 ITEM 만. below_linear_loq 는 모든 ITEM:
@@ -589,6 +605,22 @@ def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict) -> dict:
             "policy_margin_log": float(np.log10(1 + r)), "sigma_rep_log": lr["sigma_rep_log"]}
 
 
+@dataclass(frozen=True)
+class Option:
+    """기본 판정(judge) 뒤의 +@ 재판정 하나. status 에 이 태그가 있는 ITEM만 재판정 대상이고, 판정 규칙은 옵션마다 다르다.
+    compute(Y, z, r, 기본 판정 결과) → columns 의 값. 열은 status 와 무관하게 모든 ITEM에 채운다 (참고용)."""
+    basis: str
+    status: str
+    verdict_col: str
+    columns: tuple[str, ...]
+    compute: Callable[[np.ndarray, np.ndarray, float, dict], dict]
+
+
+# 순서가 우선순위: 재판정 대상인 옵션 중 앞의 것이 최종 판정을 정한다
+OPTIONS = (Option("log", ST_LOG_CANDIDATE, "verdict_log", tuple(LOG_COLS), log_columns),)
+JUDGED = ("동등", "차이", "미결")
+
+
 LOG_TARGET_STATUSES = (ST_SIZE_JITTER, ST_SIZE_JITTER_POS)
 
 
@@ -596,9 +628,13 @@ def _text(v) -> str:
     return "" if v is None or (isinstance(v, float) and np.isnan(v)) else str(v).strip()
 
 
+def _status_parts(status) -> set[str]:
+    return {p.strip() for p in _text(status).split(";")}
+
+
 def log_target_statuses(status) -> list[str]:
     """status(';' 구분)에 들어 있는 LOG_TARGET_STATUSES (LOG_TARGET_STATUSES 순서)."""
-    parts = {p.strip() for p in _text(status).split(";")}
+    parts = _status_parts(status)
     return [s for s in LOG_TARGET_STATUSES if s in parts]
 
 
@@ -614,28 +650,24 @@ def is_log_target(status, verdict=None, verdict_log=None) -> bool:
     return bool(log_target_statuses(status)) or verdict_log_differs(verdict, verdict_log)
 
 
-def final_verdict(status, verdict, verdict_log) -> tuple[str, str]:
-    """최종 판정 (verdict_final, verdict_basis).
-
-    선형 먼저, 동등이 아닌 log 후보만 log 로 재판정.
-    - verdict 가 '동등'이면 (verdict, 'linear') — log 와 무관.
-    - 동등이 아니고 status(';' 구분)에 ST_LOG_CANDIDATE('log 후보')가 있고 verdict_log 에 값이 있고
-      (NaN·빈칸 아님) V_EXCLUDED('판정 제외')가 아니면 (verdict_log, 'log').
-    - 그 밖은 (verdict, 'linear').
-    """
-    if _text(verdict) == "동등":
-        return verdict, "linear"
-    vl = _text(verdict_log)
-    if ST_LOG_CANDIDATE in {p.strip() for p in _text(status).split(";")} and vl and vl != V_EXCLUDED:
-        return vl, "log"
+def final_verdict(status, verdict, *option_verdicts) -> tuple[str, str]:
+    """최종 판정 (verdict_final, verdict_basis). option_verdicts 는 OPTIONS 순서의 각 옵션 판정.
+    기본 판정이 동등이나 판정 제외면 그대로 (verdict, 'linear'). 아니면 OPTIONS 순서로 status 에 옵션 태그가 있고
+    옵션 판정이 동등·차이·미결인 첫 옵션의 (판정, basis). 없으면 (verdict, 'linear')."""
+    if _text(verdict) not in ("동등", V_EXCLUDED):
+        parts = _status_parts(status)
+        for opt, v in zip(OPTIONS, option_verdicts, strict=True):
+            if opt.status in parts and _text(v) in JUDGED:
+                return _text(v), opt.basis
     return verdict, "linear"
 
 
 def add_final_verdict(res: pd.DataFrame) -> pd.DataFrame:
-    """res 에 verdict_final·verdict_basis 열을 verdict 바로 뒤에 넣어 돌려준다."""
-    vl = res["verdict_log"] if "verdict_log" in res else pd.Series(np.nan, index=res.index)
+    """res 에 verdict_final·verdict_basis 열을 verdict 바로 뒤에 넣어 돌려준다. 옵션 판정 열이 없는 옛 CSV 는 빈 칸으로 본다."""
+    missing = pd.Series(np.nan, index=res.index)
     st = res["status"] if "status" in res else pd.Series("", index=res.index)
-    fb = [final_verdict(s, v, l) for s, v, l in zip(st, res["verdict"], vl)]
+    ov = [res[o.verdict_col] if o.verdict_col in res else missing for o in OPTIONS]
+    fb = [final_verdict(s, v, *o) for s, v, *o in zip(st, res["verdict"], *ov)]
     res = res.drop(columns=["verdict_final", "verdict_basis"], errors="ignore")
     at = res.columns.get_loc("verdict") + 1
     res.insert(at, "verdict_final", [f for f, _ in fb])
@@ -715,8 +747,8 @@ def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: 
         extra["verdict_no_blank"] = judge(Y, z, r, None, info)[0]["verdict"]
     status = item_status(Y, z, res["delta"])
     prec = meas_precision(*(res.get(k, np.nan) for k in ("sigma_die", "sigma_run", "por_median", "delta")))
-    logs = log_columns(Y, z, r, res)
-    return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **status, **prec, **logs}, mask
+    opts = {k: v for o in OPTIONS for k, v in o.compute(Y, z, r, res).items()}
+    return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **status, **prec, **opts}, mask
 
 
 def _judge_group(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: float,
@@ -764,7 +796,7 @@ def main() -> None:
 
     first = ["ITEM", "UNIT", "zone", "verdict", "reason"]
     res = pd.DataFrame(rows)
-    tail = STATUS_COLS + PRECISION_COLS + LOG_COLS
+    tail = STATUS_COLS + PRECISION_COLS + [c for o in OPTIONS for c in o.columns]
     res = res[first + [c for c in res.columns if c not in first + tail] + tail]
     res = add_final_verdict(res)
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
@@ -776,6 +808,8 @@ def main() -> None:
 
     print(f"\n판정 (허용폭 ±{a.r:.0%} + POR 회차 흔들림, 중앙값 TOST, LoQ 미만은 '<LoQ 보고 일치')")
     print(pd.crosstab(res["zone"], res["verdict"], margins=True, margins_name="합계").to_string())
+    print("\n최종 판정 (차이·미결만 옵션 재판정, log 후보는 log10 TOST)")
+    print(pd.crosstab(res["verdict_basis"], res["verdict_final"], margins=True, margins_name="합계").to_string())
     bad = reason_group(res.loc[res["verdict"] != "동등", "reason"]).value_counts()
     if len(bad):
         print("\n동등이 아닌 사유")
