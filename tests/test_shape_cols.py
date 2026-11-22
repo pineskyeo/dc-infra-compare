@@ -256,8 +256,10 @@ def test_w5_verdict_and_old_status_unchanged(name, old_module):
     Y, z = CASES[name]()
     new_res, new_mask = judge(Y, z, R_TOL)
     old_res, old_mask = old_module.judge(Y, z, R_TOL)
-    assert list(new_res) == list(old_res)
-    assert all(same(new_res[k], old_res[k]) for k in new_res), name
+    # 결정 4: verdict_no_accuracy 자리에 verdict_with_accuracy. --level 이 없으면 참고 판정도 없다
+    assert list(new_res) == ["verdict_with_accuracy" if k == "verdict_no_accuracy" else k for k in old_res]
+    assert all(same(new_res[k], old_res[k]) for k in new_res if k != "verdict_with_accuracy"), name
+    assert same(new_res.get("verdict_with_accuracy", np.nan), np.nan), name
     assert np.array_equal(new_mask, old_mask)
 
     new_st = item_status(Y, z, new_res["delta"])
