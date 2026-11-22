@@ -11,13 +11,11 @@ import argparse
 import fnmatch
 import os
 import sys
-import subprocess
 from pathlib import Path
 
 from fail_evidence import add_raw_args
 from por_doe_compare import add_common_args
-
-ROOT = Path(__file__).resolve().parent
+from step_runner import run_step
 
 # 앞에서부터 처음 맞는 규칙의 설명을 쓴다 (경로는 --out 기준 상대경로, '/' 구분).
 DESCRIPTIONS = [
@@ -144,14 +142,6 @@ def plan_steps(ap: argparse.ArgumentParser, a: argparse.Namespace, out: Path) ->
     return steps
 
 
-def _env() -> dict:
-    env = os.environ.copy()
-    old = env.get("PYTHONPATH")
-    env["PYTHONPATH"] = str(ROOT) + (os.pathsep + old if old else "")
-    env.setdefault("PYTHONIOENCODING", "utf-8")
-    return env
-
-
 def main(argv: list[str] | None = None) -> int:
     ap = build_parser()
     a = ap.parse_args(argv)
@@ -161,21 +151,9 @@ def main(argv: list[str] | None = None) -> int:
     steps = plan_steps(ap, a, out)
     total = len(steps)
     fail_step = os.environ.get("RUN_ALL_FAIL_STEP")
-    env = _env()
     for n, (name, script_args, stdout_file) in enumerate(steps, 1):
-        print(f"[단계 {n}/{total}] {name}", flush=True)
-        cmd = [sys.executable, str(ROOT / script_args[0]), *script_args[1:]]
-        if name == fail_step:
-            cmd = [sys.executable, "-c", "import sys; sys.exit(3)"]
-        proc = subprocess.run(cmd, cwd=ROOT, env=env, check=False, capture_output=True,
-                              text=True, encoding="utf-8", errors="replace")
+        proc = run_step(n, total, name, script_args, fail=name == fail_step)
         if proc.returncode != 0:
-            print(f"[실패] 단계 {n}/{total} {name}: {subprocess.list2cmdline(cmd)}")
-            print(f"rc={proc.returncode}")
-            tail = (proc.stderr or "").splitlines()[-20:]
-            for line in tail:
-                print(line)
-            sys.stdout.flush()
             return proc.returncode or 1
         if stdout_file is not None:
             stdout_file.write_text(proc.stdout, encoding="utf-8")
