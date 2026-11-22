@@ -1,6 +1,10 @@
 """판정 제외 순서 (WO-R): 중심·CI → die 산포 0 → 중앙값 0·σ_run 0 → zone 판정 (정량만 최종 Δ 검사). 합성 배열만."""
-import numpy as np
+import sys
 
+import numpy as np
+import pandas as pd
+
+import summarize
 from por_doe_compare import V_EXCLUDED, ItemInfo, item_status, judge, meas_precision
 
 N = 200
@@ -142,3 +146,19 @@ def test_loq_zone_zero_delta_status_has_no_inf():
     assert not any(s in st["status"] for s in ("조건 불안정", "회차 흔들림", "분해능 부족"))
     prec = meas_precision(res["sigma_die"], res["sigma_run"], res["por_median"], res["delta"])
     assert np.isnan(prec["sigma_meas_over_delta"])
+
+
+def test_summarize_counts_items_accuracy_margin_would_change(tmp_path, monkeypatch, capsys):
+    base = {"UNIT": "V", "n_die": 200, "POR1_mean": 1.0, "POR2_mean": 1.0, "DOE_mean": 1.0, "por_median": 1.0,
+            "center": 0.0, "ci_low": 0.0, "ci_high": 0.0, "delta": 0.05, "n_outlier_die": 0, "run_margin": 0.0,
+            "policy_margin": 0.05, "limit_source": "POR 반복", "sigma_die": 0.1, "ttest": "유의차 없음",
+            "por_ttest_sig": "0/1", "zone": "정량", "reason": "r"}
+    rows = [{**base, "ITEM": "VT1", "verdict": "차이", "verdict_with_accuracy": "동등"},
+            {**base, "ITEM": "VT2", "verdict": "동등", "verdict_with_accuracy": "동등"},
+            {**base, "ITEM": "VT3", "verdict": "차이"}]
+    path = tmp_path / "items.csv"
+    pd.DataFrame(rows).to_csv(path, index=False)
+    monkeypatch.setattr(sys, "argv", ["summarize.py", str(path)])
+    summarize.main()
+    line = next(s for s in capsys.readouterr().out.splitlines() if "장비 정확도 폭을 쓰면 판정이 바뀔 ITEM" in s)
+    assert line.endswith("1 / 정확도 폭 있음 2"), line
