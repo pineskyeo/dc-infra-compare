@@ -80,13 +80,16 @@ def test_items_csv_is_byte_identical_to_frozen_legacy(por3_data: Path, tmp_path:
     new_rows = [r[:vi] + r[vi + 2:] for r in new_rows]
     legacy_rows = rows(legacy_out / "items.csv")
     header = new_rows[0]
-    assert header == legacy_rows[0]
+    # 결정 4: 장비 정확도 폭은 판정에 안 쓰고 verdict_no_accuracy 자리에 verdict_with_accuracy (참고 판정)
+    assert header == ["verdict_with_accuracy" if c == "verdict_no_accuracy" else c for c in legacy_rows[0]]
 
     # '판정 제외'는 레거시에 없던 판정이다. 그 행은 zone·verdict·reason만 달라도 되고, ORDER 때문에
     # 맨 뒤로 옮겨지므로 ITEM 기준으로 맞춰 비교한다. 나머지 행·열은 그대로 같아야 한다.
     # doe_center는 LoQ 분기에서만 채워지고 판정 제외는 그 전에 끝나 비며, verdict_no_blank는 blank 없이 다시 판정해도 판정 제외라 달라진다.
     col = {name: i for i, name in enumerate(header)}
-    changed = (col["zone"], col["verdict"], col["reason"], col["doe_center"], col["verdict_no_blank"])
+    changed = (col["zone"], col["verdict"], col["reason"], col["doe_center"], col["verdict_no_blank"],
+               col["verdict_with_accuracy"])
+    accuracy_changed = (col["verdict"], col["reason"], col["delta"], col["delta_source"], col["verdict_with_accuracy"])
     new_by_item = {r[col["ITEM"]]: r for r in new_rows[1:]}
     legacy_by_item = {r[col["ITEM"]]: r for r in legacy_rows[1:]}
     assert len(new_by_item) == len(new_rows) - 1
@@ -98,18 +101,28 @@ def test_items_csv_is_byte_identical_to_frozen_legacy(por3_data: Path, tmp_path:
     assert new_by_item["IOFF_STEP"][col["doe_center"]] == ""
     assert new_by_item["IOFF_STEP"][col["verdict_no_blank"]] == "판정 제외"
 
-    def without_changed(r: list[str]) -> list[str]:
-        return [v for i, v in enumerate(r) if i not in changed]
+    widened = sorted(item for item, r in legacy_by_item.items() if r[col["delta_source"]] == "장비 정확도")
+    assert widened == ["VOS_OFFSET"]
+    vos_new, vos_old = new_by_item["VOS_OFFSET"], legacy_by_item["VOS_OFFSET"]
+    assert (vos_old[col["verdict"]], vos_new[col["verdict"]]) == ("동등", "차이")
+    assert vos_new[col["delta_source"]] == "정책 + 회차"
+    assert vos_new[col["verdict_with_accuracy"]] == "동등"
+
+    def without(r: list[str], cols) -> list[str]:
+        return [v for i, v in enumerate(r) if i not in cols]
 
     for item, new in new_by_item.items():
         legacy = legacy_by_item[item]
         if item in excluded:
-            assert without_changed(new) == without_changed(legacy), item
+            assert without(new, changed) == without(legacy, changed), item
+        elif item in widened:
+            assert without(new, accuracy_changed) == without(legacy, accuracy_changed), item
         else:
-            assert new == legacy, item
-
-    kept = [r for r in new_rows[1:] if r[col["ITEM"]] not in excluded]
-    assert kept == [r for r in legacy_rows[1:] if r[col["ITEM"]] not in excluded]
+            acc = {col["verdict_with_accuracy"]}
+            assert without(new, acc) == without(legacy, acc), item
+            # 정확도 폭이 Δ보다 작던 ITEM의 참고 판정은 옛 verdict_no_accuracy 와 같고, 폭이 없으면 빈 칸
+            want = legacy[col["verdict_with_accuracy"]] if new[col["accuracy_margin"]] else ""
+            assert new[col["verdict_with_accuracy"]] == want, item
 
 
 @pytest.mark.parametrize("n", [2, 3, 5, 9, 10, 11, 12, 29, 30, 31, 59, 60, 61, 62, 100])
