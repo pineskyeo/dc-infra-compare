@@ -100,7 +100,7 @@ UNIT, SPECLOW, SPECHIGH 열은 판정에 쓰지 않습니다(값이 잘못 들�
 허용폭 Δ = r × |POR 중앙값| + t(0.95, J−1) × √(1 + 1/J) × `sigma_run`
 
 - 뒤쪽은 DOE 1회가 POR J회 평균에서 **같은 프로그램 안에서도** 벗어날 수 있는 폭입니다(90% 예측구간 한쪽). `sigma_run`을 회차 J개로 추정하므로 t를 씁니다(J = 3이면 2.92, 5면 2.13).
-- `--level`의 A, V ITEM은 장비 정확도로 구한 폭이 더 크면 그쪽을 씁니다(`delta_source`).
+- `--level`의 A, V ITEM에서 구한 장비 정확도 폭(`accuracy_margin`)은 지금은 판정에 쓰지 않습니다. 그 폭이 Δ보다 클 때 Δ 대신 썼다면 나왔을 TOST 판정을 `verdict_with_accuracy`에 참고로 적습니다(`accuracy_margin`이 없으면 빈 칸). `delta`, `delta_source`는 실제로 쓴 Δ입니다.
 - log 판정(`verdict_log`, 아래 [log 판정](#log-판정-verdict_log))의 허용폭은 Δ_log = log10(1 + r) + `sigma_rep_log`입니다. t(0.95, J−1) × √(1 + 1/J) 배수는 없습니다.
   - `sigma_rep_log` = die마다 L(= log10\|값\|) 회차값의 표준편차(ddof=1)를 구하고, 그 die 중앙값. 유효한 회차값이 2개 미만인 die는 뺍니다.
   - `sigma_run_log`(L에서 구한 회차 이동)는 분석용이며 판정에 쓰지 않습니다.
@@ -117,7 +117,7 @@ UNIT, SPECLOW, SPECHIGH 열은 판정에 쓰지 않습니다(값이 잘못 들�
 2. die 산포 0: `sigma_die` = 0이면 `판정 제외: die 산포 0 (σ_die=0)`, 아니고 고정값 비율(R·z 최빈 비율 중 큰 쪽)이 50%를 넘으면 `판정 제외: die 산포 0 (고정값 NN%)`. 즉 `status`가 `산포 0`인 ITEM은 판정 제외입니다.
 3. POR 중앙값이 0이고 `sigma_run` = 0 → `판정 제외: 고정값 (중앙값 0·σ_run 0)`
 4. 그 밖은 zone 판정을 합니다. LoQ 미만은 Δ와 무관하게 판정합니다.
-5. 정량 zone은 장비 정확도 대체 후 최종 Δ가 0 이하이거나 NaN일 때만 `판정 제외: 최종 Δ가 0 이하이거나 유효하지 않음 (Δ=…, 출처 …)`입니다.
+5. 정량 zone은 Δ가 0 이하이거나 NaN일 때만 `판정 제외: 최종 Δ가 0 이하이거나 유효하지 않음 (Δ=…, 출처 …)`입니다.
 
 고정값 비율이 50% 이하면 판정은 그대로 합니다. die 수 부족(MIN_DIE)은 그대로 **미결**입니다.
 
@@ -145,7 +145,7 @@ VT_N1,,,Y               ← 변형 값 (여러 측정 조합·추출: Vt 추출,
 | 변형 아님 + CALCVAL 없음 | 자릿수 상한 10L로 보수적 환산 | 안 씀 |
 
 - 장비 사양: Keysight P9001A Per-pin SMU (P9001 Data sheet p.6-7, Programming Reference Table 2-19/2-22). auto range는 값이 들어가는 가장 작은 range입니다. 표는 `por_doe_compare.py`의 `I_RANGES`, `V_RANGES`. 원본과 대조해서 쓰세요.
-- 장비 정확도 허용폭: 두 측정이 각자 사양 정확도 ±(a × \|값\| + b × range + c) 안일 때 생길 수 있는 차이 1.645 × √((U_POR² + U_DOE²) / 3) (균일분포, GUM 4.3.7). 사양의 Vo, Rres × Io 항은 0으로 둡니다.
+- 장비 정확도 폭(`accuracy_margin`, 참고용, 판정에 안 씀): 두 측정이 각자 사양 정확도 ±(a × \|값\| + b × range + c) 안일 때 생길 수 있는 차이 1.645 × √((U_POR² + U_DOE²) / 3) (균일분포, GUM 4.3.7). 사양의 Vo, Rres × Io 항은 0으로 둡니다.
 - `level_check`: CALCVAL로 환산한 원측정값이 LEVEL 자릿수와 다르면 "불일치". 자릿수 경계는 1.15배까지 일치로 봅니다. CALCVAL이 맞으면 판정에는 영향이 없습니다.
 
 ## blank 넣기 (`--blank`, `--blank-map`, 선택)
@@ -189,7 +189,7 @@ VT_N1,SHORT_V
 | `sigma_die`, `sigma_run`, `LoQ`, `LoD`, `limit_source` | 흔들림과 LoQ |
 | `doe_center` | LoQ 미만: DOE 중심 |
 | `n_outlier_die`, `ttest`, `ttest_p`, `por_ttest_sig` | 참고 지표 |
-| `spec_status`, `level_check`, `range_por`, `range_doe`, `spec_resolution`, `accuracy_margin`, `verdict_no_accuracy` | `--level` 관련 |
+| `spec_status`, `level_check`, `range_por`, `range_doe`, `spec_resolution`, `accuracy_margin`, `verdict_with_accuracy` | `--level` 관련. `verdict_with_accuracy`는 장비 정확도 폭을 썼다면 나왔을 정량 판정(참고) |
 | `blank_item`, `blank_status`, `blank_LoQ_item`, `verdict_no_blank` | `--blank` 관련 |
 | `status` | 데이터 상태 (아래). 끝에서 서른두째 열 |
 | `por_gap_over_delta`, `por_gap_over_noise` | 조건 불안정 근거 값 (아래). 끝에서 서른한째~서른째 열 |
@@ -282,7 +282,7 @@ log 진단 대상(`is_log_target`: `fail_evidence.py`의 log 진단 그림, `log
 
 예 (작을수록 흔들림): die 5개, 회차 평균 1e-9, 1e-8, 1e-7, 1e-6, 1e-5 → x = −9, −8, −7, −6, −5. log 범위 y = 0.8, 0.5, 0.3, 0.2, 0.1. x 순위 1..5, y 순위 5..1 → ρ = −1.00 ≤ −0.5. 유효 die 5 < 10이라 `spearman_size_jitter` = −1.00만 쓰고 상태는 붙이지 않습니다. 같은 모양이 die 10개 이상이면 `작을수록 흔들림`.
 
-`summary.txt` 구성: 구간 × 판정, 동등 아닌 사유, 정량·LoQ 미만 차이·미결 표(회차별 평균), 항목군별 판정, t-test로 판정했다면, 판정 근거 점검(회차 흔들림 몫, LoQ를 정한 쪽, blank·장비 정확도가 바꾼 판정 수), 입력 점검, 반복해서 튀는 die.
+`summary.txt` 구성: 구간 × 판정, 동등 아닌 사유, 정량·LoQ 미만 차이·미결 표(회차별 평균), 항목군별 판정, t-test로 판정했다면, 판정 근거 점검(회차 흔들림 몫, LoQ를 정한 쪽, blank가 바꾼 판정 수, 장비 정확도 폭을 쓰면 바뀔 판정 수), 입력 점검, 반복해서 튀는 die.
 
 ## 예제
 

@@ -141,8 +141,6 @@ DETAIL_LOQ_LABEL = "LoQ (참고)"
 DETAIL_POLICY_LABEL = "±Δ 정책"
 DETAIL_TOTAL_LABEL = "±Δ 정책 + 회차"
 DETAIL_RUN_BAND_LABEL = "회차 margin 누적"
-DETAIL_ACCURACY_LABEL = "±Δ 장비 정확도"
-DETAIL_REFERENCE_LABEL = "±Δ 정책 + 회차 (참고)"
 DETAIL_LOQ_FOOTNOTE = "LoQ 선은 측정 수준 참고선입니다. 정량 zone이 아니면 값을 <LoQ로 보고합니다."
 
 # 한글 렌더 테스트는 그림에 넣는 모든 고정 문자열을 이 목록에서 가져간다.
@@ -188,8 +186,6 @@ KOREAN_TEXTS = tuple(dict.fromkeys(
         DETAIL_POLICY_LABEL,
         DETAIL_TOTAL_LABEL,
         DETAIL_RUN_BAND_LABEL,
-        DETAIL_ACCURACY_LABEL,
-        DETAIL_REFERENCE_LABEL,
         DETAIL_LOQ_FOOTNOTE,
         "정량",
         "검출한계 이하",
@@ -944,32 +940,20 @@ def _detail_worker(payload: dict) -> Path:
 
         policy = float(res["policy_margin"])
         run_margin = float(res["run_margin"])
-        reference_delta = policy + run_margin
         delta = float(res["delta"])
-        if res.get("delta_source") == "장비 정확도":
-            for sign, label in ((-1, DETAIL_ACCURACY_LABEL), (1, "_nolegend_")):
-                right.axhline(
-                    sign * delta, color="#D55E00", linewidth=1.4, linestyle="-", label=label,
-                )
-            for sign, label in ((-1, DETAIL_REFERENCE_LABEL), (1, "_nolegend_")):
-                right.axhline(
-                    sign * reference_delta, color="#666666", linewidth=1.0,
-                    linestyle="--", label=label,
-                )
-        else:
-            right.axhspan(
-                policy, reference_delta, color="#E69F00", alpha=0.12,
-                label=DETAIL_RUN_BAND_LABEL, zorder=0,
+        right.axhspan(
+            policy, policy + run_margin, color="#E69F00", alpha=0.12,
+            label=DETAIL_RUN_BAND_LABEL, zorder=0,
+        )
+        right.axhspan(-policy - run_margin, -policy, color="#E69F00", alpha=0.12, zorder=0)
+        for sign, label in ((-1, DETAIL_POLICY_LABEL), (1, "_nolegend_")):
+            right.axhline(
+                sign * policy, color="#666666", linewidth=1.0, linestyle="--", label=label,
             )
-            right.axhspan(-reference_delta, -policy, color="#E69F00", alpha=0.12, zorder=0)
-            for sign, label in ((-1, DETAIL_POLICY_LABEL), (1, "_nolegend_")):
-                right.axhline(
-                    sign * policy, color="#666666", linewidth=1.0, linestyle="--", label=label,
-                )
-            for sign, label in ((-1, DETAIL_TOTAL_LABEL), (1, "_nolegend_")):
-                right.axhline(
-                    sign * delta, color="#D55E00", linewidth=1.4, linestyle="-", label=label,
-                )
+        for sign, label in ((-1, DETAIL_TOTAL_LABEL), (1, "_nolegend_")):
+            right.axhline(
+                sign * delta, color="#D55E00", linewidth=1.4, linestyle="-", label=label,
+            )
 
         loq = float(res["LoQ"])
         if np.isfinite(loq):

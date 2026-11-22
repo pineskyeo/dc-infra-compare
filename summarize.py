@@ -118,9 +118,10 @@ def main() -> None:
     if "verdict_no_blank" in d:
         hb = d[d["verdict_no_blank"].notna()]
         rows["blank 때문에 판정이 바뀐 ITEM"] = f"{int((hb['verdict_no_blank'] != hb['verdict']).sum())} / 연결 {len(hb):,}"
-    if "verdict_no_accuracy" in d:
-        qa = q[q["verdict_no_accuracy"].notna()]
-        rows["장비 정확도 때문에 판정이 바뀐 ITEM"] = int((qa["verdict_no_accuracy"] != qa["verdict"]).sum())
+    if "verdict_with_accuracy" in d:
+        da = d[d["verdict_with_accuracy"].notna()]
+        rows["장비 정확도 폭을 쓰면 판정이 바뀔 ITEM (판정에는 안 씀)"] = \
+            f"{int((da['verdict_with_accuracy'] != da['verdict']).sum())} / 정확도 폭 있음 {len(da):,}"
     sec("판정 근거 점검", pd.Series(rows).to_string())
 
     # 4. 입력 점검

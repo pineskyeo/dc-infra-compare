@@ -86,14 +86,33 @@ def test_c_nan_center():
     assert "중심·신뢰구간 계산 불가 (center)" in res["reason"]
 
 
-def test_d_accuracy_margin_replaces_zero_policy_delta():
-    # 1.0~1.2 V, r = 0, σ_run = 0 → 정책 Δ = 0. 장비 정확도 폭 > 0 이 대신 들어가 정량 판정
+def test_d_accuracy_margin_does_not_replace_zero_policy_delta():
+    # 1.0~1.2 V, r = 0, σ_run = 0 → Δ = 0. 장비 정확도 폭은 판정에 안 쓰여 판정 제외, 참고 판정만 남는다
     Y, z = make(1.0 + np.arange(N) * 1e-3, scale=1e-4)
     info = ItemInfo(1.0, "V", 1.0, False)
     res, _ = judge(Y, z, 0.0, info=info)
-    assert res["policy_margin"] == 0 and res["sigma_run"] == 0
-    assert res["zone"] == "정량" and res["verdict"] != V_EXCLUDED
-    assert res["delta_source"] == "장비 정확도" and res["delta"] > 0
+    assert res["policy_margin"] == 0 and res["sigma_run"] == 0 and res["accuracy_margin"] > 0
+    assert res["verdict"] == V_EXCLUDED
+    assert res["delta_source"] == "정책 + 회차" and res["delta"] == 0
+    assert res["verdict_with_accuracy"] == "동등"
+
+
+def test_accuracy_margin_larger_keeps_policy_run_delta():
+    # Δ = 1e-5 × 1.1 V 정도, shift 2.5e-5 → 차이. 장비 정확도 폭(≈1.7e-3)을 썼다면 동등
+    Y, z = make(1.0 + np.arange(N) * 1e-3, scale=1e-4)
+    info = ItemInfo(1.0, "V", 1.0, False)
+    res, _ = judge(Y, z, 1e-5, info=info)
+    assert res["accuracy_margin"] > res["delta"]
+    assert res["delta"] == res["policy_margin"] + res["run_margin"]
+    assert res["delta_source"] == "정책 + 회차"
+    assert res["verdict"] == "차이"
+    assert res["verdict_with_accuracy"] == "동등"
+
+
+def test_no_accuracy_margin_leaves_verdict_with_accuracy_empty():
+    Y, z = make(1.0 + np.arange(N) * 1e-3, scale=1e-4)
+    res, _ = judge(Y, z, 1e-5)
+    assert "accuracy_margin" not in res and np.isnan(res["verdict_with_accuracy"])
 
 
 def test_quant_zone_final_delta_zero_is_excluded():

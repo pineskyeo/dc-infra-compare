@@ -12,14 +12,15 @@
 3. 판정. die별 d = DOE − POR 회차 평균, shift = d의 중앙값, 90% 신뢰구간 = 부호검정 (Hollander & Wolfe)
    허용폭 Δ = r × |POR 중앙값| + t(0.95, J−1) × √(1 + 1/J) × sigma_run
      뒤쪽은 DOE 1회가 POR J회 평균에서 같은 프로그램 안에서도 벗어날 수 있는 폭 (90% 예측구간 한쪽)
-     --level 의 A·V ITEM은 장비 정확도로 구한 폭이 더 크면 그쪽 (GUM 4.3.7)
+     --level 의 A·V ITEM 장비 정확도 폭(accuracy_margin, GUM 4.3.7)은 판정에 쓰지 않는다.
+       그 폭이 Δ보다 클 때 바꿨다면 나왔을 TOST 판정을 verdict_with_accuracy 에 참고로 남긴다
    정량 (|POR| ≥ LoQ): 신뢰구간이 ±Δ 안 → 동등, 통째로 밖 → 차이, 걸침 → 미결
    LoQ 미만: 값은 "<LoQ"로 보고한다 (IUPAC). 신뢰구간이 통째로 ±Δ 밖이고 DOE 중심(POR 중앙값 + shift)이
      LoQ 이상이라 보고가 달라질 때만 차이, 그 밖은 동등 ("<LoQ 보고 일치")
    판정 제외: 통계를 낼 수 없는 ITEM. 맞는 원인 모두를 아래 순서로 '; ' 구분해 reason에 적는다
      (1) 중심·신뢰구간 NaN/inf (2) die 산포 0: sigma_die = 0 또는 고정값 비율 > 50% (status '산포 0'과 같은 비율)
      (3) POR 중앙값 0이고 sigma_run 0. 그 밖은 zone 판정: LoQ 미만은 Δ와 무관하게 판정하고,
-     정량은 장비 정확도 대체 후 최종 Δ가 0 이하·NaN일 때만 판정 제외
+     정량은 Δ가 0 이하·NaN일 때만 판정 제외
 
 4. 참고 (판정에 안 씀): t-test (NIST 7.3.1.1), POR 회차끼리 t-test, 튀는 die (|d − 중앙값| > 5 robust σ)
 """
@@ -424,7 +425,7 @@ def excluded_reason(center: float, lo: float, hi: float, s_die: float, s_run: fl
     """zone 판정 전에 보는 판정 제외 사유 (없으면 None). 맞는 원인 모두, (1) 중심·CI NaN/inf
     (2) die 산포 0 (3) 중앙값 0·σ_run 0 순서로 '; ' 구분.
     첫 원인만 "판정 제외: " 로 시작. die 산포 0은 σ_die=0이면 그 문구, 아니면 고정값 비율 문구 하나.
-    Δ 검사는 여기서 하지 않음: LoQ zone은 Δ와 무관하고, 정량 zone은 accuracy_margin 대체 후 최종 Δ로 judge가 본다."""
+    Δ 검사는 여기서 하지 않음: LoQ zone은 Δ와 무관하고, 정량 zone은 judge가 Δ를 본다."""
     causes = []
     bad = [k for k, v in (("center", center), ("ci_low", lo), ("ci_high", hi)) if not np.isfinite(v)]
     if bad:
@@ -437,6 +438,14 @@ def excluded_reason(center: float, lo: float, hi: float, s_die: float, s_run: fl
     if por_median == 0 and s_run == 0:
         causes.append("고정값 (중앙값 0·σ_run 0)")
     return f"{V_EXCLUDED}: {'; '.join(causes)}" if causes else None
+
+
+def _verdict_with_accuracy(center: float, lo: float, hi: float, delta: float, margin: float) -> str | float:
+    """장비 정확도 폭이 Δ보다 크면 그 폭으로 바꿨을 때의 TOST 판정 (참고, 판정에 안 씀). accuracy_margin 이 없으면 NaN."""
+    if not np.isfinite(margin):
+        return np.nan
+    d = float(np.fmax(delta, margin))
+    return tost(center, lo, hi, d)[0] if d > 0 else V_EXCLUDED
 
 
 def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo | None = None,
@@ -503,11 +512,9 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None, info: ItemInfo
         note = "DOE 중심도 LoQ 미만" if (lo > delta or hi < -delta) else "이동이 ±Δ 안"
         return {**out, "verdict": "동등", "reason": f"<LoQ 보고 일치 ({note})"}, outlier
 
-    v0, _ = tost(center, lo, hi, delta)
     src_d = "정책 + 회차"
-    if sp.get("accuracy_margin", 0.0) > delta:
-        delta, src_d = sp["accuracy_margin"], "장비 정확도"
-    out.update(zone="정량", delta=delta, delta_source=src_d, verdict_no_accuracy=v0,
+    out.update(zone="정량", delta_source=src_d, verdict_with_accuracy=_verdict_with_accuracy(
+                   center, lo, hi, delta, sp.get("accuracy_margin", np.nan)),
                rel_shift=center / level if level else np.nan)
     if not np.isfinite(delta) or delta <= 0:
         return {**out, "zone": V_EXCLUDED, "verdict": V_EXCLUDED,
