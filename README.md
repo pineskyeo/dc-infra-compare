@@ -14,6 +14,50 @@ pip install -r requirements.txt   # Python 3.9+, pandas, numpy, scipy
 
 ## 실행
 
+### dcc.py로 이름 붙인 조합 실행
+
+데이터 묶음(POR 회차들, DOE, item_info 등)을 설정 파일에 한 번 적고 짧은 이름으로 부릅니다. `combos.example.ini`를 `combos.ini`로 복사해 경로를 바꿔 쓰세요(`combos.ini`는 git에 올리지 않습니다). 기본은 현재 폴더의 `combos.ini`이고, 다른 파일은 `--config 파일`로 줍니다.
+
+```ini
+[defaults]
+out = 결과
+level = item_info.csv
+groups = groups.csv
+
+[A1]
+por = data/A/POR1
+      data/A/POR2
+      data/A/POR3
+doe = data/A/DOE
+```
+
+- `[defaults]` 밖의 섹션 하나가 조합 하나이고, 섹션 이름이 조합 이름입니다. 조합에 적은 키가 `[defaults]`보다 우선합니다.
+- 키는 `por`(한 줄에 회차 하나, 2회 이상), `doe`, 그리고 선택으로 `level`, `blank`(한 줄에 하나), `blank_map`, `key`, `encoding`, `r`, `groups`, `before`, `out`입니다. 뜻은 아래 옵션 표와 같습니다.
+- 상대 경로는 현재 폴더가 아니라 설정 파일이 있는 폴더 기준입니다.
+- 모르는 이름·키, POR 1회, 없는 경로는 아무것도 실행하기 전에 알려 주고 끝납니다(rc=2).
+
+```bash
+python dcc.py list                          # 조합 이름, POR 회차 수, DOE, 출력 폴더
+python dcc.py judge A1                      # 판정(por_doe_compare) + 판정 요약 그림
+python dcc.py judge all                     # 모든 조합을 파일 순서대로. 실패한 조합이 있어도 계속하고 끝에 조합별 결과 한 줄
+python dcc.py item A1 VT_SAME,VT_SHIFT      # 그 ITEM만 Fail 근거 (원데이터 포함)
+python dcc.py item A1 VT_SAME --plots       # + ITEM 상세 그림 (원데이터 전체를 읽어 느림)
+python dcc.py group A1                      # 그룹별 판정 요약 그림 (groups 필요)
+python dcc.py group A1 --before 이전/items.csv  # + 기존·개선 비교와 그룹별 비교 요약
+```
+
+조합 하나의 산출물은 `<out>/<이름>/`에 모입니다.
+
+| 경로 | 내용 | 명령 |
+|---|---|---|
+| `items.csv`, `outlier_dies.csv` | 판정 결과 | `judge` |
+| `plots/` | 판정 요약 그림 | `judge` |
+| `item/` | 고른 ITEM의 Fail 근거(`fail_evidence.py --only`), `item/plots/`는 `--plots` 상세 그림 | `item` |
+| `group/plots/` | 그룹별 대시보드 | `group` |
+| `group/compare/`, `group/summary/` | 기존·개선 비교, 그룹별 비교 요약 | `group --before`(또는 조합의 `before` 키) |
+
+`item`과 `group`은 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize), log 비교, 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
+
 ### run_all.py로 한 번에
 
 판정 → 요약 → Fail 근거 → 판정 요약 그림을 차례로 돌리고, 모든 산출물을 `--out` 폴더 하나에 모읍니다. 입력 옵션은 `por_doe_compare.py`와 같습니다(아래 표). 각 도구는 실행을 시작할 때 같은 --out 폴더에서 자기가 만드는 그림·표 파일만 지우고 다시 만듭니다(다른 파일은 그대로).
