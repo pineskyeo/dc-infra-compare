@@ -762,7 +762,8 @@ def _loq_points(items: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         selected[column] = pd.to_numeric(selected[column], errors="coerce")
     with np.errstate(divide="ignore", invalid="ignore"):
         selected["_x"] = selected["doe_center"].abs() / selected["LoQ"]
-        selected["_y"] = selected["center"].abs() / selected["delta"]
+        # 이동 0 은 허용폭이 0 이어도 "안 움직임"이라 0/0 으로 버리지 않고 아래 끝에 놓는다
+        selected["_y"] = np.where(selected["center"] == 0, 0.0, selected["center"].abs() / selected["delta"])
     valid = selected[["_x", "_y"]].notna().all(axis=1)
     invalid_count = int((~valid).sum())
     if invalid_count:
@@ -855,7 +856,8 @@ def draw_loq(ax, items: pd.DataFrame, flagged: frozenset[str] | None = None) -> 
 
 def loq_this_run(counts: dict, flagged: frozenset[str] | None) -> str:
     text = (f"LoQ 아래 ITEM {counts['n']:,}개: " + ", ".join(f"{k} {n:,}" for k, n in counts["by_verdict"].items())
-            + f". 둘 다 '<LoQ'인데 허용폭보다 크게 움직인 ITEM {counts['hidden']:,}개.")
+            + f". 둘 다 '<LoQ'인데 허용폭보다 크게 움직인 ITEM {counts['hidden']:,}개."
+            + (f" 좌표가 없어 못 그린 ITEM {counts['excluded']:,}개." if counts["excluded"] else ""))
     if flagged is None:
         return text + f" LoQ 재확인 결과({LOQ_REVIEW_CSV.as_posix()})가 없어 '확인 필요'는 표시하지 않았다."
     return text + f" LoQ 재확인 '확인 필요' {counts['flagged']:,}개 (마름모)."

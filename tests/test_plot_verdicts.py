@@ -356,15 +356,15 @@ def test_main_groups_writes_one_dashboard_per_group_and_cleans_up(tmp_path: Path
 
 
 def loq_frame() -> pd.DataFrame:
-    """LoQ 미만 zone 4개(범위 안 1, x 범위 위 1, y 범위 아래 1, center 0 1)와 정량 1개."""
+    """LoQ 미만 zone 5개(범위 안 1, x 범위 위 1, y 범위 아래 1, center 0 1, center·delta 둘 다 0 1)와 정량 1개."""
     return pd.DataFrame({
-        "ITEM": ["L_IN", "L_X_HIGH", "L_Y_LOW", "L_ZERO", "Q_SKIP"],
-        "zone": ["검출~정량", "검출~정량", "검출한계 이하", "검출한계 이하", "정량"],
-        "verdict": ["동등", "차이", "미결", "동등", "동등"],
-        "doe_center": [2.0, 5000.0, -0.5, 0.5, 1.0],
-        "LoQ": [1.0, 1.0, 1.0, 1.0, 1.0],
-        "center": [0.5, 3.0, -1e-5, 0.0, 0.1],
-        "delta": [1.0, 1.0, 1.0, 1.0, 1.0],
+        "ITEM": ["L_IN", "L_X_HIGH", "L_Y_LOW", "L_ZERO", "L_STILL", "Q_SKIP"],
+        "zone": ["검출~정량", "검출~정량", "검출한계 이하", "검출한계 이하", "검출한계 이하", "정량"],
+        "verdict": ["동등", "차이", "미결", "동등", "동등", "동등"],
+        "doe_center": [2.0, 5000.0, -0.5, 0.5, 0.0, 1.0],
+        "LoQ": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        "center": [0.5, 3.0, -1e-5, 0.0, 0.0, 0.1],
+        "delta": [1.0, 1.0, 1.0, 1.0, 0.0, 1.0],
     })
 
 
@@ -379,7 +379,7 @@ def test_draw_loq_uses_log_axes_and_counts_clipped_points():
     finally:
         plt.close(fig)
     assert {k: counts[k] for k in ("n", "clipped", "zero", "excluded", "flagged")} == {
-        "n": 4, "clipped": 3, "zero": 1, "excluded": 0, "flagged": 0}
+        "n": 5, "clipped": 4, "zero": 2, "excluded": 0, "flagged": 0}   # 이동 0·허용폭 0 도 버리지 않는다
 
 
 def test_loq_review_flags_are_marked_only_when_review_exists(tmp_path: Path):
