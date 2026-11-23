@@ -122,8 +122,6 @@ def test_r3_zero_or_mixed_sign_blank():
         assert math.isnan(row["sigma_rep_log"])
 
 
-def test_r4_column_after_policy_margin_log():
-    i = LOG_COLS.index("policy_margin_log")
-    assert LOG_COLS[i + 1] == "sigma_rep_log"
-    cols = list(run_item(pdc, *multiplicative_data()))
-    assert cols[cols.index("policy_margin_log") + 1] == "sigma_rep_log"
+def test_r4_sigma_rep_log_is_last_log_column():
+    assert LOG_COLS[-1] == "sigma_rep_log"
+    assert list(run_item(pdc, *multiplicative_data()))[-1] == "sigma_rep_log"

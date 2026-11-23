@@ -9,7 +9,7 @@ import por_doe_compare as pdc
 from por_doe_compare import LOG_COLS, V_EXCLUDED
 
 R = 0.05
-LOG_NUM = [c for c in LOG_COLS if c not in ("verdict_log", "log_reason", "ci_half_over_delta", "below_linear_loq")]
+LOG_NUM = [c for c in LOG_COLS if c not in ("verdict_log", "log_reason", "ci_half_over_delta")]
 
 
 def parts(s: str) -> list[str]:
@@ -63,8 +63,6 @@ def test_t1_smaller_jitter_fills_log_columns():
         (row["ci_high_log"] - row["ci_low_log"]) / 2 / row["delta_log"])
     assert row["ci_half_over_delta"] == pytest.approx((row["ci_high"] - row["ci_low"]) / 2 / row["delta"])
     assert row["log_reason"]
-    # 0값 없는 데이터에서는 log10|회차 평균| 대 log 범위 ρ 가 기존 spearman_size_jitter 와 같다
-    assert row["spearman_size_jitter_log"] == pytest.approx(row["spearman_size_jitter"])
 
 
 def test_judge_log_policy_is_log10_1_plus_r():
@@ -116,7 +114,7 @@ def test_t4b_zero_and_mixed_sign():
 
 
 # 수정 전 judge_item 이 모든 zone 경로에서 내던 열 (blank·level 없음, POR 3회). 이 순서로 들어 있어야 한다.
-# zone 경로별 열(doe_center, range_doe, delta_source, verdict_with_accuracy, rel_shift)은 zone 과 verdict 사이에 낀다.
+# zone 경로별 열(doe_center, range_doe, delta_source, verdict_with_accuracy)은 zone 과 verdict 사이에 낀다.
 OLD_COLS = [
     "ITEM", "UNIT", "n_die", "por_median", "POR1_mean", "POR2_mean", "POR3_mean", "DOE_mean",
     "center", "ci_low", "ci_high", "delta", "policy_margin", "run_margin", "sigma_die", "sigma_run",
@@ -151,4 +149,4 @@ def test_u5_larger_jitter_is_target():
     assert pdc.ST_SIZE_JITTER_POS in parts(row["status"])
     assert row["verdict_log"] in {"동등", "차이", "미결"}
     assert all(np.isfinite(row[c]) for c in LOG_NUM)
-    assert row["spearman_size_jitter_log"] == pytest.approx(0.6256, abs=1e-4)
+    assert row["spearman_size_jitter"] == pytest.approx(0.6256, abs=1e-4)

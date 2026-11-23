@@ -25,7 +25,7 @@ from por_doe_compare import LOG_COLS, V_EXCLUDED  # noqa: E402
 
 R = 0.05
 POR = ["POR1", "POR2", "POR3"]
-LOG_NUM = [c for c in LOG_COLS if c not in ("verdict_log", "log_reason", "ci_half_over_delta", "below_linear_loq")]
+LOG_NUM = [c for c in LOG_COLS if c not in ("verdict_log", "log_reason", "ci_half_over_delta")]
 JITTER = {pdc.ST_SIZE_JITTER, pdc.ST_SIZE_JITTER_POS}
 
 
@@ -100,7 +100,7 @@ def test_x1_lognormal_non_jitter_fills_log_columns():
     assert row["verdict_log"] in {"동등", "차이", "미결"}
     for c in LOG_NUM:
         assert np.isfinite(row[c]), c
-    assert row["policy_margin_log"] == pytest.approx(math.log10(1 + R), rel=1e-12)
+    assert row["delta_log"] - row["sigma_rep_log"] == pytest.approx(math.log10(1 + R), rel=1e-12)
     assert row["log_reason"]
 
 

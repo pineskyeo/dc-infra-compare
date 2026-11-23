@@ -11,7 +11,7 @@ import pytest
 from por_doe_compare import COLUMN_GROUPS, anon_ids, order_columns
 
 ROOT = Path(__file__).resolve().parents[1]
-REMOVED = ()
+REMOVED = ("policy_margin_log", "below_linear_loq", "spearman_size_jitter_log", "rel_shift")
 OLD_FIRST = ["ITEM", "UNIT", "zone", "verdict", "reason"]
 
 

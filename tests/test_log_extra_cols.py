@@ -1,4 +1,5 @@
-"""WO-U U-A 추가: log 분석용 열 4개 (sigma_die_log, sigma_run_log, below_linear_loq, policy_margin_log). 판정 불변."""
+"""WO-U U-A 추가: log 분석용 열 (sigma_die_log, sigma_run_log). 판정 불변.
+below_linear_loq·policy_margin_log 는 남은 열에서 바로 나와 items.csv 에서 뺐다."""
 import math
 import subprocess
 import sys
@@ -14,7 +15,7 @@ from por_doe_compare import LOG_COLS, V_EXCLUDED
 
 R = 0.05
 REPO = Path(__file__).resolve().parents[1]
-EXTRA = ["sigma_die_log", "sigma_run_log", "below_linear_loq", "policy_margin_log"]
+EXTRA = ["sigma_die_log", "sigma_run_log"]
 
 
 def size_jitter_data(seed: int = 1) -> tuple[np.ndarray, np.ndarray]:
@@ -71,7 +72,7 @@ def is_target(row: dict) -> bool:
 
 
 def test_w1_names_and_position():
-    assert LOG_COLS[-5:] == EXTRA + ["sigma_rep_log"]       # WO-W: sigma_rep_log 이 policy_margin_log 뒤
+    assert LOG_COLS[-3:] == EXTRA + ["sigma_rep_log"]
     assert len(set(LOG_COLS)) == len(LOG_COLS)
     row = run_item(pdc, *size_jitter_data())
     assert list(row)[-len(LOG_COLS):] == LOG_COLS
@@ -100,27 +101,12 @@ def test_w2_sigma_log_blank_when_excluded():
         assert math.isnan(row["sigma_die_log"]) and math.isnan(row["sigma_run_log"])
 
 
-def test_w3_below_linear_loq_true_false_blank():
-    for data, want in ((near_zero_data, True), (above_loq_data, False)):
+def test_w3_removed_columns_absent_and_derivable():
+    for data in (size_jitter_data, larger_jitter_data, far_data, near_zero_data, zero_value_data):
         row = run_item(pdc, *data())
-        doe_c = row["por_median"] + row["center"]
-        if not want:
-            assert abs(doe_c) >= 10 * row["LoQ"], (doe_c, row["LoQ"])
-        assert bool(abs(doe_c) < row["LoQ"]) is want
-        assert row["below_linear_loq"] is want
-    # log 대상·판정 제외 ITEM 에도 채운다
-    assert isinstance(run_item(pdc, *zero_value_data())["below_linear_loq"], bool)
-    Y, z = far_data()
-    for res in ({}, {"LoQ": np.nan, "por_median": 100.0, "center": 0.0}):
-        assert math.isnan(pdc.log_columns(Y, z, R, res)["below_linear_loq"])
-
-
-def test_w4_policy_margin_log():
-    for data in (size_jitter_data, larger_jitter_data, far_data):
-        row = run_item(pdc, *data())
-        assert row["policy_margin_log"] == pytest.approx(math.log10(1 + R), rel=1e-12)
-    assert math.isnan(run_item(pdc, *near_zero_data())["policy_margin_log"])     # 부호 섞임
-    assert math.isnan(run_item(pdc, *zero_value_data())["policy_margin_log"])
+        assert {"below_linear_loq", "policy_margin_log", "spearman_size_jitter_log", "rel_shift"}.isdisjoint(row)
+        if row["verdict_log"] != V_EXCLUDED:
+            assert row["delta_log"] - row["sigma_rep_log"] == pytest.approx(math.log10(1 + R), rel=1e-12)
 
 
 def load_head_module() -> types.ModuleType:

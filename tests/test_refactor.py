@@ -13,7 +13,7 @@ from por_doe_compare import LOG_COLS, ci_median, ci_rank
 ROOT = Path(__file__).resolve().parents[1]
 GENERATOR = ROOT / "examples" / "make_por3_data.py"
 LEGACY = ROOT / "tests" / "_legacy_por_doe_compare.py"
-REMOVED_COLS = ()       # 레거시 열 중 items.csv 에서 뺀 열
+REMOVED_COLS = ("rel_shift",)       # 레거시 열 중 items.csv 에서 뺀 열
 
 
 def run_script(script: Path, args) -> subprocess.CompletedProcess:

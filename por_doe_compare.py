@@ -68,9 +68,9 @@ SHAPE_COLS = ["decades", "skew_lin", "skew_log", "log_fit", "bimodality_log"]
 STATUS_COLS = ["status", *METRIC_COLS, *SHAPE_COLS, "mean_median_ratio"]
 PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
 LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta",
-            "ci_half_over_delta_log", "spearman_size_jitter_log", "log_reason",     # 0 없고 부호 하나인 ITEM 참고용
-            "sigma_die_log", "sigma_run_log", "below_linear_loq", "policy_margin_log",   # 분석용, 판정에 안 씀
-            "sigma_rep_log"]                                                             # log 판정의 회차 항
+            "ci_half_over_delta_log", "log_reason",      # 0 없고 부호 하나인 ITEM 참고용
+            "sigma_die_log", "sigma_run_log",            # 분석용, 판정에 안 씀
+            "sigma_rep_log"]                             # log 판정의 회차 항
 POR_MEAN_RE = re.compile(r"POR\d+_mean")
 # items.csv 열 순서의 유일한 출처: 묶음 순서대로, 묶음 안은 적힌 순서. POR_MEAN_RE 는 맞는 열을 원래 순서로.
 # 표에 없는 열은 맨 끝에 원래 순서로 붙는다.
@@ -78,15 +78,15 @@ COLUMN_GROUPS: tuple[tuple[str, tuple[str | re.Pattern, ...]], ...] = (
     ("identity", ("ID", "ITEM", "UNIT")),
     ("verdicts", ("verdict_final", "verdict_basis", "verdict", "verdict_log", "verdict_with_accuracy",
                   "verdict_no_blank", "zone", "reason", "log_reason", "status")),
-    ("TOST", ("n_die", "center", "ci_low", "ci_high", "rel_shift", "delta", "policy_margin", "run_margin",
-              "delta_source", "ci_half_over_delta")),
+    ("TOST", ("n_die", "center", "ci_low", "ci_high", "delta", "policy_margin", "run_margin", "delta_source",
+              "ci_half_over_delta")),
     ("LoQ", ("por_median", "doe_center", "LoQ", "LoD", "limit_source")),
     ("values", (POR_MEAN_RE, "DOE_mean")),
     ("noise", ("sigma_die", "sigma_run", *PRECISION_COLS, "n_outlier_die")),
     ("data state", tuple(METRIC_COLS)),
     ("shape", (*SHAPE_COLS, "mean_median_ratio")),
     ("log", ("center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta_log", "sigma_rep_log",
-             "sigma_die_log", "sigma_run_log", "spearman_size_jitter_log", "below_linear_loq", "policy_margin_log")),
+             "sigma_die_log", "sigma_run_log")),
     ("reference", ("ttest", "ttest_p", "por_ttest_sig",
                    "spec_status", "level_check", "range_por", "range_doe", "spec_resolution", "accuracy_margin",
                    "blank_item", "blank_status", "blank_LoQ_item")),
@@ -562,8 +562,7 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None,
 
     src_d = "정책 + 회차"
     out.update(zone="정량", delta_source=src_d, verdict_with_accuracy=_verdict_with_accuracy(
-                   center, lo, hi, delta, sp.get("accuracy_margin", np.nan)),
-               rel_shift=center / level if level else np.nan)
+                   center, lo, hi, delta, sp.get("accuracy_margin", np.nan)))
     if not np.isfinite(delta) or delta <= 0:
         return {**out, "zone": V_EXCLUDED, "verdict": V_EXCLUDED,
                 "reason": f"{V_EXCLUDED}: 최종 Δ가 0 이하이거나 유효하지 않음 (Δ={delta:.4g}, 출처 {src_d})"}, outlier
@@ -617,19 +616,12 @@ def _ci_half_over_delta(res: dict) -> float:
 def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict) -> dict:
     """LOG_COLS. 모든 ITEM (status 무관): POR·DOE 값에 0 이 없고 부호가 하나면 log 판정 값을 채운다.
     0 이 있거나 부호가 섞이면 verdict_log 판정 제외, log_reason 에 사유, log 숫자 열 NaN.
-    spearman_size_jitter_log = Spearman ρ(log10|회차 평균|, die별 log10|값| 회차 범위), _jitter 와 같은 _size_rho.
     log_reason 은 log 판정이 된 ITEM 이면 judge_log 의 reason.
     분석용 열 (판정에 안 씀): sigma_*_log 는 judge_log 결과의 sigma_die·sigma_run, verdict_log 가 판정 제외면 NaN.
     sigma_run_log (웨이퍼 공통 회차 이동) 은 판정에 안 씀.
-    policy_margin_log = log10(1 + r), log 판정이 된 ITEM 만. below_linear_loq 는 모든 ITEM:
-    선형 DOE 중심 |POR 중앙값 + center| < 선형 LoQ (judge 의 LoQ zone 비교와 같은 값), LoQ·중심이 NaN 이면 NaN.
     sigma_rep_log = verdict_log 의 회차 항 (Δ_log = log10(1 + r) + sigma_rep_log), log 판정이 된 ITEM 만
     (0값·부호 섞임이면 NaN)."""
     out = {**dict.fromkeys(LOG_COLS, np.nan), "log_reason": ""}
-    loq = float(res.get("LoQ", np.nan))
-    doe_c = float(res.get("por_median", np.nan)) + float(res.get("center", np.nan))
-    if np.isfinite(loq) and np.isfinite(doe_c):
-        out["below_linear_loq"] = bool(abs(doe_c) < loq)
     out["ci_half_over_delta"] = _ci_half_over_delta(res)
     vals = np.concatenate([Y.ravel(), z])
     causes = [c for c, bad in (("0값 있음", (vals == 0).any()),
@@ -637,15 +629,11 @@ def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict) -> dict:
     if causes:
         return {**out, "verdict_log": V_EXCLUDED, "log_reason": "; ".join(causes)}
     lr = judge_log(Y, z, r)
-    L = np.log10(np.abs(Y))
-    ok = np.isfinite(L).all(axis=1)
-    rho = (_size_rho(np.log10(np.abs(Y[ok].mean(axis=1))), np.ptp(L[ok], axis=1))
-           if Y.shape[1] > 1 and ok.sum() >= 3 else np.nan)
     return {**out, "verdict_log": lr["verdict"], "center_log": lr["center"], "ci_low_log": lr["ci_low"],
             "ci_high_log": lr["ci_high"], "delta_log": lr["delta"], "ci_half_over_delta_log": _ci_half_over_delta(lr),
-            "spearman_size_jitter_log": rho, "log_reason": lr["reason"],
+            "log_reason": lr["reason"],
             **({} if lr["verdict"] == V_EXCLUDED else {"sigma_die_log": lr["sigma_die"], "sigma_run_log": lr["sigma_run"]}),
-            "policy_margin_log": float(np.log10(1 + r)), "sigma_rep_log": lr["sigma_rep_log"]}
+            "sigma_rep_log": lr["sigma_rep_log"]}
 
 
 @dataclass(frozen=True)
