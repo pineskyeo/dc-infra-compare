@@ -139,7 +139,7 @@ def test_x4_items_index_log_target_verdict_differs(tmp_path):
     out = tmp_path / "out"
     assert fe.main(["--input", str(path), "--out", str(out)]) == 0
     idx = pd.read_csv(out / fe.ITEMS_INDEX, encoding="utf-8-sig", dtype=str, keep_default_na=False)
-    assert dict(zip(idx["ID"], idx["log_target"])) == {
+    assert dict(zip(idx["ITEM"], idx["log_target"])) == {
         "B1": "True", "B2": "False", "B3": "False", "B4": "False", "B5": "True"}
     assert bool(pdc.is_log_target(pdc.ST_OK, "차이", "동등"))
     assert not bool(pdc.is_log_target(pdc.ST_OK, "차이", np.nan))

@@ -397,7 +397,7 @@ def plot_forest(src: pd.DataFrame, path: Path) -> Path:
 ITEMS_DIR = "items"
 ITEMS_MARKER = ".fail_evidence_items"
 ITEMS_INDEX = "items_index.csv"
-INDEX_COLUMNS = ("ID", "유형", "verdict", "status", "폴더", "log_target")
+INDEX_COLUMNS = ("ITEM", "유형", "verdict", "status", "폴더", "log_target")
 CMP_PREFIX = "cmp_"
 NO_RAW_MSG = "원데이터 없음: raw.csv·item_view.png·evidence.csv 건너뜀"
 # 대표 status(폴더 <유형>): 여러 status가 ';'로 붙어 있으면 이 표에서 앞에 있는 것. 표에 없는 이름은 맨 뒤(나온 순서).
@@ -445,7 +445,7 @@ def log_only_items(plain: pd.DataFrame, ids: list[str]) -> list[str]:
 
 
 def items_index(plain: pd.DataFrame, ids: list[str]) -> pd.DataFrame:
-    """ID, 유형, verdict, status, 폴더(--out 기준 상대 경로), log_target. 이름이 겹치면 _2, _3 을 붙인다."""
+    """ITEM, 유형, verdict, status, 폴더(--out 기준 상대 경로), log_target. 이름이 겹치면 _2, _3 을 붙인다."""
     key = key_column(plain)
     first = plain.assign(_k=plain[key].astype(str).str.strip()).drop_duplicates("_k").set_index("_k")
     rows, used = [], set()
@@ -888,27 +888,27 @@ def _write_item(rec: dict, out: Path, cmp: pd.DataFrame | None, log_only: bool) 
     plain, raw = _SHARED["plain"], _SHARED["raw"]
     folder = out / rec["폴더"]
     folder.mkdir(parents=True)
-    isum = item_summary(plain, rec["ID"], cmp)
+    isum = item_summary(plain, rec["ITEM"], cmp)
     isum.to_csv(folder / "summary.csv", index=False, encoding="utf-8-sig")
     srow = isum.iloc[0].to_dict() if not isum.empty else {}
     if raw is None:
         return
-    rows = raw[rec["ID"]]
+    rows = raw[rec["ITEM"]]
     if log_only:
         rows.to_csv(folder / "raw.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
         if not rows.empty:
-            plot_log_diag(rows, srow, rec["ID"], folder / LOG_DIAG_PNG)
+            plot_log_diag(rows, srow, rec["ITEM"], folder / LOG_DIAG_PNG)
         return
     if rows.empty:
-        print(f"{rec['ID']}: 원데이터에 행 없음 (raw.csv는 머리줄만, {ITEM_VIEW_PNG}·{EVIDENCE_CSV} 없음)")
+        print(f"{rec['ITEM']}: 원데이터에 행 없음 (raw.csv는 머리줄만, {ITEM_VIEW_PNG}·{EVIDENCE_CSV} 없음)")
     rows.to_csv(folder / "raw.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
     if not rows.empty:
         plot_item_view(rows, srow, folder / ITEM_VIEW_PNG)
         pd.DataFrame([evidence_row(rows, srow)], columns=list(EVIDENCE_COLUMNS)).to_csv(
             folder / EVIDENCE_CSV, index=False, encoding="utf-8-sig", float_format="%.10g")
-        plot_status_panels(rows, srow, rec["ID"], rec["status"], folder)
+        plot_status_panels(rows, srow, rec["ITEM"], rec["status"], folder)
         if rec["log_target"]:
-            plot_log_diag(rows, srow, rec["ID"], folder / LOG_DIAG_PNG)
+            plot_log_diag(rows, srow, rec["ITEM"], folder / LOG_DIAG_PNG)
 
 
 # ---------------------------------------------------------------- CLI
@@ -974,7 +974,7 @@ def main(argv: list[str] | None = None) -> int:
     log_ids = [] if only else log_only_items(plain, ids)
     log_only = set(log_ids)
     index = items_index(plain, ids + log_ids)
-    raw = load_raw(args, list(index["ID"]), only) if args.por else None
+    raw = load_raw(args, list(index["ITEM"]), only) if args.por else None
 
     remove_own_outputs(out, OWN_OUTPUTS)
     with_status(with_anon(table, src), src).to_csv(out / "fail_evidence.csv", index=False, encoding="utf-8-sig")
@@ -986,9 +986,9 @@ def main(argv: list[str] | None = None) -> int:
     reset_items_dir(items_dir)
     records = index.to_dict("records")
     _SHARED["plain"] = plain
-    _SHARED["raw"] = None if raw is None else _split_raw(raw, [r["ID"] for r in records])
+    _SHARED["raw"] = None if raw is None else _split_raw(raw, [r["ITEM"] for r in records])
     try:
-        pool_map(_write_item, [(rec, out, cmp, rec["ID"] in log_only) for rec in records])
+        pool_map(_write_item, [(rec, out, cmp, rec["ITEM"] in log_only) for rec in records])
     finally:
         _SHARED.clear()
     index.to_csv(out / ITEMS_INDEX, index=False, encoding="utf-8-sig")

@@ -40,7 +40,7 @@ FOLDER_IDS = sorted(k for k, v in EXPECTED.items() if v != fe.J_SKIP)
 
 def _index_ids(out: Path) -> list[str]:
     idx = pd.read_csv(out / fe.ITEMS_INDEX, encoding="utf-8-sig", dtype=str, keep_default_na=False)
-    return sorted(idx["ID"])
+    return sorted(idx["ITEM"])
 
 
 @pytest.fixture()

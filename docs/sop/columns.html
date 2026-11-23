@@ -343,11 +343,11 @@
 <p class="s">만드는 명령 fail_evidence.py · 위치 <code>item/items_index.csv</code> · <code>fail_evidence/items_index.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
 <p class="s">열 6개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
-<tr><td><code>ID</code></td><td>ITEM 이름</td><td>열 이름은 ID지만 실제 ITEM 이름이 들어 있다.</td><td>items.csv <code>ITEM</code> 그대로</td><td></td></tr>
+<tr><td><code>ITEM</code></td><td>ITEM 이름</td><td>근거 폴더를 만든 ITEM의 실제 이름.</td><td>items.csv <code>ITEM</code> 그대로</td><td></td></tr>
 <tr><td><code>유형</code></td><td>대표 상태</td><td>폴더 이름 앞에 붙는 대표 상태.</td><td><code>status</code>에서 정상이 아닌 이름 중 우선순위가 가장 앞인 것 (조건 설정 오류, 조건 불안정, 산포 0, 분해능 부족, 회차 흔들림, 작을수록 흔들림, 클수록 흔들림, log 후보, 두 덩어리, LoQ 근처 순). 없으면 <code>verdict</code></td><td>같은 유형끼리 모아 보면 원인이 같은 ITEM을 찾기 쉽다.</td></tr>
 <tr><td><code>verdict</code></td><td>기본 판정</td><td>items.csv의 기본 판정.</td><td>items.csv <code>verdict</code> 그대로</td><td>폴더를 만들 ITEM은 <code>verdict_final</code> 기준으로 고르므로 이 값이 동등일 수도 있다.</td></tr>
 <tr><td><code>status</code></td><td>데이터 상태</td><td>판정과 별개로 데이터에서 눈에 띄는 점. 여러 개면 ';'로 잇고, 없으면 정상이다.</td><td>items.csv <code>status</code> 그대로</td><td>상태는 판정을 바꾸지 않는다. 하지만 판정을 믿어도 되는지 알려 준다. 정상이 아니면 그 상태의 지표 열을 본다.</td></tr>
-<tr><td><code>폴더</code></td><td>폴더</td><td>그 ITEM의 근거 파일이 있는 폴더 (출력 폴더 기준).</td><td>items/{<code>유형</code>}_{<code>ID</code>}. 한글·영문·숫자·-·_ 밖의 글자는 _, 이름이 겹치면 _2, _3</td><td>그 폴더에 summary.csv, raw.csv, drill.png 등이 있다.</td></tr>
+<tr><td><code>폴더</code></td><td>폴더</td><td>그 ITEM의 근거 파일이 있는 폴더 (출력 폴더 기준).</td><td>items/{<code>유형</code>}_{<code>ITEM</code>}. 한글·영문·숫자·-·_ 밖의 글자는 _, 이름이 겹치면 _2, _3</td><td>그 폴더에 summary.csv, raw.csv, item_view.png, evidence.csv 등이 있다.</td></tr>
 <tr><td><code>log_target</code></td><td>log 진단 대상</td><td>log 진단 그림(log_diag.png)을 만든 ITEM인지.</td><td><code>status</code>에 작을수록 흔들림이나 클수록 흔들림이 있거나, <code>verdict</code>와 <code>verdict_log</code>가 둘 다 있고 다르면 True (<code>verdict_log</code>가 판정 제외면 아님)</td><td>True면 폴더의 log_diag.png로 선형과 log 판정을 견준다.</td></tr>
 </tbody></table></div>
 </section>
@@ -416,8 +416,8 @@
 <tr><td><code>presence</code></td><td>짝 상태</td><td>그 ITEM이 두 결과에 다 있는지.</td><td>matched = 두 표에 다 있음, only_before = 기존에만, only_after = 개선에만</td><td>only_가 많으면 ITEM 이름이 바뀌었거나 측정 목록이 다르다.</td></tr>
 <tr><td><code>misaligned</code></td><td>정렬 의심</td><td>같은 이름인데 값 크기가 크게 다른 ITEM.</td><td><code>por_median_rel_diff</code> &gt; 0.2면 True</td><td>True면 이름은 같아도 다른 측정일 수 있다. 기본은 집계에 넣고, --exclude-misaligned면 뺀다.</td></tr>
 <tr><td><code>por_median_rel_diff</code></td><td>POR 중앙값 상대차</td><td>기존과 개선의 POR 중앙값이 서로 몇 배 다른지.</td><td>|<code>por_median_before</code> − <code>por_median_after</code>| / max(|<code>por_median_before</code>|, |<code>por_median_after</code>|). 둘 다 0이면 0</td><td>0.2를 넘으면 정렬 의심이다.</td></tr>
-<tr><td><code>verdict_before</code></td><td>기존 판정</td><td>기존 items.csv의 기본 판정. 최종 판정이 아니다.</td><td>기존 items.csv <code>verdict</code> 그대로</td><td>group_summary.py의 '동등 아님' 집계도 이 값을 쓴다.</td></tr>
-<tr><td><code>verdict_after</code></td><td>개선 판정</td><td>개선 items.csv의 기본 판정. 최종 판정이 아니다.</td><td>개선 items.csv <code>verdict</code> 그대로</td><td></td></tr>
+<tr><td><code>verdict_before</code></td><td>기존 판정</td><td>기존 items.csv의 최종 판정.</td><td>기존 items.csv <code>verdict_final</code> 그대로 (그 열이 없는 옛 items.csv면 <code>verdict</code>)</td><td>group_summary.py의 '동등 아님' 집계도 이 값을 쓴다.</td></tr>
+<tr><td><code>verdict_after</code></td><td>개선 판정</td><td>개선 items.csv의 최종 판정.</td><td>개선 items.csv <code>verdict_final</code> 그대로 (그 열이 없는 옛 items.csv면 <code>verdict</code>)</td><td></td></tr>
 <tr><td><code>verdict_transition</code></td><td>판정 변화</td><td>기존 판정에서 개선 판정으로 어떻게 바뀌었는지. 짝이 있는 ITEM만.</td><td><code>verdict_before</code> + '→' + <code>verdict_after</code></td><td>동등→차이처럼 나빠진 ITEM을 먼저 본다.</td></tr>
 <tr><td><code>sigma_die_pct_before</code></td><td>기존 반복성 %</td><td>기존 반복성을 POR 중앙값 대비 %로 본 것.</td><td>100 × <code>sigma_die_before</code> / |<code>por_median_before</code>|. 중앙값 0이면 빈 칸</td><td>낮을수록 안정적이다.</td></tr>
 <tr><td><code>sigma_die_pct_after</code></td><td>개선 반복성 %</td><td>개선 반복성을 POR 중앙값 대비 %로 본 것.</td><td>100 × <code>sigma_die_after</code> / |<code>por_median_after</code>|. 중앙값 0이면 빈 칸</td><td>낮을수록 안정적이다.</td></tr>
@@ -479,7 +479,7 @@
 <p class="s">열 5개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>metric</code></td><td>지표</td><td>어느 비율 지표의 악화 목록인지.</td><td>sigma_die_ratio, sigma_run_ratio, meas_precision_ratio 중 하나</td><td></td></tr>
-<tr><td><code>ID</code></td><td>ITEM 이름</td><td>열 이름은 ID지만 실제 ITEM 이름이 들어 있다.</td><td>compare.csv <code>ITEM</code></td><td></td></tr>
+<tr><td><code>ITEM</code></td><td>ITEM 이름</td><td>나빠진 ITEM의 실제 이름.</td><td>compare.csv <code>ITEM</code></td><td></td></tr>
 <tr><td><code>before</code></td><td>기존 값</td><td>기존 쪽 지표 값.</td><td><code>metric</code>에 따라 <code>sigma_die_before</code>, <code>sigma_run_before</code>, <code>meas_precision_pct_before</code></td><td></td></tr>
 <tr><td><code>after</code></td><td>개선 값</td><td>개선 쪽 지표 값.</td><td><code>metric</code>에 따라 <code>sigma_die_after</code>, <code>sigma_run_after</code>, <code>meas_precision_pct_after</code></td><td></td></tr>
 <tr><td><code>ratio</code></td><td>비 (개선/기존)</td><td>개선 값이 기존 값의 몇 배인지. 1보다 큰(나빠진) ITEM만, 큰 순으로 지표마다 최대 10개.</td><td><code>after</code> / <code>before</code>, 둘 다 0보다 클 때만 (개수는 --plot-top, 기본 10)</td><td>가장 나빠진 ITEM부터 원인을 본다.</td></tr>
@@ -498,8 +498,8 @@
 <tr><td><code>σ_run 증가 건수</code></td><td>회차 이동 늘어난 수</td><td>회차 이동이 늘어난 ITEM 수.</td><td><code>sigma_run_after</code> &gt; <code>sigma_run_before</code>인 ITEM 수</td><td>많으면 개선 조건의 회차 안정성을 의심한다.</td></tr>
 <tr><td><code>σ_run 둘 다 0 건수</code></td><td>회차 이동 둘 다 0</td><td>기존과 개선 모두 회차 이동이 0인 ITEM 수.</td><td><code>sigma_run_before</code> = 0이고 <code>sigma_run_after</code> = 0인 ITEM 수</td><td></td></tr>
 <tr><td><code>둘 다 감소 건수</code></td><td>둘 다 줄어든 수</td><td>반복성과 회차 이동이 둘 다 줄어든 ITEM 수.</td><td><code>sigma_die_after</code> &lt; <code>sigma_die_before</code>이고 <code>sigma_run_after</code> &lt; <code>sigma_run_before</code>인 ITEM 수</td><td></td></tr>
-<tr><td><code>기존 동등 아님</code></td><td>기존 동등 아님</td><td>기존 판정이 동등이 아닌 ITEM 수.</td><td><code>verdict_before</code>가 동등이 아닌 ITEM 수 (compare.csv에 verdict_final_before 열이 있으면 그 값)</td><td>compare.csv의 판정은 기본 판정이라 최종 판정 집계와 다를 수 있다.</td></tr>
-<tr><td><code>개선 동등 아님</code></td><td>개선 동등 아님</td><td>개선 판정이 동등이 아닌 ITEM 수.</td><td><code>verdict_after</code>가 동등이 아닌 ITEM 수 (verdict_final_after 열이 있으면 그 값)</td><td>기존보다 크면 개선 조건에서 동등이 줄었다.</td></tr>
+<tr><td><code>기존 동등 아님</code></td><td>기존 동등 아님</td><td>기존 판정이 동등이 아닌 ITEM 수.</td><td><code>verdict_before</code>가 동등이 아닌 ITEM 수</td><td><code>verdict_before</code>는 최종 판정이다 (옛 items.csv면 기본 판정).</td></tr>
+<tr><td><code>개선 동등 아님</code></td><td>개선 동등 아님</td><td>개선 판정이 동등이 아닌 ITEM 수.</td><td><code>verdict_after</code>가 동등이 아닌 ITEM 수</td><td>기존보다 크면 개선 조건에서 동등이 줄었다.</td></tr>
 <tr><td><code>제외(짝 없음)</code></td><td>뺀 ITEM (짝 없음)</td><td>한쪽 결과에만 있어 뺀 ITEM 수.</td><td><code>presence</code>가 matched가 아닌 ITEM 수</td><td></td></tr>
 <tr><td><code>제외(짝 없음, 정렬 의심)</code></td><td>뺀 ITEM (짝 없음, 정렬 의심)</td><td>--exclude-misaligned를 줄 때 이 이름으로 나온다.</td><td><code>presence</code>가 matched가 아니거나 <code>misaligned</code>가 True인 ITEM 수</td><td></td></tr>
 <tr><td><code>판정 제외</code></td><td>뺀 ITEM (판정 제외)</td><td>기존 또는 개선이 판정 제외라 뺀 ITEM 수. 그런 ITEM이 있을 때만 열이 생긴다.</td><td>짝이 있고 <code>verdict_before</code> 또는 <code>verdict_after</code>가 판정 제외인 ITEM 수</td><td></td></tr>
