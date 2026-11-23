@@ -1,4 +1,4 @@
-"""POR/DOE 판정부터 요약·근거·그림(선택: 기존·개선 비교, 그룹 요약)까지 한 번에 실행한다.
+"""POR/DOE 판정부터 요약·LoQ·log 재확인·근거·그림(선택: 기존·개선 비교, 그룹 요약)까지 한 번에 실행한다.
 
   python run_all.py --por POR1/ --por POR2/ --por POR3/ --doe DOE/ --level item_info.csv --out 결과
   python run_all.py ... --groups groups.csv        (그룹별 대시보드 그림)
@@ -28,13 +28,25 @@ DESCRIPTIONS = [
     ("fail_evidence/summary.txt", "Fail 근거 요약"),
     ("fail_evidence/forest.png", "Fail 근거 전체 그림"),
     ("fail_evidence/items_index.csv", "ITEM별 근거 폴더 목록"),
+    ("fail_evidence/items/.fail_evidence_items", "fail_evidence 가 만든 items/ 라는 표식 (다시 실행할 때 지울 폴더)"),
     ("fail_evidence/items/*/summary.csv", "ITEM 하나의 판정 열 전체"),
     ("fail_evidence/items/*/raw.csv", "ITEM 하나의 die별 원데이터"),
+    ("fail_evidence/items/*/evidence.csv", "ITEM 하나의 판정 근거 (신뢰구간을 정한 die, 허용폭 구성)"),
+    ("fail_evidence/items/*/item_view.png", "ITEM 한 장 보기 (판정 카드, 짝 그림, 차이 막대, 맵)"),
     ("fail_evidence/items/*/*.png", "ITEM 하나의 근거 그림"),
+    ("plots/summary.png", "판정 지도"),
+    ("plots/summary_loq.png", "LoQ 아래 ITEM 그림 (LoQ 재확인 표시)"),
     ("plots/*.png", "판정 요약 그림"),
-    ("log_compare/log_compare.csv", "ITEM별 선형·log CI 비 비교"),
-    ("log_compare/log_compare.png", "선형·log 판정 비교 그림"),
-    ("log_compare/*", "선형·log 판정 비교"),
+    ("stability/overall.csv", "측정 안정도 전체 요약"),
+    ("stability/groups.csv", "측정 안정도 그룹별 요약"),
+    ("stability/dies.csv", "die 위치별 흔들림 점수"),
+    ("stability/runs.csv", "POR 회차별 밀림 점수"),
+    ("stability/stability.png", "측정 안정도 그림"),
+    ("review/loq_review.csv", "LoQ 재확인 (참고용, 판정은 그대로)"),
+    ("review/log_review.csv", "log 재확인 (참고용, 판정은 그대로)"),
+    ("review/loq_review.png", "LoQ 재확인 그림"),
+    ("review/log_review.png", "log 재확인 그림 (선형과 log 나란히)"),
+    ("review/items/*.png", "재확인 '확인 필요' ITEM 그림"),
     # compare/ (--before): compare_before_after.py compare
     ("compare/compare.csv", "ITEM별 기존·개선 비교"),
     ("compare/summary.txt", "기존·개선 비교 요약"),
@@ -122,12 +134,11 @@ def plan_steps(ap: argparse.ArgumentParser, a: argparse.Namespace, out: Path) ->
     steps = [
         ("por_doe_compare", ["por_doe_compare.py", *raw_args, "--out", str(out)], None),
         ("summarize", ["summarize.py", items], out / "summary_items.txt"),
-        ("log_compare", ["log_compare.py", items, "--out", str(out / "log_compare")], None),
-        # 원데이터 인자를 주면 fail_evidence/items/<유형>_<ID>/ 에 raw.csv·drill.png 도 만든다.
+        ("review", ["review.py", "--input", items, "--out", str(out), *raw_forward_args(raw_args)], None),
         # --compare 는 안 넘긴다 (compare 단계가 이 단계보다 뒤).
         ("fail_evidence", ["fail_evidence.py", "--input", items, "--out", str(out / "fail_evidence"),
                            *raw_forward_args(raw_args)], None),
-        # 요약 그림은 items.csv만 쓴다 (POR/DOE 원자료는 상세 그림에서만 필요).
+        # summary_loq.png 가 review/loq_review.csv 의 '확인 필요' 를 표시하므로 review 뒤.
         ("plot_verdicts", plot_args, None),
     ]
     if a.before:

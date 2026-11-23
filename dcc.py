@@ -1,7 +1,7 @@
 """이름 붙인 POR/DOE 조합(combos.ini)으로 판정·ITEM 근거·그룹 요약을 한 명령으로 실행한다.
 
   python dcc.py list                              조합 이름, POR 회차 수, DOE, 출력 폴더
-  python dcc.py judge A1                          판정(por_doe_compare) + 판정 요약 그림
+  python dcc.py judge A1                          판정(por_doe_compare) + LoQ·log 재확인(review) + 판정 지도
   python dcc.py judge all                         파일 순서대로 모든 조합 (하나가 실패해도 계속)
   python dcc.py judge A1 --detail                 판정 뒤 차이·미결 ITEM 전부 item 분석까지
   python dcc.py item A1 VT_SAME,VT_SHIFT [--plots]  그 ITEM 만 Fail 근거 (+ 상세 그림)
@@ -9,7 +9,7 @@
   python dcc.py group A1 [--before 이전/items.csv]  그룹별 요약 그림 (+ 기존·개선 비교, 그룹 요약)
 
 설정 파일은 기본으로 현재 폴더의 combos.ini (--config 로 바꿈). 형식은 combos.example.ini.
-조합 하나의 산출물은 <out>/<이름>/ 에 둔다: items.csv, plots/, item/, group/.
+조합 하나의 산출물은 <out>/<이름>/ 에 둔다: items.csv, stability/, review/, plots/, item/, group/.
 item, group 은 <out>/<이름>/items.csv 를 다시 쓰고, 없을 때만 judge 단계를 먼저 실행한다.
 """
 from __future__ import annotations
@@ -215,6 +215,7 @@ def judge_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
         scales = ["--groups", str(c.groups), "--scales", str(c.scales)]
     return [
         ("por_doe_compare", ["por_doe_compare.py", *c.raw_args(), *scales, "--out", str(c.out)]),
+        ("review", ["review.py", "--input", str(c.items_csv), "--out", str(c.out), *c.raw_args()]),
         ("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(c.items_csv), "--summary",
                            "--out", str(c.out / "plots")]),
     ]
@@ -308,7 +309,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--config", default="combos.ini", help="조합 설정 파일 (기본: 현재 폴더의 combos.ini)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("list", parents=[common], help="조합 목록")
-    p = sub.add_parser("judge", parents=[common], help="판정 + 판정 요약 그림")
+    p = sub.add_parser("judge", parents=[common], help="판정 + LoQ·log 재확인 + 판정 지도")
     p.add_argument("name", help=f"조합 이름, 또는 {ALL} (모든 조합)")
     p.add_argument("--detail", action="store_true",
                    help="판정 뒤 verdict_final 이 차이·미결인 ITEM 을 모두 item 분석 (<out>/<이름>/item/)")

@@ -133,13 +133,12 @@ def _plan(cfg: Path, *argv: str) -> list[tuple[str, list[str]]]:
 def test_plan_judge(cfg: Path):
     base = cfg.parent.resolve()
     out = base / "결과" / "B2"
+    raw = ["--por", str(base / "B/POR1"), "--por", str(base / "B/POR2"), "--doe", str(base / "B/DOE"), "--r", "0.1",
+           "--level", str(base / "item_info_B.csv"), "--blank", str(base / "blank1"), str(base / "blank2"),
+           "--key", "WAFERID,ITEM"]
     assert _plan(cfg, "judge", "B2") == [
-        ("por_doe_compare", ["por_doe_compare.py",
-                             "--por", str(base / "B/POR1"), "--por", str(base / "B/POR2"),
-                             "--doe", str(base / "B/DOE"), "--r", "0.1",
-                             "--level", str(base / "item_info_B.csv"),
-                             "--blank", str(base / "blank1"), str(base / "blank2"),
-                             "--key", "WAFERID,ITEM", "--out", str(out)]),
+        ("por_doe_compare", ["por_doe_compare.py", *raw, "--out", str(out)]),
+        ("review", ["review.py", "--input", str(out / "items.csv"), "--out", str(out), *raw]),
         ("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(out / "items.csv"), "--summary",
                            "--out", str(out / "plots")]),
     ]
@@ -171,7 +170,8 @@ def test_plan_item_and_group_run_judge_only_without_items_csv(cfg: Path):
            "--doe", str(base / "A/DOE"), "--level", str(base / "item_info.csv")]
     items = str(out / "items.csv")
 
-    assert [n for n, _ in _plan(cfg, "item", "A1", "X1,X2")] == ["por_doe_compare", "plot_verdicts", "fail_evidence"]
+    assert [n for n, _ in _plan(cfg, "item", "A1", "X1,X2")] == [
+        "por_doe_compare", "review", "plot_verdicts", "fail_evidence"]
     make_paths(out, "items.csv")
     assert _plan(cfg, "item", "A1", "X1,X2") == [
         ("fail_evidence", ["fail_evidence.py", "--input", items, "--out", str(out / "item"),
@@ -239,9 +239,10 @@ blank_map = {por3_data / "blank_map.csv"}
     proc = run_dcc("judge", "all", "--config", path)
     print(proc.stdout)
     assert proc.returncode == 1, proc.stdout + proc.stderr
-    assert "[실패] 단계 1/2 por_doe_compare" in proc.stdout
+    assert "[실패] 단계 1/3 por_doe_compare" in proc.stdout
     assert proc.stdout.rstrip().endswith("결과\nBAD  실패 (단계 por_doe_compare, rc=1)\nA1  성공")
     assert (out / "items.csv").is_file() and (out / "plots" / "summary.png").is_file()
+    assert (out / "review" / "loq_review.csv").is_file() and (out / "review" / "log_review.png").is_file()
 
     proc = run_dcc("item", "A1", "VT_SHIFT,VT_SAME", "--plots", "--config", path)
     assert proc.returncode == 0, proc.stdout + proc.stderr

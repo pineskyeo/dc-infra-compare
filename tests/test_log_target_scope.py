@@ -19,7 +19,6 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 import fail_evidence as fe  # noqa: E402
-import log_compare as lc  # noqa: E402
 import por_doe_compare as pdc  # noqa: E402
 from por_doe_compare import LOG_COLS, V_EXCLUDED  # noqa: E402
 
@@ -144,19 +143,3 @@ def test_x4_items_index_log_target_verdict_differs(tmp_path):
     assert bool(pdc.is_log_target(pdc.ST_OK, "차이", "동등"))
     assert not bool(pdc.is_log_target(pdc.ST_OK, "차이", np.nan))
     assert bool(pdc.is_log_target(pdc.ST_SIZE_JITTER_POS))
-
-
-def test_x4b_log_compare_verdict_diff_target(tmp_path):
-    path = tmp_path / "items.csv"
-    pd.DataFrame([
-        ["J1", pdc.ST_SIZE_JITTER, "동등", "동등", 0.5, 0.3],
-        ["D1", pdc.ST_OK, "차이", "동등", 2.0, 0.8],
-        ["N1", pdc.ST_OK, "차이", V_EXCLUDED, 2.0, 0.8],
-        ["N2", pdc.ST_OK, "동등", "동등", 0.5, 0.4],
-    ], columns=["ITEM", "status", "verdict", "verdict_log", lc.X_COL, lc.Y_COL]).to_csv(
-        path, index=False, encoding="utf-8-sig")
-    r = lc.run(path, tmp_path)
-    t = pd.read_csv(tmp_path / lc.CSV_NAME, encoding="utf-8-sig")
-    assert dict(zip(t["ITEM"], t["target_status"])) == {"J1": pdc.ST_SIZE_JITTER, "D1": lc.VERDICT_DIFF}
-    assert r["n"] == 2 and r["changed"] == 1
-    assert lc.VERDICT_DIFF in lc.EDGE and len(set(lc.EDGE.values())) == len(lc.EDGE)

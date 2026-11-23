@@ -48,7 +48,6 @@ PURPOSE = {
     "verdict_by_group.csv": "그룹마다 판정 변화(기존→개선)별 ITEM 수를 센다.",
     "stability_by_group.csv": "그룹마다 기존·개선 흔들림 분포와 안정 순위를 적는다.",
     "group_dirs.csv": "그룹 이름과 그룹 그림 폴더 이름의 대응표.",
-    "log_compare.csv": "log 진단 대상 ITEM의 선형·log 신뢰구간 반폭 / Δ를 견준다.",
     "item_evidence": "ITEM 하나의 판정 근거를 원데이터에서 다시 적는다. 신뢰구간을 정한 die와 그 값, 허용폭의 구성, 올라간·내려간 die 수, 튀는 die. ITEM 폴더마다 한 행이다.",
     "stability/overall.csv": "측정 안정도 전체 요약 한 행. 판정력 구간별 ITEM 비율, 정밀도와 판정력의 중앙값·상위 10%, 상태별·잡음 모양별 ITEM 수.",
     "stability/groups.csv": "측정 안정도를 그룹마다 한 행으로 요약한다. --groups를 줄 때만 생긴다.",
@@ -62,7 +61,7 @@ PURPOSE = {
 INPUTS = {
     "items": (), "outlier_dies": (), "item_raw": (),
     "scales_auto": ("items",), "item_map": ("items",), "fail_evidence": ("items",), "items_index": ("items",),
-    "compare": ("items",), "log_compare": ("items",),
+    "compare": ("items",),
     "stability_overall": ("compare",), "worst_items": ("compare",), "group_summary": ("compare",),
     "verdict_by_group": ("compare",), "stability_by_group": ("compare",), "group_dirs": ("group_summary",),
     "loq_review": ("items",), "log_review": ("items",), "measure_stability_overall": ("items",), "measure_stability_groups": ("items",),

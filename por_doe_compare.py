@@ -845,7 +845,7 @@ def verdict_log_differs(verdict, verdict_log) -> bool:
 
 
 def is_log_target(status, verdict=None, verdict_log=None) -> bool:
-    """log 진단 대상 (fail_evidence log_diag.png, log_compare): status 에 작을수록·클수록 흔들림이 있거나
+    """log 진단 대상 (fail_evidence log_diag.png): status 에 작을수록·클수록 흔들림이 있거나
     verdict ≠ verdict_log (verdict_log_differs)."""
     return bool(log_target_statuses(status)) or verdict_log_differs(verdict, verdict_log)
 
