@@ -1,0 +1,20 @@
+ITEM,verdict,verdict_final,verdict_basis,zone,reason,verdict_log,log_reason,verdict_with_accuracy,scale,status
+ILEAK_WOBBLE,차이,차이,linear,정량,shift +5.133e-12가 ±Δ(8.512e-13) 밖,판정 제외,부호 섞임,미결,item,산포 0
+IOFF_LEAKY,차이,차이,linear,정량,shift +4.734e-13가 ±Δ(1.656e-15) 밖,판정 제외,부호 섞임,동등,item,산포 0
+IOFF_OFFSET,차이,차이,linear,정량,shift +2.845e-12가 ±Δ(6.257e-15) 밖,판정 제외,부호 섞임,차이,item,산포 0
+FEW_DIE,미결,미결,linear,정량,경계 (신뢰구간이 Δ에 걸침),미결,경계 (신뢰구간이 Δ에 걸침),,item,산포 0
+IOFF_NOBLANK,미결,미결,linear,정량,해상도 부족 (신뢰구간 반폭 ≥ Δ),판정 제외,부호 섞임,,item,산포 0
+SIGNMIX,미결,미결,linear,정량,해상도 부족 (신뢰구간 반폭 ≥ Δ),판정 제외,부호 섞임,,item,산포 0
+CAP_OUT,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,판정 제외,0값 있음,,item,산포 0
+ILEAK_DETECT,동등,동등,linear,검출~정량,<LoQ 보고 일치 (이동이 ±Δ 안),미결,해상도 부족 (신뢰구간 반폭 ≥ Δ),,item,산포 0
+IOFF_FLOOR,동등,동등,linear,검출한계 이하,<LoQ 보고 일치 (이동이 ±Δ 안),판정 제외,부호 섞임,,item,산포 0
+IOFF_MAP,동등,동등,linear,검출한계 이하,<LoQ 보고 일치 (이동이 ±Δ 안),판정 제외,부호 섞임,,item,산포 0
+ION_BIMODAL,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,동등,90% 신뢰구간이 ±Δ 안,동등,item,산포 0;두 덩어리
+RON_A,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,동등,90% 신뢰구간이 ±Δ 안,,item,정상
+RON_B,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,동등,90% 신뢰구간이 ±Δ 안,,item,정상
+RON_C,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,동등,90% 신뢰구간이 ±Δ 안,,item,정상
+RON_D,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,동등,90% 신뢰구간이 ±Δ 안,,item,산포 0
+VT_BORDER,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,동등,90% 신뢰구간이 ±Δ 안,,item,산포 0
+VT_N,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,동등,90% 신뢰구간이 ±Δ 안,동등,item,산포 0
+VT_SHIFT,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,동등,90% 신뢰구간이 ±Δ 안,동등,item,산포 0
+STEP,판정 제외,판정 제외,linear,판정 제외,판정 제외: die 산포 0 (σ_die=0),판정 제외,판정 제외: die 산포 0 (σ_die=0),,item,분해능 부족;산포 0;LoQ 근처
