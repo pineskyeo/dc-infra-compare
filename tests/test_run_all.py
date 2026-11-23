@@ -95,7 +95,7 @@ def test_describe_fail_evidence_item_folders_and_log_compare():
     assert run_all.describe("fail_evidence/items_index.csv") == "ITEM별 근거 폴더 목록"
     assert run_all.describe("fail_evidence/items/differ_A1/summary.csv") == "ITEM 하나의 판정 열 전체"
     assert run_all.describe("fail_evidence/items/differ_A1/raw.csv") == "ITEM 하나의 die별 원데이터"
-    assert run_all.describe("fail_evidence/items/differ_A1/drill.png") == "ITEM 하나의 근거 그림"
+    assert run_all.describe("fail_evidence/items/differ_A1/item_view.png") == "ITEM 하나의 근거 그림"
     assert run_all.describe("log_compare/log_compare.csv") != "산출물"
     assert run_all.describe("log_compare/log_compare.png") != "산출물"
 

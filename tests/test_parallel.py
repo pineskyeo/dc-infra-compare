@@ -117,7 +117,7 @@ def _fe_items():
     return [
         ("B1", "차이", pdc.ST_OK, "차이", True),
         ("B2", "미결", f"{pdc.ST_RUN_JITTER};{pdc.ST_UNSTABLE}", "미결", True),
-        ("B3", "차이", pdc.ST_SIZE_JITTER, "동등", True),           # drill + status + log_diag
+        ("B3", "차이", pdc.ST_SIZE_JITTER, "동등", True),           # item_view + status + log_diag
         ("B4", "동등", f"{pdc.ST_OK};{pdc.ST_SIZE_JITTER_POS}", "동등", True),   # log 만
         ("B5", "미결", "", "미결", False),                             # raw.csv 머리줄만
         ("B6", "동등", pdc.ST_OK, "동등", True),                        # 폴더 없음
@@ -176,7 +176,7 @@ def test_fail_evidence_outputs_same_for_jobs_1_and_2(tmp_path: Path, monkeypatch
     assert files == set(digests["2"])
     for name in ("fail_evidence.csv", "summary.txt", "forest.png", fe.ITEMS_INDEX):
         assert name in files, name
-    assert sum(n.endswith(fe.DRILL_PNG) for n in files) >= 4
+    assert sum(n.endswith(fe.ITEM_VIEW_PNG) for n in files) >= 4
     assert sum(n.endswith(fe.LOG_DIAG_PNG) for n in files) >= 3      # B3·B9(log 대상) + B4(log 만)
     assert any(n.endswith("raw.csv") and "B5" in n for n in files)
     assert digests["1"] == digests["2"]

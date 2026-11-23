@@ -1,0 +1,27 @@
+﻿column,쉬운이름,뜻,수식,볼것
+ITEM,ITEM,ITEM 이름,,근거 폴더 items/<유형>_<ITEM>/ 의 ITEM
+ID,익명 ID,items.csv 의 익명 ID (summarize.py 가 붙인 것). 없으면 빈 칸,,외부 공유할 때 ITEM 대신 쓴다
+verdict_final,최종 판정,"items.csv 의 verdict_final (동등, 미결, 차이, 판정 제외). 열이 없는 옛 표면 verdict",,아래 숫자가 이 판정을 설명한다
+verdict_basis,판정 근거,"최종 판정을 정한 방법: linear 기본 판정, log log 판정, log_physics 물리 log 판정, accuracy 장비 정확도 옵션",,log·log_physics 면 이 표의 center·ci·Δ·d 는 log10 값이다
+reason_plain,판정 이유,최종 판정 사유를 쉬운 문장으로 (explain.reason_plain),,판정 이유를 사람 말로 읽는 곳
+d_scale,차이 척도,"die별 차이 d 를 어느 척도로 쟀는지. linear = 값 그대로, log = log10 값 (배율)","log 판정(verdict_basis log·log_physics)이면 log, 아니면 linear",log 이면 0.0414 는 10^0.0414 = 1.10배라는 뜻
+center,이동량,"die별 차이 d 의 중앙값. 판정이 낸 값 (items.csv center, log 판정이면 center_log)",median(d),+ 면 DOE가 높다. |center| 가 delta 보다 크면 허용폭보다 많이 움직였다
+ci_low,신뢰구간 아래 끝,"실제 이동량이 있을 만한 90% 범위의 아래 끝. 판정이 낸 값 (items.csv ci_low, log 판정이면 ci_low_log)",d 를 작은 순서로 세운 ci_rank_k 번째 값 (부호검정 90% 신뢰구간),ci_low_d 와 같아야 한다. 다르면 원데이터와 판정 입력이 다르다
+ci_high,신뢰구간 위 끝,"실제 이동량이 있을 만한 90% 범위의 위 끝. 판정이 낸 값 (items.csv ci_high, log 판정이면 ci_high_log)",d 를 작은 순서로 세운 n_die − ci_rank_k + 1 번째 값,"ci_high_d 와 같아야 한다. ci_low ~ ci_high 전체가 ±허용폭 밖이면 차이, 안이면 동등, 걸치면 미결"
+n_die,die 수,원데이터(raw.csv)에서 d 를 계산한 die 수,,items.csv n_die 와 같아야 한다
+ci_rank_k,신뢰구간 순번 k,신뢰구간 아래 끝이 d 를 작은 순서로 세운 몇 번째 die 인지 (1부터). 위 끝은 n_die − k + 1 번째,"k = 부호검정 이항분포 B(n, 0.5) 에서 아래 꼬리 ≤ 5% 인 가장 큰 순번 + 1 (por_doe_compare.ci_rank + 1)",61 die 면 24번째 ~ 38번째. 튀는 die 가 k 개보다 적으면 신뢰구간이 끌려가지 않는다
+ci_low_die,아래 끝 die,"d 를 작은 순서로 세웠을 때 ci_rank_k 번째 die 의 좌표 (모든 die 가 같은 값인 좌표 열, 예: 웨이퍼 하나는 뺌)",,item_view.png ② 에 같은 die 가 적혀 있다
+ci_low_d,아래 끝 die 의 차이,ci_low_die 의 d 값 (원데이터에서 다시 계산),d = DOE − POR 회차 평균 (log 판정이면 log10|DOE| − 회차 평균 log10|POR|),ci_low 와 같아야 한다
+ci_high_die,위 끝 die,d 를 작은 순서로 세웠을 때 n_die − ci_rank_k + 1 번째 die 의 좌표,,item_view.png ② 에 같은 die 가 적혀 있다
+ci_high_d,위 끝 die 의 차이,ci_high_die 의 d 값 (원데이터에서 다시 계산),d = DOE − POR 회차 평균 (log 판정이면 log10|DOE| − 회차 평균 log10|POR|),ci_high 와 같아야 한다
+n_d_pos,DOE가 높은 die 수,d > 0 인 die 수,d = DOE − POR 회차 평균 (log 판정이면 log10|DOE| − 회차 평균 log10|POR|),n_die 에 가까우면 거의 모든 die 에서 DOE가 높다
+n_d_neg,DOE가 낮은 die 수,d < 0 인 die 수,d = DOE − POR 회차 평균 (log 판정이면 log10|DOE| − 회차 평균 log10|POR|),n_d_pos 와 비슷하면 한쪽으로 움직이지 않았다
+n_d_zero,차이 0 die 수,d = 0 인 die 수,d = DOE − POR 회차 평균 (log 판정이면 log10|DOE| − 회차 평균 log10|POR|),많으면 값이 계단(분해능)으로 읽혔을 수 있다
+delta,허용폭,"같다고 보는 범위의 반폭 (items.csv delta, log 판정이면 delta_log)",policy_margin + run_margin,"center·ci 와 같은 척도. accuracy 판정이면 실제로 쓴 허용폭은 max(delta, accuracy_margin)"
+policy_margin,정책 허용폭,값에 비례한 허용폭 항,r × |POR 중앙값| (log 판정이면 log10(1 + r)),기본 r = 5%
+run_margin,회차 흔들림 허용폭,POR 회차끼리 흔들리는 만큼 더 주는 항,"t(0.95, J − 1) × √(1 + 1/J) × σ_run, J = POR 회차 수 (log 판정이면 sigma_rep_log)",크면 POR 반복이 불안정하다
+accuracy_margin,장비 정확도 폭,accuracy 판정일 때만: 장비 사양 정확도로 정한 허용폭 (items.csv accuracy_margin). 다른 판정은 빈 칸,items.csv accuracy_margin 그대로,delta 보다 크면 이 폭으로 판정했다
+n_outlier_die,튀는 die 수,판정이 튀는 die 로 본 수 (원데이터에서 다시 셈),"|d − median(d)| > 5 × robust σ(d), d 는 선형 차이",items.csv n_outlier_die 와 같아야 한다. 참고용이라 판정에 직접 쓰지 않는다 (중앙값·순번 신뢰구간이라 ci_rank_k 개보다 적으면 거의 영향 없음)
+outlier_dies,튀는 die 좌표,튀는 die 좌표를 '; ' 로 이은 것,,item_view.png ①②③ 에 검은 테두리로 표시
+LoQ,정량 한계,items.csv LoQ (POR 반복·분해능·blank 중 큰 것으로 정함),10 × σ_lim (blank 가 크면 blank LoQ),|POR| 가 이보다 작으면 '<LoQ' 보고로 판정
+por_over_loq,|POR| / LoQ,POR 중앙값이 정량 한계의 몇 배인지,|por_median| / LoQ,"1 아래면 LoQ 아래 zone, 1~2 근처면 LoQ 근처"

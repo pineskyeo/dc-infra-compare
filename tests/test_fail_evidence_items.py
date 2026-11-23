@@ -1,4 +1,4 @@
-"""WO-P (a)(b): fail_evidence ITEM별 폴더(items/<유형>_<ID>/summary.csv·raw.csv·drill.png), items_index.csv, 표식 기반 지우기. 합성 데이터만."""
+"""WO-P (a)(b): fail_evidence ITEM별 폴더(items/<유형>_<ID>/summary.csv·raw.csv·item_view.png·evidence.csv), items_index.csv, 표식 기반 지우기. 합성 데이터만."""
 import sys
 from pathlib import Path
 
@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import fail_evidence as fe  # noqa: E402
+import item_view  # noqa: E402
 from compare_metrics import safe_group_name  # noqa: E402
 from infra_compare import MEASURE_COLS  # noqa: E402
 from por_doe_compare import ST_OK, ST_RUN_JITTER, ST_SIZE_JITTER, ST_SIZE_JITTER_POS, ST_UNSTABLE, V_EXCLUDED  # noqa: E402
@@ -184,7 +185,7 @@ def test_z3_items_by_anon_id_with_raw(tmp_path, monkeypatch, capsys):
     assert list(_index(out)["ID"]) == ["A1", "A2", "A3", "A4", "A5"]          # items_index 는 실제 ITEM
     assert _folder(out, "동등", "A3").is_dir()
     a4 = _folder(out, fe.item_type(ST_OK, V_EXCLUDED), "A4")                  # 판정 제외 ITEM 도 익명 ID 로
-    for name in ("summary.csv", "raw.csv", fe.DRILL_PNG):
+    for name in ("summary.csv", "raw.csv", fe.ITEM_VIEW_PNG):
         assert (a4 / name).is_file(), name
     assert pd.read_csv(a4 / "raw.csv", encoding="utf-8-sig")["POR1"].tolist() == pytest.approx([7.0, 8.0, 9.0])
     assert "입력에 없는 ID" not in capsys.readouterr().out
@@ -216,7 +217,7 @@ def test_only_two_items_real_and_anon(tmp_path, monkeypatch, capsys):
     a3, a4 = _folder(out, "동등", "A3"), _folder(out, fe.item_type(ST_OK, V_EXCLUDED), "A4")
     assert folders == sorted([a3.name, a4.name])                                # 차이·미결 기본 대상 없음
     for f, item in ((a3, "A3"), (a4, "A4")):
-        for name in ("summary.csv", "raw.csv", fe.DRILL_PNG):
+        for name in ("summary.csv", "raw.csv", fe.ITEM_VIEW_PNG):
             assert (f / name).is_file(), (f, name)
         assert set(pd.read_csv(f / "raw.csv", encoding="utf-8-sig")["ITEM"]) == {item}
     assert list(_index(out)["ID"]) == ["A3", "A4"]
@@ -285,22 +286,26 @@ def test_no_marker_with_user_files_stops(tmp_path, capsys):
     assert not (out / fe.ITEMS_INDEX).exists()
 
 
-def test_drill_png_written_with_raw(tmp_path):
+def test_item_view_and_evidence_written_with_raw(tmp_path):
     out = tmp_path / "out"
     assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out), *_raw_args(tmp_path)]) == 0
     for f in (_folder(out, "차이", "A1"), _folder(out, ST_UNSTABLE, "A2")):
-        png = f / fe.DRILL_PNG
+        png = f / fe.ITEM_VIEW_PNG
         assert png.is_file() and png.stat().st_size > 0, f
-    assert not (_folder(out, "미결", "A5") / fe.DRILL_PNG).exists()   # 원데이터 행이 없으면 그림 없음
+        assert (f / fe.EVIDENCE_CSV).is_file(), f
+        assert not (f / "drill.png").exists(), f
+    a5 = _folder(out, "미결", "A5")                                    # 원데이터 행이 없으면 그림·근거 표 없음
+    assert not (a5 / fe.ITEM_VIEW_PNG).exists() and not (a5 / fe.EVIDENCE_CSV).exists()
 
 
-def test_no_raw_no_drill_png(tmp_path):
+def test_no_raw_no_item_view(tmp_path):
     out = tmp_path / "out"
     assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out)]) == 0
-    assert not list((out / fe.ITEMS_DIR).rglob(fe.DRILL_PNG))
+    assert not list((out / fe.ITEMS_DIR).rglob(fe.ITEM_VIEW_PNG))
+    assert not list((out / fe.ITEMS_DIR).rglob(fe.EVIDENCE_CSV))
 
 
-def _drill_rows(**coords) -> pd.DataFrame:
+def _die_rows(**coords) -> pd.DataFrame:
     n = 6
     rows = pd.DataFrame({"ITEM": ["Z"] * n, "POR1": [1.0, 1.1, 0.9, 1.2, 1.0, 0.8],
                          "POR2": [1.1, 1.0, 1.0, 1.1, 0.9, 0.9], "DOE": [1.5, 1.6, 1.4, 1.7, 1.5, 1.3],
@@ -318,16 +323,16 @@ SUMMARY = {"ITEM": "Z", "verdict": "차이", "status": ST_OK, "center": "0.5", "
     {"X": [0, 1, 0, 1, -1, 0], "Y": [0, 0, 1, 1, 0, -1]},
     {},
 ])
-def test_plot_drill_with_and_without_coords(tmp_path, coords):
-    rows = _drill_rows(**coords)
-    assert (fe.die_xy(rows) is not None) == bool(coords)
-    png = fe.plot_drill(rows, SUMMARY, "Z", tmp_path / fe.DRILL_PNG)
+def test_plot_item_view_with_and_without_coords(tmp_path, coords):
+    rows = _die_rows(**coords)
+    assert (item_view.die_xy(rows) is not None) == bool(coords)
+    png = item_view.plot_item_view(rows, SUMMARY, tmp_path / fe.ITEM_VIEW_PNG)
     assert png.is_file() and png.stat().st_size > 0
 
 
-def test_plot_drill_without_blank_or_limits(tmp_path):
-    rows = _drill_rows().drop(columns="blank_sigma0")
-    png = fe.plot_drill(rows, {"verdict": "미결"}, "Z", tmp_path / fe.DRILL_PNG)
+def test_plot_item_view_without_blank_or_limits(tmp_path):
+    rows = _die_rows().drop(columns="blank_sigma0")
+    png = item_view.plot_item_view(rows, {"verdict": "미결"}, tmp_path / fe.ITEM_VIEW_PNG)
     assert png.is_file()
 
 
@@ -359,7 +364,7 @@ def test_status_panels_two_statuses_in_main(tmp_path):
     f"{fe.ST_FLAT};{ST_OK}",
 ])
 def test_status_panels_each_kind(tmp_path, status):
-    rows = _drill_rows().assign(blank_offset=0.0)
+    rows = _die_rows().assign(blank_offset=0.0)
     s = {**SUMMARY, "status": status, "por_gap_over_delta": "1.4", "por_gap_over_noise": "5",
          "spearman_size_jitter": "-0.8"}
     paths = fe.plot_status_panels(rows, s, "Z", status, tmp_path)
@@ -370,12 +375,12 @@ def test_status_panels_each_kind(tmp_path, status):
 
 def test_status_panels_missing_summary_values(tmp_path):
     status = ";".join(fe.STATUS_PANELS)
-    paths = fe.plot_status_panels(_drill_rows(), {"verdict": "미결"}, "Z", status, tmp_path)
+    paths = fe.plot_status_panels(_die_rows(), {"verdict": "미결"}, "Z", status, tmp_path)
     assert len(paths) == len(fe.STATUS_PANELS) and all(p.is_file() for p in paths)
 
 
 def test_status_panels_unknown_status_warns(tmp_path, capsys):
-    assert fe.plot_status_panels(_drill_rows(), SUMMARY, "Z", "새 상태", tmp_path) == []
+    assert fe.plot_status_panels(_die_rows(), SUMMARY, "Z", "새 상태", tmp_path) == []
     assert not list(tmp_path.glob("status_*.png"))
     lines = [ln for ln in capsys.readouterr().out.splitlines() if "새 상태" in ln]
     assert len(lines) == 1 and "경고" in lines[0]
@@ -417,7 +422,7 @@ def test_t7_size_jitter_diff_item_gets_log_diag(tmp_path):
     assert fe.main(["--input", str(_log_items_csv(tmp_path)), "--out", str(out), *_raw_args(tmp_path)]) == 0
     f = _folder(out, ST_SIZE_JITTER, "A1")
     assert (f / fe.LOG_DIAG_PNG).is_file()
-    assert (f / fe.DRILL_PNG).is_file() and (f / "raw.csv").is_file()
+    assert (f / fe.ITEM_VIEW_PNG).is_file() and (f / "raw.csv").is_file()
     assert not (_folder(out, ST_RUN_JITTER, "A2") / fe.LOG_DIAG_PNG).exists()
 
 
@@ -457,7 +462,7 @@ def test_t7d_input_without_log_columns(tmp_path):
 
 
 def test_t7d_plot_log_diag_zero_values_and_empty_summary(tmp_path):
-    rows = _drill_rows()
+    rows = _die_rows()
     rows.loc[0, "POR1"] = 0.0
     assert fe.plot_log_diag(rows, {}, "Z", tmp_path / "a.png").is_file()
-    assert fe.plot_log_diag(_drill_rows(), {**SUMMARY, "log_reason": "음수 있음"}, "Z", tmp_path / "b.png").is_file()
+    assert fe.plot_log_diag(_die_rows(), {**SUMMARY, "log_reason": "음수 있음"}, "Z", tmp_path / "b.png").is_file()

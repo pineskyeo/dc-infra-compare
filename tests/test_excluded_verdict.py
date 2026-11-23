@@ -157,7 +157,7 @@ def test_fail_evidence_excluded_judgement(tmp_path):
     text = fe.summary_text(table.reset_index())
     assert f"  {V_EXCLUDED}: 1\n" in text
     assert f"  {fe.J_SKIP}: 1\n" in text
-    assert fe.plot_forest(table.reset_index(), tmp_path / "forest.png").stat().st_size > 0
+    assert fe.plot_forest(df, tmp_path / "forest.png").stat().st_size > 0
 
 
 # ---- compare_before_after / group_summary: 판정 제외는 σ 집계에서 빼고 따로 셈 ----

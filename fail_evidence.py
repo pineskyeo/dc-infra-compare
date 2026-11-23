@@ -23,9 +23,13 @@ import pandas as pd  # noqa: E402
 from matplotlib import rcParams  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 
+import explain  # noqa: E402
 import por_doe_compare  # noqa: E402
 from compare_metrics import safe_group_name  # noqa: E402
 from infra_compare import find_files, read_dcnormal  # noqa: E402
+from item_view import (  # noqa: E402
+    EVIDENCE_COLUMNS, POR_COL_RE, basis_numbers, evidence_row, plot_item_view,
+)
 from por_doe_compare import (  # noqa: E402
     POR_GAP_NOISE_K, ST_BIMODAL, ST_FLAT, ST_LOG_CANDIDATE, ST_NEAR_LOQ, ST_OK, ST_RESOLUTION, ST_RUN_JITTER,
     ST_SETUP_ERROR, ST_SIZE_JITTER, ST_SIZE_JITTER_POS, ST_UNSTABLE, is_log_target,
@@ -278,43 +282,110 @@ def _footnote(fig, text: str) -> None:
     fig.text(0.01, 0.01, text, fontsize=8, color="#555555", ha="left", va="bottom")
 
 
-def plot_forest(table: pd.DataFrame, path: Path) -> Path:
-    """ITEM별 center/Δ 점 + CI/Δ 막대, ±1 경계선. 정렬=차이→미결."""
-    rank = {j: i for i, j in enumerate(PLOT_ORDER)}
-    rows = table[table["judgement"].isin(PLOT_ORDER)].copy()
-    rows = rows.iloc[rows["judgement"].map(rank).to_numpy().argsort(kind="stable")]
+FOREST_COLUMNS = ("ITEM", "verdict_final", "center", "ci_low", "ci_high", "이동", "허용폭", "판정 이유")
+FOREST_XLIM = 3.0           # |x| 가 이보다 크면 화살표로 자르고 실제 숫자를 적는다
+FOREST_BAND_COLOR = "#d9f0d3"
+
+
+def _final(r: dict) -> str:
+    return str(r.get("verdict_final") or r.get("verdict") or "").strip()
+
+
+def forest_rows(src: pd.DataFrame) -> pd.DataFrame:
+    """forest.png 의 행 (FOREST_COLUMNS): 최종 판정(verdict_final, 없으면 verdict)이 차이·미결이고 이동량·신뢰구간·
+    허용폭이 있는 ITEM, 차이 먼저, 그 안에서 많이 움직인 것부터. center·ci 는 최종 판정 척도의 값 ÷ 그 판정의 허용폭
+    (1 = 허용폭만큼 움직임). 이동·허용폭은 |POR| 대비 % (log 판정은 배율 %, LoQ 아래 zone 은 % 대신 값)."""
+    out = []
+    for r in src.to_dict("records"):
+        final = _final(r)
+        b = basis_numbers(r)
+        m = b.margin
+        if final not in TARGET_VERDICTS or not (all(math.isfinite(v) for v in (b.center, b.ci_low, b.ci_high))
+                                                and m > 0):
+            continue
+        unit = str(r.get("UNIT") or "").strip("[] ")
+        if b.log:
+            shift, allow = explain.pct(10 ** b.center - 1, 1), explain.pct(10 ** m - 1, 1)
+        elif str(r.get("zone", "")).strip() in explain.LOQ_ZONES:
+            shift, allow = explain.fmt(b.center, unit, signed=True), explain.fmt(m, unit)
+        else:
+            por = pd.to_numeric(pd.Series([r.get("por_median")]), errors="coerce").iloc[0]
+            shift, allow = explain.pct(b.center, por), explain.pct(m, por)
+        out.append(dict(zip(FOREST_COLUMNS, (str(r["ID"]), final, b.center / m, b.ci_low / m, b.ci_high / m, shift,
+                                             "±" + allow.lstrip("+"), explain.reason_plain(r)))))
+    df = pd.DataFrame(out, columns=list(FOREST_COLUMNS))
+    severity = df["verdict_final"].map({J_DIFF: 0, J_PEND: 1})
+    return df.assign(_s=severity, _c=-df["center"].abs()).sort_values(["_s", "_c"], kind="stable").drop(
+        columns=["_s", "_c"]).reset_index(drop=True)
+
+
+def _forest_clip(ax, y: float, r: dict, lim: float, color: str) -> None:
+    """화면 밖 (|x| > lim) 값이 있는 쪽 끝에 화살표 하나와 실제 숫자 (여럿이면 범위)."""
+    for side in (-1, 1):
+        beyond = sorted(v for v in (r["ci_low"], r["center"], r["ci_high"]) if v * side > lim)
+        if not beyond:
+            continue
+        ax.plot(side * lim, y, ">" if side > 0 else "<", color=color, ms=8, clip_on=False)
+        text = f"{beyond[0]:+.1f}" if len(beyond) == 1 else f"실제 {beyond[0]:+.1f} ~ {beyond[-1]:+.1f}"
+        ax.text(side * (lim - 0.08), y - 0.3, text, ha="right" if side > 0 else "left", va="bottom", fontsize=7,
+                color=color)
+
+
+def plot_forest(src: pd.DataFrame, path: Path) -> Path:
+    """ITEM별 이동량 점과 90% 신뢰구간 막대 (÷ 허용폭), 같다고 보는 범위 |x| ≤ 1 띠, 오른쪽에 이동·허용폭·판정 이유."""
+    rows = forest_rows(src)
     n = len(rows)
-    fig, ax = plt.subplots(figsize=(7.5, max(2.8, 0.32 * n + 1.8)))
+    fig, (ax, tx) = plt.subplots(1, 2, figsize=(15, max(2.6, 0.36 * n + 1.5)), width_ratios=[1, 1.45],
+                                 sharey=True, layout="constrained")
+    tx.set_axis_off()
     if n == 0:
         ax.text(0.5, 0.5, "표시할 ITEM 없음", ha="center", va="center", transform=ax.transAxes)
         ax.set_axis_off()
     else:
-        for i, r in enumerate(rows.to_dict("records")):
-            color = JUDGEMENT_COLORS[r["judgement"]]
-            ax.hlines(i, r["ci_low_over_delta"], r["ci_high_over_delta"],
-                      color=color, lw=2.5, alpha=0.55)
-            ax.plot(r["center_over_delta"], i, "o", color=color, ms=5)
+        vals = rows[["center", "ci_low", "ci_high"]].abs().to_numpy()
+        lim = min(FOREST_XLIM, max(1.5, float(vals.max()) * 1.08))
+        ax.axvspan(-1, 1, color=FOREST_BAND_COLOR, lw=0)
+        ax.text(0, -0.9, "같다고 보는 범위", ha="center", va="center", fontsize=8, color="#2b6d2b",
+                bbox=dict(facecolor=FOREST_BAND_COLOR, edgecolor="none", pad=1.5))
         for x in (-1, 1):
-            ax.axvline(x, color="#555555", ls="--", lw=1)
+            ax.axvline(x, color="#5a9a5a", ls="--", lw=1)
         ax.axvline(0, color="#999999", lw=0.8)
-        ax.set_yticks(list(range(n)))
-        ax.set_yticklabels(rows["ID"].astype(str).tolist(), fontsize=8)
-        ax.set_ylim(n - 0.5, -0.5)
-        span = rows[["ci_low_over_delta", "ci_high_over_delta", "center_over_delta"]].abs()
-        xmax = max(1.5, float(span.max().max())) * 1.05
-        ax.set_xlim(-xmax, xmax)
-        counts = rows["judgement"].value_counts()
-        handles = [Line2D([0], [0], color=JUDGEMENT_COLORS[j], marker="o", lw=2.5,
-                          label=f"{j} ({counts[j]})") for j in PLOT_ORDER if j in counts]
-        ax.legend(handles=handles, loc="best", fontsize=8)
-        ax.set_xlabel("center/Δ (점), CI/Δ (막대)")
+        for i, r in enumerate(rows.to_dict("records")):
+            color = JUDGEMENT_COLORS[r["verdict_final"]]
+            ax.hlines(i, max(r["ci_low"], -lim), min(r["ci_high"], lim), color=color, lw=2.5, alpha=0.6)
+            if abs(r["center"]) <= lim:
+                ax.plot(r["center"], i, "o", color=color, ms=5)
+            _forest_clip(ax, i, r, lim, color)
+        ax.set_xlim(-lim, lim)
+        ax.set_ylim(n - 0.5, -1.4)
+        ax.set_yticks(range(n))
+        ax.set_yticklabels(rows["ITEM"].tolist(), fontsize=8)
+        for label, final in zip(ax.get_yticklabels(), rows["verdict_final"]):
+            label.set_color(JUDGEMENT_COLORS[final])
+        ax.set_xlabel("움직인 양 ÷ 허용폭 (점 = 이동량 중앙값, 막대 = 90% 신뢰구간, ±1 = 허용폭)")
         ax.grid(axis="x", alpha=0.3)
-    ax.set_title("Fail ITEM 근거: CI/Δ")
-    n_na = int((table["judgement"] == J_NA).sum())
-    n_excl = int((table["judgement"] == J_EXCL).sum())
-    n_skip = int((table["judgement"] == J_SKIP).sum())
-    _footnote(fig, f"점선 ±1 = Δ 경계. 제외: {J_NA} {n_na}행, {J_EXCL} {n_excl}행, {J_SKIP} {n_skip}행")
-    fig.tight_layout(rect=(0, 0.04, 1, 1))
+        counts = rows["verdict_final"].value_counts()
+        handles = [Line2D([0], [0], color=JUDGEMENT_COLORS[j], marker="o", lw=2.5, label=f"{j} {counts[j]}개")
+                   for j in PLOT_ORDER if j in counts]
+        ax.legend(handles=handles, loc="upper left", fontsize=8, ncol=2, framealpha=0.9)
+        cols = (("이동", 0.0), ("허용폭", 0.1), ("판정 이유", 0.2))
+        for name, x in cols:
+            tx.text(x, -1.0, name, ha="left", va="center", fontsize=9, weight="bold", transform=tx.get_yaxis_transform())
+        for i, r in enumerate(rows.to_dict("records")):
+            for name, x in cols:
+                tx.text(x, i, r[name], ha="left", va="center", fontsize=8, transform=tx.get_yaxis_transform())
+    ax.set_title("차이·미결 ITEM: 이동량과 신뢰구간 (허용폭 = 1)", loc="left")
+    n_target = sum(_final(r) in TARGET_VERDICTS for r in src.to_dict("records"))
+    n_other, n_missing = len(src) - n_target, n_target - n
+    top = rows.iloc[0] if n else None
+    this_run = (f"차이 {int((rows['verdict_final'] == J_DIFF).sum())}개, 미결 {int((rows['verdict_final'] == J_PEND).sum())}개."
+                + (f" 맨 위 {top['ITEM']}는 {top['이동']} 움직였고 허용폭은 {top['허용폭']}다." if n else "")
+                + (f" 최종 판정이 동등·판정 제외인 {n_other}개는 그리지 않았다." if n_other else "")
+                + (f" 이동량·허용폭 숫자가 없는 {n_missing}개도 그리지 않았다." if n_missing else ""))
+    how = ("점은 DOE와 POR의 die별 차이 중앙값이고, 1이면 허용폭만큼 움직인 것이다. 막대는 90% 신뢰구간으로 실제 차이가 "
+           "있을 만한 범위다. 막대 전체가 초록 띠 안이면 동등, 전체가 밖이면 차이, 걸치면 미결이다. 화면 밖 막대는 화살표로 "
+           "끝을 보이고 실제 숫자를 적었다. 이동·허용폭은 POR 값 대비 %다 (log 판정은 배율, LoQ 아래 ITEM은 값).")
+    explain.add_figure_note(fig, how, this_run)
     fig.savefig(path, dpi=150)
     plt.close(fig)
     return path
@@ -327,7 +398,7 @@ ITEMS_MARKER = ".fail_evidence_items"
 ITEMS_INDEX = "items_index.csv"
 INDEX_COLUMNS = ("ID", "유형", "verdict", "status", "폴더", "log_target")
 CMP_PREFIX = "cmp_"
-NO_RAW_MSG = "원데이터 없음: raw.csv·drill.png 건너뜀"
+NO_RAW_MSG = "원데이터 없음: raw.csv·item_view.png·evidence.csv 건너뜀"
 # 대표 status(폴더 <유형>): 여러 status가 ';'로 붙어 있으면 이 표에서 앞에 있는 것. 표에 없는 이름은 맨 뒤(나온 순서).
 STATUS_PRIORITY = (ST_SETUP_ERROR, ST_UNSTABLE, ST_FLAT, ST_RESOLUTION, ST_RUN_JITTER, ST_SIZE_JITTER,
                    ST_SIZE_JITTER_POS, ST_LOG_CANDIDATE, ST_BIMODAL, ST_NEAR_LOQ)
@@ -464,28 +535,7 @@ def load_raw(a: argparse.Namespace, items: list[str], only: bool = False) -> pd.
     return wide
 
 
-DRILL_PNG = "drill.png"
-POR_COL_RE = re.compile(r"^POR\d+$")
-XY_PAIRS = (("X", "Y"), ("DIE_X", "DIE_Y"), ("COORD_X", "COORD_Y"), ("DIEX", "DIEY"))
-XY_TEXT_RE = re.compile(r"^\s*(-?\d+(?:\.\d+)?)\s*[_,:/ ]\s*(-?\d+(?:\.\d+)?)\s*$")
 POR_COLOR, DOE_COLOR, D_COLOR = "#7f7f7f", "#d62728", "#1f77b4"
-
-
-def die_xy(rows: pd.DataFrame) -> tuple[pd.Series, pd.Series] | None:
-    """die 좌표 (x, y). X/Y 같은 숫자 열 쌍, 없으면 COORD_X_Y 처럼 '1_2' 글자 열. 둘 다 없으면 None."""
-    upper = {str(c).strip().upper(): c for c in rows.columns}
-    for xn, yn in XY_PAIRS:
-        if xn in upper and yn in upper:
-            x = pd.to_numeric(rows[upper[xn]], errors="coerce")
-            y = pd.to_numeric(rows[upper[yn]], errors="coerce")
-            if x.notna().all() and y.notna().all():
-                return x, y
-    for name, col in upper.items():
-        if "X_Y" in name or "XY" in name:
-            parts = rows[col].astype(str).str.extract(XY_TEXT_RE)
-            if parts.notna().all().all():
-                return parts[0].astype(float), parts[1].astype(float)
-    return None
 
 
 def _num(row: dict, name: str) -> float:
@@ -499,47 +549,6 @@ def _no_data(ax, text: str = "자료 없음") -> None:
     ax.set_yticks([])
 
 
-def _drill_values(ax, rows: pd.DataFrame, por_cols: list[str]) -> None:
-    """① POR 회차별·DOE die 값: box + 흩뿌린 점."""
-    cols = por_cols + (["DOE"] if "DOE" in rows.columns else [])
-    data = [pd.to_numeric(rows[c], errors="coerce").dropna().to_numpy() for c in cols]
-    if not any(len(v) for v in data):
-        _no_data(ax)
-    else:
-        ax.boxplot([v if len(v) else [NAN] for v in data], widths=0.5, showfliers=False,
-                   medianprops={"color": "#333333"})
-        for i, (c, v) in enumerate(zip(cols, data), start=1):
-            jitter = (pd.Series(range(len(v))) % 7 - 3) * 0.04
-            ax.plot(i + jitter.to_numpy(), v, "o", ms=3, alpha=0.6,
-                    color=DOE_COLOR if c == "DOE" else POR_COLOR)
-        ax.set_xticks(range(1, len(cols) + 1))
-        ax.set_xticklabels(cols, fontsize=8)
-        ax.grid(axis="y", alpha=0.3)
-    ax.set_title("POR 회차별·DOE die 값", fontsize=10)
-
-
-def _drill_blank(ax, rows: pd.DataFrame, s: dict) -> None:
-    """② Blank 분포(σ0·offset 기준 정규 곡선)와 LoD·LoQ 선."""
-    lod, loq = _num(s, "LoD"), _num(s, "LoQ")
-    sig = pd.to_numeric(rows.get("blank_sigma0", pd.Series(dtype=float)), errors="coerce").dropna()
-    off = pd.to_numeric(rows.get("blank_offset", pd.Series(dtype=float)), errors="coerce").dropna()
-    sigma = float(sig.iloc[0]) if not sig.empty and sig.iloc[0] > 0 else NAN
-    mu = float(off.iloc[0]) if not off.empty else 0.0
-    lines = [(v, n, ls) for v, n, ls in ((lod, "LoD", ":"), (loq, "LoQ", "--")) if math.isfinite(v)]
-    if not math.isfinite(sigma) and not lines:
-        _no_data(ax)
-    else:
-        if math.isfinite(sigma):
-            xs = [mu + sigma * (i / 50 - 4) for i in range(401)]
-            ys = [math.exp(-0.5 * ((x - mu) / sigma) ** 2) / (sigma * math.sqrt(2 * math.pi)) for x in xs]
-            ax.fill_between(xs, ys, color=POR_COLOR, alpha=0.3, label=f"Blank (σ0={sigma:.3g})")
-        for v, n, ls in lines:
-            ax.axvline(v, color="#333333", ls=ls, lw=1.2, label=f"{n}={v:.3g}")
-        ax.legend(fontsize=7, loc="best")
-        ax.set_yticks([])
-    ax.set_title("Blank 분포와 LoD·LoQ", fontsize=10)
-
-
 def _center_lines(ax, s: dict, vertical: bool) -> None:
     line = ax.axvline if vertical else ax.axhline
     center, delta = _num(s, "center"), _num(s, "delta")
@@ -551,7 +560,7 @@ def _center_lines(ax, s: dict, vertical: bool) -> None:
     line(0, color="#999999", lw=0.8)
 
 
-def _drill_d_hist(ax, d: pd.Series, s: dict) -> None:
+def _d_hist(ax, d: pd.Series, s: dict) -> None:
     """③ d 히스토그램 + center·CI·±Δ 세로선."""
     if d.empty:
         _no_data(ax)
@@ -564,59 +573,6 @@ def _drill_d_hist(ax, d: pd.Series, s: dict) -> None:
         ax.legend(fontsize=7, loc="best")
         ax.set_xlabel("d = DOE − POR 회차 평균", fontsize=8)
     ax.set_title("d 분포", fontsize=10)
-
-
-def _drill_d_order(ax, d: pd.Series, s: dict) -> None:
-    """④ raw.csv 행 순서별 d + center·±Δ 가로선."""
-    if d.empty:
-        _no_data(ax)
-    else:
-        ax.plot(range(1, len(d) + 1), d.to_numpy(), "o-", ms=3, lw=0.6, color=D_COLOR)
-        _center_lines(ax, s, vertical=False)
-        ax.legend(fontsize=7, loc="best")
-        ax.set_xlabel("die 순서 (raw.csv 행)", fontsize=8)
-        ax.set_ylabel("d", fontsize=8)
-        ax.grid(alpha=0.3)
-    ax.set_title("die 순서별 d", fontsize=10)
-
-
-def _drill_map(fig, ax, xy: tuple[pd.Series, pd.Series], d: pd.Series) -> None:
-    """⑤ 웨이퍼맵: die 좌표에 d 색(0 중심 발산색)."""
-    lim = float(d.abs().max()) if d.notna().any() else 1.0
-    lim = lim if lim > 0 else 1.0
-    sc = ax.scatter(xy[0], xy[1], c=d, cmap="RdBu_r", vmin=-lim, vmax=lim, s=40, marker="s")
-    fig.colorbar(sc, ax=ax, label="d")
-    ax.set_aspect("equal", adjustable="datalim")
-    ax.set_xlabel("x", fontsize=8)
-    ax.set_ylabel("y", fontsize=8)
-    ax.set_title("웨이퍼맵 (d)", fontsize=10)
-
-
-def plot_drill(rows: pd.DataFrame, summary: dict, item: str, path: Path) -> Path:
-    """ITEM 한 개의 공통 그림: 값 분포, Blank·LoD·LoQ, d 분포, die 순서별 d, (좌표 있으면) 웨이퍼맵."""
-    rows = rows.reset_index(drop=True)
-    por_cols = [c for c in rows.columns if POR_COL_RE.match(str(c))]
-    d = pd.to_numeric(rows["d"], errors="coerce") if "d" in rows.columns else pd.Series(dtype=float)
-    xy = die_xy(rows)
-    fig, axes = plt.subplots(2, 3 if xy is not None else 2, figsize=(14 if xy is not None else 10, 7.5))
-    ax = axes.ravel()
-    _drill_values(ax[0], rows, por_cols)
-    _drill_blank(ax[1], rows, summary)
-    if xy is not None:
-        _drill_map(fig, ax[2], xy, d)
-        ax[5].set_axis_off()
-        hist_ax, order_ax = ax[3], ax[4]
-    else:
-        hist_ax, order_ax = ax[2], ax[3]
-    _drill_d_hist(hist_ax, d.dropna(), summary)
-    _drill_d_order(order_ax, d, summary)
-    parts = [item, summary.get("verdict"), summary.get("status")]
-    fig.suptitle(" · ".join(str(p).strip() for p in parts if not pd.isna(p) and str(p).strip()))
-    _footnote(fig, f"die {len(rows)}개, POR 회차 {len(por_cols)}개. 실선 = center, 점선 = ±Δ, 주황 띠 = CI")
-    fig.tight_layout(rect=(0, 0.03, 1, 0.96))
-    fig.savefig(path, dpi=150)
-    plt.close(fig)
-    return path
 
 
 # ---------------------------------------------------------------- status별 패널 (status_<이름>.png)
@@ -870,14 +826,14 @@ def plot_log_diag(rows: pd.DataFrame, summary: dict, item: str, path: Path) -> P
     _log_size_scatter(fig.add_subplot(gs[1, :]), rows, summary, por_cols)
     d = pd.to_numeric(rows["d"], errors="coerce").dropna() if "d" in rows.columns else pd.Series(dtype=float)
     ax = fig.add_subplot(gs[2, 0])
-    _drill_d_hist(ax, d, summary)
+    _d_hist(ax, d, summary)
     ax.set_title("선형 d 분포", fontsize=10)
     ax = fig.add_subplot(gs[2, 1])
     dlog = _log_d(rows, por_cols)
     if dlog is None:
         _no_data(ax, "0값 있음")
     else:
-        _drill_d_hist(ax, dlog, _sub_summary(summary, LOG_SUFFIX))
+        _d_hist(ax, dlog, _sub_summary(summary, LOG_SUFFIX))
         if not dlog.empty:
             ax.set_xlabel("log d = log10|DOE| − 회차 평균 log10|POR|", fontsize=8)
     ax.set_title("log d 분포", fontsize=10)
@@ -911,6 +867,9 @@ def reset_items_dir(d: Path) -> None:
                                   encoding="utf-8")
 
 
+ITEM_VIEW_PNG = "item_view.png"
+EVIDENCE_CSV = "evidence.csv"
+
 # main 이 pool_map 전에 채운다: "plain"(items.csv 표), "raw"(ITEM ID -> 그 ITEM 의 원데이터 행, 원데이터 없으면 None).
 # fork 자식이 그대로 물려받으므로 큰 표를 피클로 넘기지 않는다.
 _SHARED: dict = {}
@@ -923,7 +882,8 @@ def _split_raw(raw: pd.DataFrame, ids: list[str]) -> dict[str, pd.DataFrame]:
 
 
 def _write_item(rec: dict, out: Path, cmp: pd.DataFrame | None, log_only: bool) -> None:
-    """items/<폴더>/ 하나: summary.csv, (원데이터 있으면) raw.csv 와 그림. log_only 면 log_diag.png 만."""
+    """items/<폴더>/ 하나: summary.csv, (원데이터 있으면) raw.csv, item_view.png, evidence.csv 와 status·log 그림.
+    log_only 면 raw.csv·log_diag.png 만."""
     plain, raw = _SHARED["plain"], _SHARED["raw"]
     folder = out / rec["폴더"]
     folder.mkdir(parents=True)
@@ -939,10 +899,12 @@ def _write_item(rec: dict, out: Path, cmp: pd.DataFrame | None, log_only: bool) 
             plot_log_diag(rows, srow, rec["ID"], folder / LOG_DIAG_PNG)
         return
     if rows.empty:
-        print(f"{rec['ID']}: 원데이터에 행 없음 (raw.csv는 머리줄만, {DRILL_PNG} 없음)")
+        print(f"{rec['ID']}: 원데이터에 행 없음 (raw.csv는 머리줄만, {ITEM_VIEW_PNG}·{EVIDENCE_CSV} 없음)")
     rows.to_csv(folder / "raw.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
     if not rows.empty:
-        plot_drill(rows, srow, rec["ID"], folder / DRILL_PNG)
+        plot_item_view(rows, srow, folder / ITEM_VIEW_PNG)
+        pd.DataFrame([evidence_row(rows, srow)], columns=list(EVIDENCE_COLUMNS)).to_csv(
+            folder / EVIDENCE_CSV, index=False, encoding="utf-8-sig", float_format="%.10g")
         plot_status_panels(rows, srow, rec["ID"], rec["status"], folder)
         if rec["log_target"]:
             plot_log_diag(rows, srow, rec["ID"], folder / LOG_DIAG_PNG)
@@ -1018,7 +980,7 @@ def main(argv: list[str] | None = None) -> int:
 
     configure_font()
     rcParams["axes.unicode_minus"] = False
-    plot_forest(table, out / "forest.png")
+    plot_forest(src, out / "forest.png")
 
     reset_items_dir(items_dir)
     records = index.to_dict("records")

@@ -66,6 +66,8 @@ OUTPUTS: tuple[Output, ...] = (
            "fail_evidence.py"),
     Output("items/*/raw.csv", ("item/items/*/raw.csv", "fail_evidence/items/*/raw.csv"), "item_raw",
            "fail_evidence.py (원데이터 인자를 줄 때)"),
+    Output("item_evidence", ("item/items/*/evidence.csv", "fail_evidence/items/*/evidence.csv"), "item_evidence",
+           "fail_evidence.py (원데이터 인자를 줄 때)"),
     Output("compare.csv", ("group/compare/compare.csv", "compare/compare.csv"), "compare",
            "compare_before_after.py compare (dcc group --before, run_all --before)"),
     Output("stability_overall.csv", ("group/compare/stability_overall.csv", "compare/stability_overall.csv"),
