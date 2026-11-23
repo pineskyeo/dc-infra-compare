@@ -13,7 +13,7 @@ import pytest
 
 import fail_evidence
 from por_doe_compare import (LOG_COLS, METRIC_COLS, PRECISION_COLS, ST_BIMODAL, ST_LOG_CANDIDATE, ST_OK, STATUS_COLS,
-                             excluded_reason, item_status)
+                             ExclusionFacts, excluded_reason, item_status)
 
 ROOT = Path(__file__).resolve().parents[1]
 SYNTH_TSV = ROOT / "tests" / "data" / "fail_evidence_synth.tsv"
@@ -99,8 +99,8 @@ def test_v3_resolution_and_fixed_share_values():
     st = item_status(Y, z, 100.0)
     assert st["fixed_share"] == pytest.approx(0.7)
     assert "산포 0" in st["status"].split(";")
-    # 판정 제외 reason 의 '고정값 NN%' 는 fixed_share 와 같은 값
-    why = excluded_reason(1.0, 0.5, 1.5, 0.3, 0.1, float(np.median(R)), Y.mean(axis=1), z)
+    # 판정 제외 reason 의 '고정값 NN%' 는 fixed_share 와 같은 값 (정량 zone, step 0.25 ≥ 0.1 Δ 라 거친 데이터)
+    why = excluded_reason(ExclusionFacts(Y, z, 1.0, 0.5, 1.5, 0.3, 0.1, float(np.median(R)), 1.0, 0.0, ()))
     assert f"고정값 {round(100 * st['fixed_share'])}%" in why
 
 

@@ -85,21 +85,15 @@ def test_items_csv_matches_frozen_legacy_by_column_name(por3_data: Path, tmp_pat
         for c in REMOVED_COLS:
             r.pop(c)
 
-    # '판정 제외'는 레거시에 없던 판정이다. 그 행은 zone·verdict·reason만 달라도 되고, ORDER 때문에
-    # 맨 뒤로 옮겨지므로 ITEM 기준으로 맞춰 비교한다. 나머지 행·열은 그대로 같아야 한다.
-    # doe_center는 LoQ 분기에서만 채워지고 판정 제외는 그 전에 끝나 비며, verdict_no_blank는 blank 없이 다시 판정해도 판정 제외라 달라진다.
-    changed = ("zone", "verdict", "reason", "doe_center", "verdict_no_blank", "verdict_with_accuracy")
+    # 행은 ORDER 로 정렬이 바뀔 수 있어 ITEM 기준으로 맞춰 비교한다.
     accuracy_changed = ("verdict", "reason", "delta", "delta_source", "verdict_with_accuracy")
     new_by_item = {r["ITEM"]: r for r in new_rows}
     legacy_by_item = {r["ITEM"]: r for r in legacy_rows}
     assert len(new_by_item) == len(new_rows)
     assert new_by_item.keys() == legacy_by_item.keys()
 
-    excluded = sorted(item for item, r in new_by_item.items() if r["verdict"] == "판정 제외")
-    assert excluded == ["IOFF_STEP"]
-    assert legacy_by_item["IOFF_STEP"]["verdict"] == "동등"
-    assert new_by_item["IOFF_STEP"]["doe_center"] == ""
-    assert new_by_item["IOFF_STEP"]["verdict_no_blank"] == "판정 제외"
+    # σ_die = 0 인 IOFF_STEP 은 blank 하한으로 LoQ 미만이라 판정 제외가 아니고 레거시와 같다 (판정 제외 규칙 4·6)
+    assert not [item for item, r in new_by_item.items() if r["verdict"] == "판정 제외"]
 
     widened = sorted(item for item, r in legacy_by_item.items() if r["delta_source"] == "장비 정확도")
     assert widened == ["VOS_OFFSET"]
@@ -113,9 +107,7 @@ def test_items_csv_matches_frozen_legacy_by_column_name(por3_data: Path, tmp_pat
 
     for item, new in new_by_item.items():
         legacy = legacy_by_item[item]
-        if item in excluded:
-            assert without(new, changed) == without(legacy, changed), item
-        elif item in widened:
+        if item in widened:
             assert without(new, accuracy_changed) == without(legacy, accuracy_changed), item
         else:
             acc = {"verdict_with_accuracy"}

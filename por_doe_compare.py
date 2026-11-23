@@ -17,9 +17,15 @@
    정량 (|POR| ≥ LoQ): 신뢰구간이 ±Δ 안 → 동등, 통째로 밖 → 차이, 걸침 → 미결
    LoQ 미만: 값은 "<LoQ"로 보고한다 (IUPAC). 신뢰구간이 통째로 ±Δ 밖이고 DOE 중심(POR 중앙값 + shift)이
      LoQ 이상이라 보고가 달라질 때만 차이, 그 밖은 동등 ("<LoQ 보고 일치")
-   판정 제외: 통계를 낼 수 없는 ITEM. 맞는 원인 모두를 아래 순서로 '; ' 구분해 reason에 적는다
-     (1) 중심·신뢰구간 NaN/inf (2) die 산포 0: sigma_die = 0 또는 고정값 비율 > 50% (status '산포 0'과 같은 비율)
-     (3) POR 중앙값 0이고 sigma_run 0. 그 밖은 zone 판정: LoQ 미만은 Δ와 무관하게 판정하고,
+   판정 제외: 판정할 것이 없는 ITEM. 맞는 원인 모두를 아래 순서로 '; ' 구분해 reason에 적는다 (EXCLUSION_CAUSES)
+     (1) 중심·신뢰구간 NaN/inf
+     (2) 회차 0값: POR 회차나 DOE 하나가 die 절반 넘게 정확히 0인데 다른 쪽 하나라도 절반 넘게 0이 아님 (이름을 적음)
+     (3) 모든 값 같음: POR·DOE 값이 하나뿐
+     (4) die 산포 0 (sigma_die = 0 또는 고정값 비율 > 50%, status '산포 0'과 같은 비율): 정량 zone 이고
+         데이터가 거칠 때만 (분해능 step ≥ 0.1 Δ, status '분해능 부족'과 같은 검사, 또는 계산 불가).
+         그 밖은 그대로 TOST (신뢰구간이 한 점이어도 된다)
+     (5) POR 중앙값 0이고 sigma_run 0: 정량 zone 일 때만, 곧 LoQ 가 0이거나 유효하지 않을 때만
+     LoQ 미만이면 (4)(5)는 보지 않고 LoQ 판정으로 간다. 그 밖은 zone 판정: LoQ 미만은 Δ와 무관하게 판정하고,
      정량은 Δ가 0 이하·NaN일 때만 판정 제외
 
 4. 참고 (판정에 안 씀): t-test (NIST 7.3.1.1), POR 회차끼리 t-test, 튀는 die (|d − 중앙값| > 5 robust σ)
@@ -470,23 +476,76 @@ def reason_group(reason: pd.Series) -> pd.Series:
     return s.where(~s.str.startswith(V_EXCLUDED), s.str.replace(r" \([^)]*\)", "", regex=True))
 
 
-def excluded_reason(center: float, lo: float, hi: float, s_die: float, s_run: float,
-                    por_median: float, R: np.ndarray, z: np.ndarray) -> str | None:
-    """zone 판정 전에 보는 판정 제외 사유 (없으면 None). 맞는 원인 모두, (1) 중심·CI NaN/inf
-    (2) die 산포 0 (3) 중앙값 0·σ_run 0 순서로 '; ' 구분.
-    첫 원인만 "판정 제외: " 로 시작. die 산포 0은 σ_die=0이면 그 문구, 아니면 고정값 비율 문구 하나.
-    Δ 검사는 여기서 하지 않음: LoQ zone은 Δ와 무관하고, 정량 zone은 judge가 Δ를 본다."""
-    causes = []
-    bad = [k for k, v in (("center", center), ("ci_low", lo), ("ci_high", hi)) if not np.isfinite(v)]
-    if bad:
-        causes.append(f"중심·신뢰구간 계산 불가 ({', '.join(bad)})")
-    share = flat_share(R, z)        # items.csv fixed_share 와 같은 값
-    if s_die == 0:
-        causes.append("die 산포 0 (σ_die=0)")
-    elif share > 0.5:
-        causes.append(f"die 산포 0 (고정값 {round(100 * share)}%)")
-    if por_median == 0 and s_run == 0:
-        causes.append("고정값 (중앙값 0·σ_run 0)")
+@dataclass(frozen=True)
+class ExclusionFacts:
+    """판정 제외 원인 표(EXCLUSION_CAUSES)가 보는 값. Y·z 는 판정하는 값 (log 판정이면 log10|값|),
+    zero_sides 는 원값에서 본 회차 0값 (zero_value_sides). LoQ 가 없는 log 판정은 por_median·loq 를 NaN 으로 둔다."""
+    Y: np.ndarray
+    z: np.ndarray
+    center: float
+    ci_low: float
+    ci_high: float
+    sigma_die: float
+    sigma_run: float
+    por_median: float
+    delta: float
+    loq: float
+    zero_sides: tuple[str, ...]
+
+    @property
+    def quant(self) -> bool:
+        """정량 zone (|POR 중앙값| ≥ LoQ). judge 의 zone 판정과 같은 비교라 NaN 이면 정량."""
+        return not abs(self.por_median) < self.loq
+
+
+def zero_value_sides(Y: np.ndarray, z: np.ndarray) -> tuple[str, ...]:
+    """die 절반 넘게 정확히 0인 POR 회차·DOE 이름. 다른 회차나 DOE 하나라도 die 절반 넘게 0이 아닐 때만, 아니면 ()."""
+    sides = [(f"POR{k + 1}", Y[:, k]) for k in range(Y.shape[1])] + [("DOE", z)]
+    zero = [name for name, v in sides if (v == 0).mean() > 0.5]
+    return tuple(zero) if any((v != 0).mean() > 0.5 for _, v in sides) else ()
+
+
+def _cause_ci(f: ExclusionFacts) -> str | None:
+    bad = [k for k, v in (("center", f.center), ("ci_low", f.ci_low), ("ci_high", f.ci_high)) if not np.isfinite(v)]
+    return f"중심·신뢰구간 계산 불가 ({', '.join(bad)})" if bad else None
+
+
+def _cause_zero_sides(f: ExclusionFacts) -> str | None:
+    return f"회차 0값 ({', '.join(f.zero_sides)})" if f.zero_sides else None
+
+
+def _cause_all_same(f: ExclusionFacts) -> str | None:
+    return "모든 값 같음" if np.unique(np.concatenate([f.Y.ravel(), f.z])).size == 1 else None
+
+
+def _cause_flat(f: ExclusionFacts) -> str | None:
+    """정량 zone 에서 데이터가 Δ에 비해 거칠 때만 (분해능 step ≥ 0.1 Δ, status '분해능 부족'과 같은 검사, 또는 계산 불가)."""
+    if not f.quant:
+        return None
+    vals = np.unique(np.concatenate([f.Y.ravel(), f.z]))
+    step = float(np.diff(vals).min()) if vals.size > 1 else np.nan
+    if step < 0.1 * f.delta:        # NaN 이면 False → 거친 쪽
+        return None
+    if f.sigma_die == 0:
+        return "die 산포 0 (σ_die=0)"
+    share = flat_share(f.Y.mean(axis=1), f.z)        # items.csv fixed_share 와 같은 값
+    return f"die 산포 0 (고정값 {round(100 * share)}%)" if share > 0.5 else None
+
+
+def _cause_median_zero(f: ExclusionFacts) -> str | None:
+    """정량 zone 에서만: 중앙값 0이 정량이면 LoQ 가 0이거나 유효하지 않다는 뜻."""
+    return "고정값 (중앙값 0·σ_run 0)" if f.quant and f.por_median == 0 and f.sigma_run == 0 else None
+
+
+# 판정 제외 원인. 순서가 reason 에 적는 순서
+EXCLUSION_CAUSES: tuple[Callable[[ExclusionFacts], str | None], ...] = (
+    _cause_ci, _cause_zero_sides, _cause_all_same, _cause_flat, _cause_median_zero)
+
+
+def excluded_reason(f: ExclusionFacts) -> str | None:
+    """zone 판정 전에 보는 판정 제외 사유 (없으면 None). EXCLUSION_CAUSES 중 맞는 원인 모두를 순서대로 '; ' 구분,
+    첫 원인만 "판정 제외: " 로 시작. 정량 Δ 검사는 여기서 하지 않음: judge 가 정량 zone 에서 본다."""
+    causes = [c for c in (cause(f) for cause in EXCLUSION_CAUSES) if c]
     return f"{V_EXCLUDED}: {'; '.join(causes)}" if causes else None
 
 
@@ -546,7 +605,8 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None,
     }
     if n < MIN_DIE:
         return {**out, "zone": "die 부족", "verdict": "미결", "reason": f"die {n}개 (< {MIN_DIE})"}, outlier
-    why = excluded_reason(center, lo, hi, s_die, s_run, out["por_median"], R, z)
+    why = excluded_reason(ExclusionFacts(Y, z, center, lo, hi, s_die, s_run, out["por_median"], delta, loq,
+                                         zero_value_sides(Y, z)))
     if why:
         return {**out, "zone": V_EXCLUDED, "verdict": V_EXCLUDED, "reason": why}, outlier
 
@@ -575,7 +635,8 @@ def judge_log(Y: np.ndarray, z: np.ndarray, r: float) -> dict:
     die별 d = w − L 회차 평균, 중앙값과 부호검정 90% CI (ci_median). Δ_log = log10(1 + r) + sigma_rep_log
     (t·√(1 + 1/J) 배수 없음). LoQ zone 은 없다: log 값이 0 근처라는 것은 그 단위에서 1 근처라는 뜻일 뿐이라
     단위를 바꾸면 달라진다. blank·장비 사양은 원측정값 단위라 쓰지 않는다.
-    die < MIN_DIE 면 미결, excluded_reason (중앙값 0 원인 제외) 이나 Δ_log ≤ 0·NaN 이면 판정 제외."""
+    die < MIN_DIE 면 미결, excluded_reason (LoQ 가 없어 정량 zone 으로 봄, 중앙값 0 원인 없음) 이나 Δ_log ≤ 0·NaN 이면
+    판정 제외."""
     L, w = np.log10(np.abs(Y)), np.log10(np.abs(z))
     R = L.mean(axis=1)
     s_die, s_run = robust_noise(L)
@@ -587,7 +648,8 @@ def judge_log(Y: np.ndarray, z: np.ndarray, r: float) -> dict:
            "run_margin": rep, "sigma_die": s_die, "sigma_run": s_run, "sigma_rep_log": rep}
     if len(w) < MIN_DIE:
         return {**out, "verdict": "미결", "reason": f"die {len(w)}개 (< {MIN_DIE})"}
-    why = excluded_reason(center, lo, hi, s_die, s_run, np.nan, R, w)
+    why = excluded_reason(ExclusionFacts(L, w, center, lo, hi, s_die, s_run, np.nan, delta, np.nan,
+                                         zero_value_sides(Y, z)))
     if why:
         return {**out, "verdict": V_EXCLUDED, "reason": why}
     if not np.isfinite(delta) or delta <= 0:

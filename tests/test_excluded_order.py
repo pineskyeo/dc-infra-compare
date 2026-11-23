@@ -1,4 +1,5 @@
-"""판정 제외 순서 (WO-R): 중심·CI → die 산포 0 → 중앙값 0·σ_run 0 → zone 판정 (정량만 최종 Δ 검사). 합성 배열만."""
+"""판정 제외 순서: 중심·CI → 회차 0값 → 모든 값 같음 → die 산포 0 (정량·거칠 때만) → 중앙값 0·σ_run 0 (정량만)
+→ zone 판정 (정량만 최종 Δ 검사). 합성 배열만."""
 import sys
 
 import numpy as np
@@ -28,13 +29,13 @@ def sym_base() -> np.ndarray:
     return np.concatenate([a, -a])
 
 
-def test_s1_sigma_die_zero():
+def test_s1_sigma_die_zero_with_fine_resolution_is_judged():
+    # 규칙 4: 분해능 step 0.25 가 Δ 50 의 0.1배보다 작아 σ_die = 0 이어도 판정한다
     base = sym_base() + 1000
     Y, z = np.column_stack([base, base]), base + 0.25
     res, _ = judge(Y, z, 0.05)
     assert res["sigma_die"] == 0
-    assert res["verdict"] == V_EXCLUDED and res["zone"] == V_EXCLUDED
-    assert res["reason"].startswith(f"{V_EXCLUDED}: ") and "die 산포 0 (σ_die=0)" in res["reason"]
+    assert res["verdict"] == "동등" and res["zone"] == "정량"
 
 
 def test_s2_majority_flat():
@@ -43,9 +44,13 @@ def test_s2_majority_flat():
     Y, z = make(base)
     res, _ = judge(Y, z, 0.05)
     assert res["sigma_die"] > 0
+    assert "산포 0" in item_status(Y, z, res["delta"])["status"].split(";")
+    # 규칙 4: 분해능 step 0.25 < 0.1 Δ 라 판정
+    assert res["verdict"] != V_EXCLUDED and res["zone"] == "정량"
+    # 같은 모양을 Δ 보다 거칠게 (r 작게) 하면 판정 제외
+    res, _ = judge(Y, z, 0.001)
     assert res["verdict"] == V_EXCLUDED
     assert "die 산포 0 (고정값 60%)" in res["reason"]
-    assert "산포 0" in item_status(Y, z, res["delta"])["status"].split(";")
 
 
 def test_s3_minority_flat_is_judged():
@@ -57,12 +62,13 @@ def test_s3_minority_flat_is_judged():
     assert res["verdict"] != V_EXCLUDED and res["zone"] == "정량"
 
 
-def test_r1_median_zero_and_no_run_shift():
+def test_r1_median_zero_and_no_run_shift_goes_to_loq_zone():
+    # 규칙 5·6: LoQ > 0 이면 중앙값 0 은 LoQ 미만이라 LoQ 판정
     Y, z = make(sym_base())
     res, _ = judge(Y, z, 0.05)
-    assert res["por_median"] == 0 and res["sigma_run"] == 0 and res["sigma_die"] > 0
-    assert res["verdict"] == V_EXCLUDED
-    assert "고정값 (중앙값 0·σ_run 0)" in res["reason"]
+    assert res["por_median"] == 0 and res["sigma_run"] == 0 and res["sigma_die"] > 0 and res["LoQ"] > 0
+    assert res["verdict"] != V_EXCLUDED
+    assert res["zone"] in LOQ_ZONES
 
 
 def test_r2_median_zero_with_run_shift_goes_to_loq_zone():
@@ -127,12 +133,13 @@ def test_quant_zone_final_delta_zero_is_excluded():
 
 
 def test_all_causes_joined_in_order():
-    # center NaN (1) + 중앙값 0·σ_run 0 (3) 이 둘 다 맞음. 첫 원인만 접두사, '; ' 로 순서대로
-    Y, z = make(sym_base())
+    # center NaN (1) + 회차 0값 (2) 이 둘 다 맞음. 첫 원인만 접두사, '; ' 로 순서대로
+    Y, z = make(sym_base() + 1000)
+    Y[:, 1] = 0.0
     z[0] = np.nan
     res, _ = judge(Y, z, 0.05)
     assert res["verdict"] == V_EXCLUDED
-    assert res["reason"] == (f"{V_EXCLUDED}: 중심·신뢰구간 계산 불가 (center); 고정값 (중앙값 0·σ_run 0)")
+    assert res["reason"] == f"{V_EXCLUDED}: 중심·신뢰구간 계산 불가 (center); 회차 0값 (POR2)"
 
 
 def test_loq_zone_zero_delta_status_has_no_inf():
