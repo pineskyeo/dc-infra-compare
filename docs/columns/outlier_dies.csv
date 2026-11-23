@@ -1,0 +1,6 @@
+﻿column,쉬운이름,뜻,수식,볼것
+WAFERID,,,,
+COORD_X_Y,,,,
+ITEM,ITEM,ITEM 이름,,
+POR{k},,튀는 die의 기준 조건 회차별 값,,
+DOE,,튀는 die의 비교 조건 값,,

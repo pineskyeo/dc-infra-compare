@@ -1,0 +1,6 @@
+﻿column,쉬운이름,뜻,수식,볼것
+group,,,,
+decision,,"auto 그룹마다 정한 scale (log, linear)",,
+n_items,,decades와 log_fit이 둘 다 있는 그룹 ITEM 수,,
+n_decades_ge_1,,,,
+median_log_fit,,,,
