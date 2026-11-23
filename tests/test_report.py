@@ -227,3 +227,15 @@ def test_builds_with_only_items_csv(built, tmp_path):
 def test_missing_items_csv_is_a_clear_error(tmp_path, capsys):
     assert report.main([str(tmp_path)]) == 2
     assert "items.csv" in capsys.readouterr().err
+
+
+def test_log_run_section_lists_only_items_whose_final_verdict_changes(tmp_path):
+    items = pd.DataFrame({"ID": ["I1", "I2"], "ITEM": ["LEAK_WIDE", "LEAK_SAME"], "verdict_final": ["동등", "동등"],
+                          "verdict_final_log_run": ["미결", "동등"], "center_log": [0.02, 0.0],
+                          "ci_low_log": [0.01, -0.01], "ci_high_log": [0.03, 0.01], "delta_log": [0.05, 0.05],
+                          "delta_log_run": [0.0212, 0.0212]})
+    page = report.Page("t", report.Namer(items, False), tmp_path / "r.html")
+    report.log_run_compare(page, items)
+    html = visible_text(page.write())
+    assert "동등 → 미결 1개" in html and "LEAK_WIDE" in html and "LEAK_SAME" not in html
+    assert "+5.0%" in html and "+12.2%" in html       # delta_log_run 0.0212 → 1.05배, delta_log 0.05 → 1.122배

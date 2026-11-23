@@ -338,6 +338,41 @@ def excluded(page: Page, items: pd.DataFrame) -> None:
         page.table(cols, rs)
 
 
+
+def log_pct(v) -> str:
+    """log 단위 허용폭·이동 → 배율 %. 0.0212 → +5.0%."""
+    x = num(v)
+    return f"{(10 ** x - 1) * 100:+.1f}%" if math.isfinite(x) else "-"
+
+
+def log_run_compare(page: Page, items: pd.DataFrame) -> None:
+    """verdict_final 과 verdict_final_log_run (log 허용폭만 선형 꼴로 고친 최종 판정) 이 다른 ITEM."""
+    if "verdict_final_log_run" not in items:
+        page.p("이 items.csv 에는 고친 log 허용폭 결과(verdict_final_log_run)가 없다. 지금 코드로 다시 판정하면 생긴다.",
+               "note")
+        return
+    page.p("log 판정의 허용폭을 두 가지로 계산해 최종 판정을 나란히 놓았다. 지금 방식(delta_log)은 die를 다시 잴 때의 "
+           "흔들림을 허용폭에 더하는데, 그 흔들림은 신뢰구간 폭에도 이미 들어 있어 두 번 세는 셈이다. 고친 방식"
+           "(delta_log_run)은 선형 허용폭과 같은 꼴로 웨이퍼 공통 회차 흔들림만 더한다. 집계와 다른 표는 지금 방식"
+           "(verdict_final)을 쓴다.")
+    changed = items[items["verdict_final"].astype(str) != items["verdict_final_log_run"].astype(str)]
+    if changed.empty:
+        page.p("두 방식의 최종 판정이 같다. 바뀌는 ITEM 이 없다.")
+        return
+    pairs = changed.groupby(["verdict_final", "verdict_final_log_run"]).size()
+    page.p(f"최종 판정이 바뀌는 ITEM {len(changed):,}개: "
+           + ", ".join(f"{a} → {b} {n:,}개" for (a, b), n in pairs.items()) + ".")
+    cols = [*id_cols("items.csv", namer=page.namer), Col("items.csv", "verdict_final", lambda r: r.get("verdict_final")),
+            Col("items.csv", "verdict_final_log_run", lambda r: r.get("verdict_final_log_run")),
+            Col("items.csv", "center_log", lambda r: log_pct(r.get("center_log"))),
+            Col("items.csv", "ci_low_log", lambda r: log_pct(r.get("ci_low_log"))),
+            Col("items.csv", "ci_high_log", lambda r: log_pct(r.get("ci_high_log"))),
+            Col("items.csv", "delta_log", lambda r: log_pct(r.get("delta_log"))),
+            Col("items.csv", "delta_log_run", lambda r: log_pct(r.get("delta_log_run")))]
+    page.table(cols, changed.to_dict("records"))
+    page.p("숫자는 log 값을 배율로 바꾼 %다 (+5.0% = POR의 1.05배).", "note")
+
+
 REVIEW_ITEM_DIR = "items"
 
 
@@ -471,7 +506,8 @@ def how_to_read(page: Page) -> None:
 def judge_report(folder: Path, items: pd.DataFrame, namer: Namer) -> Path:
     page = Page(f"판정 리포트 · {folder.name}", namer, folder / namer.report_file)
     nav(page, [("kpi", "한눈에"), ("map", "판정 지도"), ("problems", "차이·미결"), ("excluded", "판정 제외"),
-               ("loq", "LoQ 확인 필요"), ("log", "log 확인 필요"), ("stability", "측정 안정도"), ("how", "읽는 법")])
+               ("loq", "LoQ 확인 필요"), ("log", "log 확인 필요"), ("logrun", "log 허용폭 두 방식"),
+               ("stability", "측정 안정도"), ("how", "읽는 법")])
     page.h2("한눈에", "kpi")
     kpi(page, items, folder)
     page.h2("판정 지도", "map")
@@ -485,6 +521,8 @@ def judge_report(folder: Path, items: pd.DataFrame, namer: Namer) -> Path:
     review(page, folder, "loq")
     page.h2("log 확인 필요", "log")
     review(page, folder, "log")
+    page.h2("log 허용폭 두 방식", "logrun")
+    log_run_compare(page, items)
     page.h2("측정 안정도", "stability")
     stability(page, folder)
     how_to_read(page)

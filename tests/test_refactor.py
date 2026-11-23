@@ -76,7 +76,7 @@ def test_items_csv_matches_frozen_legacy_by_column_name(por3_data: Path, tmp_pat
                    "decades", "skew_lin", "skew_log", "log_fit", "bimodality_log",
                    "mean_median_ratio",
                    "sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
-    added = {"ID", "verdict_final", "verdict_basis", "scale", *LOG_COLS, *status_cols,
+    added = {"ID", "verdict_final", "verdict_basis", "verdict_final_log_run", "scale", *LOG_COLS, *status_cols,
              *LOQ_REF_COLS, *SHAPE_REF_COLS, "judgeability"}
     assert set(new_rows[0]) == (set(legacy_rows[0]) - set(REMOVED_COLS)) | added
     for r in new_rows:

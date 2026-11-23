@@ -9,7 +9,7 @@ import por_doe_compare as pdc
 from por_doe_compare import LOG_COLS, V_EXCLUDED
 
 R = 0.05
-LOG_NUM = [c for c in LOG_COLS if c not in ("verdict_log", "log_reason", "ci_half_over_delta")]
+LOG_NUM = [c for c in LOG_COLS if c not in ("verdict_log", "verdict_log_run", "log_reason", "ci_half_over_delta")]
 
 
 def parts(s: str) -> list[str]:
@@ -72,6 +72,25 @@ def test_judge_log_policy_is_log10_1_plus_r():
     assert lr["delta"] == pytest.approx(math.log10(1 + R) + lr["run_margin"])
     assert lr["run_margin"] == lr["sigma_rep_log"]          # WO-W: 회차 항 = die별 log 회차 흔들림
     assert "blank_status" not in lr and "accuracy_margin" not in lr
+
+
+def test_log_run_tolerance_has_the_linear_form_and_judges_the_same_interval():
+    Y, z = size_jitter_data()
+    lr = pdc.judge_log(Y, z, R)
+    assert lr["delta_run"] == pytest.approx(math.log10(1 + R) + pdc.run_factor(3) * lr["sigma_run"])
+    assert lr["verdict_run"] == pdc.tost(lr["center"], lr["ci_low"], lr["ci_high"], lr["delta_run"])[0]
+
+
+def test_repeat_noise_counted_twice_makes_only_the_current_log_tolerance_pass():
+    """die 반복 잡음 0.04 decade, 회차 공통 이동 없음, DOE 가 실제로 ×1.08: 지금 Δ_log 는 반복 잡음을 한 번 더 더해 동등,
+    선형 꼴 Δ_log_run 은 동등을 주지 않는다."""
+    rng = np.random.default_rng(3)
+    size = 10 ** rng.uniform(-12, -6, 61)
+    Y = size[:, None] * 10 ** rng.normal(0, 0.04, (61, 3))
+    z = size * 1.08 * 10 ** rng.normal(0, 0.04, 61)
+    lr = pdc.judge_log(Y, z, R)
+    assert lr["delta"] > lr["delta_run"]
+    assert lr["verdict"] == "동등" and lr["verdict_run"] in ("미결", "차이")
 
 
 def test_t2_non_jitter_status_still_fills_log_columns():

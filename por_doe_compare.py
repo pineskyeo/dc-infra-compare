@@ -104,13 +104,15 @@ JUDGEABILITY_BANDS = ((0.5, "안정"), (0.8, "주의"), (np.inf, "불안정"))
 LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta",
             "ci_half_over_delta_log", "log_reason",      # 0 없고 부호 하나인 ITEM 참고용
             "sigma_die_log", "sigma_run_log",            # 분석용, 판정에 안 씀
-            "sigma_rep_log"]                             # log 판정의 회차 항
+            "sigma_rep_log",                             # log 판정의 회차 항
+            "verdict_log_run", "delta_log_run"]          # 참고: 회차 항을 선형처럼 t·√(1+1/J)·sigma_run_log 로 둔 log 판정
 POR_MEAN_RE = re.compile(r"POR\d+_mean")
 # items.csv 열 순서의 유일한 출처: 묶음 순서대로, 묶음 안은 적힌 순서. POR_MEAN_RE 는 맞는 열을 원래 순서로.
 # 표에 없는 열은 맨 끝에 원래 순서로 붙는다.
 COLUMN_GROUPS: tuple[tuple[str, tuple[str | re.Pattern, ...]], ...] = (
     ("identity", ("ID", "ITEM", "UNIT")),
-    ("verdicts", ("verdict_final", "verdict_basis", "scale", "verdict", "verdict_log", "verdict_with_accuracy",
+    ("verdicts", ("verdict_final", "verdict_basis", "verdict_final_log_run", "scale", "verdict", "verdict_log",
+                  "verdict_log_run", "verdict_with_accuracy",
                   "verdict_no_blank", "zone", "reason", "log_reason", "status")),
     ("TOST", ("n_die", "center", "ci_low", "ci_high", "delta", "policy_margin", "run_margin", "delta_source",
               "ci_half_over_delta")),
@@ -119,7 +121,8 @@ COLUMN_GROUPS: tuple[tuple[str, tuple[str | re.Pattern, ...]], ...] = (
     ("noise", ("sigma_die", "sigma_run", *PRECISION_COLS, "n_outlier_die", "judgeability")),
     ("data state", tuple(METRIC_COLS)),
     ("shape", (*SHAPE_COLS, "mean_median_ratio", *SHAPE_REF_COLS)),
-    ("log", ("center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta_log", "sigma_rep_log",
+    ("log", ("center_log", "ci_low_log", "ci_high_log", "delta_log", "delta_log_run", "ci_half_over_delta_log",
+             "sigma_rep_log",
              "sigma_die_log", "sigma_run_log")),
     ("reference", ("ttest", "ttest_p", "por_ttest_sig",
                    "spec_status", "level_check", "range_por", "range_doe", "spec_resolution", "accuracy_margin",
@@ -759,7 +762,9 @@ def judge_log(Y: np.ndarray, z: np.ndarray, r: float) -> dict:
     (t·√(1 + 1/J) 배수 없음). LoQ zone 은 없다: log 값이 0 근처라는 것은 그 단위에서 1 근처라는 뜻일 뿐이라
     단위를 바꾸면 달라진다. blank·장비 사양은 원측정값 단위라 쓰지 않는다.
     die < MIN_DIE 면 미결, excluded_reason (LoQ 가 없어 정량 zone 으로 봄, 중앙값 0 원인 없음) 이나 Δ_log ≤ 0·NaN 이면
-    판정 제외."""
+    판정 제외.
+    참고 판정 verdict_run: 같은 구간을 delta_run = log10(1 + r) + run_factor(J) × sigma_run (선형 Δ 와 같은 꼴) 로 본다.
+    sigma_rep_log 는 die 반복 잡음까지 세어 구간 폭과 두 번 들어가므로 이 값과 비교해 고를 수 있게 둔다."""
     L, w = np.log10(np.abs(Y)), np.log10(np.abs(z))
     R = L.mean(axis=1)
     s_die, s_run = robust_noise(L)
@@ -767,16 +772,18 @@ def judge_log(Y: np.ndarray, z: np.ndarray, r: float) -> dict:
     rep = sigma_rep_log(L)
     policy = float(np.log10(1 + r))
     delta = policy + rep
+    delta_run = policy + run_factor(L.shape[1]) * s_run
     out = {"center": center, "ci_low": lo, "ci_high": hi, "delta": delta, "policy_margin": policy,
-           "run_margin": rep, "sigma_die": s_die, "sigma_run": s_run, "sigma_rep_log": rep}
+           "run_margin": rep, "sigma_die": s_die, "sigma_run": s_run, "sigma_rep_log": rep, "delta_run": delta_run,
+           "verdict_run": tost(center, lo, hi, delta_run)[0] if np.isfinite(delta_run) and delta_run > 0 else V_EXCLUDED}
     if len(w) < MIN_DIE:
-        return {**out, "verdict": "미결", "reason": f"die {len(w)}개 (< {MIN_DIE})"}
+        return {**out, "verdict": "미결", "verdict_run": "미결", "reason": f"die {len(w)}개 (< {MIN_DIE})"}
     why = excluded_reason(ExclusionFacts(L, w, center, lo, hi, s_die, s_run, np.nan, delta, np.nan,
                                          zero_value_sides(Y, z)))
     if why:
-        return {**out, "verdict": V_EXCLUDED, "reason": why}
+        return {**out, "verdict": V_EXCLUDED, "verdict_run": V_EXCLUDED, "reason": why}
     if not np.isfinite(delta) or delta <= 0:
-        return {**out, "verdict": V_EXCLUDED,
+        return {**out, "verdict": V_EXCLUDED, "verdict_run": V_EXCLUDED,
                 "reason": f"{V_EXCLUDED}: 최종 Δ가 0 이하이거나 유효하지 않음 (Δ_log={delta:.4g})"}
     v, why = tost(center, lo, hi, delta)
     return {**out, "verdict": v, "reason": why}
@@ -812,13 +819,13 @@ def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict) -> dict:
     causes = [c for c, bad in (("0값 있음", (vals == 0).any()),
                                ("부호 섞임", (vals > 0).any() and (vals < 0).any())) if bad]
     if causes:
-        return {**out, "verdict_log": V_EXCLUDED, "log_reason": "; ".join(causes)}
+        return {**out, "verdict_log": V_EXCLUDED, "verdict_log_run": V_EXCLUDED, "log_reason": "; ".join(causes)}
     lr = judge_log(Y, z, r)
     return {**out, "verdict_log": lr["verdict"], "center_log": lr["center"], "ci_low_log": lr["ci_low"],
             "ci_high_log": lr["ci_high"], "delta_log": lr["delta"], "ci_half_over_delta_log": _ci_half_over_delta(lr),
             "log_reason": lr["reason"],
             **({} if lr["verdict"] == V_EXCLUDED else {"sigma_die_log": lr["sigma_die"], "sigma_run_log": lr["sigma_run"]}),
-            "sigma_rep_log": lr["sigma_rep_log"]}
+            "sigma_rep_log": lr["sigma_rep_log"], "verdict_log_run": lr["verdict_run"], "delta_log_run": lr["delta_run"]}
 
 
 LOG_TARGET_STATUSES = (ST_SIZE_JITTER, ST_SIZE_JITTER_POS)
@@ -924,12 +931,18 @@ def final_verdict(row: Mapping) -> tuple[str, str]:
 
 
 def add_final_verdict(res: pd.DataFrame) -> pd.DataFrame:
-    """res 에 verdict_final·verdict_basis 열을 verdict 바로 뒤에 넣어 돌려준다. 없는 열은 빈 칸으로 본다 (옛 CSV)."""
-    fb = [final_verdict(row) for row in res.to_dict("records")]
-    res = res.drop(columns=["verdict_final", "verdict_basis"], errors="ignore")
+    """res 에 verdict_final·verdict_basis 열을 verdict 바로 뒤에 넣어 돌려준다. 없는 열은 빈 칸으로 본다 (옛 CSV).
+    verdict_log_run 열이 있으면 verdict_final_log_run (log 옵션이 verdict_log 대신 verdict_log_run 을 쓸 때의 최종 판정,
+    참고용) 도 넣는다."""
+    rows = res.to_dict("records")
+    fb = [final_verdict(row) for row in rows]
+    res = res.drop(columns=["verdict_final", "verdict_basis", "verdict_final_log_run"], errors="ignore")
     at = res.columns.get_loc("verdict") + 1
     res.insert(at, "verdict_final", [f for f, _ in fb])
     res.insert(at + 1, "verdict_basis", [b for _, b in fb])
+    if "verdict_log_run" in res:
+        res.insert(at + 2, "verdict_final_log_run",
+                   [final_verdict({**row, "verdict_log": row.get("verdict_log_run")})[0] for row in rows])
     return res
 
 
@@ -1124,6 +1137,11 @@ def main() -> None:
     print("\n최종 판정 (차이·미결만 옵션 재판정, 순서 log → accuracy (LoQ 근처, Δ' = max(Δ, 장비 정확도 폭)) → "
           "log_physics, 동등을 주는 첫 옵션)")
     print(pd.crosstab(res["verdict_basis"], res["verdict_final"], margins=True, margins_name="합계").to_string())
+    changed = res["verdict_final"] != res["verdict_final_log_run"]
+    print(f"\n참고: log 허용폭을 선형처럼 (log10(1+r) + t·√(1+1/J)·sigma_run_log) 두면 최종 판정이 바뀌는 ITEM {int(changed.sum())}개 "
+          "(verdict_final → verdict_final_log_run)")
+    if changed.any():
+        print(pd.crosstab(res.loc[changed, "verdict_final"], res.loc[changed, "verdict_final_log_run"]).to_string())
     if auto is not None:
         print("\nscale (--scales)")
         print(res["scale"].value_counts().to_string())
