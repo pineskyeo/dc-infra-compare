@@ -26,6 +26,7 @@ from scipy import stats
 
 from explain import BASIS_NAMES, add_figure_note
 from infra_compare import load_blank, read_csv_auto, read_groups
+from item_view import basis_numbers
 from por_doe_compare import (
     ORDER, V_EXCLUDED, add_common_args, add_final_verdict, ci_rank, judge_item, load_levels, load_wide,
     verdict_col,
@@ -102,13 +103,6 @@ MAP_OFF_NOTE = "좌표가 없어 못 그린 ITEM {n:,}개 (die 부족 등)"
 DIRECTION_TITLE = "어느 쪽으로 움직였나 (차이·미결)"
 DIRECTION_LABELS = ("− 방향 (DOE가 낮음)", "+ 방향 (DOE가 높음)")
 DIRECTION_NONE = "차이·미결 ITEM 없음"
-# 최종 판정을 정한 TOST 의 (이동, 신뢰구간 하한, 상한, 허용폭) 열. accuracy 의 허용폭은 max(delta, accuracy_margin)
-BASIS_COLUMNS = {
-    "linear": ("center", "ci_low", "ci_high", "delta"),
-    "accuracy": ("center", "ci_low", "ci_high", "delta"),
-    "log": ("center_log", "ci_low_log", "ci_high_log", "delta_log"),
-    "log_physics": ("center_log", "ci_low_log", "ci_high_log", "delta_log"),
-}
 MAP_HOW_TO_READ = (
     "점 하나가 ITEM 하나다. 가로는 DOE가 움직인 양을 허용폭으로 나눈 값이고, 세로는 측정이 흔들리는 정도(90% 신뢰구간 "
     "반폭)를 허용폭으로 나눈 값이다. 점이 가운데 아래 초록 삼각형에 모일수록 DOE가 POR과 같고, 좌우 주황 칸은 "
@@ -541,29 +535,21 @@ def plot_summary(
 
 
 def map_points(items: pd.DataFrame) -> pd.DataFrame:
-    """ITEM 마다 최종 판정(verdict, 옛 CSV 면 verdict 열), 근거(basis), 최종 판정을 정한 TOST 의 이동·신뢰구간 반폭을
-    허용폭으로 나눈 지도 좌표 x, y (계산할 수 없으면 NaN), 정량 zone 인지(on_map 후보)."""
+    """ITEM 마다 최종 판정(verdict, 옛 CSV 면 verdict 열), 근거(basis), 최종 판정을 정한 숫자(item_view.basis_numbers:
+    log 판정이면 log 열, 장비 정확도면 허용폭 max(Δ, 정확도 폭))의 이동·신뢰구간 반폭을 허용폭으로 나눈 지도 좌표 x, y
+    (계산할 수 없으면 NaN), LoQ 아래 zone 인지."""
     _require_columns(items, {"ITEM", "verdict"})
-    idx = items.index
-    basis = (items["verdict_basis"].fillna("").astype(str).str.strip() if "verdict_basis" in items
-             else pd.Series("", index=idx)).replace("", "linear")
-
-    def num(col: str) -> pd.Series:
-        return pd.to_numeric(items[col], errors="coerce") if col in items else pd.Series(np.nan, index=idx)
-
-    center, low, high, delta = (pd.Series(np.nan, index=idx) for _ in range(4))
-    for name, cols in BASIS_COLUMNS.items():
-        rows = basis == name
-        for target, col in zip((center, low, high, delta), cols):
-            target[rows] = num(col)[rows]
-    accuracy = basis == "accuracy"
-    delta[accuracy] = np.fmax(delta[accuracy], num("accuracy_margin")[accuracy])
-    delta = delta.where(delta > 0)
-    zone = items["zone"].astype(str) if "zone" in items else pd.Series("", index=idx)
+    nums = [basis_numbers(r) for r in items.to_dict("records")]
+    margin = np.array([b.margin for b in nums])
+    margin = np.where(margin > 0, margin, np.nan)
+    center = np.array([b.center for b in nums])
+    half = np.array([(b.ci_high - b.ci_low) / 2 for b in nums])
+    zone = items["zone"].astype(str) if "zone" in items else pd.Series("", index=items.index)
     return pd.DataFrame({
-        "ITEM": items["ITEM"].astype(str), "verdict": verdict_col(items).astype(str).str.strip(), "basis": basis,
-        "center": center, "x": center / delta, "y": (high - low) / 2 / delta, "loq_zone": zone.isin(LOQ_ZONES),
-    })
+        "ITEM": items["ITEM"].astype(str), "verdict": verdict_col(items).astype(str).str.strip(),
+        "basis": [b.name for b in nums], "center": center, "x": center / margin, "y": half / margin,
+        "loq_zone": zone.isin(LOQ_ZONES),
+    }, index=items.index)
 
 
 def direction_counts(points: pd.DataFrame) -> dict[str, tuple[int, int]]:
@@ -580,9 +566,9 @@ def _count_line(points: pd.DataFrame) -> str:
     verdicts = f"ITEM {n:,}개 · 동등 {eq:,}{share} · " + " · ".join(
         f"{v} {int(counts.get(v, 0)):,}" for v in ("미결", "차이", V_EXCLUDED))
     by_basis = points["basis"].value_counts()
+    order = list(BASIS_NAMES)
     bases = " · ".join(f"{BASIS_NAMES.get(b, b)} {int(by_basis[b]):,}" for b in
-                       sorted(by_basis.index, key=lambda b: (b != "linear", list(BASIS_COLUMNS).index(b)
-                                                             if b in BASIS_COLUMNS else len(BASIS_COLUMNS), b)))
+                       sorted(by_basis.index, key=lambda b: (order.index(b) if b in order else len(order), b)))
     return f"{verdicts}\n최종 판정 근거: {bases}"
 
 
