@@ -47,6 +47,8 @@ out = {base / "dcc"}
     before = base / "before.csv"
     shutil.copy(base / "dcc" / "A1" / "items.csv", before)
     run(ROOT / "dcc.py", "group", "A1", "--before", before, *config)
+    run(ROOT / "review.py", "--input", base / "dcc" / "A1" / "items.csv", "--out", base / "dcc" / "A1",
+        *(a for i in (1, 2, 3) for a in ("--por", data / f"por_run{i}")), "--doe", data / "doe")
     run(ROOT / "run_all.py", "--por", data / "por_run1", "--por", data / "por_run2", "--por", data / "por_run3",
         "--doe", data / "doe", "--level", data / "level.csv", "--blank", data / "blank",
         "--blank-map", data / "blank_map.csv", "--groups", data / "groups.csv", "--before", before,

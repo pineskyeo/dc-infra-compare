@@ -1,0 +1,37 @@
+﻿column,쉬운이름,뜻,수식,볼것
+ITEM,ITEM,ITEM 이름,,
+UNIT,단위,"원데이터 UNIT 열. 표시용, 판정에 쓰지 않음",,
+zone,구간,정량 · 검출~정량 · 검출한계 이하 (|POR 중앙값|과 LoQ·LoD 비교) LoQ 근처 ITEM 은 정량,,
+verdict_final,최종 판정,"기본 판정이 차이·미결일 때만 옵션 log → accuracy(LoQ 근처) → log_physics 순으로 보고 동등을 주는 첫 옵션, 없으면 대상인 log 옵션의 판정, 그것도 없으면 verdict",,
+verdict,판정,기본(선형) 판정. 동등 · 차이 · 미결 · 판정 제외,,
+n_die,die 수,die 수,,
+por_median,POR 중앙값,die별 기준 조건 J회 평균의 중앙값. 구간 나누기와 실용 한계에 씀,,
+LoQ,정량한계,정량한계 = 10 × (σ 후보 중 큰 값),10 × σ,
+LoD,검출한계,검출한계 = 3.29 × (같은 σ),3.29 × σ,
+center,편향,편향 b = die별 차이 d의 중앙값 (d = DOE − POR 회차 평균),median(d),
+delta,허용 범위 Δ,허용 범위 Δ = 실용 한계 + 회차 예측 한계. 차이가 이 안이면 같다고 봄,"r × |POR 중앙값| + t(0.95, J−1) × √(1 + 1/J) × sigma_run",
+loq_ratio,LoQ 배수,"|POR 중앙값| ÷ LoQ. 1 미만이면 바닥 아래, 1 이상이면 status LoQ 근처로 들어온 ITEM",|por_median| / LoQ,
+n_die_raw,원데이터 die 수,재확인에 쓴 die 수 (모든 POR 회차와 DOE 에 있는 die). 비면 원데이터에서 ITEM 을 못 찾음,,
+n_up,증가 die 수,d = DOE − POR 회차 평균 이 양수인 die 수,#{d > 0},
+n_down,감소 die 수,d 가 음수인 die 수,#{d < 0},
+dir_p,방향 p값,부호검정: 증가와 감소가 반반인지 (d = 0 die 는 뺌),"binom(n_up | n_up + n_down, 0.5) 양쪽",
+dir_q,방향 q값,dir_p 를 이 표의 ITEM 전체에서 Benjamini-Hochberg 로 보정한 값,BH(dir_p),0.05 미만이면 한쪽으로 몰림
+ratio,배수,POR(회차 평균)·DOE 가 모두 양수인 die 의 DOE ÷ POR 중앙값. 그런 die 가 10개 미만이면 빈 칸,10^median(log10(DOE / POR 평균)),1.3 넘거나 1/1.3 미만이어야 방향 확인 필요
+ratio_lo,배수 하한,배수의 90% 신뢰구간 하한 (부호검정 순위),,
+ratio_hi,배수 상한,배수의 90% 신뢰구간 상한,,
+n_ratio_die,배수에 쓴 die 수,POR 모든 회차와 DOE 가 양수인 die 수,,10 미만이면 배수 없음
+det_rate_por,POR 검출률,|POR 값| ≥ LoQ 인 비율 (die × 회차),,참고 열. 확인 필요에 안 씀
+det_rate_doe,DOE 검출률,|DOE 값| ≥ LoQ 인 die 비율,,참고 열
+det_change,검출률 변화,det_rate_doe − det_rate_por,,참고 열
+det_p,검출률 p값,DOE 와 POR 각 회차의 짝지은 McNemar 검정 p값 중 가장 큰 값,"max_j McNemar(POR_j, DOE)",참고 열
+tail_n_doe,크게 벗어난 DOE die 수,"|d − d 중앙값| 이 한계를 넘는 die 수. 한계 = 5 × 1.4826 × MAD(POR 회차끼리의 차이). POR 회차끼리의 차이 = 각 회차 − 나머지 회차 평균, d 와 분산이 같게 √((1 + 1/J) / (1 + 1/(J − 1))) 배",#{|d − median d| > 5 × 1.4826 × MAD(loo)},몇 개 die 만 크게 바뀌었는지
+tail_n_por,크게 벗어난 POR 차이 수,같은 한계를 넘는 POR 회차끼리의 차이 수 (die × 회차 개). 잡음이 원래 꼬리가 길면 여기도 많다,,0 이 보통. 많으면 꼬리 검사가 보수적이 됨
+tail_frac,벗어난 die 비율,tail_n_doe ÷ die 수,tail_n_doe / n,5% 이상이어야 꼬리 확인 필요
+tail_p,꼬리 p값,DOE 벗어남 수가 POR 쪽보다 많은지 정확 조건부 이항검정 (한쪽),"binom(tail_n_doe | tail_n_doe + tail_n_por, n / (n + n × J))",
+tail_q,꼬리 q값,tail_p 를 이 표의 ITEM 전체에서 Benjamini-Hochberg 로 보정한 값,BH(tail_p),0.05 미만이면 유의
+verdict_tost,TOST만 했다면,LoQ 규칙 없이 같은 신뢰구간과 허용폭으로 TOST 를 했을 때의 판정 (참고),"tost(center, ci_low, ci_high, delta)",
+loq_source_ratio,LoQ 출처 배수,LoQ ÷ (10 × POR 반복 σ). 1 보다 크면 바닥이 blank·분해능으로 POR 반복보다 높게 잡힘,LoQ / (10 × sigma_die),
+flag_direction,방향 확인 필요,dir_q < 0.05 이고 배수가 1/1.3 ~ 1.3 밖,,True 면 die 대부분이 같은 쪽으로 움직임
+flag_tail,꼬리 확인 필요,tail_q < 0.05 이고 tail_frac ≥ 5%,,True 면 일부 die 만 크게 바뀜
+flag,확인 필요,확인 필요 표시. 판정은 바꾸지 않는다,,True 인 ITEM 은 review/items/<ITEM>.png 를 볼 것
+why,쉬운 설명,이 행을 한 문장으로 (확인 필요면 이유 먼저),,
