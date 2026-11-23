@@ -583,8 +583,10 @@ def map_this_run(points: pd.DataFrame) -> str:
     down, up = (sum(d[i] for d in dirs.values()) for i in (0, 1))
     if up + down >= 5 and stats.binomtest(up, up + down, 0.5).pvalue < SKEW_P:
         parts.append(f"{'+' if up > down else '−'} 방향으로 몰려 있다. 한쪽으로 몰린 이동은 공정 변화일 수 있다.")
-    elif up + down:
+    elif up + down >= 5:
         parts.append("방향은 한쪽으로 몰리지 않았다.")
+    elif up + down:
+        parts.append("개수가 적어 한쪽으로 몰렸는지는 따지지 않았다.")
     else:
         parts.append("차이·미결 ITEM이 없다.")
     noisy = points["verdict"].eq("미결") & ~points["loq_zone"] & (points["y"] >= 1)
@@ -594,8 +596,6 @@ def map_this_run(points: pd.DataFrame) -> str:
     if n_option:
         parts.append(f"옵션이 판정을 정한 ITEM {n_option:,}개는 검은 테두리다.")
     return " ".join(parts)
-
-
 
 
 def _draw_regions(ax, xlim: float, ylim: float) -> None:
