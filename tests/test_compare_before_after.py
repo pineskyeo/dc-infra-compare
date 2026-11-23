@@ -127,6 +127,23 @@ def test_compare_uses_meas_precision_column(tmp_path):
     assert df.loc["SYN_X2", "meas_precision_status"] == "higher"
 
 
+def test_compare_verdicts_are_final_verdicts_and_old_files_fall_back_to_verdict(tmp_path):
+    before = _write_items(tmp_path / "before.tsv", "ITEM\tverdict\tpor_median", [
+        "SYN_X1\t차이\t100",
+        "SYN_X2\t미결\t50",
+    ])
+    after = _write_items(tmp_path / "after.tsv", "ITEM\tverdict\tverdict_final\tpor_median", [
+        "SYN_X1\t차이\t동등\t100",
+        "SYN_X2\t미결\t미결\t50",
+    ])
+    out = tmp_path / "out"
+    assert main(["compare", str(before), str(after), "-o", str(out)]) == 0
+    df = pd.read_csv(out / "compare.csv", encoding="utf-8-sig").set_index("ITEM")
+    assert df.loc["SYN_X1", "verdict_before"] == "차이" and df.loc["SYN_X1", "verdict_after"] == "동등"
+    assert df.loc["SYN_X1", "verdict_transition"] == "차이→동등"
+    assert df.loc["SYN_X2", "verdict_transition"] == "미결→미결"
+
+
 def test_compare_meas_precision_fallback_without_column(tmp_path):
     # 열이 없는 예전 items.csv: 100 × √(σ_die² + σ_run²) / |por_median|
     hdr = "ID\tverdict\tpor_median\tsigma_die\tsigma_run"
@@ -172,7 +189,7 @@ def test_compare_alone_writes_metric_pngs_and_tables(tmp_path):
         assert (out / name).is_file(), f"missing output: {name}"
 
     worst = pd.read_csv(out / "worst_items.csv", encoding="utf-8-sig")
-    assert list(worst.columns) == ["metric", "ID", "before", "after", "ratio"]
+    assert list(worst.columns) == ["metric", "ITEM", "before", "after", "ratio"]
     assert worst.groupby("metric").size().le(top).all()
     assert set(worst["metric"]) <= {"sigma_die_ratio", "sigma_run_ratio", "meas_precision_ratio"}
 

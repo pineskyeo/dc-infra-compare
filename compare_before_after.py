@@ -434,7 +434,7 @@ def _side_metrics(row: pd.Series, side: str) -> dict:
         _finite(_num(row, "ci_high")) and _finite(_num(row, "ci_low"))
     ) else math.nan
     return {
-        f"verdict_{side}": str(row["verdict"]).strip() if "verdict" in row.index else "",
+        f"verdict_{side}": str(row["verdict_final" if "verdict_final" in row.index else "verdict"]).strip(),
         f"por_median_{side}": med,
         f"sigma_die_{side}": _num(row, "sigma_die"),
         f"sigma_run_{side}": _num(row, "sigma_run"),
@@ -635,7 +635,7 @@ def _write_metric_tables(d: pd.DataFrame, out: Path, top: int) -> None:
         compare_metrics.worst_items(d, m, top).assign(metric=m)
         for m in compare_metrics.METRIC_RATIO
     ]
-    worst = pd.concat(parts, ignore_index=True)[["metric", "ID", "before", "after", "ratio"]]
+    worst = pd.concat(parts, ignore_index=True)[["metric", "ID", "before", "after", "ratio"]].rename(columns={"ID": "ITEM"})
     worst.to_csv(out / "worst_items.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
 
 

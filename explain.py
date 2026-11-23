@@ -4,13 +4,18 @@
   pct(part, whole)    part / |whole| 을 부호 있는 % 로 ("+6.6%")
   reason_plain(row)   최종 판정 사유 한 문장
   verdict_card(row)   ITEM 판정 카드 (판정과 근거, 이동량, 신뢰구간, 허용폭 구성, 사유, 정밀도와 LoQ 배수)
-  add_figure_note(fig, how_to_read, this_run)   그림 아래 "읽는 법" / "이번 결과" 두 줄
+  wrap_text(text, prop, dpi, width_px)   글꼴 prop 으로 dpi 에서 width_px 폭에 맞춰 줄 나누기
+  add_figure_note(fig, how_to_read, this_run, dpi)   그림 아래 "읽는 법" / "이번 결과" 두 줄 (dpi = 저장 dpi)
 """
 from __future__ import annotations
 
 import math
 import re
 from collections.abc import Callable, Mapping
+
+import numpy as np
+from matplotlib import font_manager
+from matplotlib.backends.backend_agg import get_hinting_flag
 
 SI_UNITS = {"A": "A", "V": "V", "Ω": "Ω", "ohm": "Ω", "OHM": "Ω", "Ohm": "Ω", "F": "F", "Hz": "Hz", "HZ": "Hz",
             "W": "W", "s": "s"}
@@ -207,33 +212,46 @@ NOTE_LEFT_IN = 0.15          # 그림 왼쪽 끝에서
 NOTE_PAD_IN = 0.1            # 주석 위·아래 여백, 두 줄 사이 간격
 
 
-def _wrap_measured(text: str, probe, renderer, width_px: float) -> str:
-    """probe(Text) 로 실제 글꼴 폭을 재며 낱말 단위로 줄을 나눈다. 한 낱말이 너무 길면 그 줄에 그대로 둔다."""
-    def fits(s: str) -> bool:
-        probe.set_text(s)
-        return probe.get_window_extent(renderer).width <= width_px
-
-    lines, cur = [], ""
-    for word in text.split():
-        cand = f"{cur} {word}" if cur else word
-        if cur and not fits(cand):
-            lines.append(cur)
-            cand = word
-        cur = cand
-    return "\n".join([*lines, cur])
+def _font_files(prop: font_manager.FontProperties) -> list:
+    """prop 의 글꼴 목록 (첫 글꼴에 없는 글자는 다음 글꼴에서, Agg 가 그릴 때와 같은 순서)."""
+    files = []
+    for family in prop.get_family():
+        one = prop.copy()
+        one.set_family(family)
+        files.append(font_manager.findfont(one))
+    return files
 
 
-def add_figure_note(fig, how_to_read: str, this_run: str):
+def wrap_text(text: str, prop: font_manager.FontProperties, dpi: float, width_px: float) -> str:
+    """글자마다의 위치를 dpi 에서 한 번에 잰다 (Agg 가 그릴 때와 같은 글꼴·크기·힌팅). 그 위치로 낱말 경계에서 줄을
+    나눈다. 한 낱말이 너무 길면 그 줄에 그대로 둔다."""
+    text = " ".join(text.split())
+    font = font_manager.get_font(_font_files(prop))
+    font.clear()
+    font.set_size(prop.get_size_in_points(), dpi)
+    glyph_x = font.set_text(text, 0.0, flags=get_hinting_flag())[:, 0]
+    x = np.append(glyph_x, font.get_width_height()[0]) / 64      # 26.6 고정소수점 → 픽셀, 끝에 전체 폭
+    lines, start, prev = [], 0, None
+    for k in [i for i, c in enumerate(text) if c == " "] + [len(text)]:
+        if prev is not None and x[k] - x[start] > width_px:
+            lines.append(text[start:prev])
+            start = prev + 1
+        prev = k
+    return "\n".join([*lines, text[start:]])
+
+
+def add_figure_note(fig, how_to_read: str, this_run: str, dpi: float | None = None):
     """그림 아래에 "읽는 법: ..." 과 "이번 결과: ..." 를 단다. 모든 그림에서 같은 글자 크기, 왼쪽 아래 같은 인치 위치
-    ("이번 결과" 가 맨 아래, 그 위에 "읽는 법"). 글을 실제 글꼴로 재서 줄을 나누고, 그림 높이를 그만큼 늘리고
-    기존 축·글자를 그만큼 위로 옮겨 겹치지 않게 한다. (읽는 법, 이번 결과) Text 를 돌려준다."""
+    ("이번 결과" 가 맨 아래, 그 위에 "읽는 법"). 글을 저장할 dpi(없으면 fig.dpi)의 실제 글꼴로 재서 줄을 나누고, 그림
+    높이를 그만큼 늘리고 기존 축·글자를 그만큼 위로 옮겨 겹치지 않게 한다. (읽는 법, 이번 결과) Text 를 돌려준다."""
     width, height = fig.get_size_inches()
-    renderer = fig.canvas.get_renderer()
     style = dict(transform=fig.dpi_scale_trans, ha="left", va="bottom", fontsize=NOTE_FONTSIZE)
     how, run = (fig.text(NOTE_LEFT_IN, 0, "", **style) for _ in range(2))
-    width_px = (width - 2 * NOTE_LEFT_IN) * fig.dpi
-    how.set_text(_wrap_measured(f"읽는 법: {how_to_read}", how, renderer, width_px))
-    run.set_text(_wrap_measured(f"이번 결과: {this_run}", run, renderer, width_px))
+    dpi = dpi or fig.dpi
+    width_px = (width - 2 * NOTE_LEFT_IN) * dpi
+    how.set_text(wrap_text(f"읽는 법: {how_to_read}", how.get_fontproperties(), dpi, width_px))
+    run.set_text(wrap_text(f"이번 결과: {this_run}", run.get_fontproperties(), dpi, width_px))
+    renderer = fig.canvas.get_renderer()
     h_run, h_how = (t.get_window_extent(renderer).height / fig.dpi for t in (run, how))
     footer = 3 * NOTE_PAD_IN + h_run + h_how
     new_height = height + footer

@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from matplotlib import ticker  # noqa: E402
+from matplotlib.font_manager import FontProperties  # noqa: E402
 
 import explain  # noqa: E402
 from por_doe_compare import K_LOQ, OUTLIER_K, ST_NEAR_LOQ, ci_rank, robust_sigma  # noqa: E402
@@ -433,6 +434,7 @@ def _this_run(ev: DieEvidence, unit: str) -> str:
     return " ".join([side, ci, out])
 
 
+DPI = 130
 CARD_FONTSIZE = 10.5
 CARD_LINE_IN = 0.23
 
@@ -452,10 +454,8 @@ def plot_item_view(rows: pd.DataFrame, row, path: Path) -> Path:
 
     width = 15.0
     fig = plt.figure(figsize=(width, 1.0), layout="constrained")
-    renderer = fig.canvas.get_renderer()
-    probe = fig.text(0, 0, "", fontsize=CARD_FONTSIZE)
-    wrapped = [explain._wrap_measured(line, probe, renderer, (width - 0.6) * fig.dpi) for line in card]
-    probe.remove()
+    prop = FontProperties(size=CARD_FONTSIZE)
+    wrapped = [explain.wrap_text(line, prop, DPI, (width - 0.6) * DPI) for line in card]
     n_lines = sum(w.count("\n") + 1 for w in wrapped)
     card_h = CARD_LINE_IN * n_lines + 0.25
     fig.set_size_inches(width, card_h + 5.6 + 4.4)
@@ -475,8 +475,8 @@ def plot_item_view(rows: pd.DataFrame, row, path: Path) -> Path:
     _panel_values(fig.add_subplot(low[next(slot)]), rows, row, ev.basis, unit)
     if has_blank:
         _panel_blank(fig.add_subplot(low[next(slot)]), rows, row, unit)
-    explain.add_figure_note(fig, _how_to_read(ev, xy is not None, has_blank), _this_run(ev, unit))
-    fig.savefig(path, dpi=130)
+    explain.add_figure_note(fig, _how_to_read(ev, xy is not None, has_blank), _this_run(ev, unit), dpi=DPI)
+    fig.savefig(path, dpi=DPI)
     plt.close(fig)
     return path
 

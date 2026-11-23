@@ -119,11 +119,11 @@ def test_items_index_contents(tmp_path):
     idx = _index(out)
     assert list(idx.columns) == list(fe.INDEX_COLUMNS)
     assert idx.to_dict("records") == [
-        {"ID": "A1", "유형": "차이", "verdict": "차이", "status": ST_OK,
+        {"ITEM": "A1", "유형": "차이", "verdict": "차이", "status": ST_OK,
          "폴더": f"items/{safe_group_name('차이_A1')}", "log_target": "False"},
-        {"ID": "A2", "유형": ST_UNSTABLE, "verdict": "미결", "status": f"{ST_RUN_JITTER};{ST_UNSTABLE}",
+        {"ITEM": "A2", "유형": ST_UNSTABLE, "verdict": "미결", "status": f"{ST_RUN_JITTER};{ST_UNSTABLE}",
          "폴더": f"items/{safe_group_name(f'{ST_UNSTABLE}_A2')}", "log_target": "False"},
-        {"ID": "A5", "유형": "미결", "verdict": "미결", "status": "",
+        {"ITEM": "A5", "유형": "미결", "verdict": "미결", "status": "",
          "폴더": f"items/{safe_group_name('미결_A5')}", "log_target": "False"},
     ]
     for rel in idx["폴더"]:
@@ -159,7 +159,7 @@ def test_compare_columns_prefixed(tmp_path):
 def test_items_option_adds_folders(tmp_path, capsys):
     out = tmp_path / "out"
     assert fe.main(["--input", str(_items_csv(tmp_path)), "--out", str(out), "--items", "A3", "NOPE"]) == 0
-    assert list(_index(out)["ID"]) == ["A1", "A2", "A3", "A5"]
+    assert list(_index(out)["ITEM"]) == ["A1", "A2", "A3", "A5"]
     assert _folder(out, "동등", "A3").is_dir()
     assert "NOPE" in capsys.readouterr().out
 
@@ -182,7 +182,7 @@ def test_z3_items_by_anon_id_with_raw(tmp_path, monkeypatch, capsys):
     out = tmp_path / "out"
     assert fe.main(["--input", str(_anon_items_csv(tmp_path)), "--out", str(out), *_raw_args(tmp_path),
                     "--items", "X03,X04"]) == 0
-    assert list(_index(out)["ID"]) == ["A1", "A2", "A3", "A4", "A5"]          # items_index 는 실제 ITEM
+    assert list(_index(out)["ITEM"]) == ["A1", "A2", "A3", "A4", "A5"]          # items_index 는 실제 ITEM
     assert _folder(out, "동등", "A3").is_dir()
     a4 = _folder(out, fe.item_type(ST_OK, V_EXCLUDED), "A4")                  # 판정 제외 ITEM 도 익명 ID 로
     for name in ("summary.csv", "raw.csv", fe.ITEM_VIEW_PNG):
@@ -195,7 +195,7 @@ def test_z3_items_mixed_real_and_anon_and_unknown(tmp_path, capsys):
     out = tmp_path / "out"
     assert fe.main(["--input", str(_anon_items_csv(tmp_path)), "--out", str(out),
                     "--items", "A4", "X03", "NOPE,X99"]) == 0
-    assert list(_index(out)["ID"]) == ["A1", "A2", "A3", "A4", "A5"]
+    assert list(_index(out)["ITEM"]) == ["A1", "A2", "A3", "A4", "A5"]
     printed = [ln for ln in capsys.readouterr().out.splitlines() if "입력에 없는 ID" in ln]
     assert printed == ["입력에 없는 ID: NOPE, X99"]
 
@@ -220,7 +220,7 @@ def test_only_two_items_real_and_anon(tmp_path, monkeypatch, capsys):
         for name in ("summary.csv", "raw.csv", fe.ITEM_VIEW_PNG):
             assert (f / name).is_file(), (f, name)
         assert set(pd.read_csv(f / "raw.csv", encoding="utf-8-sig")["ITEM"]) == {item}
-    assert list(_index(out)["ID"]) == ["A3", "A4"]
+    assert list(_index(out)["ITEM"]) == ["A3", "A4"]
     ev = pd.read_csv(out / "fail_evidence.csv", encoding="utf-8-sig", dtype=str, keep_default_na=False)
     assert list(ev["ITEM"]) == ["A3", "A4"] and list(ev["ID"]) == ["X03", "X04"]
     assert "입력에 없는 ID: NOPE" in capsys.readouterr().out
@@ -445,7 +445,7 @@ def test_t7c_items_index_log_target(tmp_path):
     assert fe.main(["--input", str(_log_items_csv(tmp_path)), "--out", str(out)]) == 0
     idx = _index(out)
     assert "log_target" in idx.columns
-    assert dict(zip(idx["ID"], idx["log_target"])) == {"A1": "True", "A2": "False", "A3": "True"}
+    assert dict(zip(idx["ITEM"], idx["log_target"])) == {"A1": "True", "A2": "False", "A3": "True"}
     for rel in idx["폴더"]:
         assert (out / rel).is_dir()
     # 클수록 흔들림 이름도 대상
