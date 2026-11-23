@@ -3,7 +3,9 @@
   python dcc.py list                              조합 이름, POR 회차 수, DOE, 출력 폴더
   python dcc.py judge A1                          판정(por_doe_compare) + 판정 요약 그림
   python dcc.py judge all                         파일 순서대로 모든 조합 (하나가 실패해도 계속)
+  python dcc.py judge A1 --detail                 판정 뒤 차이·미결 ITEM 전부 item 분석까지
   python dcc.py item A1 VT_SAME,VT_SHIFT [--plots]  그 ITEM 만 Fail 근거 (+ 상세 그림)
+  python dcc.py item A1 --items-file 볼항목.txt    ITEM 목록 파일 (한 줄에 하나, 또는 ITEM·ID 열 CSV)
   python dcc.py group A1 [--before 이전/items.csv]  그룹별 요약 그림 (+ 기존·개선 비교, 그룹 요약)
 
 설정 파일은 기본으로 현재 폴더의 combos.ini (--config 로 바꿈). 형식은 combos.example.ini.
@@ -14,6 +16,8 @@ from __future__ import annotations
 
 import argparse
 import configparser
+import csv
+import io
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,6 +27,7 @@ from step_runner import run_step
 KEYS = {"por", "doe", "level", "blank", "blank_map", "key", "encoding", "r", "groups", "scales", "before", "out"}
 DEFAULT_OUT = "dcc_out"
 ALL = "all"
+DETAIL_VERDICTS = ("차이", "미결")
 
 Step = tuple[str, list[str]]
 
@@ -148,6 +153,54 @@ def load_config(path: Path) -> dict[str, Combo]:
     return {name: _parse_combo(name, {**defaults, **raw}, base) for name, raw in sections.items()}
 
 
+def _unique(names) -> list[str]:
+    return list(dict.fromkeys(n for n in (s.strip() for s in names) if n))
+
+
+def _split_commas(values: list[str]) -> list[str]:
+    return [s for v in values for s in v.split(",")]
+
+
+def _table_column(header: list[str]) -> int | None:
+    """ITEM 목록 표의 ITEM 열, 없으면 ID 열 위치."""
+    names = [h.strip().strip('"').upper() for h in header]
+    return next((names.index(want) for want in ("ITEM", "ID") if want in names), None)
+
+
+def read_items_file(path: Path) -> list[str]:
+    """ITEM 목록 파일: ITEM·ID 열이 있는 CSV/TSV, 아니면 한 줄에 하나(쉼표도 구분, # 뒤는 주석)."""
+    if not path.is_file():
+        raise ConfigError(f"ITEM 목록 파일이 없습니다: {path}")
+    try:
+        text = _read_text(path)
+    except UnicodeDecodeError:
+        raise ConfigError(f"ITEM 목록 파일을 읽을 수 없습니다 (UTF-8, CP949 아님): {path}") from None
+    first = next((line for line in text.splitlines() if line.strip()), "")
+    delimiter = "\t" if "\t" in first else ","
+    rows = [r for r in csv.reader(io.StringIO(text), delimiter=delimiter) if any(c.strip() for c in r)]
+    col = _table_column(rows[0]) if rows else None
+    if col is not None:
+        return _unique(r[col] for r in rows[1:] if col < len(r))
+    return _unique(_split_commas([line.split("#", 1)[0] for line in text.splitlines()]))
+
+
+def wanted_items(positional: list[str], items_file: str | None) -> list[str]:
+    """명령행 ITEM 과 목록 파일을 합친다 (중복 제거, 처음 순서)."""
+    from_file = read_items_file(Path(items_file)) if items_file else []
+    items = _unique([*_split_commas(positional), *from_file])
+    if not items:
+        raise ConfigError("ITEM 을 주세요 (명령행 ITEM_A,ITEM_B 나 --items-file 목록 파일)")
+    return items
+
+
+def detail_items(items_csv: Path) -> list[str]:
+    """items.csv 에서 verdict_final 이 차이·미결인 ITEM (판정 제외·동등은 빼고, 파일 순서)."""
+    with open(items_csv, encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.DictReader(f))
+    key = "ITEM" if rows and "ITEM" in rows[0] else "ID"
+    return _unique(r[key] for r in rows if (r.get("verdict_final") or "").strip() in DETAIL_VERDICTS)
+
+
 def check_inputs(combo: Combo) -> None:
     missing = [p for p in combo.inputs() if not p.exists()]
     if missing:
@@ -168,11 +221,15 @@ def judge_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
 
 
 def item_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
+    return evidence_steps(c, wanted_items(a.items, a.items_file), a.plots)
+
+
+def evidence_steps(c: Combo, names: list[str], plots: bool) -> list[Step]:
     out = c.out / "item"
-    items = ",".join(a.items)
+    items = ",".join(names)
     steps = [("fail_evidence", ["fail_evidence.py", "--input", str(c.items_csv), "--out", str(out),
                                 "--only", items, *c.raw_args()])]
-    if a.plots:
+    if plots:
         steps.append(("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(c.items_csv), "--no-summary",
                                         "--detail", "--items", items, "--out", str(out / "plots"), *c.raw_args()]))
     return steps
@@ -222,6 +279,19 @@ def run_combo(c: Combo, mode: str, steps: list[Step]) -> tuple[str, int] | None:
     return None
 
 
+def run_target(c: Combo, a: argparse.Namespace, steps: list[Step]) -> tuple[str, int] | None:
+    """조합 하나 실행. judge --detail 이면 판정이 성공한 뒤 차이·미결 ITEM 을 item 분석한다."""
+    failed = run_combo(c, a.cmd, steps)
+    if failed is not None or not getattr(a, "detail", False):
+        return failed
+    names = detail_items(c.items_csv)
+    if not names:
+        print(f"[{c.name}] 차이·미결 ITEM 이 없어 item 분석을 건너뜁니다", flush=True)
+        return None
+    print(f"[{c.name}] 차이·미결 ITEM {len(names)}개 item 분석", flush=True)
+    return run_combo(c, "item", evidence_steps(c, names, plots=False))
+
+
 def print_list(combos: dict[str, Combo]) -> None:
     if not combos:
         print("조합이 없습니다")
@@ -240,9 +310,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("list", parents=[common], help="조합 목록")
     p = sub.add_parser("judge", parents=[common], help="판정 + 판정 요약 그림")
     p.add_argument("name", help=f"조합 이름, 또는 {ALL} (모든 조합)")
+    p.add_argument("--detail", action="store_true",
+                   help="판정 뒤 verdict_final 이 차이·미결인 ITEM 을 모두 item 분석 (<out>/<이름>/item/)")
     p = sub.add_parser("item", parents=[common], help="고른 ITEM 만 Fail 근거 (<out>/<이름>/item/)")
     p.add_argument("name", help="조합 이름")
-    p.add_argument("items", nargs="+", metavar="ITEM_A,ITEM_B", help="ITEM 이름 (쉼표나 공백 구분)")
+    p.add_argument("items", nargs="*", metavar="ITEM_A,ITEM_B", help="ITEM 이름이나 익명 ID (쉼표나 공백 구분)")
+    p.add_argument("--items-file", metavar="FILE",
+                   help="ITEM 목록 파일. 한 줄에 하나(# 뒤는 주석), 또는 ITEM·ID 열이 있는 CSV/TSV. 명령행 ITEM 과 합침")
     p.add_argument("--plots", action="store_true",
                    help="ITEM 상세 그림도 그림 (item/plots/). 원데이터 전체를 읽으므로 느림")
     p = sub.add_parser("group", parents=[common], help="그룹별 요약 (<out>/<이름>/group/)")
@@ -276,7 +350,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"오류: {e}", file=sys.stderr)
         return 2
 
-    results = [(c.name, run_combo(c, a.cmd, steps)) for c, steps in plans]
+    results = [(c.name, run_target(c, a, steps)) for c, steps in plans]
     if run_all_combos:
         print("\n결과")
         for name, failed in results:
