@@ -58,7 +58,7 @@
 <li>b의 90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a>이 허용 범위 ±Δ와 어떻게 놓이는지로 판정</li>
 <li>정량 구간은 <a class="g" href="glossary.html#tost"><abbr title="두 번의 한쪽 검정 · '차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등">두 번의 한쪽 검정(TOST, Two One-Sided Tests)</abbr></a> → 동등 · 차이 · 미결 세 가지</li>
 <li><a class="g" href="glossary.html#loq"><abbr title="정량한계 · 믿고 숫자로 비교할 수 있는 가장 작은 크기">정량한계(LoQ, Limit of Quantitation)</abbr></a> 미만 구간은 '&lt;LoQ 보고 일치' → 동등 · 차이 두 가지</li>
-<li>동등 = 편향이 허용 범위 안이라고 증명됨 · 차이 = 허용 범위보다 크다고 증명됨 · 미결 = 어느 쪽도 증명 못 함 · 판정 제외 = 신뢰구간을 계산할 수 없거나, die 산포가 0(고정값 비율 &gt; 50%)이거나, 정량 구간의 최종 Δ가 0 이하라 판정하지 않음</li>
+<li>동등 = 편향이 허용 범위 안이라고 증명됨 · 차이 = 허용 범위보다 크다고 증명됨 · 미결 = 어느 쪽도 증명 못 함 · 판정 제외 = 판정할 것이 없음(신뢰구간 계산 불가, 회차 하나나 DOE만 거의 0, 모든 값 같음, 정량 구간에서 산포 0이고 분해능이 거침, 정량 구간의 최종 Δ가 0 이하 등)</li>
 <li>차이나 미결이 나오면 <a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></li>
 </ul>
 <div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th></tr></thead><tbody>
@@ -78,7 +78,7 @@
 <tr><td><span class="pill bad">차이</span></td><td>CI 아래 &gt; +Δ 또는 CI 위 &lt; −Δ</td><td>편향이 허용 범위보다 크다고 증명됨 · <a href="step-6.html#C6-2">⑥ 판정</a></td></tr>
 <tr><td><span class="pill hold">미결 · 해상도 부족</span></td><td>걸침, CI 반폭 ≥ Δ</td><td>b가 0이어도 ±Δ 안에 못 들어감. 정밀도 부족<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span> · <a href="step-6.html#C6-3">⑥ 판정</a></td></tr>
 <tr><td><span class="pill hold">미결 · 경계</span></td><td>걸침, CI 반폭 &lt; Δ</td><td>정밀도는 충분, b가 Δ 근처<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span> · <a href="step-6.html#C6-4">⑥ 판정</a></td></tr>
-<tr><td><span class="pill">판정 제외</span></td><td>①~③ 중 맞는 원인을 모두 순서대로 '; '로 이음('판정 제외: '는 첫 원인 앞에만, 예 '판정 제외: die 산포 0 (σ_die=0); 고정값 (중앙값 0·σ_run 0)'): ① 중심·CI NaN·inf ② die 산포 0(σ<sub>die</sub> = 0 또는 고정값 비율 &gt; 50%) ③ POR 중앙값 0이고 σ<sub>run</sub> = 0 ④ 정량 구간에서 장비 정확도 대체 후 최종 Δ ≤ 0·NaN. LoQ 미만은 Δ와 무관하게 판정</td><td>통계를 낼 수 없어 판정하지 않음 · 사유는 맞는 원인 모두 · <a href="glossary.html#excluded">용어집</a></td></tr>
+<tr><td><span class="pill">판정 제외</span></td><td>①~⑤ 중 맞는 원인을 모두 순서대로 '; '로 이음('판정 제외: '는 첫 원인 앞에만, 예 '판정 제외: 회차 0값 (POR2)'): ① 중심·CI NaN·inf ② 회차 0값(POR 회차 하나나 DOE가 die 절반 넘게 0, 다른 쪽은 아님) ③ 모든 값 같음 ④ die 산포 0(σ<sub>die</sub> = 0 또는 고정값 비율 &gt; 50%): 정량 구간이고 분해능 step ≥ 0.1·Δ일 때만 ⑤ POR 중앙값 0이고 σ<sub>run</sub> = 0: 정량 구간일 때만. 정량 구간의 최종 Δ ≤ 0·NaN도 판정 제외. LoQ 미만은 ④⑤를 보지 않고 LoQ 판정</td><td>판정할 것이 없어 판정하지 않음 · 사유는 맞는 원인 모두 · <a href="glossary.html#excluded">용어집</a></td></tr>
 </tbody></table></div>
 <h3>LoQ 미만 구간</h3>
 <div class="formula"><div>차이  ⇔  [CI가 통째로 ±Δ 밖]  AND  [|비교 조건 중심| ≥ LoQ]</div><div>아니오 → 동등 <span class="c">&lt;LoQ 보고 일치</span></div></div>
@@ -131,7 +131,7 @@
 <div class="tw"><table><thead><tr><th>열 이름</th><th>쉬운 말</th><th>단계</th><th>합성 예시 값</th></tr></thead><tbody>
 <tr><td>zone</td><td>구간. 정량 · 검출~정량 · 검출한계 이하</td><td><a href="step-3.html">③</a></td><td>정량</td></tr>
 <tr><td>verdict</td><td>판정. 동등 · 차이 · 미결 · 판정 제외</td><td><a href="step-6.html">⑥</a></td><td>동등</td></tr>
-<tr><td>verdict_final · verdict_basis</td><td><a href="glossary.html#verdict-final">최종 판정</a>과 근거('log'/'linear'). 선형 먼저: verdict가 동등이면 verdict, 동등이 아닌 log 후보는 verdict_log(판정 제외·빈 칸이면 verdict), 그 밖은 verdict. 판정 집계와 차이·미결 선택(summarize, plot_verdicts, fail_evidence, group_summary)은 verdict_final 기준</td><td><a href="step-6.html">⑥</a></td><td>—</td></tr>
+<tr><td>verdict_final · verdict_basis · scale</td><td><a href="glossary.html#verdict-final">최종 판정</a>, 근거('linear'/'log'/'accuracy'/'log_physics'), log 옵션 대상을 정한 scale. 기본 판정이 차이·미결일 때만 옵션 log → accuracy(LoQ 근처) → log_physics 순으로 보고 동등을 주는 첫 옵션, 없으면 대상인 log 옵션의 판정, 그것도 없으면 verdict. 판정 집계와 차이·미결 선택(summarize, plot_verdicts, fail_evidence, group_summary)은 verdict_final 기준</td><td><a href="step-6.html">⑥</a></td><td>—</td></tr>
 <tr><td>reason</td><td>판정 사유</td><td><a href="step-6.html">⑥</a></td><td>'90% 신뢰구간이 ±Δ 안'</td></tr>
 <tr><td>ID</td><td>익명 번호 (item_map.csv와 짝)</td><td>—</td><td>—</td></tr>
 <tr><td>por_median</td><td>die별 기준 조건 J회 평균의 중앙값. 구간 나누기와 실용 한계에 씀</td><td><a href="step-3.html">③</a> <a href="step-5.html">⑤</a></td><td>100.000</td></tr>
@@ -147,12 +147,12 @@
 <tr><td>delta</td><td>허용 범위 Δ = 실용 한계 + 회차 예측 한계</td><td><a href="step-5.html">⑤</a></td><td>6.69896</td></tr>
 <tr><td>policy_margin</td><td>실용 한계 = 5% × |기준 조건 중앙값| <span class="badge-int">내부 기준(문헌 근거 없음)</span></td><td><a href="step-5.html">⑤</a></td><td>5.0</td></tr>
 <tr><td>run_margin</td><td>회차 예측 한계 = t(0.95, J−1) × √(1+1/J) × σ<sub>run</sub></td><td><a href="step-5.html">⑤</a></td><td>1.69896</td></tr>
-<tr><td>delta_source</td><td>Δ를 정한 쪽: 실용 + 회차 예측 / 장비 정확도</td><td><a href="step-5.html">⑤</a></td><td>—</td></tr>
+<tr><td>delta_source</td><td>Δ를 정한 쪽: 실용 + 회차 예측 (장비 정확도는 기본 Δ에 안 들어감)</td><td><a href="step-5.html">⑤</a></td><td>—</td></tr>
 <tr><td>doe_center</td><td>LoQ 미만일 때 비교 조건 중심 = 기준 조건 중앙값 + b</td><td><a href="step-6.html">⑥</a></td><td>해당 없음 (정량 구간)</td></tr>
 <tr><td>n_outlier_die · ttest · ttest_p · por_ttest_sig</td><td>참고 지표: 이상치 die 수, t-test 결과와 p 값, 기준 조건 회차끼리 t-test</td><td>참고 (<a href="#ref">아래</a>)</td><td>t-test 유의차 · p 4.2e-07 · 기준 회차끼리 3/3 유의차 · 이상치 die 수 —</td></tr>
-<tr><td>spec_status · level_check · range_por · range_doe · spec_resolution · accuracy_margin · verdict_no_accuracy</td><td>ITEM 정보 표(LEVEL, CALCVAL, DERIVED) 관련: 장비 분해능·정확도, range, 자릿수 점검, 장비 정확도 없이 낸 판정</td><td><a href="step-3.html">③</a> <a href="step-5.html">⑤</a></td><td>—</td></tr>
+<tr><td>spec_status · level_check · range_por · range_doe · spec_resolution · accuracy_margin · verdict_with_accuracy</td><td>ITEM 정보 표(LEVEL, CALCVAL, DERIVED) 관련: 장비 분해능·정확도, range, 자릿수 점검, Δ' = max(Δ, 장비 정확도 폭)으로 낸 판정(LoQ 근처면 accuracy 옵션, 그 밖은 참고)</td><td><a href="step-3.html">③</a> <a href="step-5.html">⑤</a></td><td>—</td></tr>
 <tr><td>blank_item · blank_status · blank_LoQ_item · verdict_no_blank</td><td>blank 관련: 연결된 blank, blank LoQ, blank 없이 낸 판정</td><td><a href="step-3.html">③</a></td><td>—</td></tr>
-<tr><td>status</td><td>데이터 상태(판정과 별개): <a href="glossary.html#cond-unstable">조건 불안정</a>, <a href="glossary.html#run-jitter">회차 흔들림</a>, <a href="glossary.html#size-jitter">작을수록 흔들림</a>, <a href="glossary.html#size-jitter-pos">클수록 흔들림</a>(ρ ≥ +0.5), 분해능 부족, 산포 0, <a href="glossary.html#log-candidate">log 후보</a>, <a href="glossary.html#bimodal">두 덩어리</a>. 여러 개면 이 순서로 ';'로 이음</td><td>참고</td><td>—</td></tr>
+<tr><td>status</td><td>데이터 상태(판정과 별개): <a href="glossary.html#cond-unstable">조건 불안정</a>, <a href="glossary.html#run-jitter">회차 흔들림</a>, <a href="glossary.html#size-jitter">작을수록 흔들림</a>, <a href="glossary.html#size-jitter-pos">클수록 흔들림</a>(ρ ≥ +0.5), 분해능 부족, 산포 0, <a href="glossary.html#log-candidate">log 후보</a>, <a href="glossary.html#bimodal">두 덩어리</a>, <a href="glossary.html#near-loq">LoQ 근처</a>. 여러 개면 이 순서로 ';'로 이음</td><td>참고</td><td>—</td></tr>
 <tr><td>por_gap_over_delta · por_gap_over_noise · run_jitter_pct · run_jitter_over_delta · spearman_size_jitter · resolution_step · resolution_over_delta · fixed_share</td><td><a href="glossary.html#status-metrics">상태 지표 열 8개</a>. por_gap_over_delta = 짝지은 회차 차 ÷ Δ, por_gap_over_noise = 짝지은 회차 차 ÷ se(die 잡음으로 생기는 회차 차의 크기). run_jitter_pct · run_jitter_over_delta · spearman_size_jitter는 기준 조건 회차만 쓰고, 기준 조건이 1회뿐이면 빈 칸. resolution_step = 값 사이 최소 간격, resolution_over_delta = resolution_step ÷ Δ, fixed_share = R·z 최빈값 비율 중 큰 쪽</td><td>참고</td><td>—</td></tr>
 <tr><td>decades · skew_lin · skew_log · log_fit · bimodality_log</td><td><a href="glossary.html#shape-cols">분포 모양 열 5개</a>. log 후보: decades ≥ 1.0이고 log_fit &gt; 0.1(LOG_FIT_MIN). 두 덩어리: bimodality_log &gt; 5/9이고 die ≥ 10. R에 0이 있거나 부호가 섞이면 skew_lin 말고는 빈 칸</td><td>참고</td><td>—</td></tr>
 <tr><td>mean_median_ratio</td><td>(R 평균 − R 중앙값) ÷ |R 중앙값|. 분포가 한쪽으로 끌려간 정도. 판정에 안 씀</td><td>참고</td><td>—</td></tr>
@@ -222,7 +222,7 @@
 <tr><td>range</td><td>원측정값이 들어가는 가장 작은 auto range</td><td>기준 조건과 비교 조건의 range가 다른지</td></tr>
 <tr><td>level_check</td><td>|파일값|/|CALCVAL| 이 LEVEL 자릿수 안인지 (1.15배 여유)</td><td>CALCVAL·LEVEL 입력 실수</td></tr>
 <tr><td>verdict_no_blank</td><td>blank 없이 낸 판정</td><td>blank가 판정을 바꿨는지</td></tr>
-<tr><td>verdict_no_accuracy</td><td>장비 정확도 없이 낸 판정</td><td>장비 정확도가 판정을 바꿨는지</td></tr>
+<tr><td>verdict_with_accuracy</td><td>Δ' = max(Δ, 장비 정확도 폭)으로 낸 판정</td><td>LoQ 근처면 accuracy 옵션으로 최종 판정에 씀, 그 밖은 장비 정확도가 판정을 바꿨을지 참고</td></tr>
 </tbody></table></div>
 </section>
 
@@ -234,7 +234,7 @@
 <tr><td>outlier_dies.csv</td><td>ITEM마다 튀는 die와 기준 조건 회차별 값, 비교 조건 값</td></tr>
 <tr><td>n_outlier_die</td><td>이상치 die: 일부 die만 다른지. 반복되는 이상치 die 위치</td></tr>
 <tr><td>verdict_no_blank</td><td>blank 없이 낸 판정: blank가 판정을 바꿨는지</td></tr>
-<tr><td>verdict_no_accuracy</td><td>장비 정확도 없이 낸 판정: 장비 정확도가 판정을 바꿨는지</td></tr>
+<tr><td>verdict_with_accuracy</td><td>Δ' = max(Δ, 장비 정확도 폭)으로 낸 판정: LoQ 근처면 accuracy 옵션, 그 밖은 참고</td></tr>
 <tr><td><span class="pill hold">미결 · 해상도 부족</span></td><td>b가 0이어도 ±Δ 안에 못 들어감. 정밀도 부족</td></tr>
 <tr><td><span class="pill hold">미결 · 경계</span></td><td>정밀도는 충분, b가 Δ 근처</td></tr>
 <tr><td>summary.txt</td><td>판정 근거 점검(회차 흔들림 몫, LoQ를 정한 쪽, blank·장비 정확도가 바꾼 판정 수), 반복해서 튀는 die</td></tr>

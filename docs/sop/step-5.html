@@ -71,7 +71,7 @@
 </ul></details></section>
 
 <section id="formula"><h2>수식</h2>
-<div class="formula"><div>Δ = r·|기준 조건 중앙값| + t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub></div><div class="c">실용 한계 (r = 5%) + 회차 예측 한계</div><div>A·V ITEM: Δ = max(Δ, 장비 정확도 한계)</div><div>장비 정확도 한계 = 1.645·√((U<sub>Ref</sub><sup>2</sup> + U<sub>Cand</sub><sup>2</sup>)/3),  U = a·|값| + b·range + c</div></div>
+<div class="formula"><div>Δ = r·|기준 조건 중앙값| + t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub></div><div class="c">실용 한계 (r = 5%) + 회차 예측 한계</div><div>A·V ITEM이 LoQ 근처(LoQ ≤ |기준 조건 중앙값| &lt; LoQ/(10r))이고 기본 판정이 차이·미결일 때만 accuracy 옵션: Δ' = max(Δ, 장비 정확도 한계)</div><div>장비 정확도 한계 = 1.645·√((U<sub>Ref</sub><sup>2</sup> + U<sub>Cand</sub><sup>2</sup>)/3),  U = a·|값| + b·range + c</div></div>
 <div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
 <tr><td>Δ</td><td>허용 범위. 차이가 ±Δ 안이면 같다고 봄</td><td>6.699</td></tr>
 <tr><td>r</td><td>실용 한계 비율<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></td><td>5%</td></tr>
@@ -86,11 +86,11 @@
 <div class="crit" id="C5-1"><!-- EDIT C5-1 --><h3>이 단계의 기준</h3>
 <p>판정 없음 · 계산 단계</p>
 <p>실용 한계 5%<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span></p>
-<p>A·V ITEM은 Δ와 장비 정확도 한계 중 큰 쪽</p></div>
+<p>기본 판정의 Δ는 위 두 한계의 합. 장비 정확도 한계는 LoQ 근처 A·V ITEM의 accuracy 옵션에서만 큰 쪽으로 씀</p></div>
 <div class="crit" id="C5-2"><!-- EDIT C5-2 --><h3>다음 단계로 넘기는 것</h3>
-<ul><li>±Δ → <a href="step-6.html">⑥ 판정</a>: 90% CI ⊂ (−Δ, +Δ) · CI가 통째로 ±Δ 밖 (정량 · LoQ 미만 두 갈래 모두)</li><li>Δ와 그 구성(실용 한계 + 회차 예측 한계 / 장비 정확도 한계) → <a href="reading.html">결과 읽는 법</a></li></ul></div>
+<ul><li>±Δ → <a href="step-6.html">⑥ 판정</a>: 90% CI ⊂ (−Δ, +Δ) · CI가 통째로 ±Δ 밖 (정량 · LoQ 미만 두 갈래 모두)</li><li>Δ와 그 구성(실용 한계 + 회차 예측 한계) → <a href="reading.html">결과 읽는 법</a></li></ul></div>
 <div class="crit" id="C5-3"><!-- EDIT C5-3 --><h3>A·V ITEM 관련 값</h3>
-<p>장비 사양 확인 상태 · 측정 범위 확인 · 기준 조건·비교 조건 측정 범위 · 장비 분해능 · 장비 정확도 한계 · 장비 정확도 한계 없이 낸 판정 → <a href="reading.html">결과 읽는 법</a> (③과 같은 값)</p></div>
+<p>장비 사양 확인 상태 · 측정 범위 확인 · 기준 조건·비교 조건 측정 범위 · 장비 분해능 · 장비 정확도 한계 · 장비 정확도 한계를 큰 쪽으로 썼을 때의 판정(verdict_with_accuracy) → <a href="reading.html">결과 읽는 법</a> (③과 같은 값)</p></div>
 </section>
 
 <section id="figure"><h2>그림</h2>
@@ -126,7 +126,7 @@
 
 <section id="plain-more"><h2>쉬운 말 더 보기</h2>
 <ul>
-<li>A·V <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>(ITEM 정보에 장비 사양이 있을 때): 장비 정확도 한계와 비교해 큰 쪽을 Δ로 씀<sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup></li>
+<li>A·V <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>(ITEM 정보에 장비 사양이 있을 때): LoQ 근처(LoQ ≤ |기준 조건 중앙값| &lt; LoQ/(10r))이면 최종 판정의 accuracy 옵션이 장비 정확도 한계와 비교해 큰 쪽을 Δ'로 씀. 기본 판정의 Δ는 그대로<sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup></li>
 <li>Δ는 ⑥에서 ④의 90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a>과 비교</li>
 </ul></section>
 
@@ -148,7 +148,7 @@
 <li>3.3717 = t(0.95, 2) 2.919986 × √(1+1/3) 1.154701 <span class="from">J = 3이라 t의 자유도 J−1 = 2</span></li>
 <li>회차 예측 한계 = 3.3717 × σ<sub>run</sub> 0.50389 = 1.69896 <span class="from">0.50389 = ② 흔들림 구하기의 σ<sub>run</sub></span></li>
 <li>Δ = 5.0 + 1.69896 = 6.69896 ≈ 6.699</li>
-<li>장비 정확도 한계: 합성 예시에는 장비 사양 정보가 없어 비교하지 않음 → Δ = 6.699 <span class="from">큰 쪽 비교는 A·V ITEM일 때만</span></li>
+<li>장비 정확도 한계: 합성 예시에는 장비 사양 정보가 없어 비교하지 않음 → Δ = 6.699 <span class="from">큰 쪽 비교는 LoQ 근처 A·V ITEM의 accuracy 옵션일 때만</span></li>
 <li>→ ⑥: ±6.699를 ④의 CI [0.610, 1.102]와 비교</li>
 </ol>
 <p class="s">J별 계수와 Δ (σ<sub>run</sub> 0.50389 고정, Δ = 5.0 + 계수 × 0.50389)</p>

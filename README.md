@@ -23,6 +23,7 @@ pip install -r requirements.txt   # Python 3.9+, pandas, numpy, scipy
 out = 결과
 level = item_info.csv
 groups = groups.csv
+scales = scales.csv
 
 [A1]
 por = data/A/POR1
@@ -32,7 +33,8 @@ doe = data/A/DOE
 ```
 
 - `[defaults]` 밖의 섹션 하나가 조합 하나이고, 섹션 이름이 조합 이름입니다. 조합에 적은 키가 `[defaults]`보다 우선합니다.
-- 키는 `por`(한 줄에 회차 하나, 2회 이상), `doe`, 그리고 선택으로 `level`, `blank`(한 줄에 하나), `blank_map`, `key`, `encoding`, `r`, `groups`, `before`, `out`입니다. 뜻은 아래 옵션 표와 같습니다.
+- 키는 `por`(한 줄에 회차 하나, 2회 이상), `doe`, 그리고 선택으로 `level`, `blank`(한 줄에 하나), `blank_map`, `key`, `encoding`, `r`, `groups`, `scales`, `before`, `out`입니다. 뜻은 아래 옵션 표와 같습니다.
+- `scales`를 적으면 판정 단계(`por_doe_compare.py`)에 `--groups`와 `--scales`를 같이 넘깁니다. 그래서 `scales`에는 `groups`가 필요합니다. 적지 않으면 판정은 그룹을 보지 않습니다(`groups`는 그룹 그림·요약에만 씀).
 - 상대 경로는 현재 폴더가 아니라 설정 파일이 있는 폴더 기준입니다.
 - 모르는 이름·키, POR 1회, 없는 경로는 아무것도 실행하기 전에 알려 주고 끝납니다(rc=2).
 
@@ -121,6 +123,7 @@ python summarize.py 결과/items.csv
 | `--blank`, `--blank-map` | blank 데이터와 연결표 (선택, 아래). LoQ 하한으로만 씀 |
 | `--key` | 짝짓기 키. 기본 `WAFERID,COORD_X_Y,ITEM` |
 | `--encoding` | 기본 `auto` (UTF-8, 안 되면 CP949) |
+| `--groups`, `--scales` | ITEM,group 파일과 group,scale 파일 (선택, 같이 씀). 그룹마다 log 옵션 대상을 정함 ([최종 판정](#최종-판정-verdict_final)). `--scales`가 없으면 그룹을 보지 않음 |
 
 UNIT, SPECLOW, SPECHIGH 열은 판정에 쓰지 않습니다(값이 잘못 들어간 경우가 많음). 판정은 모두 비율 기준이라 단위나 정규화 계수가 무엇이든 결과가 같습니다.
 
@@ -144,7 +147,7 @@ UNIT, SPECLOW, SPECHIGH 열은 판정에 쓰지 않습니다(값이 잘못 들�
 허용폭 Δ = r × |POR 중앙값| + t(0.95, J−1) × √(1 + 1/J) × `sigma_run`
 
 - 뒤쪽은 DOE 1회가 POR J회 평균에서 **같은 프로그램 안에서도** 벗어날 수 있는 폭입니다(90% 예측구간 한쪽). `sigma_run`을 회차 J개로 추정하므로 t를 씁니다(J = 3이면 2.92, 5면 2.13).
-- `--level`의 A, V ITEM에서 구한 장비 정확도 폭(`accuracy_margin`)은 지금은 판정에 쓰지 않습니다. 그 폭이 Δ보다 클 때 Δ 대신 썼다면 나왔을 TOST 판정을 `verdict_with_accuracy`에 참고로 적습니다(`accuracy_margin`이 없으면 빈 칸). `delta`, `delta_source`는 실제로 쓴 Δ입니다.
+- `--level`의 A, V ITEM에서 구한 장비 정확도 폭(`accuracy_margin`)은 기본 판정에 쓰지 않습니다. Δ' = max(Δ, `accuracy_margin`)으로 낸 정량 TOST 판정을 `verdict_with_accuracy`에 적고(`accuracy_margin`이 없으면 빈 칸), LoQ 근처 ITEM에서만 최종 판정의 accuracy 옵션이 씁니다([최종 판정](#최종-판정-verdict_final)). 그 밖의 ITEM에서는 참고입니다. `delta`, `delta_source`는 기본 판정에 쓴 Δ입니다.
 - log 판정(`verdict_log`, 아래 [log 판정](#log-판정-verdict_log))의 허용폭은 Δ_log = log10(1 + r) + `sigma_rep_log`입니다. t(0.95, J−1) × √(1 + 1/J) 배수는 없습니다.
   - `sigma_rep_log` = die마다 L(= log10\|값\|) 회차값의 표준편차(ddof=1)를 구하고, 그 die 중앙값. 유효한 회차값이 2개 미만인 die는 뺍니다.
   - `sigma_run_log`(L에서 구한 회차 이동)는 분석용이며 판정에 쓰지 않습니다.
@@ -155,17 +158,47 @@ UNIT, SPECLOW, SPECHIGH 열은 판정에 쓰지 않습니다(값이 잘못 들�
 | 정량 (≥ LoQ) | 신뢰구간이 ±Δ 안 → **동등**, 통째로 밖 → **차이**, 걸침 → **미결** (반폭 ≥ Δ면 해상도 부족, 아니면 경계) |
 | LoQ 미만 | LoQ 미만 값은 "<LoQ"로 보고합니다(IUPAC). 신뢰구간이 통째로 ±Δ 밖이고 **DOE 중심(POR 중앙값 + shift)이 LoQ 이상**이라 보고가 달라질 때만 **차이**, 그 밖은 **동등**("<LoQ 보고 일치") |
 
-**판정 제외**는 통계를 낼 수 없어 판정하지 않은 ITEM입니다. 아래 1~3을 모두 보고, 맞는 원인을 모두 이 순서대로 `; `로 이어 `reason`에 적습니다. `판정 제외: `는 첫 원인 앞에만 붙습니다. 예: `판정 제외: die 산포 0 (σ_die=0); 고정값 (중앙값 0·σ_run 0)`.
+**판정 제외**는 판정할 것이 없는 ITEM입니다. 아래 원인 표(`EXCLUSION_CAUSES`)를 모두 보고, 맞는 원인을 모두 이 순서대로 `; `로 이어 `reason`에 적습니다. `판정 제외: `는 첫 원인 앞에만 붙습니다. 예: `판정 제외: 모든 값 같음; die 산포 0 (σ_die=0)`.
 
-1. center·ci_low·ci_high 중 하나가 NaN이나 inf → `판정 제외: 중심·신뢰구간 계산 불가 (…)`
-2. die 산포 0: `sigma_die` = 0이면 `판정 제외: die 산포 0 (σ_die=0)`, 아니고 고정값 비율(R·z 최빈 비율 중 큰 쪽)이 50%를 넘으면 `판정 제외: die 산포 0 (고정값 NN%)`. 즉 `status`가 `산포 0`인 ITEM은 판정 제외입니다.
-3. POR 중앙값이 0이고 `sigma_run` = 0 → `판정 제외: 고정값 (중앙값 0·σ_run 0)`
-4. 그 밖은 zone 판정을 합니다. LoQ 미만은 Δ와 무관하게 판정합니다.
-5. 정량 zone은 Δ가 0 이하이거나 NaN일 때만 `판정 제외: 최종 Δ가 0 이하이거나 유효하지 않음 (Δ=…, 출처 …)`입니다.
+1. center·ci_low·ci_high 중 하나가 NaN이나 inf → `중심·신뢰구간 계산 불가 (…)`
+2. 회차 0값: POR 회차 하나나 DOE가 die 절반 넘게 정확히 0인데, 다른 회차나 DOE 중 하나라도 die 절반 넘게 0이 아님 → `회차 0값 (POR2, DOE)`처럼 그 이름을 적음
+3. POR·DOE 값이 모두 같음(서로 다른 값이 하나) → `모든 값 같음`
+4. die 산포 0(`sigma_die` = 0이거나 고정값 비율 `fixed_share` > 50%, `status` `산포 0`과 같은 비율): **정량 zone이고 데이터가 거칠 때만**. 거칠다 = `resolution_step` ≥ 0.1 × Δ(`status` `분해능 부족`과 같은 검사)이거나 계산할 수 없음. `sigma_die` = 0이면 `die 산포 0 (σ_die=0)`, 아니면 `die 산포 0 (고정값 NN%)`. 분해능이 Δ에 비해 고우면 그대로 TOST를 합니다(신뢰구간이 한 점이어도 됨)
+5. POR 중앙값 0이고 `sigma_run` = 0: **정량 zone일 때만**, 곧 LoQ가 0이거나 유효하지 않을 때만 → `고정값 (중앙값 0·σ_run 0)`
 
-고정값 비율이 50% 이하면 판정은 그대로 합니다. die 수 부족(MIN_DIE)은 그대로 **미결**입니다.
+LoQ 미만이면 4, 5는 보지 않고 LoQ 판정으로 갑니다. 그 밖은 zone 판정을 합니다. LoQ 미만은 Δ와 무관하게 판정하고, 정량 zone은 Δ가 0 이하이거나 NaN일 때만 `판정 제외: 최종 Δ가 0 이하이거나 유효하지 않음 (Δ=…, 출처 …)`입니다. die 수 부족(MIN_DIE)은 그대로 **미결**입니다.
 
 **4. 참고 (판정에 쓰지 않음).** t-test(NIST 7.3.1.1), POR 회차끼리 t-test(`por_ttest_sig`), 튀는 die(\|d − 중앙값\| > 5 robust σ, `n_outlier_die`).
+
+### 최종 판정 (`verdict_final`)
+
+기본 판정(`verdict`, 위 1~3)이 먼저입니다. 동등이나 판정 제외면 그대로 최종 판정입니다. 차이·미결인 ITEM만 +@ 옵션(`OPTIONS`)이 다시 판정합니다. 옵션은 모두 TOST만 하고 LoQ 판정은 하지 않습니다.
+
+| 순서 | 옵션 (`verdict_basis`) | 대상 | 규칙 (판정 열) |
+|---|---|---|---|
+| 1 | `log` | `scale`이 `item`이면 `status` `log 후보`(`decades` ≥ 1, `log_fit` > 0.1). `auto→log`면 `decades` ≥ 1, `log_fit` > 0 | log10 값에서 TOST (`verdict_log`, [log 판정](#log-판정-verdict_log)) |
+| 2 | `accuracy` | `status` `LoQ 근처`이고 `accuracy_margin`이 있음 | Δ' = max(Δ, `accuracy_margin`)의 TOST (`verdict_with_accuracy`) |
+| 3 | `log_physics` | `scale`이 `log`이고 `decades` ≥ 1, `log_fit` > 0 (`LOG_FIT_MIN_SCALE`) | 1과 같은 log10 TOST (`verdict_log`) |
+
+- 표 순서로 대상인 옵션을 보고, **동등을 주는 첫 옵션**이 최종 판정을 정합니다(동등, 그 옵션).
+- 동등을 주는 옵션이 없으면, 대상이고 판정(동등·차이·미결)이 나온 log 옵션(`log`나 `log_physics`)의 판정이 최종입니다. 그것도 없으면 기본 판정(`linear`)입니다.
+- accuracy 옵션은 동등일 때만 판정을 바꿉니다.
+- `scale`이 `linear`, `auto→linear`인 ITEM은 어느 log 옵션의 대상도 아닙니다. 한 ITEM은 두 log 옵션 중 많아야 하나의 대상입니다.
+
+`LoQ 근처`는 LoQ ≤ \|POR 중앙값\| < LoQ / (10 r)인 구간입니다(r = 0.05면 LoQ의 1~2배). LoQ = 10σ라서 이 구간에서는 1회 측정 잡음(σ = LoQ / 10)이 허용폭의 정책 몫 r × \|POR\|보다 큽니다. 그래서 이 구간에서만 장비 정확도 폭을 허용폭으로 씁니다. 그 밖의 ITEM에서 `verdict_with_accuracy`는 참고입니다.
+
+`scale`은 ITEM 그룹마다 정합니다(`--groups ITEM,group`과 `--scales group,scale`).
+
+| `scale` 값 | 뜻 |
+|---|---|
+| `log`, `linear` | `scales` 파일에 그 그룹을 그렇게 적음 |
+| `auto→log`, `auto→linear` | `scales` 파일에 `auto`로 적었거나 그룹이 파일에 없어, 이번 실행의 그 그룹 ITEM으로 정함 |
+| `item` | 그룹이 없거나 `--scales`를 주지 않음. ITEM마다 `log 후보`로 봄(그룹 scale 전의 규칙) |
+
+- `scales` 파일은 `group,scale` 두 열(쉼표나 탭, 머리줄 선택)이고 scale은 `log`, `linear`, `auto`입니다. 다른 값이 있으면 실행하지 않고 끝납니다.
+- auto: 그룹 ITEM 중 `decades`와 `log_fit`이 둘 다 있는 ITEM(`n_items`)의 절반 넘게 `decades` ≥ 1이고, 그 ITEM들의 `log_fit` 중앙값이 0보다 크면 log, 아니면 linear입니다. 결정은 `items.csv` 옆 `scales_auto.csv`(`group`, `decision`, `n_items`, `n_decades_ge_1`, `median_log_fit`)에 적습니다. 확인한 뒤 `scales` 파일에 옮겨 적으면 다음 실행부터 고정됩니다.
+- `--scales`가 없으면 모든 ITEM이 `item`이고 결과는 그룹 scale 이전과 같습니다. 같은 `--out`에 남은 지난 `scales_auto.csv`는 지웁니다.
+- 예전 `items.csv`(`scale` 열 없음)를 다시 읽는 도구(`plot_verdicts.py` 재계산 등)는 모든 ITEM을 `item`으로 봅니다.
 
 ## ITEM 정보 표 (`--level`, 선택)
 
@@ -189,7 +222,7 @@ VT_N1,,,Y               ← 변형 값 (여러 측정 조합·추출: Vt 추출,
 | 변형 아님 + CALCVAL 없음 | 자릿수 상한 10L로 보수적 환산 | 안 씀 |
 
 - 장비 사양: Keysight P9001A Per-pin SMU (P9001 Data sheet p.6-7, Programming Reference Table 2-19/2-22). auto range는 값이 들어가는 가장 작은 range입니다. 표는 `por_doe_compare.py`의 `I_RANGES`, `V_RANGES`. 원본과 대조해서 쓰세요.
-- 장비 정확도 폭(`accuracy_margin`, 참고용, 판정에 안 씀): 두 측정이 각자 사양 정확도 ±(a × \|값\| + b × range + c) 안일 때 생길 수 있는 차이 1.645 × √((U_POR² + U_DOE²) / 3) (균일분포, GUM 4.3.7). 사양의 Vo, Rres × Io 항은 0으로 둡니다.
+- 장비 정확도 폭(`accuracy_margin`, 기본 판정에 안 씀, LoQ 근처 ITEM의 accuracy 옵션에서만 씀): 두 측정이 각자 사양 정확도 ±(a × \|값\| + b × range + c) 안일 때 생길 수 있는 차이 1.645 × √((U_POR² + U_DOE²) / 3) (균일분포, GUM 4.3.7). 사양의 Vo, Rres × Io 항은 0으로 둡니다.
 - `level_check`: CALCVAL로 환산한 원측정값이 LEVEL 자릿수와 다르면 "불일치". 자릿수 경계는 1.15배까지 일치로 봅니다. CALCVAL이 맞으면 판정에는 영향이 없습니다.
 
 ## blank 넣기 (`--blank`, `--blank-map`, 선택)
@@ -218,6 +251,7 @@ VT_N1,SHORT_V
 |---|---|
 | `items.csv` | ITEM별 판정. 차이, 미결, 동등, 판정 제외 순 |
 | `outlier_dies.csv` | ITEM마다 튀는 die와 POR 회차별, DOE 값 |
+| `scales_auto.csv` | `--scales`를 줄 때만. auto 그룹마다 정한 scale과 근거 ([최종 판정](#최종-판정-verdict_final)) |
 | `summary.txt` | `summarize.py`가 만드는 공유용 요약 (ITEM 이름 대신 익명 번호) |
 | `item_map.csv` | 익명 번호 ↔ ITEM. 공유하지 마세요. `items.csv`의 `ID` 열과 같은 번호입니다(`--family-regex`·`--keep-family`를 주면 `summarize.py`가 `ID` 열을 그 번호로 다시 씁니다). 번호는 ITEM 이름 순서로 매겨서 실행마다 같습니다 |
 
@@ -226,8 +260,8 @@ VT_N1,SHORT_V
 | 묶음 | 열 | 내용 |
 |---|---|---|
 | 식별 | `ID`, `ITEM`, `UNIT` | `ID`는 익명 번호(항목군 + ITEM 이름 순서 번호, `summarize.py`와 같은 값). 맨 앞 열 |
-| 판정 | `verdict_final`, `verdict_basis` | 최종 판정과 그 근거(`log`/`linear`). 기본 판정 먼저: `verdict`가 동등이나 판정 제외면 `verdict` 그대로. 차이·미결이면 +@ 옵션(`OPTIONS`, 지금은 log 하나)을 순서대로 보고, `status`에 그 옵션의 태그(log는 `log 후보`)가 있고 옵션 판정(`verdict_log`)이 동등·차이·미결인 첫 옵션의 판정, 없으면 `verdict`. 판정 집계와 차이/미결 선택(`summarize`, `plot_verdicts`, `fail_evidence`, `group_summary`)은 `verdict_final` 기준 |
-| | `verdict`, `verdict_log`, `verdict_with_accuracy`, `verdict_no_blank` | 기본(선형) 판정, log 판정(아래), 장비 정확도 폭을 썼다면 나왔을 정량 판정(참고, `--level`), blank 없이 낸 판정(`--blank`) |
+| 판정 | `verdict_final`, `verdict_basis`, `scale` | 최종 판정, 그 근거(`linear`, `log`, `accuracy`, `log_physics`), log 옵션 대상을 정한 scale. 규칙은 [최종 판정](#최종-판정-verdict_final). 판정 집계와 차이/미결 선택(`summarize`, `plot_verdicts`, `fail_evidence`, `group_summary`)은 `verdict_final` 기준 |
+| | `verdict`, `verdict_log`, `verdict_with_accuracy`, `verdict_no_blank` | 기본(선형) 판정, log 판정(아래), Δ' = max(Δ, 장비 정확도 폭)의 정량 판정(`--level`, LoQ 근처에서만 옵션), blank 없이 낸 판정(`--blank`) |
 | | `zone`, `reason`, `log_reason`, `status` | 구간, 사유, log 판정 사유, 데이터 상태(아래) |
 | TOST | `n_die`, `center`, `ci_low`, `ci_high` | die 수, shift와 90% 신뢰구간 |
 | | `delta`, `policy_margin`, `run_margin`, `delta_source`, `ci_half_over_delta` | 허용폭과 그 구성, 신뢰구간 반폭 / 허용폭 (아래) |
@@ -251,7 +285,7 @@ VT_N1,SHORT_V
 
 - 대상: `status`와 무관하게 POR·DOE 값에 0이 없고 부호가 하나인 ITEM 전부입니다.
 - POR·DOE 값에 0이 있거나 부호가 섞이면 log를 취할 수 없어 `verdict_log` = `판정 제외`, `log_reason`에 `0값 있음`, `부호 섞임` 중 맞는 것을 `; `로 잇고, `_log` 숫자 열은 빈 칸입니다(`ci_half_over_delta`는 선형 값이라 그대로 씁니다).
-- 그 밖은 L = log10\|Y\|(POR), w = log10\|z\|(DOE)에서 die별 d = w − L 회차 평균, 중앙값과 부호검정 90% CI를 구해 TOST로 판정합니다. die가 10개 미만이면 미결, 판정 제외 1~2(중심·CI 계산 불가, die 산포 0)나 Δ_log ≤ 0이면 판정 제외입니다. `log_reason`은 그 판정의 사유입니다.
+- 그 밖은 L = log10\|Y\|(POR), w = log10\|z\|(DOE)에서 die별 d = w − L 회차 평균, 중앙값과 부호검정 90% CI를 구해 TOST로 판정합니다. die가 10개 미만이면 미결, 판정 제외 원인 1~4(LoQ가 없어 정량 zone으로 봄. 4의 분해능은 log 값으로 봄)나 Δ_log ≤ 0이면 판정 제외입니다. `log_reason`은 그 판정의 사유입니다.
 - Δ_log = log10(1 + r) + `sigma_rep_log`. 정책 항은 선형의 r × \|POR\|가 log 공간에서 더하는 폭 log10(1 + r)입니다. 회차 항에는 t(0.95, J−1) × √(1 + 1/J) 배수가 없습니다.
 - `sigma_rep_log` = die마다 L 회차값의 표준편차(ddof=1) → 그 die 중앙값. 유효한 회차값이 2개 미만인 die는 빼고, 남는 die가 없으면 빈 칸입니다.
 - LoQ 판정은 하지 않습니다. L이 0 근처라는 것은 그 단위에서 값이 1 근처라는 뜻일 뿐이라, 단위(kΩ, Ω)를 바꾸면 달라지기 때문입니다. blank, 장비 분해능, 장비 정확도도 원측정값 단위라 쓰지 않습니다.
@@ -265,7 +299,7 @@ log 진단 대상(`is_log_target`: `fail_evidence.py`의 log 진단 그림, `log
 
 `sigma_meas`를 제곱합의 제곱근으로 잡는 이유: die 간 산포와 회차 산포는 서로 독립이므로 분산이 더해집니다. 표준편차를 단순히 더하면 과대 추정이 됩니다.
 
-주의: `status`가 `산포 0`이면 `sigma_die`가 0이라 `meas_precision_pct`가 0(또는 0에 가깝게)으로 나올 수 있습니다. 측정이 정밀하다는 뜻이 아니라 값이 고정되어 산포를 못 잰 것이니 좋은 값으로 읽지 마세요. 이런 ITEM은 판정 제외라 판정에는 쓰이지 않습니다.
+주의: `status`가 `산포 0`이면 `sigma_die`가 0이라 `meas_precision_pct`가 0(또는 0에 가깝게)으로 나올 수 있습니다. 측정이 정밀하다는 뜻이 아니라 값이 고정되어 산포를 못 잰 것이니 좋은 값으로 읽지 마세요. 이런 ITEM은 정량 zone에서 분해능이 Δ에 비해 거칠 때만 판정 제외이고, 그 밖은 판정합니다.
 
 `status`는 판정(동등/차이/미결/판정 제외)과 별개인 데이터 상태 열입니다. 판정 값은 바꾸지 않고, 이상 die를 빼고 다시 판정하지도 않습니다. 여러 개가 해당하면 아래 표 순서대로 `;`로 잇습니다. 하나도 없으면 `정상`. Δ는 그 ITEM의 최종 `delta`, R은 POR die별 회차 평균, z는 DOE die 값입니다.
 
@@ -277,9 +311,10 @@ log 진단 대상(`is_log_target`: `fail_evidence.py`의 log 진단 그림, `log
 | `작을수록 흔들림` | `spearman_size_jitter` ≤ −0.5이고 유효 die ≥ 10 | `SIZE_JITTER_RHO` = −0.5, `SIZE_JITTER_MIN_DIE` = 10 |
 | `클수록 흔들림` | `spearman_size_jitter` ≥ +0.5이고 유효 die ≥ 10. 값이 큰 die일수록 log 범위가 큼 | `SIZE_JITTER_RHO_POS` = 0.5, `SIZE_JITTER_MIN_DIE` = 10 |
 | `분해능 부족` | `resolution_step` ≥ 0.1·Δ. 값이 1개뿐이거나 Δ ≤ 0·NaN이면 건너뜀 | |
-| `산포 0` | sigma_die = 0, 또는 `fixed_share` > 50%. 이 ITEM은 판정 제외 | |
-| `log 후보` | `decades` ≥ 1.0이고 `log_fit` > 0.1(LOG_FIT_MIN) | `LOG_DECADES_MIN` = 1.0, `LOG_FIT_MIN` = 0.1 |
+| `산포 0` | sigma_die = 0, 또는 `fixed_share` > 50%. 정량 zone이고 `분해능 부족`이면 판정 제외 | |
+| `log 후보` | `decades` ≥ 1.0이고 `log_fit` > 0.1(LOG_FIT_MIN). `scale` `item`인 ITEM의 log 옵션 대상 | `LOG_DECADES_MIN` = 1.0, `LOG_FIT_MIN` = 0.1 |
 | `두 덩어리` | `bimodality_log` > 5/9(≈ 0.556)이고 R이 유한한 die ≥ 10 (\|R\| ≥ 1E+90 die는 세지 않음) | `BIMODAL_BC_MIN` = 5/9, `BIMODAL_MIN_DIE` = 10 |
+| `LoQ 근처` | LoQ ≤ \|POR 중앙값\| < LoQ / (10 r). accuracy 옵션 대상 (`accuracy_margin`이 있을 때) | |
 | `조건 설정 오류` | 예약 값. 판정할 입력이 없어 지금은 판정하지 않음 | |
 
 상태 지표 열 8개(`METRIC_COLS`)는 `por_gap_over_delta`, `por_gap_over_noise`, `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter`, `resolution_step`, `resolution_over_delta`, `fixed_share`입니다. 상태와 상관없이 계산할 수 있으면 채우고, 못 하면 빈 칸입니다.
