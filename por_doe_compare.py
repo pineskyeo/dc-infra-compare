@@ -64,6 +64,7 @@ from scipy import stats
 from infra_compare import blank_limits, load_blank, load_side, read_csv_auto, read_groups, read_pairs
 
 Z90 = 1.645
+Z95 = -float(stats.norm.ppf(0.025))     # scipy theilslopes 와 같은 값
 K_LOD, K_LOQ = 3.29, 10.0
 MIN_DIE = 10
 OUTLIER_K = 5.0
@@ -86,6 +87,20 @@ SHAPE_EXCLUDE_ABS = 1e90        # 분포 모양(SHAPE_COLS) 계산에서만 |x| 
 SHAPE_COLS = ["decades", "skew_lin", "skew_log", "log_fit", "bimodality_log"]
 STATUS_COLS = ["status", *METRIC_COLS, *SHAPE_COLS, "mean_median_ratio"]
 PRECISION_COLS = ["sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
+# 참고 열 (판정에 안 씀). 문턱값은 시뮬레이션으로 정함 (설계 lab/results.md Q2, Q3)
+LOQ_REF_COLS = ["loq_ratio", "rsd_pct", "resolution_pct"]
+NOISE_COLS = ["noise_slope", "noise_slope_lo", "noise_slope_hi", "noise_slope_low", "noise_slope_high", "noise_pattern"]
+SHAPE_REF_COLS = ["spread_robust", *NOISE_COLS]
+NOISE_SPREAD_MIN = 0.3          # 잡음 모양: spread_robust 가 이만큼은 넓어야 기울기를 읽는다 (lab Q2)
+NOISE_MIN_DIE = 10              # 잡음 모양: 평균·SD 가 양수인 die 수 하한
+NOISE_BEND_MIN = 0.7            # 꺾임: 아래 절반과 위 절반 기울기 차 > 이 값
+NP_UNKNOWN, NP_CONSTANT, NP_PROPORTIONAL = "판별 불가", "일정", "비례"
+NP_UP, NP_DOWN, NP_BETWEEN = "위로 갈수록 벌어짐", "아래로 갈수록 벌어짐", "사이"
+NOISE_PATTERNS = (NP_UNKNOWN, NP_CONSTANT, NP_PROPORTIONAL, NP_UP, NP_DOWN, NP_BETWEEN)
+NOISE_BEND = " (꺾임)"
+SPREAD_IQR_FACTOR = 3.45        # 정규분포에서 3.45 × IQR = P1~P99 폭
+# 판정력 = ci_half_over_delta 구간 (위 끝 포함). 같은 ITEM 이 동등으로 나올 확률 98%, 61%, 8% (lab Q3)
+JUDGEABILITY_BANDS = ((0.5, "안정"), (0.8, "주의"), (np.inf, "불안정"))
 LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta",
             "ci_half_over_delta_log", "log_reason",      # 0 없고 부호 하나인 ITEM 참고용
             "sigma_die_log", "sigma_run_log",            # 분석용, 판정에 안 씀
@@ -99,11 +114,11 @@ COLUMN_GROUPS: tuple[tuple[str, tuple[str | re.Pattern, ...]], ...] = (
                   "verdict_no_blank", "zone", "reason", "log_reason", "status")),
     ("TOST", ("n_die", "center", "ci_low", "ci_high", "delta", "policy_margin", "run_margin", "delta_source",
               "ci_half_over_delta")),
-    ("LoQ", ("por_median", "doe_center", "LoQ", "LoD", "limit_source")),
+    ("LoQ", ("por_median", "doe_center", "LoQ", "LoD", "limit_source", *LOQ_REF_COLS)),
     ("values", (POR_MEAN_RE, "DOE_mean")),
-    ("noise", ("sigma_die", "sigma_run", *PRECISION_COLS, "n_outlier_die")),
+    ("noise", ("sigma_die", "sigma_run", *PRECISION_COLS, "n_outlier_die", "judgeability")),
     ("data state", tuple(METRIC_COLS)),
-    ("shape", (*SHAPE_COLS, "mean_median_ratio")),
+    ("shape", (*SHAPE_COLS, "mean_median_ratio", *SHAPE_REF_COLS)),
     ("log", ("center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta_log", "sigma_rep_log",
              "sigma_die_log", "sigma_run_log")),
     ("reference", ("ttest", "ttest_p", "por_ttest_sig",
@@ -454,6 +469,91 @@ def meas_precision(sigma_die: float, sigma_run: float, por_median: float, delta:
     return {"sigma_meas": s,
             "meas_precision_pct": 100 * s / abs(med) if med != 0 and not np.isnan(med) else np.nan,
             "sigma_meas_over_delta": s / d if d != 0 and not np.isnan(d) else np.nan}
+
+
+def _pct_of_median(x: float, por_median: float) -> float:
+    return 100 * x / abs(por_median) if por_median != 0 and np.isfinite(por_median) else np.nan
+
+
+def loq_ref(por_median: float, loq: float, resolution_step: float) -> dict:
+    """LOQ_REF_COLS. LoQ = K_LOQ × σ 라서 rsd_pct = 100 × σ / |POR 중앙값| (1회 측정 상대 정밀도).
+    % 열은 por_median 이 0·NaN 이면 NaN, loq_ratio 는 LoQ 가 0 이하·NaN 이면 NaN."""
+    return {"loq_ratio": abs(por_median) / loq if loq > 0 else np.nan,
+            "rsd_pct": _pct_of_median(loq / K_LOQ, por_median),
+            "resolution_pct": _pct_of_median(resolution_step, por_median)}
+
+
+def spread_robust(x: np.ndarray) -> float:
+    """SPREAD_IQR_FACTOR × IQR(log10|x|), 0 이 아닌 유한한 x 로 (4개 미만이면 NaN). 몇 die 만 튀어도 거의 안 변한다."""
+    lg = np.log10(np.abs(x[np.isfinite(x) & (x != 0)]))
+    if lg.size < 4:
+        return np.nan
+    q1, q3 = np.percentile(lg, [25, 75])
+    return float(SPREAD_IQR_FACTOR * (q3 - q1))
+
+
+def _tie_term(v: np.ndarray) -> float:
+    c = np.unique(v, return_counts=True)[1]
+    return float((c * (c - 1) * (2 * c + 5)).sum())
+
+
+def _pair_slopes(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    dx, dy = x[:, None] - x, y[:, None] - y
+    pair = np.triu(dx != 0, k=1)
+    return dy[pair] / dx[pair] + 0.0       # −0.0 → 0.0: 같은 값끼리 정렬 순서가 바뀌어도 결과 글자가 같게
+
+
+def theil_sen(x: np.ndarray, y: np.ndarray, interval: bool = True) -> tuple[float, float, float]:
+    """(기울기, 95% 구간 아래, 위). scipy.stats.theilslopes 와 같은 값 (구간은 Sen 1968 식 2.6), 절편 계산 없이.
+    x 가 모두 같거나 점이 3개 미만이면 NaN. interval=False 면 구간은 NaN (계산 안 함)."""
+    if x.size < 3 or np.ptp(x) == 0:
+        return np.nan, np.nan, np.nan
+    if not interval:
+        return float(np.median(_pair_slopes(x, y))), np.nan, np.nan
+    slopes = np.sort(_pair_slopes(x, y))
+    n, nt = x.size, slopes.size
+    slope = float((slopes[(nt - 1) // 2] + slopes[nt // 2]) / 2)        # np.median 과 같은 값
+    var = (n * (n - 1) * (2 * n + 5) - _tie_term(x) - _tie_term(y)) / 18
+    if var < 0:
+        return slope, np.nan, np.nan
+    half = Z95 * np.sqrt(var)
+    lo, hi = max(int(np.round((nt - half) / 2)) - 1, 0), min(int(np.round((nt + half) / 2)), nt - 1)
+    return slope, float(slopes[lo]), float(slopes[hi])
+
+
+def noise_pattern(spread: float, n_die: int, lo: float, hi: float, low: float, high: float) -> str:
+    """잡음 크기가 값에 따라 어떻게 바뀌나 (NOISE_PATTERNS). 기울기 구간 [lo, hi] 가 0·1 을 어디에 두는지로 정한다.
+    0 과 1 을 둘 다 품으면 어느 쪽인지 못 정해 판별 불가. 판별된 것만 아래·위 절반 기울기 차로 꺾임을 붙인다."""
+    if not (spread >= NOISE_SPREAD_MIN and n_die >= NOISE_MIN_DIE and np.isfinite(lo) and np.isfinite(hi)):
+        return NP_UNKNOWN
+    has0, has1 = lo <= 0 <= hi, lo <= 1 <= hi
+    rules = ((has0 and has1, NP_UNKNOWN), (has0, NP_CONSTANT), (has1, NP_PROPORTIONAL),
+             (lo > 1, NP_UP), (hi < 0, NP_DOWN), (True, NP_BETWEEN))
+    name = next(n for hit, n in rules if hit)
+    bend = name != NP_UNKNOWN and abs(low - high) > NOISE_BEND_MIN      # NaN 이면 False
+    return name + (NOISE_BEND if bend else "")
+
+
+def noise_cols(Y: np.ndarray, spread: float) -> dict:
+    """NOISE_COLS. log10(die별 POR 회차 SD) 를 log10(die별 POR 회차 평균) 에 대해 Theil-Sen 으로 맞춘 기울기.
+    0 근처면 잡음 크기가 값과 무관 (선형 척도), 1 근처면 값에 비례 (log 척도). 평균·SD 가 양수인 die 만 쓴다
+    (값이 음수인 ITEM 은 NaN). noise_slope_lo·hi 는 95% 구간, noise_slope_low·high 는 평균이 die 중앙값 아래·위인
+    die 로만 맞춘 기울기. spread 는 spread_robust."""
+    m, sd = Y.mean(axis=1), Y.std(axis=1, ddof=1)
+    ok = (m > 0) & (sd > 0)
+    x, y = np.log10(m[ok]), np.log10(sd[ok])
+    slope, lo, hi = theil_sen(x, y)
+    mid = np.median(x) if x.size else np.nan
+    low, high = (theil_sen(x[side], y[side], interval=False)[0] for side in (x < mid, x > mid))
+    return {"noise_slope": slope, "noise_slope_lo": lo, "noise_slope_hi": hi, "noise_slope_low": low,
+            "noise_slope_high": high, "noise_pattern": noise_pattern(spread, int(ok.sum()), lo, hi, low, high)}
+
+
+def judgeability(ci_half_over_delta: float) -> str:
+    """JUDGEABILITY_BANDS 이름. NaN 이면 빈 문자열."""
+    if not np.isfinite(ci_half_over_delta):
+        return ""
+    return next(name for upper, name in JUDGEABILITY_BANDS if ci_half_over_delta <= upper)
 
 
 def paired_t_p(d: np.ndarray) -> float:
@@ -941,7 +1041,10 @@ def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: 
     status = item_status(Y, z, res["delta"], res["LoQ"], r)
     prec = meas_precision(*(res.get(k, np.nan) for k in ("sigma_die", "sigma_run", "por_median", "delta")))
     opts = {k: v for o in OPTIONS if o.compute for k, v in o.compute(Y, z, r, res).items()}
-    return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **status, **prec, **opts}, mask
+    spread = spread_robust(Y.mean(axis=1))
+    ref = {**loq_ref(res["por_median"], res["LoQ"], status["resolution_step"]), "spread_robust": spread,
+           **noise_cols(Y, spread), "judgeability": judgeability(_ci_half_over_delta(res))}
+    return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **ref, **status, **prec, **opts}, mask
 
 
 def _judge_group(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: float,

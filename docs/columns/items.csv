@@ -27,6 +27,9 @@ doe_center,DOE 중심,LoQ 미만 ITEM에서 DOE 값의 대표값. LoQ 미만일 
 LoQ,정량한계,숫자로 믿고 비교할 수 있는 가장 작은 크기.,"10 × σ, σ = max(`sigma_die`, `resolution_step` / √12, `spec_resolution` / √12). blank LoQ(`blank_LoQ_item`)가 더 크면 그 값",|`por_median`|이 이보다 작으면 LoQ 미만 규칙으로 판정한다. `limit_source`로 무엇이 정했는지 본다.
 LoD,검출한계,0이 아니라고 말할 수 있는 가장 작은 크기.,"3.29 × σ (`LoQ`와 같은 σ). blank가 LoQ를 정하면 max(이 값, blank LoD), blank LoD = (|blank 평균| + 3.29 × blank σ) × |`CALCVAL`|",|`por_median`| < `LoD`면 검출한계 이하 구간이다.
 limit_source,LoQ 출처,LoQ를 정한 σ가 어디서 왔는지.,"`LoQ`의 σ 후보 중 가장 큰 쪽: POR 반복(`sigma_die`), 데이터 분해능, 장비 분해능. blank LoQ가 더 크면 blank",분해능이면 값이 계단처럼 거친 것이다. blank면 바닥 잡음이 LoQ를 정한 것이다.
+loq_ratio,LoQ 배수,"POR 값이 정량 한계(LoQ)의 몇 배인가. 참고, 판정에 안 씀. LoQ가 0 이하면 빈 칸",|por_median| / LoQ,"1 미만이면 바닥 아래(<LoQ로 보고), 1~2면 바닥 근처"
+rsd_pct,정밀도 (%),"같은 die를 다시 한 번 재면 값의 몇 %가 흔들리나 (LoQ에서 거꾸로 구한 1회 측정 σ). 참고, 판정에 안 씀. por_median이 0이면 빈 칸",100 × (LoQ / 10) / |por_median|,허용폭 r(기본 5%)의 절반을 넘으면 동등 증명이 어려움. meas_precision_pct와 달리 분해능·blank로 정한 σ도 들어감
+resolution_pct,분해능 (%),"값이 몇 % 단위로 끊겨 나오나. 참고, 판정에 안 씀. por_median이 0이면 빈 칸",100 × resolution_step / |por_median|,r(기본 5%)의 10분의 1 근처나 그 위면 값이 거칠어 판정이 계단처럼 움직임
 POR{k}_mean,POR 회차 평균,k번째 POR 회차의 die 평균.,mean(`POR{k}`) (die 평균),"DOE만 회차 평균들 밖으로 벗어났는지, 회차 하나만 튀었는지 본다."
 DOE_mean,DOE 평균,DOE의 die 평균.,mean(`DOE`) (die 평균),`POR{k}_mean`들과 견준다. DOE만 밖에 있으면 DOE 조건이 값을 바꾼 것이다.
 sigma_die,반복성 σ_die,같은 die를 다시 잴 때 1회 측정이 흔들리는 크기.,die별 이웃 회차 차(`POR{k}`의 다음 회차 − 이번 회차)를 회차쌍마다 그 중앙값을 빼고 모은 뒤 1.4826 × MAD / √2. MAD = 중앙값에서 떨어진 거리의 중앙값,클수록 측정이 불안정하다. 0이면 값이 계단처럼 고정됐을 수 있다(status 산포 0).
@@ -35,6 +38,7 @@ sigma_meas,측정 산포,반복성과 회차 이동을 합친 1회 측정의 전
 meas_precision_pct,측정 정밀도 %,측정 산포를 값 크기 대비 %로 나타낸 것 (상대표준편차).,100 × `sigma_meas` / |`por_median`|. `por_median` = 0이면 빈 칸,낮을수록 좋다. 값이 0 근처인 ITEM은 %가 커 보이니 `zone`을 같이 본다. status가 산포 0이면 작게 나와도 좋은 값으로 읽지 않는다.
 sigma_meas_over_delta,측정 산포 / 허용 범위,1회 측정 잡음이 허용 범위의 몇 배인지.,`sigma_meas` / `delta`. `delta` = 0이면 빈 칸,작을수록 판정이 쉽다. 1에 가까우면 잡음만으로 허용 범위를 다 쓴다.
 n_outlier_die,튀는 die 수,차이 d가 다른 die와 크게 다른 die 수. 참고용이고 판정에 안 쓴다.,|`d` − median(`d`)| > 5 × 1.4826 × MAD(`d`)인 die 수. MAD = 0이면 0,"0보다 크면 outlier_dies.csv에서 어느 die인지, 여러 ITEM에서 같은 die가 반복되는지 본다."
+judgeability,판정력,"이 ITEM을 같다/다르다로 가를 만큼 측정이 안정한가. 참고, 판정에 안 씀. ci_half_over_delta가 빈 칸이면 빈 칸","ci_half_over_delta ≤ 0.5 안정, ≤ 0.8 주의, 그 위 불안정","실제로 같은 ITEM이 동등으로 나올 확률은 안정 약 98%, 주의 약 61%, 불안정 약 8% (시뮬레이션). 불안정이면 미결이 나와도 공정 탓이 아니라 측정 탓일 수 있음"
 por_gap_over_delta,회차 차 / 허용 범위,POR 회차끼리 전체가 얼마나 이동했는지를 Δ와 견준 값. 조건 불안정의 근거다.,"gap / `delta`, gap = max(rr) − min(rr), rr = 회차마다 median(`POR{k}` − die별 회차 평균). `delta` ≤ 0이면 빈 칸",1 이상이고 `por_gap_over_noise` ≥ 3이면 조건 불안정이다.
 por_gap_over_noise,회차 차 / die 잡음,회차 차가 die 잡음만으로 생길 크기의 몇 배인지.,"gap / se, se = 1.2533 × `sigma_die` × √2 / √n, n = `n_die`. se가 0이면 빈 칸",3 이상이면 die 잡음으로 설명이 안 되는 회차 이동이다.
 run_jitter_pct,회차 흔들림 %,die 하나를 회차마다 다시 잴 때 값이 흔들린 폭을 값 대비 %로 본 것.,"100 × median(`por_range` / |mean(`POR{k}`)|) (die별, 회차 평균이 0인 die는 뺌)",크면 같은 die도 회차마다 값이 많이 바뀐다.
@@ -49,6 +53,13 @@ skew_log,log 비대칭도,log10|R| 분포가 한쪽으로 치우친 정도. 범�
 log_fit,log 대칭 이득,log로 바꾸면 분포가 얼마나 더 대칭이 되는지.,|`skew_lin`| − |`skew_log`|,양수면 log 쪽이 더 대칭이다. 0.1을 넘고 `decades` ≥ 1이면 log 후보다.
 bimodality_log,두 덩어리 지수,log10|R|가 두 무리로 나뉘는 정도 (bimodality coefficient).,"(g² + 1) / (k + 3(n−1)² / ((n−2)(n−3))), g = 표본 왜도, k = 표본 초과 첨도 (둘 다 보정식), n = 값 수. n < 4이거나 값이 모두 같으면 빈 칸","5/9를 넘고 die ≥ 10이면 두 덩어리다. die가 두 종류로 나뉘는지(공정 차이, 다른 칩) 확인한다."
 mean_median_ratio,평균과 중앙값의 차,분포가 한쪽으로 끌려간 정도. 판정에 안 쓴다.,"(mean(R) − median(R)) / |median(R)|, R = die별 mean(`POR{k}`). median(R) = 0이면 빈 칸",크면 일부 die가 평균을 한쪽으로 끌고 간다. 중앙값으로 판정하는 이유다.
+spread_robust,"값 퍼짐 (자릿수, robust)","die별 POR 평균이 log 값으로 몇 자릿수에 걸쳐 있나. 사분위로 재서 몇 die만 튀어도 거의 안 변함. 참고, 판정·log 후보에 안 씀. 0이 아닌 die가 4개 미만이면 빈 칸",3.45 × IQR(log10 |die별 POR 평균|),decades가 크고 이 값이 0.1 아래면 몇 die만 떨어진 것. 0.3 이상이면 값이 실제로 넓게 퍼짐 (log 척도 후보)
+noise_slope,잡음 기울기,"값이 클수록 같은 die를 다시 잰 흔들림(POR 회차 SD)도 커지나. 참고, 판정·log 후보에 안 씀. 평균과 SD가 양수인 die만 써서 값이 음수인 ITEM은 빈 칸, 그런 die가 3개 미만이어도 빈 칸",Theil-Sen 기울기 of log10(die별 POR 회차 SD) on log10(die별 POR 회차 평균),"0 근처면 흔들림 크기가 값과 무관 (선형 척도), 1 근처면 값에 비례 (log 척도), 2 근처면 전류의 역수(저항)처럼 큰 값일수록 %로도 더 흔들림. spread_robust ≥ 0.3 이고 이 값 ≥ 0.5 면 시뮬레이션에서 log 척도를 95% 맞히고 선형을 3%만 잘못 부름 (제안 기준, 판정에 안 씀)"
+noise_slope_lo,잡음 기울기 아래 끝,noise_slope의 95% 구간 아래 끝. 참고,"Theil-Sen 구간 (Sen 1968, scipy theilslopes와 같은 값)",noise_pattern은 이 구간이 0과 1을 품는지로 정함
+noise_slope_hi,잡음 기울기 위 끝,noise_slope의 95% 구간 위 끝. 참고,noise_slope_lo와 같음,
+noise_slope_low,작은 값 쪽 기울기,die별 POR 평균이 die 중앙값보다 작은 die만으로 맞춘 noise_slope. 3 die 미만이면 빈 칸,"noise_slope와 같은 식, 아래 절반 die",noise_slope_high와 0.7 넘게 다르면 꺾임: 값 범위에 따라 잡음 모양이 바뀜
+noise_slope_high,큰 값 쪽 기울기,die별 POR 평균이 die 중앙값보다 큰 die만으로 맞춘 noise_slope. 3 die 미만이면 빈 칸,"noise_slope와 같은 식, 위 절반 die","예: 아래 0 근처, 위 1 근처면 작은 값은 장비 바닥 잡음, 큰 값은 값에 비례하는 잡음"
+noise_pattern,잡음 모양,"같은 die를 다시 잰 흔들림이 값에 따라 어떻게 바뀌나. 참고, 판정에 안 씀. 판별 불가 / 일정 / 비례 / 위로 갈수록 벌어짐 / 아래로 갈수록 벌어짐 / 사이, 판별된 것에 ' (꺾임)'이 붙을 수 있음","판별 불가: spread_robust < 0.3, 쓸 수 있는 die < 10, 또는 구간이 0과 1을 둘 다 품음. 일정: 구간에 0. 비례: 구간에 1. 위로 갈수록 벌어짐: 구간 아래 끝 > 1. 아래로 갈수록 벌어짐: 구간 위 끝 < 0. 사이: 구간이 0과 1 사이. 꺾임: |noise_slope_low − noise_slope_high| > 0.7",일정 = 흔들림 크기가 어디서나 같음 (선형으로 봄). 비례 = 흔들림이 값의 일정 % (log로 봄). 위로 갈수록 벌어짐 = 큰 값이 %로도 더 흔들림 (저항 = 1/전류 등). 아래로 갈수록 벌어짐 = 작은 값이 절대량으로도 더 흔들림. 사이 = 바닥 잡음 + 비례 잡음. 시뮬레이션에서 각 모양을 약 90% 맞힘 (95% 구간이라 나머지는 이웃 이름)
 center_log,log 이동량,log10 값에서 본 이동량. die별 차이의 중앙값이다.,median(log10|`DOE`| − mean(log10|`POR{k}`|)) (die별),10^값 − 1이 비율 변화다. 0.0414면 DOE가 약 10% 크다.
 ci_low_log,log 이동량 범위 아래 끝,log 판정의 90% 신뢰구간 아래 끝.,log 차이에 `ci_low`와 같은 부호검정 순위,
 ci_high_log,log 이동량 범위 위 끝,log 판정의 90% 신뢰구간 위 끝.,log 차이에 `ci_high`와 같은 부호검정 순위,

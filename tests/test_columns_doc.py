@@ -82,8 +82,8 @@ def test_new_column_is_reported_as_undocumented(out_dirs, tmp_path):
     out = tmp_path / "out"
     shutil.copytree(out_dirs[0], out)
     text = (out / "items.csv").read_text(encoding="utf-8-sig").split("\n", 1)
-    (out / "items.csv").write_text(text[0] + ",rsd_pct\n" + text[1], encoding="utf-8-sig")
-    assert columns_doc.undocumented(out) == {"items.csv": ["rsd_pct"]}
+    (out / "items.csv").write_text(text[0] + ",new_metric\n" + text[1], encoding="utf-8-sig")
+    assert columns_doc.undocumented(out) == {"items.csv": ["new_metric"]}
 
 
 def test_numbered_pattern():
