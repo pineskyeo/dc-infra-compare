@@ -282,6 +282,7 @@ def _footnote(fig, text: str) -> None:
     fig.text(0.01, 0.01, text, fontsize=8, color="#555555", ha="left", va="bottom")
 
 
+FOREST_DPI = 150
 FOREST_COLUMNS = ("ITEM", "verdict_final", "center", "ci_low", "ci_high", "이동", "허용폭", "판정 이유")
 FOREST_XLIM = 3.0           # |x| 가 이보다 크면 화살표로 자르고 실제 숫자를 적는다
 FOREST_BAND_COLOR = "#d9f0d3"
@@ -385,8 +386,8 @@ def plot_forest(src: pd.DataFrame, path: Path) -> Path:
     how = ("점은 DOE와 POR의 die별 차이 중앙값이고, 1이면 허용폭만큼 움직인 것이다. 막대는 90% 신뢰구간으로 실제 차이가 "
            "있을 만한 범위다. 막대 전체가 초록 띠 안이면 동등, 전체가 밖이면 차이, 걸치면 미결이다. 화면 밖 막대는 화살표로 "
            "끝을 보이고 실제 숫자를 적었다. 이동·허용폭은 POR 값 대비 %다 (log 판정은 배율, LoQ 아래 ITEM은 값).")
-    explain.add_figure_note(fig, how, this_run)
-    fig.savefig(path, dpi=150)
+    explain.add_figure_note(fig, how, this_run, dpi=FOREST_DPI)
+    fig.savefig(path, dpi=FOREST_DPI)
     plt.close(fig)
     return path
 

@@ -175,3 +175,21 @@ def test_figure_note_sits_below_axes_at_fixed_place(layout):
         placed.append(run.get_position())
         plt.close(fig)
     assert placed[0] == placed[1], "이번 결과 줄은 그림 크기와 상관없이 왼쪽 아래 같은 인치 위치"
+
+
+@pytest.mark.parametrize("dpi", [72, 100, 110, 130, 150, 200])
+def test_figure_note_lines_fit_the_page_at_the_save_dpi(dpi, tmp_path):
+    configure_font()
+    long = ("점이 가운데 아래에 모일수록 DOE가 POR과 같다 (|x| + y < 1, Δ = 허용폭, ±1 = 허용폭만큼). "
+            "위쪽 점은 측정이 흔들려 판단을 못 한 ITEM이고 VT_LONG_ITEM_NAME_0001 같은 이름은 그대로 둔다. ") * 4
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.plot([0, 1], [0, 1])
+    how, run = add_figure_note(fig, long, "차이 40개 중 32개가 + 방향 (한쪽으로 몰림, p < 0.05). " * 3, dpi=dpi)
+    fig.savefig(tmp_path / "note.png", dpi=dpi)
+    fig.set_dpi(dpi)
+    renderer = fig.canvas.get_renderer()
+    right = (fig.get_size_inches()[0] - 0.15) * dpi
+    for text in (how, run):
+        assert text.get_text().count("\n") >= 1
+        assert text.get_window_extent(renderer).x1 <= right + 1, text.get_text()
+    plt.close(fig)

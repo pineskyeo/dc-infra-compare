@@ -37,6 +37,7 @@ from por_doe_compare import (  # noqa: E402
     AUTO_SCALES, MIN_DIE, SCALE_LOG, ST_LOG_CANDIDATE, ST_NEAR_LOQ, V_EXCLUDED, _status_parts, ci_median, tost,
 )
 
+DPI = 110
 FLAG_Q = 0.05
 RATIO_MIN = 1.3
 TAIL_FRAC_MIN = 0.05
@@ -416,7 +417,7 @@ def plot_loq_map(table: pd.DataFrame, path: Path) -> Path:
              "주황 칸(왼쪽 위)은 둘 다 '<LoQ'로 보고되어 판정은 동등이지만 실제로는 움직였을 수 있는 곳이다. "
              "빨간 마름모는 die 대부분이 같은 방향으로 움직였거나(방향) 일부 die만 크게 벗어난(꼬리) ITEM이다. "
              "축 밖 값은 축 끝에 붙였다.",
-        f"대상 ITEM {len(table):,}개 중 확인 필요 {len(hit):,}개 (방향 {n_dir:,}, 꼬리 {n_tail:,}). 판정은 바꾸지 않았다.")
+        f"대상 ITEM {len(table):,}개 중 확인 필요 {len(hit):,}개 (방향 {n_dir:,}, 꼬리 {n_tail:,}). 판정은 바꾸지 않았다.", dpi=DPI)
     return _save(fig, path)
 
 
@@ -474,7 +475,7 @@ def plot_log_map(table: pd.DataFrame, path: Path) -> Path:
              "같다고 보는 허용폭이고, 점 색은 각 판정이다. 검은 선이 회색 띠 안에 다 들어가면 동등이다. 빨간 ◆ 이름은 "
              "선형으로 차이인데 log 로 동등이 됐거나, log 값에서 일부 die만 크게 벗어난 '확인 필요' ITEM이다.",
         f"대상 ITEM {n:,}개 중 확인 필요 {int(table['flag'].sum()):,}개 (log 가 차이를 동등으로 바꿈 {n_l1:,}, "
-        f"꼬리 {n_tail:,}). 판정은 바꾸지 않았다.{more}")
+        f"꼬리 {n_tail:,}). 판정은 바꾸지 않았다.{more}", dpi=DPI)
     return _save(fig, path)
 
 
@@ -573,13 +574,13 @@ def plot_item(item: str, Y: np.ndarray, z: np.ndarray, row: Mapping, review: Rev
         fig, "왼쪽은 회차별 die 값(파랑 POR1, 회색 POR2.., 검정 DOE)이다. 가운데는 같은 die 의 POR 값(가로)과 DOE 값(세로)이고, "
              "대각선 위면 DOE 가 크다. 오른쪽은 die별 차이를 작은 순으로 늘어놓은 것으로, 회색 띠는 POR 회차끼리 다시 잴 때의 "
              "흔들림 5배다. 띠 밖 빨간 점이 크게 벗어난 die 이고, 세 그림 모두 빨간 테두리로 같은 die 를 표시했다.",
-        rec["why"])
+        rec["why"], dpi=DPI)
     return _save(fig, path)
 
 
 def _save(fig, path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=110, facecolor="white")
+    fig.savefig(path, dpi=DPI, facecolor="white")
     plt.close(fig)
     return path
 

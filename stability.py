@@ -26,6 +26,7 @@ from por_doe_compare import (JUDGEABILITY_BANDS, NOISE_BEND, NOISE_PATTERNS, ST_
                              ST_RUN_JITTER, ST_UNSTABLE)
 
 DIR = "stability"
+DPI = 150
 UNGROUPED = "미지정"                 # group_summary 와 같은 이름
 DIE_FRAC_RATIO = 3.0                 # die 회차 범위가 ITEM 중앙 범위의 이 배수를 넘으면 그 ITEM 에서 튐
 DIE_SCORE_MIN = 1.5                  # 흔들리는 die: 점수 ≥ 이 값
@@ -214,7 +215,6 @@ def takeaway(tables: dict[str, pd.DataFrame], die_cols: list[str]) -> str:
     return text
 
 
-# explain.add_figure_note 가 낱말마다 폭을 재므로 짧게 쓴다 (자세한 설명은 docs/columns)
 HOW_TO_READ = ("막대는 ITEM 판정력 (신뢰구간 반폭 ÷ 허용폭: 0.5 이하 안정, 0.8 이하 주의, 그 위 불안정). 지도 색은 die 점수 "
                "(POR 회차 범위가 보통의 몇 배, 1이 보통), 빨간 테두리는 흔들리는 die (프로빙 의심), 숫자는 DOE에서 튄 "
                "ITEM 수. 회차 막대는 다른 회차 평균과의 차이 (σ_die), ±0.25 밖의 가장 큰 회차 하나만 밀린 회차로 본다.")
@@ -310,6 +310,6 @@ def plot(path: Path, tables: dict[str, pd.DataFrame], die_cols: list[str]) -> No
     if wafers:
         fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=fig.axes[-len(wafers):], shrink=0.6,
                      label=f"die 점수 (1 = 보통){more}")
-    add_figure_note(fig, HOW_TO_READ, takeaway(tables, die_cols))
-    fig.savefig(path, dpi=150)
+    add_figure_note(fig, HOW_TO_READ, takeaway(tables, die_cols), dpi=DPI)
+    fig.savefig(path, dpi=DPI)
     plt.close(fig)
