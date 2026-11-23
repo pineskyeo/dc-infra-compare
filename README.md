@@ -219,55 +219,47 @@ VT_N1,SHORT_V
 | `items.csv` | ITEM별 판정. 차이, 미결, 동등, 판정 제외 순 |
 | `outlier_dies.csv` | ITEM마다 튀는 die와 POR 회차별, DOE 값 |
 | `summary.txt` | `summarize.py`가 만드는 공유용 요약 (ITEM 이름 대신 익명 번호) |
-| `item_map.csv` | 익명 번호 ↔ ITEM. 공유하지 마세요. `items.csv`에도 `ID` 열이 들어갑니다. 번호는 ITEM 이름 순서로 매겨서 실행마다 같습니다 |
+| `item_map.csv` | 익명 번호 ↔ ITEM. 공유하지 마세요. `items.csv`의 `ID` 열과 같은 번호입니다(`--family-regex`·`--keep-family`를 주면 `summarize.py`가 `ID` 열을 그 번호로 다시 씁니다). 번호는 ITEM 이름 순서로 매겨서 실행마다 같습니다 |
 
-`items.csv` 주요 열
+`items.csv` 열은 아래 묶음 순서입니다(`por_doe_compare.py`의 `COLUMN_GROUPS`, 열 순서는 이 표 하나가 정합니다). 묶음 안은 적힌 순서이고, 해당 경로·옵션에서만 생기는 열(`--level`, `--blank`, LoQ 미만의 `doe_center` 등)은 없으면 빠집니다. 표에 없는 열이 생기면 맨 끝에 붙습니다.
 
-| 열 | 내용 |
-|---|---|
-| `zone`, `verdict`, `reason` | 구간, 판정, 사유 |
-| `verdict_final`, `verdict_basis` | 최종 판정과 그 근거(`log`/`linear`). `verdict` 바로 뒤 열. 기본 판정 먼저: `verdict`가 동등이나 판정 제외면 `verdict` 그대로. 차이·미결이면 +@ 옵션(`OPTIONS`, 지금은 log 하나)을 순서대로 보고, `status`에 그 옵션의 태그(log는 `log 후보`)가 있고 옵션 판정(`verdict_log`)이 동등·차이·미결인 첫 옵션의 판정, 없으면 `verdict`. 판정 집계와 차이/미결 선택(`summarize`, `plot_verdicts`, `fail_evidence`, `group_summary`)은 `verdict_final` 기준 |
-| `por_median`, `POR1_mean` …, `DOE_mean` | POR 값, 회차별 평균 |
-| `center`, `ci_low`, `ci_high`, `rel_shift` | shift와 90% 신뢰구간, POR 대비 비율 |
-| `delta`, `policy_margin`, `run_margin`, `delta_source` | 허용폭과 그 구성 |
-| `sigma_die`, `sigma_run`, `LoQ`, `LoD`, `limit_source` | 흔들림과 LoQ |
-| `doe_center` | LoQ 미만: DOE 중심 |
-| `n_outlier_die`, `ttest`, `ttest_p`, `por_ttest_sig` | 참고 지표 |
-| `spec_status`, `level_check`, `range_por`, `range_doe`, `spec_resolution`, `accuracy_margin`, `verdict_with_accuracy` | `--level` 관련. `verdict_with_accuracy`는 장비 정확도 폭을 썼다면 나왔을 정량 판정(참고) |
-| `blank_item`, `blank_status`, `blank_LoQ_item`, `verdict_no_blank` | `--blank` 관련 |
-| `status` | 데이터 상태 (아래). 끝에서 서른두째 열 |
-| `por_gap_over_delta`, `por_gap_over_noise` | 조건 불안정 근거 값 (아래). 끝에서 서른한째~서른째 열 |
-| `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter` | 회차 흔들림·작을수록/클수록 흔들림 근거 값 (아래). 끝에서 스물아홉째~스물일곱째 열 |
-| `resolution_step`, `resolution_over_delta`, `fixed_share` | 분해능 부족·산포 0 근거 값 (아래). 끝에서 스물여섯째~스물넷째 열 |
-| `decades`, `skew_lin`, `skew_log`, `log_fit`, `bimodality_log` | 분포 모양 (log 후보·두 덩어리 근거, 아래). 끝에서 스물셋째~열아홉째 열 |
-| `mean_median_ratio` | 평균−중앙값 치우침 (아래). 끝에서 열여덟째 열 |
-| `sigma_meas` | 측정 산포 = √(`sigma_die`² + `sigma_run`²). 낮을수록 좋음 |
-| `meas_precision_pct` | 측정 정밀도 (%, 상대표준편차, 낮을수록 좋음) = 100 × `sigma_meas` / \|`por_median`\|. `por_median`이 0이면 빈 칸 |
-| `sigma_meas_over_delta` | `sigma_meas` / `delta`. 허용폭 대비 측정 산포. 낮을수록 좋음. `delta`가 0이면 빈 칸 |
-| `verdict_log`, `center_log`, `ci_low_log`, `ci_high_log`, `delta_log`, `ci_half_over_delta`, `ci_half_over_delta_log`, `spearman_size_jitter_log`, `log_reason` | log 판정 (아래). 끝에서 열넷째~여섯째 열 |
-| `sigma_die_log`, `sigma_run_log`, `below_linear_loq`, `policy_margin_log` | log 분석용 (판정에 안 씀, 아래). 끝에서 다섯째~둘째 열 |
-| `sigma_rep_log` | log 판정 Δ_log의 회차 항 (아래). 맨 끝 열 |
+| 묶음 | 열 | 내용 |
+|---|---|---|
+| 식별 | `ID`, `ITEM`, `UNIT` | `ID`는 익명 번호(항목군 + ITEM 이름 순서 번호, `summarize.py`와 같은 값). 맨 앞 열 |
+| 판정 | `verdict_final`, `verdict_basis` | 최종 판정과 그 근거(`log`/`linear`). 기본 판정 먼저: `verdict`가 동등이나 판정 제외면 `verdict` 그대로. 차이·미결이면 +@ 옵션(`OPTIONS`, 지금은 log 하나)을 순서대로 보고, `status`에 그 옵션의 태그(log는 `log 후보`)가 있고 옵션 판정(`verdict_log`)이 동등·차이·미결인 첫 옵션의 판정, 없으면 `verdict`. 판정 집계와 차이/미결 선택(`summarize`, `plot_verdicts`, `fail_evidence`, `group_summary`)은 `verdict_final` 기준 |
+| | `verdict`, `verdict_log`, `verdict_with_accuracy`, `verdict_no_blank` | 기본(선형) 판정, log 판정(아래), 장비 정확도 폭을 썼다면 나왔을 정량 판정(참고, `--level`), blank 없이 낸 판정(`--blank`) |
+| | `zone`, `reason`, `log_reason`, `status` | 구간, 사유, log 판정 사유, 데이터 상태(아래) |
+| TOST | `n_die`, `center`, `ci_low`, `ci_high` | die 수, shift와 90% 신뢰구간 |
+| | `delta`, `policy_margin`, `run_margin`, `delta_source`, `ci_half_over_delta` | 허용폭과 그 구성, 신뢰구간 반폭 / 허용폭 (아래) |
+| LoQ | `por_median`, `doe_center`, `LoQ`, `LoD`, `limit_source` | POR 값, LoQ 미만의 DOE 중심, LoQ와 그 출처 |
+| 값 | `POR1_mean` …, `DOE_mean` | 회차별 평균 |
+| 흔들림 | `sigma_die`, `sigma_run`, `sigma_meas`, `meas_precision_pct`, `sigma_meas_over_delta`, `n_outlier_die` | 흔들림, 측정 정밀도(아래), 튀는 die 수 |
+| 데이터 상태 지표 | `por_gap_over_delta`, `por_gap_over_noise`, `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter`, `resolution_step`, `resolution_over_delta`, `fixed_share` | `status` 근거 값 (`METRIC_COLS`, 아래) |
+| 분포 모양 | `decades`, `skew_lin`, `skew_log`, `log_fit`, `bimodality_log`, `mean_median_ratio` | log 후보·두 덩어리 근거(`SHAPE_COLS`), 평균−중앙값 치우침 (아래) |
+| log 판정 숫자 | `center_log`, `ci_low_log`, `ci_high_log`, `delta_log`, `ci_half_over_delta_log`, `sigma_rep_log`, `sigma_die_log`, `sigma_run_log` | log 판정 값 (아래). 끝의 둘은 분석용 |
+| 참고 | `ttest`, `ttest_p`, `por_ttest_sig` | 참고 지표 (판정에 안 씀) |
+| | `spec_status`, `level_check`, `range_por`, `range_doe`, `spec_resolution`, `accuracy_margin` | `--level` 관련 |
+| | `blank_item`, `blank_status`, `blank_LoQ_item` | `--blank` 관련 |
 
-`items.csv`의 마지막 서른두 열은 항상 `status`, `por_gap_over_delta`, `por_gap_over_noise`, `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter`, `resolution_step`, `resolution_over_delta`, `fixed_share`, `decades`, `skew_lin`, `skew_log`, `log_fit`, `bimodality_log`, `mean_median_ratio`, `sigma_meas`, `meas_precision_pct`, `sigma_meas_over_delta`, `verdict_log`, `center_log`, `ci_low_log`, `ci_high_log`, `delta_log`, `ci_half_over_delta`, `ci_half_over_delta_log`, `spearman_size_jitter_log`, `log_reason`, `sigma_die_log`, `sigma_run_log`, `below_linear_loq`, `policy_margin_log`, `sigma_rep_log` 순서입니다(`por_doe_compare.py`의 `STATUS_COLS` + `PRECISION_COLS` + `LOG_COLS`). 마지막 열네 열이 `LOG_COLS`입니다.
+`sigma_meas` = √(`sigma_die`² + `sigma_run`²), 측정 산포, 낮을수록 좋음. `meas_precision_pct` = 100 × `sigma_meas` / \|`por_median`\| (%, 상대표준편차, `por_median`이 0이면 빈 칸). `sigma_meas_over_delta` = `sigma_meas` / `delta` (`delta`가 0이면 빈 칸).
+
+예전 `items.csv`에 있던 `rel_shift`(= `center` / \|`por_median`\|), `policy_margin_log`(= log10(1 + r) = `delta_log` − `sigma_rep_log`), `below_linear_loq`(= \|`por_median` + `center`\| < `LoQ`), `spearman_size_jitter_log`(log 판정이 된 ITEM에서 `spearman_size_jitter`와 같은 값)는 남은 열에서 바로 나와서 뺐습니다. 그 열이 있는 예전 파일도 `summarize.py`, `plot_verdicts.py`, `fail_evidence.py`, `compare_before_after.py`가 그대로 읽습니다.
 
 ### log 판정 (`verdict_log`)
 
-`verdict_log`는 log형 ITEM의 판정입니다. L = log10\|값\| 공간에서 TOST만 해서 `LOG_COLS`(마지막 열네 열)에 적습니다. 선형 `verdict`·`reason`은 그대로 둡니다.
+`verdict_log`는 log형 ITEM의 판정입니다. L = log10\|값\| 공간에서 TOST만 해서 `LOG_COLS`에 적습니다. 선형 `verdict`·`reason`은 그대로 둡니다.
 
 - 대상: `status`와 무관하게 POR·DOE 값에 0이 없고 부호가 하나인 ITEM 전부입니다.
-- POR·DOE 값에 0이 있거나 부호가 섞이면 log를 취할 수 없어 `verdict_log` = `판정 제외`, `log_reason`에 `0값 있음`, `부호 섞임` 중 맞는 것을 `; `로 잇고, `_log` 숫자 열은 빈 칸입니다(`ci_half_over_delta`, `below_linear_loq`는 선형 값이라 그대로 씁니다).
+- POR·DOE 값에 0이 있거나 부호가 섞이면 log를 취할 수 없어 `verdict_log` = `판정 제외`, `log_reason`에 `0값 있음`, `부호 섞임` 중 맞는 것을 `; `로 잇고, `_log` 숫자 열은 빈 칸입니다(`ci_half_over_delta`는 선형 값이라 그대로 씁니다).
 - 그 밖은 L = log10\|Y\|(POR), w = log10\|z\|(DOE)에서 die별 d = w − L 회차 평균, 중앙값과 부호검정 90% CI를 구해 TOST로 판정합니다. die가 10개 미만이면 미결, 판정 제외 1~2(중심·CI 계산 불가, die 산포 0)나 Δ_log ≤ 0이면 판정 제외입니다. `log_reason`은 그 판정의 사유입니다.
 - Δ_log = log10(1 + r) + `sigma_rep_log`. 정책 항은 선형의 r × \|POR\|가 log 공간에서 더하는 폭 log10(1 + r)입니다. 회차 항에는 t(0.95, J−1) × √(1 + 1/J) 배수가 없습니다.
 - `sigma_rep_log` = die마다 L 회차값의 표준편차(ddof=1) → 그 die 중앙값. 유효한 회차값이 2개 미만인 die는 빼고, 남는 die가 없으면 빈 칸입니다.
 - LoQ 판정은 하지 않습니다. L이 0 근처라는 것은 그 단위에서 값이 1 근처라는 뜻일 뿐이라, 단위(kΩ, Ω)를 바꾸면 달라지기 때문입니다. blank, 장비 분해능, 장비 정확도도 원측정값 단위라 쓰지 않습니다.
 - `ci_half_over_delta` = (`ci_high` − `ci_low`) / 2 / `delta`(선형), `ci_half_over_delta_log`는 같은 값을 log 판정으로 계산. Δ ≤ 0이나 NaN이면 빈 칸입니다. 두 값을 비교해 어느 공간에서 해상도가 나은지 봅니다.
-- `spearman_size_jitter_log` = Spearman ρ(log10\|회차 평균\|, die별 L 회차 범위). `spearman_size_jitter`와 같은 계산이며, POR가 1회뿐이거나 유효 die < 3이면 빈 칸입니다.
 
 분석용 열 (판정에 쓰지 않음)
 
 - `sigma_die_log`, `sigma_run_log` = L에서 구한 σ_die, σ_run. `verdict_log`가 판정 제외면 빈 칸. `sigma_run_log`(웨이퍼 공통 회차 이동)는 Δ_log에 쓰지 않습니다.
-- `below_linear_loq` = 선형 DOE 중심 \|`por_median` + `center`\| < 선형 `LoQ`이면 True. 모든 ITEM에 쓰고, LoQ나 중심이 NaN이면 빈 칸.
-- `policy_margin_log` = log10(1 + r). log 판정이 된 ITEM만.
 
 log 진단 대상(`is_log_target`: `fail_evidence.py`의 log 진단 그림, `log_compare.py`)은 판정 대상과 다릅니다. `status`에 `작을수록 흔들림`이나 `클수록 흔들림`이 있거나, `verdict`와 `verdict_log`가 둘 다 값이 있고 다른 ITEM입니다(`verdict_log`가 판정 제외면 다르다고 보지 않음).
 
@@ -410,7 +402,7 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 `python fail_evidence.py --input <items.csv> --out <폴더> [--items ID,...]` — por_doe_compare.py 결과 표(`--out` 폴더의 `items.csv`, 탭 구분 표도 됨. `ITEM` 열과 `<이름>_mean` 회차 열은 compare_before_after.py와 같은 방식으로 읽음)에서 verdict가 '차이'·'미결'인 ITEM의 근거를 규칙으로 계산해 `fail_evidence.csv`, `forest.png`, `summary.txt`, `items_index.csv`와 ITEM별 폴더 `items/<유형>_<ITEM>/`를 만듭니다. 폴더에는 항상 `summary.csv`가 있고, 원데이터(`--por`·`--doe`)를 주면 `raw.csv`(die별 원데이터, 행이 없으면 머리줄만)와 `drill.png`, status별 `status_<이름>.png`, log 진단 대상이면 `log_diag.png`가 붙습니다(log 진단만 하는 ITEM 폴더는 `summary.csv`·`raw.csv`·`log_diag.png`). `fail_evidence.csv` 첫 열은 실제 `ITEM` 이름이고, 익명 `ID` 열이 있으면 그 옆에 붙습니다. `--items`를 주면 그 ID만 ITEM 그림을 그립니다(CSV·forest는 전체). `--only ID,...`(`--items`와 같이 쓸 수 없음)는 차이·미결 기본 대상 없이 지정 ITEM(실제 이름 또는 익명 ID, 판정 제외 ITEM 포함)만 폴더를 만들고, 원데이터 DCNORMAL 파일도 읽을 때부터 그 ITEM 줄만 파싱하며(`infra_compare.read_dcnormal(..., items=)`, 결과는 전체를 읽고 거른 것과 같음) `fail_evidence.csv`·`forest.png`·`items_index`도 그 ITEM만 담습니다. 이 거르기의 속도는 `python tools/bench_read_only.py [--items 6000 --dies 60 --files 3 --pick 2 --repeat 3 --seed 0]`(합성 파일로 전체 읽기 후 거르기와 비교, 결과 동일 확인)로 잴 수 있습니다.
 
-입력에 items.csv의 `status`~`mean_median_ratio` 열(`por_gap_over_delta`는 이 도구가 따로 계산해 빼고, 열 순서는 위 items.csv 순서)과 `sigma_meas`, `meas_precision_pct`, `sigma_meas_over_delta` 열이 있으면 `fail_evidence.csv` 맨 끝에 이 순서로 값을 그대로 옮기고, 없으면 빈 칸 열로 둡니다(판정에는 쓰지 않음).
+입력에 items.csv의 `status`, 데이터 상태 지표, 분포 모양 열(`por_doe_compare.py`의 `STATUS_COLS` 순서, `por_gap_over_delta`는 이 도구가 따로 계산해 뺌)과 `sigma_meas`, `meas_precision_pct`, `sigma_meas_over_delta` 열이 있으면 `fail_evidence.csv` 맨 끝에 이 순서로 값을 그대로 옮기고, 없으면 빈 칸 열로 둡니다(판정에는 쓰지 않음).
 
 열은 이름으로 찾습니다(`POR{k}_mean`은 2개 이상, k 가변). 대상 행에서 `por_median DOE_mean center ci_low ci_high delta LoQ` 열이 없거나 값이 빈칸·숫자 아님(엑셀 넘침 `####`, `***` 등)이면, 또는 값이 있는 POR 회차가 2개 미만이면 judgement='계산 불가'로 쓰고 사유를 note에 남깁니다. 빈 `POR{k}_mean`은 그 회차가 없는 것으로 봅니다. 대상이 아닌 행은 '대상 아님'으로 CSV에만 남깁니다.
 
@@ -433,7 +425,7 @@ verdict가 '판정 제외'인 행은 근거 대상이 아니며, '계산 불가'
 
 ## 기존·개선 비교 (`compare_before_after.py`)
 
-`python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더>` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. 첫 열 `ITEM`은 ID로 읽고(탭 구분 표의 `ID` 열도 됨), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`(`center_delta_before`·`center_delta_after` 열 포함), `summary.txt`, `stability_overall.csv`(전체 안정성 한 행, group_summary.py 결과의 '전체' 행과 같은 값), `worst_items.csv`(비율 지표별 악화 상위 N ITEM), 지표 그림 6장(`sigma_die_ratio.png`, `sigma_run_ratio.png`, `meas_precision_ratio.png`, `stability_sigma_die_pct.png`, `stability_meas_precision_pct.png`, `verdict_center_delta.png`)으로 냅니다. run_all.py에서는 `--before`만 주면(`--groups` 없이도) `결과/compare/`에 생깁니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 실제 `ITEM` 이름이고, 입력에 summarize.py의 익명 `ID` 열이 같이 있으면 그 옆에 `ID` 열로 붙습니다. 비교 키는 항상 실제 ITEM입니다. 한쪽에만 있는 ITEM은 따로 표시하고 σ 집계에서 뺍니다. 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 `misaligned` 열에 표시만 하고 기본으로 σ 집계에 포함합니다. 빼려면 `--exclude-misaligned`를 붙입니다. `compare.csv`에는 측정 정밀도 열 `meas_precision_pct_before`·`meas_precision_pct_after`·`meas_precision_pct_change`(개선−기존)와 `meas_precision_status`(`sigma_die_status`와 같은 규칙: lower/higher/same, 낮을수록 좋음)도 붙습니다. 입력 items.csv에 `meas_precision_pct` 열이 없으면(예전 결과) 100 × √(σ_die² + σ_run²) / |por_median|으로 계산합니다. `evidence <items.csv> -o <폴더>` 모드도 있고, 그 `evidence.csv`에도 같은 방식의 `meas_precision_pct` 열이 붙습니다. `evidence.csv`의 group은 fail_evidence.py와 같이 '차이'/'미결' 둘뿐입니다. `judgment` 바로 앞의 `status` 열에는 items.csv `status` 값을 그대로 옮기고(열이 없는 옛 items.csv면 빈 칸), status가 '정상'이 아니면 `judgment` 끝에 `원인(status): <status>`를 덧붙입니다. `evidence.csv`의 `por_gap_over_delta`(참고용, 판단에 쓰지 않음)도 fail_evidence.py와 같은 규칙입니다. items.csv의 짝지은 회차 차를 쓰고(`por_gap_def` = '짝지은 회차 차'), 열이 없는 옛 items.csv면 회차 평균의 max − min으로 계산하며(`por_gap_def` = '옛 정의(회차 평균 차)'), 그런 행이 있으면 `summary.txt`에 `por_gap: 옛 정의(회차 평균 차) n행 (items.csv에 짝지은 회차 차 열 없음)` 줄이 붙습니다.
+`python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더>` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. `ITEM` 열을 비교 키로 읽고(`ITEM` 열이 없는 탭 구분 표는 `ID` 열), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`(`center_delta_before`·`center_delta_after` 열 포함), `summary.txt`, `stability_overall.csv`(전체 안정성 한 행, group_summary.py 결과의 '전체' 행과 같은 값), `worst_items.csv`(비율 지표별 악화 상위 N ITEM), 지표 그림 6장(`sigma_die_ratio.png`, `sigma_run_ratio.png`, `meas_precision_ratio.png`, `stability_sigma_die_pct.png`, `stability_meas_precision_pct.png`, `verdict_center_delta.png`)으로 냅니다. run_all.py에서는 `--before`만 주면(`--groups` 없이도) `결과/compare/`에 생깁니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 실제 `ITEM` 이름이고, 입력에 summarize.py의 익명 `ID` 열이 같이 있으면 그 옆에 `ID` 열로 붙습니다. 비교 키는 항상 실제 ITEM입니다. 한쪽에만 있는 ITEM은 따로 표시하고 σ 집계에서 뺍니다. 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 `misaligned` 열에 표시만 하고 기본으로 σ 집계에 포함합니다. 빼려면 `--exclude-misaligned`를 붙입니다. `compare.csv`에는 측정 정밀도 열 `meas_precision_pct_before`·`meas_precision_pct_after`·`meas_precision_pct_change`(개선−기존)와 `meas_precision_status`(`sigma_die_status`와 같은 규칙: lower/higher/same, 낮을수록 좋음)도 붙습니다. 입력 items.csv에 `meas_precision_pct` 열이 없으면(예전 결과) 100 × √(σ_die² + σ_run²) / |por_median|으로 계산합니다. `evidence <items.csv> -o <폴더>` 모드도 있고, 그 `evidence.csv`에도 같은 방식의 `meas_precision_pct` 열이 붙습니다. `evidence.csv`의 group은 fail_evidence.py와 같이 '차이'/'미결' 둘뿐입니다. `judgment` 바로 앞의 `status` 열에는 items.csv `status` 값을 그대로 옮기고(열이 없는 옛 items.csv면 빈 칸), status가 '정상'이 아니면 `judgment` 끝에 `원인(status): <status>`를 덧붙입니다. `evidence.csv`의 `por_gap_over_delta`(참고용, 판단에 쓰지 않음)도 fail_evidence.py와 같은 규칙입니다. items.csv의 짝지은 회차 차를 쓰고(`por_gap_def` = '짝지은 회차 차'), 열이 없는 옛 items.csv면 회차 평균의 max − min으로 계산하며(`por_gap_def` = '옛 정의(회차 평균 차)'), 그런 행이 있으면 `summary.txt`에 `por_gap: 옛 정의(회차 평균 차) n행 (items.csv에 짝지은 회차 차 열 없음)` 줄이 붙습니다.
 
 `--plot-top N`(기본 10, 1 이상)은 각 비율 지표 그림 아래 악화 상위 표와 `worst_items.csv`에 넣을 ITEM 수입니다. 그림 자체는 모든 ITEM의 분포를 그립니다. `run_all.py --plot-top N`으로도 넘길 수 있습니다.
 
