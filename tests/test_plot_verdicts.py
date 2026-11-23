@@ -237,36 +237,47 @@ def test_plot_dashboard_writes_one_map_png(tmp_path: Path):
 
 
 def map_frame() -> pd.DataFrame:
-    """최종 판정 근거가 다른 정량 ITEM 넷 (옵션 열 포함)과 LoQ 아래 하나."""
+    """최종 판정 근거가 다른 정량 ITEM 넷 (옵션 열 포함), LoQ 아래 하나, 신뢰구간이 한쪽으로 긴 동등 하나, die 부족 하나."""
     nan = float("nan")
     return pd.DataFrame({
-        "ITEM": ["LIN", "LOG", "ACC", "OLD_BLANK", "FLOOR"],
-        "zone": ["정량", "정량", "정량", "정량", "검출한계 이하"],
-        "verdict": ["차이", "차이", "미결", "미결", "동등"],
-        "verdict_final": ["차이", "동등", "동등", "미결", "동등"],
-        "verdict_basis": ["linear", "log", "accuracy", "", "linear"],
-        "center": [3.0, 3.0, 1.0, -1.0, 0.0],
-        "ci_low": [2.0, 2.0, 0.0, -2.0, 0.0],
-        "ci_high": [4.0, 4.0, 2.0, 0.0, 0.0],
-        "delta": [1.0, 1.0, 1.0, 1.0, 1.0],
-        "accuracy_margin": [nan, nan, 4.0, nan, nan],
-        "center_log": [nan, 0.1, nan, nan, nan],
-        "ci_low_log": [nan, 0.05, nan, nan, nan],
-        "ci_high_log": [nan, 0.25, nan, nan, nan],
-        "delta_log": [nan, 0.5, nan, nan, nan],
+        "ITEM": ["LIN", "LOG", "ACC", "OLD_BLANK", "FLOOR", "SKEW", "FEW"],
+        "zone": ["정량", "정량", "정량", "정량", "검출한계 이하", "정량", "die 부족"],
+        "verdict": ["차이", "차이", "미결", "미결", "동등", "동등", "미결"],
+        "verdict_final": ["차이", "동등", "동등", "미결", "동등", "동등", "미결"],
+        "verdict_basis": ["linear", "log", "accuracy", "", "linear", "linear", "linear"],
+        "center": [3.0, 3.0, 1.0, -1.0, 0.0, 0.8, 0.1],
+        "ci_low": [2.0, 2.0, 0.0, -2.0, 0.0, 0.2, 0.0],
+        "ci_high": [4.0, 4.0, 2.0, 0.0, 0.0, 0.9, 0.2],
+        "delta": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        "accuracy_margin": [nan, nan, 4.0, nan, nan, nan, nan],
+        "center_log": [nan, 0.1, nan, nan, nan, nan, nan],
+        "ci_low_log": [nan, 0.05, nan, nan, nan, nan, nan],
+        "ci_high_log": [nan, 0.25, nan, nan, nan, nan, nan],
+        "delta_log": [nan, 0.5, nan, nan, nan, nan, nan],
     })
 
 
 def test_map_points_place_each_item_by_the_tost_that_set_its_final_verdict():
     points = map_points(map_frame()).set_index("ITEM")
     assert points.loc["LIN", ["x", "y"]].tolist() == [3.0, 1.0]
-    assert points.loc["LOG", ["x", "y"]].tolist() == pytest.approx([0.2, 0.2])   # log 열, 허용폭 delta_log
+    assert points.loc["LOG", ["x", "y"]].tolist() == pytest.approx([0.3, 0.2])   # log 열, 허용폭 delta_log
     assert points.loc["ACC", ["x", "y"]].tolist() == [0.25, 0.25]                # 허용폭 max(delta, 정확도 폭)
     assert points.loc["OLD_BLANK", "basis"] == "linear"
     assert points.loc["LOG", "verdict"] == "동등" and bool(points.loc["FLOOR", "loq_zone"])
-    for item in ("LOG", "ACC"):       # 최종 판정의 좌표라 색(최종 판정)과 칸이 맞는다
+    assert points.loc["SKEW", ["x", "y"]].tolist() == pytest.approx([0.55, 0.35])  # 가로는 중심 0.8 이 아니라 구간 가운데
+    for item in ("LOG", "ACC", "SKEW"):   # 색(최종 판정)과 칸이 맞는다
         x, y = points.loc[item, ["x", "y"]]
-        assert abs(x) + y < 1
+        assert abs(x) + y <= 1
+    assert math.isnan(points.loc["FEW", "x"])   # TOST 없이 미결이라 지도에 놓지 않는다
+
+
+def test_every_map_point_sits_in_the_region_of_its_verdict(por3_results: tuple[Path, Path]):
+    _, items_csv = por3_results
+    points = map_points(pd.read_csv(items_csv, encoding="utf-8-sig"))
+    on = points[~points["loq_zone"] & points["x"].notna() & points["y"].notna()]
+    region = [("동등" if abs(x) + y <= 1 else "차이" if abs(x) - y > 1 else "미결") for x, y in zip(on["x"], on["y"])]
+    assert len(on) > 0
+    assert region == on["verdict"].tolist()
 
 
 def test_map_this_run_counts_directions_and_flags_one_sided_moves():

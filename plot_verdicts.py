@@ -73,6 +73,7 @@ CLIPPED_LABEL = "x축 범위 밖 (끝에서 자름)"
 EXCLUDED_NOTE = "판정 제외 {n}개 (요약 그림에서 뺌)"
 NO_MAIN_ITEMS = "정량 zone ITEM 없음 (LoQ 미만은 summary_loq.png)"
 LOQ_ZONES = ("검출한계 이하", "검출~정량")
+NO_TOST_ZONES = ("die 부족",)   # TOST 없이 미결로 정해져 지도 좌표가 판정을 뜻하지 않는 zone
 # 각 함수가 시작할 때 지우는 자기 그림(--out 기준 glob). 장 수가 줄거나 건너뛴 그림이 남지 않게 한다.
 OWN_OUTPUTS = {
     "summary": ("summary_[0-9][0-9][0-9].png",),
@@ -83,9 +84,9 @@ OWN_OUTPUTS = {
 }
 
 # 판정 지도 summary.png (설계 1-1). 점 하나가 ITEM 하나: 최종 판정을 정한 TOST 의 이동과 신뢰구간 반폭을 그 허용폭으로
-# 나눈 좌표. 동등 |x| + y < 1, 차이 |x| − y > 1 (신뢰구간이 좌우 대칭일 때), 그 사이 미결.
+# 나눈 좌표. x 는 신뢰구간 가운데라 동등 |x| + y ≤ 1, 차이 |x| − y > 1 이 판정과 정확히 같다. 그 사이 미결.
 MAP_TITLE = "ITEM 판정 지도"
-MAP_XLABEL = "DOE가 움직인 양 ÷ 허용폭   (0 = 그대로, ±1 = 허용폭만큼)"
+MAP_XLABEL = "DOE가 움직인 양 ÷ 허용폭   (신뢰구간 가운데, 0 = 그대로, ±1 = 허용폭만큼)"
 MAP_YLABEL = "측정이 흔들리는 정도 ÷ 허용폭   (90% 신뢰구간 반폭)"
 # 세로축 위끝: 점 99%가 들어가게 (동등 삼각형 꼭대기 1 은 늘 보이게), 이보다 높으면 축 끝에 붙인다
 MAP_YLIM_MIN, MAP_YLIM_MAX = 1.2, 3.0
@@ -106,8 +107,8 @@ DIRECTION_NONE = "차이·미결 ITEM 없음"
 MAP_HOW_TO_READ = (
     "점 하나가 ITEM 하나다. 가로는 DOE가 움직인 양을 허용폭으로 나눈 값이고, 세로는 측정이 흔들리는 정도(90% 신뢰구간 "
     "반폭)를 허용폭으로 나눈 값이다. 점이 가운데 아래 초록 삼각형에 모일수록 DOE가 POR과 같고, 좌우 주황 칸은 "
-    "달라졌다, 그 사이와 위쪽은 미결이다. 위쪽 점은 측정이 흔들려 판단을 못 한 ITEM이다. 점 색은 최종 판정이다. 칸 경계는 "
-    "신뢰구간이 좌우 대칭이라고 보고 그린 선이라 경계 근처 점은 색과 칸이 다를 수 있다. log·장비 정확도 옵션이 정한 "
+    "달라졌다, 그 사이와 위쪽은 미결이다. 위쪽 점은 측정이 흔들려 판단을 못 한 ITEM이다. 점 색은 최종 판정이고 칸과 "
+    "늘 같다 (가로는 신뢰구간 가운데). log·장비 정확도 옵션이 정한 "
     "ITEM은 그 판정의 이동·신뢰구간·허용폭으로 놓았다.")
 SKEW_P = 0.05            # 차이·미결의 +/− 개수 부호검정 p 가 이보다 작으면 "한쪽으로 몰림"
 LOQ_REVIEW_CSV = Path("review") / "loq_review.csv"   # review.py 결과, items.csv 폴더 기준
@@ -541,13 +542,14 @@ def map_points(items: pd.DataFrame) -> pd.DataFrame:
     _require_columns(items, {"ITEM", "verdict"})
     nums = [basis_numbers(r) for r in items.to_dict("records")]
     margin = np.array([b.margin for b in nums])
-    margin = np.where(margin > 0, margin, np.nan)
+    zone = items["zone"].astype(str) if "zone" in items else pd.Series("", index=items.index)
+    margin = np.where((margin > 0) & ~zone.isin(NO_TOST_ZONES).to_numpy(), margin, np.nan)
     center = np.array([b.center for b in nums])
     half = np.array([(b.ci_high - b.ci_low) / 2 for b in nums])
-    zone = items["zone"].astype(str) if "zone" in items else pd.Series("", index=items.index)
+    mid = np.array([(b.ci_high + b.ci_low) / 2 for b in nums])
     return pd.DataFrame({
         "ITEM": items["ITEM"].astype(str), "verdict": verdict_col(items).astype(str).str.strip(),
-        "basis": [b.name for b in nums], "center": center, "x": center / margin, "y": half / margin,
+        "basis": [b.name for b in nums], "center": center, "x": mid / margin, "y": half / margin,
         "loq_zone": zone.isin(LOQ_ZONES),
     }, index=items.index)
 
