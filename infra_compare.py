@@ -100,6 +100,25 @@ def read_csv_auto(path: Path, encoding: str) -> pd.DataFrame:
     return pd.read_csv(io.StringIO(text))
 
 
+
+def read_pairs(path, names: tuple[str, str]) -> pd.DataFrame:
+    """두 열 파일 (쉼표/탭, utf-8, 헤더 선택) → names 두 열의 표. 첫 칸이 names[0] 이나 ID 인 첫 줄은 헤더.
+    앞뒤 공백을 빼고, 첫 열이 빈 행은 빼고, 첫 열이 겹치면 처음 것만."""
+    p = Path(path)
+    raw = p.read_text(encoding="utf-8-sig")
+    sep = "\t" if "\t" in raw.splitlines()[0] else ","
+    g = pd.read_csv(p, sep=sep, header=None, dtype=str, encoding="utf-8-sig").iloc[:, :2]
+    g.columns = list(names)
+    g = g.apply(lambda s: s.str.strip())
+    if str(g.iloc[0, 0]).upper() in (names[0].upper(), "ID"):
+        g = g.iloc[1:]
+    return g.dropna(subset=[names[0]]).drop_duplicates(names[0], keep="first")
+
+
+def read_groups(path) -> pd.DataFrame:
+    """ITEM,group 파일 (plot_verdicts·group_summary·por_doe_compare --groups)."""
+    return read_pairs(path, ("ITEM", "group"))
+
 ITEM_POS = MEASURE_COLS.index("ITEM")
 N_SEP = len(MEASURE_COLS) - 1
 

@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 
 import compare_metrics
+from infra_compare import read_groups
 
 UNGROUPED = "미지정"
 V_EXCLUDED = "판정 제외"  # por_doe_compare.V_EXCLUDED와 같은 값 (scipy 의존 없이 단독 실행되게 로컬로 둠)
@@ -68,19 +69,6 @@ def read_table(path):
     p = Path(path)
     sep = "\t" if p.suffix.lower() in (".tsv", ".txt") else ","
     return pd.read_csv(p, sep=sep, encoding="utf-8-sig")
-
-
-def read_groups(path):
-    p = Path(path)
-    raw = p.read_text(encoding="utf-8-sig")
-    sep = "\t" if "\t" in raw.splitlines()[0] else ","
-    g = pd.read_csv(p, sep=sep, header=None, dtype=str, encoding="utf-8-sig").iloc[:, :2]
-    g.columns = ["ITEM", "group"]
-    g = g.apply(lambda s: s.str.strip())
-    if g.iloc[0, 0].upper() in ("ITEM", "ID"):  # 헤더 줄
-        g = g.iloc[1:]
-    g = g.dropna(subset=["ITEM"]).drop_duplicates("ITEM", keep="first")
-    return g
 
 
 def as_bool(s):

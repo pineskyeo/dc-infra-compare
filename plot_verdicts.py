@@ -23,7 +23,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Rectangle
 from matplotlib.ticker import FuncFormatter, NullFormatter
 
-from infra_compare import load_blank, read_csv_auto
+from infra_compare import load_blank, read_csv_auto, read_groups
 from por_doe_compare import (
     ORDER, V_EXCLUDED, add_common_args, add_final_verdict, ci_rank, judge_item, load_levels, load_wide,
     verdict_col,
@@ -646,20 +646,6 @@ def plot_dashboard(
 
 NO_GROUP = "(그룹 없음)"
 NO_GROUP_WARNING = "그룹 파일에 없는 ITEM {n:,}개 → '" + NO_GROUP + "' 그룹으로 그림"
-
-
-def read_groups(path) -> pd.DataFrame:
-    """ITEM,group 두 열 파일(쉼표/탭, 헤더 선택). group_summary.read_groups와 같은 형식이며,
-    plot_verdicts를 단독으로 쓸 수 있게 따로 둔다."""
-    p = Path(path)
-    raw = p.read_text(encoding="utf-8-sig")
-    sep = "\t" if "\t" in raw.splitlines()[0] else ","
-    g = pd.read_csv(p, sep=sep, header=None, dtype=str, encoding="utf-8-sig").iloc[:, :2]
-    g.columns = ["ITEM", "group"]
-    g = g.apply(lambda s: s.str.strip())
-    if g.iloc[0, 0].upper() in ("ITEM", "ID"):  # 헤더 줄
-        g = g.iloc[1:]
-    return g.dropna(subset=["ITEM"]).drop_duplicates("ITEM", keep="first")
 
 
 def plot_group_dashboards(
