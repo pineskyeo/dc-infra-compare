@@ -50,6 +50,10 @@ PURPOSE = {
     "group_dirs.csv": "그룹 이름과 그룹 그림 폴더 이름의 대응표.",
     "log_compare.csv": "log 진단 대상 ITEM의 선형·log 신뢰구간 반폭 / Δ를 견준다.",
     "item_evidence": "ITEM 하나의 판정 근거를 원데이터에서 다시 적는다. 신뢰구간을 정한 die와 그 값, 허용폭의 구성, 올라간·내려간 die 수, 튀는 die. ITEM 폴더마다 한 행이다.",
+    "stability/overall.csv": "측정 안정도 전체 요약 한 행. 판정력 구간별 ITEM 비율, 정밀도와 판정력의 중앙값·상위 10%, 상태별·잡음 모양별 ITEM 수.",
+    "stability/groups.csv": "측정 안정도를 그룹마다 한 행으로 요약한다. --groups를 줄 때만 생긴다.",
+    "stability/dies.csv": "die 위치마다 POR 반복 흔들림 점수. 여러 ITEM에서 함께 크게 흔들리는 die를 찾는다.",
+    "stability/runs.csv": "POR 회차마다 다른 회차 대비 밀린 정도. 회차 하나가 통째로 밀렸는지 본다.",
     "loq_review.csv": "LoQ 아래·LoQ 근처 ITEM을 LoQ 규칙과 무관한 근거(방향 일관성, 배수, 검출률, 꼬리)로 다시 보고 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.",
     "log_review.csv": "log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보고, 선형 차이가 log로 동등이 된 ITEM과 꼬리가 바뀐 ITEM에 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.",
 }
@@ -61,7 +65,8 @@ INPUTS = {
     "compare": ("items",), "log_compare": ("items",),
     "stability_overall": ("compare",), "worst_items": ("compare",), "group_summary": ("compare",),
     "verdict_by_group": ("compare",), "stability_by_group": ("compare",), "group_dirs": ("group_summary",),
-    "loq_review": ("items",), "log_review": ("items",), "item_evidence": ("items",),
+    "loq_review": ("items",), "log_review": ("items",), "measure_stability_overall": ("items",), "measure_stability_groups": ("items",),
+    "measure_stability_dies": ("items",), "measure_stability_runs": ("items",), "item_evidence": ("items",),
 }
 
 HOW_TO_READ = (

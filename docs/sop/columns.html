@@ -69,6 +69,10 @@
 <tr><td><a href="#items-csv"><code>items.csv</code></a></td><td>por_doe_compare.py (dcc judge, run_all)</td><td>ITEM마다 판정, 판정 근거 숫자, 데이터 상태를 한 행에 적는다. 모든 결과의 출발점이다.</td></tr>
 <tr><td><a href="#outlier-dies-csv"><code>outlier_dies.csv</code></a></td><td>por_doe_compare.py</td><td>튀는 die(items.csv <code>n_outlier_die</code>에 센 die)마다 한 행. die 위치와 회차별 값을 적는다.</td></tr>
 <tr><td><a href="#scales-auto-csv"><code>scales_auto.csv</code></a></td><td>por_doe_compare.py --scales</td><td>척도가 auto인 그룹마다 log와 linear 중 무엇을 골랐는지 적는다. --scales를 줄 때만 생긴다.</td></tr>
+<tr><td><a href="#stability-overall-csv"><code>stability/overall.csv</code></a></td><td>stability.py (por_doe_compare)</td><td>측정 안정도 전체 요약 한 행. 판정력 구간별 ITEM 비율, 정밀도와 판정력의 중앙값·상위 10%, 상태별·잡음 모양별 ITEM 수.</td></tr>
+<tr><td><a href="#stability-groups-csv"><code>stability/groups.csv</code></a></td><td>stability.py (por_doe_compare --groups)</td><td>측정 안정도를 그룹마다 한 행으로 요약한다. --groups를 줄 때만 생긴다.</td></tr>
+<tr><td><a href="#stability-dies-csv"><code>stability/dies.csv</code></a></td><td>stability.py (por_doe_compare)</td><td>die 위치마다 POR 반복 흔들림 점수. 여러 ITEM에서 함께 크게 흔들리는 die를 찾는다.</td></tr>
+<tr><td><a href="#stability-runs-csv"><code>stability/runs.csv</code></a></td><td>stability.py (por_doe_compare)</td><td>POR 회차마다 다른 회차 대비 밀린 정도. 회차 하나가 통째로 밀렸는지 본다.</td></tr>
 <tr><td><a href="#item-map-csv"><code>item_map.csv</code></a></td><td>summarize.py (run_all)</td><td>익명 번호와 실제 ITEM 이름의 대응표. 공유하지 않는다.</td></tr>
 <tr><td><a href="#fail-evidence-csv"><code>fail_evidence.csv</code></a></td><td>fail_evidence.py (dcc item, run_all)</td><td>items.csv 모든 행을 옮기고, 기본 판정이 차이·미결인 ITEM은 근거 숫자를 Δ 단위와 % 단위로 다시 적는다.</td></tr>
 <tr><td><a href="#items-index-csv"><code>items_index.csv</code></a></td><td>fail_evidence.py</td><td>ITEM별 근거 폴더 목록. 최종 판정 차이·미결 ITEM, 지정한 ITEM, log 진단 대상 ITEM마다 한 행이다 (dcc item은 지정한 ITEM만).</td></tr>
@@ -91,7 +95,7 @@
 <section id="items-csv"><h2>items.csv</h2>
 <p>ITEM마다 판정, 판정 근거 숫자, 데이터 상태를 한 행에 적는다. 모든 결과의 출발점이다.</p>
 <p class="s">만드는 명령 por_doe_compare.py (dcc judge, run_all) · 위치 <code>items.csv</code></p>
-<p class="s">열 70개</p>
+<p class="s">열 81개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>ID</code></td><td>익명 번호</td><td>ITEM 이름을 감춘 번호. 항목군 순번과 ITEM 이름 순번으로 만든다.</td><td>F{항목군 순번 2자리}_I{ITEM 순번 4자리}. 항목군 = <code>ITEM</code> 앞쪽 영문자. 순번은 이름 순서</td><td>같은 ITEM 목록이면 실행마다 같은 번호다. 공유할 때 ITEM 이름 대신 쓰고, item_map.csv로 실제 이름을 찾는다.</td></tr>
 <tr><td><code>ITEM</code></td><td>ITEM 이름</td><td>측정 항목 이름. 원데이터에 적힌 그대로다.</td><td>원데이터 <code>ITEM</code> 그대로</td><td></td></tr>
@@ -121,6 +125,9 @@
 <tr><td><code>LoQ</code></td><td>정량한계</td><td>숫자로 믿고 비교할 수 있는 가장 작은 크기.</td><td>10 × σ, σ = max(<code>sigma_die</code>, <code>resolution_step</code> / √12, <code>spec_resolution</code> / √12). blank LoQ(<code>blank_LoQ_item</code>)가 더 크면 그 값</td><td>|<code>por_median</code>|이 이보다 작으면 LoQ 미만 규칙으로 판정한다. <code>limit_source</code>로 무엇이 정했는지 본다.</td></tr>
 <tr><td><code>LoD</code></td><td>검출한계</td><td>0이 아니라고 말할 수 있는 가장 작은 크기.</td><td>3.29 × σ (<code>LoQ</code>와 같은 σ). blank가 LoQ를 정하면 max(이 값, blank LoD), blank LoD = (|blank 평균| + 3.29 × blank σ) × |<code>CALCVAL</code>|</td><td>|<code>por_median</code>| &lt; <code>LoD</code>면 검출한계 이하 구간이다.</td></tr>
 <tr><td><code>limit_source</code></td><td>LoQ 출처</td><td>LoQ를 정한 σ가 어디서 왔는지.</td><td><code>LoQ</code>의 σ 후보 중 가장 큰 쪽: POR 반복(<code>sigma_die</code>), 데이터 분해능, 장비 분해능. blank LoQ가 더 크면 blank</td><td>분해능이면 값이 계단처럼 거친 것이다. blank면 바닥 잡음이 LoQ를 정한 것이다.</td></tr>
+<tr><td><code>loq_ratio</code></td><td>LoQ 배수</td><td>POR 값이 정량 한계(LoQ)의 몇 배인가. 참고, 판정에 안 씀. LoQ가 0 이하면 빈 칸</td><td>|por_median| / LoQ</td><td>1 미만이면 바닥 아래(&lt;LoQ로 보고), 1~2면 바닥 근처</td></tr>
+<tr><td><code>rsd_pct</code></td><td>정밀도 (%)</td><td>같은 die를 다시 한 번 재면 값의 몇 %가 흔들리나 (LoQ에서 거꾸로 구한 1회 측정 σ). 참고, 판정에 안 씀. por_median이 0이면 빈 칸</td><td>100 × (LoQ / 10) / |por_median|</td><td>허용폭 r(기본 5%)의 절반을 넘으면 동등 증명이 어려움. meas_precision_pct와 달리 분해능·blank로 정한 σ도 들어감</td></tr>
+<tr><td><code>resolution_pct</code></td><td>분해능 (%)</td><td>값이 몇 % 단위로 끊겨 나오나. 참고, 판정에 안 씀. por_median이 0이면 빈 칸</td><td>100 × resolution_step / |por_median|</td><td>r(기본 5%)의 10분의 1 근처나 그 위면 값이 거칠어 판정이 계단처럼 움직임</td></tr>
 <tr><td><code>POR{k}_mean</code></td><td>POR 회차 평균</td><td>k번째 POR 회차의 die 평균.</td><td>mean(<code>POR{k}</code>) (die 평균)</td><td>DOE만 회차 평균들 밖으로 벗어났는지, 회차 하나만 튀었는지 본다.</td></tr>
 <tr><td><code>DOE_mean</code></td><td>DOE 평균</td><td>DOE의 die 평균.</td><td>mean(<code>DOE</code>) (die 평균)</td><td><code>POR{k}_mean</code>들과 견준다. DOE만 밖에 있으면 DOE 조건이 값을 바꾼 것이다.</td></tr>
 <tr><td><code>sigma_die</code></td><td>반복성 σ_die</td><td>같은 die를 다시 잴 때 1회 측정이 흔들리는 크기.</td><td>die별 이웃 회차 차(<code>POR{k}</code>의 다음 회차 − 이번 회차)를 회차쌍마다 그 중앙값을 빼고 모은 뒤 1.4826 × MAD / √2. MAD = 중앙값에서 떨어진 거리의 중앙값</td><td>클수록 측정이 불안정하다. 0이면 값이 계단처럼 고정됐을 수 있다(status 산포 0).</td></tr>
@@ -129,6 +136,7 @@
 <tr><td><code>meas_precision_pct</code></td><td>측정 정밀도 %</td><td>측정 산포를 값 크기 대비 %로 나타낸 것 (상대표준편차).</td><td>100 × <code>sigma_meas</code> / |<code>por_median</code>|. <code>por_median</code> = 0이면 빈 칸</td><td>낮을수록 좋다. 값이 0 근처인 ITEM은 %가 커 보이니 <code>zone</code>을 같이 본다. status가 산포 0이면 작게 나와도 좋은 값으로 읽지 않는다.</td></tr>
 <tr><td><code>sigma_meas_over_delta</code></td><td>측정 산포 / 허용 범위</td><td>1회 측정 잡음이 허용 범위의 몇 배인지.</td><td><code>sigma_meas</code> / <code>delta</code>. <code>delta</code> = 0이면 빈 칸</td><td>작을수록 판정이 쉽다. 1에 가까우면 잡음만으로 허용 범위를 다 쓴다.</td></tr>
 <tr><td><code>n_outlier_die</code></td><td>튀는 die 수</td><td>차이 d가 다른 die와 크게 다른 die 수. 참고용이고 판정에 안 쓴다.</td><td>|<code>d</code> − median(<code>d</code>)| &gt; 5 × 1.4826 × MAD(<code>d</code>)인 die 수. MAD = 0이면 0</td><td>0보다 크면 outlier_dies.csv에서 어느 die인지, 여러 ITEM에서 같은 die가 반복되는지 본다.</td></tr>
+<tr><td><code>judgeability</code></td><td>판정력</td><td>이 ITEM을 같다/다르다로 가를 만큼 측정이 안정한가. 참고, 판정에 안 씀. ci_half_over_delta가 빈 칸이면 빈 칸</td><td>ci_half_over_delta ≤ 0.5 안정, ≤ 0.8 주의, 그 위 불안정</td><td>실제로 같은 ITEM이 동등으로 나올 확률은 안정 약 98%, 주의 약 61%, 불안정 약 8% (시뮬레이션). 불안정이면 미결이 나와도 공정 탓이 아니라 측정 탓일 수 있음</td></tr>
 <tr><td><code>por_gap_over_delta</code></td><td>회차 차 / 허용 범위</td><td>POR 회차끼리 전체가 얼마나 이동했는지를 Δ와 견준 값. 조건 불안정의 근거다.</td><td>gap / <code>delta</code>, gap = max(rr) − min(rr), rr = 회차마다 median(<code>POR{k}</code> − die별 회차 평균). <code>delta</code> ≤ 0이면 빈 칸</td><td>1 이상이고 <code>por_gap_over_noise</code> ≥ 3이면 조건 불안정이다.</td></tr>
 <tr><td><code>por_gap_over_noise</code></td><td>회차 차 / die 잡음</td><td>회차 차가 die 잡음만으로 생길 크기의 몇 배인지.</td><td>gap / se, se = 1.2533 × <code>sigma_die</code> × √2 / √n, n = <code>n_die</code>. se가 0이면 빈 칸</td><td>3 이상이면 die 잡음으로 설명이 안 되는 회차 이동이다.</td></tr>
 <tr><td><code>run_jitter_pct</code></td><td>회차 흔들림 %</td><td>die 하나를 회차마다 다시 잴 때 값이 흔들린 폭을 값 대비 %로 본 것.</td><td>100 × median(<code>por_range</code> / |mean(<code>POR{k}</code>)|) (die별, 회차 평균이 0인 die는 뺌)</td><td>크면 같은 die도 회차마다 값이 많이 바뀐다.</td></tr>
@@ -143,6 +151,13 @@
 <tr><td><code>log_fit</code></td><td>log 대칭 이득</td><td>log로 바꾸면 분포가 얼마나 더 대칭이 되는지.</td><td>|<code>skew_lin</code>| − |<code>skew_log</code>|</td><td>양수면 log 쪽이 더 대칭이다. 0.1을 넘고 <code>decades</code> ≥ 1이면 log 후보다.</td></tr>
 <tr><td><code>bimodality_log</code></td><td>두 덩어리 지수</td><td>log10|R|가 두 무리로 나뉘는 정도 (bimodality coefficient).</td><td>(g² + 1) / (k + 3(n−1)² / ((n−2)(n−3))), g = 표본 왜도, k = 표본 초과 첨도 (둘 다 보정식), n = 값 수. n &lt; 4이거나 값이 모두 같으면 빈 칸</td><td>5/9를 넘고 die ≥ 10이면 두 덩어리다. die가 두 종류로 나뉘는지(공정 차이, 다른 칩) 확인한다.</td></tr>
 <tr><td><code>mean_median_ratio</code></td><td>평균과 중앙값의 차</td><td>분포가 한쪽으로 끌려간 정도. 판정에 안 쓴다.</td><td>(mean(R) − median(R)) / |median(R)|, R = die별 mean(<code>POR{k}</code>). median(R) = 0이면 빈 칸</td><td>크면 일부 die가 평균을 한쪽으로 끌고 간다. 중앙값으로 판정하는 이유다.</td></tr>
+<tr><td><code>spread_robust</code></td><td>값 퍼짐 (자릿수, robust)</td><td>die별 POR 평균이 log 값으로 몇 자릿수에 걸쳐 있나. 사분위로 재서 몇 die만 튀어도 거의 안 변함. 참고, 판정·log 후보에 안 씀. 0이 아닌 die가 4개 미만이면 빈 칸</td><td>3.45 × IQR(log10 |die별 POR 평균|)</td><td>decades가 크고 이 값이 0.1 아래면 몇 die만 떨어진 것. 0.3 이상이면 값이 실제로 넓게 퍼짐 (log 척도 후보)</td></tr>
+<tr><td><code>noise_slope</code></td><td>잡음 기울기</td><td>값이 클수록 같은 die를 다시 잰 흔들림(POR 회차 SD)도 커지나. 참고, 판정·log 후보에 안 씀. 평균과 SD가 양수인 die만 써서 값이 음수인 ITEM은 빈 칸, 그런 die가 3개 미만이어도 빈 칸</td><td>Theil-Sen 기울기 of log10(die별 POR 회차 SD) on log10(die별 POR 회차 평균)</td><td>0 근처면 흔들림 크기가 값과 무관 (선형 척도), 1 근처면 값에 비례 (log 척도), 2 근처면 전류의 역수(저항)처럼 큰 값일수록 %로도 더 흔들림. spread_robust ≥ 0.3 이고 이 값 ≥ 0.5 면 시뮬레이션에서 log 척도를 95% 맞히고 선형을 3%만 잘못 부름 (제안 기준, 판정에 안 씀)</td></tr>
+<tr><td><code>noise_slope_lo</code></td><td>잡음 기울기 아래 끝</td><td>noise_slope의 95% 구간 아래 끝. 참고</td><td>Theil-Sen 구간 (Sen 1968, scipy theilslopes와 같은 값)</td><td>noise_pattern은 이 구간이 0과 1을 품는지로 정함</td></tr>
+<tr><td><code>noise_slope_hi</code></td><td>잡음 기울기 위 끝</td><td>noise_slope의 95% 구간 위 끝. 참고</td><td>noise_slope_lo와 같음</td><td></td></tr>
+<tr><td><code>noise_slope_low</code></td><td>작은 값 쪽 기울기</td><td>die별 POR 평균이 die 중앙값보다 작은 die만으로 맞춘 noise_slope. 3 die 미만이면 빈 칸</td><td>noise_slope와 같은 식, 아래 절반 die</td><td>noise_slope_high와 0.7 넘게 다르면 꺾임: 값 범위에 따라 잡음 모양이 바뀜</td></tr>
+<tr><td><code>noise_slope_high</code></td><td>큰 값 쪽 기울기</td><td>die별 POR 평균이 die 중앙값보다 큰 die만으로 맞춘 noise_slope. 3 die 미만이면 빈 칸</td><td>noise_slope와 같은 식, 위 절반 die</td><td>예: 아래 0 근처, 위 1 근처면 작은 값은 장비 바닥 잡음, 큰 값은 값에 비례하는 잡음</td></tr>
+<tr><td><code>noise_pattern</code></td><td>잡음 모양</td><td>같은 die를 다시 잰 흔들림이 값에 따라 어떻게 바뀌나. 참고, 판정에 안 씀. 판별 불가 / 일정 / 비례 / 위로 갈수록 벌어짐 / 아래로 갈수록 벌어짐 / 사이, 판별된 것에 ' (꺾임)'이 붙을 수 있음</td><td>판별 불가: spread_robust &lt; 0.3, 쓸 수 있는 die &lt; 10, 또는 구간이 0과 1을 둘 다 품음. 일정: 구간에 0. 비례: 구간에 1. 위로 갈수록 벌어짐: 구간 아래 끝 &gt; 1. 아래로 갈수록 벌어짐: 구간 위 끝 &lt; 0. 사이: 구간이 0과 1 사이. 꺾임: |noise_slope_low − noise_slope_high| &gt; 0.7</td><td>일정 = 흔들림 크기가 어디서나 같음 (선형으로 봄). 비례 = 흔들림이 값의 일정 % (log로 봄). 위로 갈수록 벌어짐 = 큰 값이 %로도 더 흔들림 (저항 = 1/전류 등). 아래로 갈수록 벌어짐 = 작은 값이 절대량으로도 더 흔들림. 사이 = 바닥 잡음 + 비례 잡음. 시뮬레이션에서 각 모양을 약 90% 맞힘 (95% 구간이라 나머지는 이웃 이름)</td></tr>
 <tr><td><code>center_log</code></td><td>log 이동량</td><td>log10 값에서 본 이동량. die별 차이의 중앙값이다.</td><td>median(log10|<code>DOE</code>| − mean(log10|<code>POR{k}</code>|)) (die별)</td><td>10^값 − 1이 비율 변화다. 0.0414면 DOE가 약 10% 크다.</td></tr>
 <tr><td><code>ci_low_log</code></td><td>log 이동량 범위 아래 끝</td><td>log 판정의 90% 신뢰구간 아래 끝.</td><td>log 차이에 <code>ci_low</code>와 같은 부호검정 순위</td><td></td></tr>
 <tr><td><code>ci_high_log</code></td><td>log 이동량 범위 위 끝</td><td>log 판정의 90% 신뢰구간 위 끝.</td><td>log 차이에 <code>ci_high</code>와 같은 부호검정 순위</td><td></td></tr>
@@ -187,6 +202,89 @@
 <tr><td><code>n_items</code></td><td>쓴 ITEM 수</td><td>그룹 ITEM 중 <code>decades</code>와 <code>log_fit</code>가 둘 다 있는 ITEM 수.</td><td><code>decades</code>, <code>log_fit</code>가 둘 다 숫자인 그룹 ITEM 수</td><td>0이면 정할 근거가 없어 linear다.</td></tr>
 <tr><td><code>n_decades_ge_1</code></td><td>1자릿수 넘는 ITEM 수</td><td>그중 값이 10배 넘게 퍼진 ITEM 수.</td><td><code>decades</code> ≥ 1인 ITEM 수</td><td></td></tr>
 <tr><td><code>median_log_fit</code></td><td>log 대칭 이득 중앙값</td><td>그 ITEM들의 log 대칭 이득 중앙값.</td><td>median(<code>log_fit</code>). <code>n_items</code> = 0이면 빈 칸</td><td>양수면 log 쪽이 대체로 더 대칭이다.</td></tr>
+</tbody></table></div>
+</section>
+<section id="stability-overall-csv"><h2>stability/overall.csv</h2>
+<p>측정 안정도 전체 요약 한 행. 판정력 구간별 ITEM 비율, 정밀도와 판정력의 중앙값·상위 10%, 상태별·잡음 모양별 ITEM 수.</p>
+<p class="s">만드는 명령 stability.py (por_doe_compare) · 위치 <code>stability/overall.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
+<p class="s">열 21개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>n_items</code></td><td>ITEM 수</td><td>이 표에 든 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>share_stable</code></td><td>안정 비율</td><td>judgeability가 안정인 ITEM 비율 (0~1)</td><td>ci_half_over_delta ≤ 0.5 인 ITEM 수 / n_items</td><td>높을수록 측정이 판정에 충분히 안정. 같은 ITEM이 동등으로 나올 확률 약 98%</td></tr>
+<tr><td><code>share_caution</code></td><td>주의 비율</td><td>judgeability가 주의인 ITEM 비율</td><td>0.5 &lt; ci_half_over_delta ≤ 0.8 인 ITEM 수 / n_items</td><td>같은 ITEM이 동등으로 나올 확률 약 61%. 미결이 섞여 나올 수 있음</td></tr>
+<tr><td><code>share_unstable</code></td><td>불안정 비율</td><td>judgeability가 불안정인 ITEM 비율</td><td>ci_half_over_delta &gt; 0.8 인 ITEM 수 / n_items</td><td>같은 ITEM도 동등으로 나올 확률 약 8%. 이 비율이 높은 그룹은 미결이 측정 탓일 수 있음</td></tr>
+<tr><td><code>share_no_band</code></td><td>판정력 없음 비율</td><td>ci_half_over_delta가 빈 칸인 ITEM 비율 (판정 제외 등)</td><td>judgeability 빈 칸 ITEM 수 / n_items</td><td>네 비율의 합은 1</td></tr>
+<tr><td><code>rsd_pct_median</code></td><td>정밀도 중앙값 (%)</td><td>ITEM rsd_pct의 중앙값 (빈 칸 ITEM 제외)</td><td>median(rsd_pct)</td><td>허용폭 r(기본 5%)의 절반을 넘으면 많은 ITEM이 동등 증명이 어려움</td></tr>
+<tr><td><code>rsd_pct_p90</code></td><td>정밀도 상위 10% (%)</td><td>ITEM rsd_pct의 90번째 백분위</td><td>P90(rsd_pct)</td><td>값이 LoQ 근처·0 근처인 ITEM이 있으면 크게 나옴</td></tr>
+<tr><td><code>ci_half_over_delta_median</code></td><td>판정력 비 중앙값</td><td>ITEM ci_half_over_delta의 중앙값</td><td>median(ci_half_over_delta)</td><td>0.5 이하면 대부분 안정</td></tr>
+<tr><td><code>ci_half_over_delta_p90</code></td><td>판정력 비 상위 10%</td><td>ITEM ci_half_over_delta의 90번째 백분위</td><td>P90(ci_half_over_delta)</td><td>0.8을 넘으면 열 개 중 하나 이상이 불안정</td></tr>
+<tr><td><code>n_run_jitter</code></td><td>회차 흔들림 ITEM 수</td><td>status에 회차 흔들림이 있는 ITEM 수</td><td></td><td>많으면 POR 회차 사이 프로빙·온도를 의심</td></tr>
+<tr><td><code>n_condition_unstable</code></td><td>조건 불안정 ITEM 수</td><td>status에 조건 불안정이 있는 ITEM 수</td><td></td><td>많으면 POR 회차 하나가 통째로 다름. runs.csv와 같이 봄</td></tr>
+<tr><td><code>n_low_resolution</code></td><td>분해능 부족 ITEM 수</td><td>status에 분해능 부족이 있는 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>n_flat</code></td><td>산포 0 ITEM 수</td><td>status에 산포 0이 있는 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>n_near_loq</code></td><td>LoQ 근처 ITEM 수</td><td>status에 LoQ 근처가 있는 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>n_noise_unknown</code></td><td>잡음 판별 불가 ITEM 수</td><td>noise_pattern이 판별 불가인 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>n_noise_constant</code></td><td>잡음 일정 ITEM 수</td><td>noise_pattern이 일정(꺾임 포함)인 ITEM 수</td><td></td><td>선형으로 보는 것이 맞는 ITEM</td></tr>
+<tr><td><code>n_noise_proportional</code></td><td>잡음 비례 ITEM 수</td><td>noise_pattern이 비례(꺾임 포함)인 ITEM 수</td><td></td><td>log로 보는 것이 맞는 ITEM</td></tr>
+<tr><td><code>n_noise_widening_up</code></td><td>위로 갈수록 벌어짐 ITEM 수</td><td>noise_pattern이 위로 갈수록 벌어짐(꺾임 포함)인 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>n_noise_widening_down</code></td><td>아래로 갈수록 벌어짐 ITEM 수</td><td>noise_pattern이 아래로 갈수록 벌어짐(꺾임 포함)인 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>n_noise_between</code></td><td>잡음 사이 ITEM 수</td><td>noise_pattern이 사이(꺾임 포함)인 ITEM 수</td><td></td><td>바닥 잡음 + 비례 잡음</td></tr>
+<tr><td><code>n_noise_bend</code></td><td>꺾임 ITEM 수</td><td>noise_pattern에 (꺾임)이 붙은 ITEM 수 (위 여섯 수와 겹침)</td><td></td><td></td></tr>
+</tbody></table></div>
+</section>
+<section id="stability-groups-csv"><h2>stability/groups.csv</h2>
+<p>측정 안정도를 그룹마다 한 행으로 요약한다. --groups를 줄 때만 생긴다.</p>
+<p class="s">만드는 명령 stability.py (por_doe_compare --groups) · 위치 <code>stability/groups.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
+<p class="s">열 22개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>group</code></td><td>그룹</td><td>--groups 파일의 그룹. 파일에 없는 ITEM은 미지정 (맨 끝 행)</td><td></td><td></td></tr>
+<tr><td><code>n_items</code></td><td>ITEM 수</td><td>이 표에 든 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>share_stable</code></td><td>안정 비율</td><td>judgeability가 안정인 ITEM 비율 (0~1)</td><td>ci_half_over_delta ≤ 0.5 인 ITEM 수 / n_items</td><td>높을수록 측정이 판정에 충분히 안정. 같은 ITEM이 동등으로 나올 확률 약 98%</td></tr>
+<tr><td><code>share_caution</code></td><td>주의 비율</td><td>judgeability가 주의인 ITEM 비율</td><td>0.5 &lt; ci_half_over_delta ≤ 0.8 인 ITEM 수 / n_items</td><td>같은 ITEM이 동등으로 나올 확률 약 61%. 미결이 섞여 나올 수 있음</td></tr>
+<tr><td><code>share_unstable</code></td><td>불안정 비율</td><td>judgeability가 불안정인 ITEM 비율</td><td>ci_half_over_delta &gt; 0.8 인 ITEM 수 / n_items</td><td>같은 ITEM도 동등으로 나올 확률 약 8%. 이 비율이 높은 그룹은 미결이 측정 탓일 수 있음</td></tr>
+<tr><td><code>share_no_band</code></td><td>판정력 없음 비율</td><td>ci_half_over_delta가 빈 칸인 ITEM 비율 (판정 제외 등)</td><td>judgeability 빈 칸 ITEM 수 / n_items</td><td>네 비율의 합은 1</td></tr>
+<tr><td><code>rsd_pct_median</code></td><td>정밀도 중앙값 (%)</td><td>ITEM rsd_pct의 중앙값 (빈 칸 ITEM 제외)</td><td>median(rsd_pct)</td><td>허용폭 r(기본 5%)의 절반을 넘으면 많은 ITEM이 동등 증명이 어려움</td></tr>
+<tr><td><code>rsd_pct_p90</code></td><td>정밀도 상위 10% (%)</td><td>ITEM rsd_pct의 90번째 백분위</td><td>P90(rsd_pct)</td><td>값이 LoQ 근처·0 근처인 ITEM이 있으면 크게 나옴</td></tr>
+<tr><td><code>ci_half_over_delta_median</code></td><td>판정력 비 중앙값</td><td>ITEM ci_half_over_delta의 중앙값</td><td>median(ci_half_over_delta)</td><td>0.5 이하면 대부분 안정</td></tr>
+<tr><td><code>ci_half_over_delta_p90</code></td><td>판정력 비 상위 10%</td><td>ITEM ci_half_over_delta의 90번째 백분위</td><td>P90(ci_half_over_delta)</td><td>0.8을 넘으면 열 개 중 하나 이상이 불안정</td></tr>
+<tr><td><code>n_run_jitter</code></td><td>회차 흔들림 ITEM 수</td><td>status에 회차 흔들림이 있는 ITEM 수</td><td></td><td>많으면 POR 회차 사이 프로빙·온도를 의심</td></tr>
+<tr><td><code>n_condition_unstable</code></td><td>조건 불안정 ITEM 수</td><td>status에 조건 불안정이 있는 ITEM 수</td><td></td><td>많으면 POR 회차 하나가 통째로 다름. runs.csv와 같이 봄</td></tr>
+<tr><td><code>n_low_resolution</code></td><td>분해능 부족 ITEM 수</td><td>status에 분해능 부족이 있는 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>n_flat</code></td><td>산포 0 ITEM 수</td><td>status에 산포 0이 있는 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>n_near_loq</code></td><td>LoQ 근처 ITEM 수</td><td>status에 LoQ 근처가 있는 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>n_noise_unknown</code></td><td>잡음 판별 불가 ITEM 수</td><td>noise_pattern이 판별 불가인 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>n_noise_constant</code></td><td>잡음 일정 ITEM 수</td><td>noise_pattern이 일정(꺾임 포함)인 ITEM 수</td><td></td><td>선형으로 보는 것이 맞는 ITEM</td></tr>
+<tr><td><code>n_noise_proportional</code></td><td>잡음 비례 ITEM 수</td><td>noise_pattern이 비례(꺾임 포함)인 ITEM 수</td><td></td><td>log로 보는 것이 맞는 ITEM</td></tr>
+<tr><td><code>n_noise_widening_up</code></td><td>위로 갈수록 벌어짐 ITEM 수</td><td>noise_pattern이 위로 갈수록 벌어짐(꺾임 포함)인 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>n_noise_widening_down</code></td><td>아래로 갈수록 벌어짐 ITEM 수</td><td>noise_pattern이 아래로 갈수록 벌어짐(꺾임 포함)인 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>n_noise_between</code></td><td>잡음 사이 ITEM 수</td><td>noise_pattern이 사이(꺾임 포함)인 ITEM 수</td><td></td><td>바닥 잡음 + 비례 잡음</td></tr>
+<tr><td><code>n_noise_bend</code></td><td>꺾임 ITEM 수</td><td>noise_pattern에 (꺾임)이 붙은 ITEM 수 (위 여섯 수와 겹침)</td><td></td><td></td></tr>
+</tbody></table></div>
+</section>
+<section id="stability-dies-csv"><h2>stability/dies.csv</h2>
+<p>die 위치마다 POR 반복 흔들림 점수. 여러 ITEM에서 함께 크게 흔들리는 die를 찾는다.</p>
+<p class="s">만드는 명령 stability.py (por_doe_compare) · 위치 <code>stability/dies.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
+<p class="s">열 7개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>WAFERID</code></td><td>웨이퍼</td><td>die 위치 키 (--key 에서 ITEM을 뺀 열)</td><td></td><td></td></tr>
+<tr><td><code>COORD_X_Y</code></td><td>die 좌표</td><td>die 위치 키 (--key 에서 ITEM을 뺀 열)</td><td></td><td></td></tr>
+<tr><td><code>score</code></td><td>die 점수</td><td>ITEM마다 이 die의 POR 회차 범위가 그 ITEM die들의 중앙 범위의 몇 배인지, 그 값의 ITEM 중앙값. 회차 범위 중앙값이 0인 ITEM은 안 셈</td><td>median over ITEM of (max − min of POR 회차) / median over die of (같은 것)</td><td>1 근처가 보통. 1.5 이상이면 이 위치는 다시 재면 잘 안 맞음 (프로빙·컨택 의심)</td></tr>
+<tr><td><code>share_over_3x</code></td><td>튀는 ITEM 비율</td><td>이 die의 회차 범위가 ITEM 중앙 범위의 3배를 넘는 ITEM 비율 (0~1)</td><td></td><td>0.2 이상이면 일부 ITEM에서만 흔들리는 die (점수 중앙값으로는 안 보임)</td></tr>
+<tr><td><code>n_items</code></td><td>ITEM 수</td><td>점수에 쓴 ITEM 수</td><td></td><td></td></tr>
+<tr><td><code>flagged</code></td><td>흔들리는 die</td><td>score ≥ 1.5 또는 share_over_3x ≥ 0.2 (시뮬레이션: 5배 잡음 die 100% 잡음, 거짓 0.4% 이하)</td><td></td><td>True인 위치의 DOE 차이는 공정보다 측정 탓일 수 있음</td></tr>
+<tr><td><code>n_doe_outlier</code></td><td>DOE 튐 횟수</td><td>outlier_dies.csv에 이 die가 나온 횟수 (DOE − POR이 튄 ITEM 수)</td><td></td><td>흔들리는 die가 아닌데 이 값만 크면 DOE 쪽 문제 (DOE 측정이나 실제 국소 변화)</td></tr>
+</tbody></table></div>
+</section>
+<section id="stability-runs-csv"><h2>stability/runs.csv</h2>
+<p>POR 회차마다 다른 회차 대비 밀린 정도. 회차 하나가 통째로 밀렸는지 본다.</p>
+<p class="s">만드는 명령 stability.py (por_doe_compare) · 위치 <code>stability/runs.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
+<p class="s">열 5개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>run</code></td><td>POR 회차</td><td>POR 회차 이름 (--por 순서)</td><td></td><td></td></tr>
+<tr><td><code>score</code></td><td>회차 점수</td><td>ITEM마다 die별 (이 회차 − 다른 회차 평균)의 중앙값 ÷ sigma_die, 그 값의 ITEM 중앙값. sigma_die가 0인 ITEM은 뺌</td><td>median over ITEM of median over die of (Y_j − mean(Y_others)) / sigma_die</td><td>0 근처가 보통. 한 회차가 s만큼 밀리면 다른 회차도 −s/(J−1) 움직임</td></tr>
+<tr><td><code>n_items</code></td><td>ITEM 수</td><td>점수에 쓴 ITEM 수</td><td></td><td>100 미만이면 회차를 지목하지 않음</td></tr>
+<tr><td><code>flagged</code></td><td>밀린 회차</td><td>|score|가 가장 큰 회차 하나만, |score| ≥ 0.25 이고 POR 3회 이상, ITEM 100개 이상일 때 True</td><td></td><td>True면 이 회차 전체가 다른 회차와 다르게 잡힘 (장비 상태, 온도 등). 이 회차를 빼고 다시 볼 것</td></tr>
+<tr><td><code>note</code></td><td>지목하지 않은 이유</td><td>flagged가 False인 첫 사유 (POR 2회, ITEM 부족, 가장 큰 회차 아님, 점수 작음)</td><td></td><td></td></tr>
 </tbody></table></div>
 </section>
 <section id="item-map-csv"><h2>item_map.csv</h2>
