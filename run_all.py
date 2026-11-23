@@ -36,6 +36,7 @@ DESCRIPTIONS = [
     ("fail_evidence/items/*/*.png", "ITEM 하나의 근거 그림"),
     ("plots/summary.png", "판정 지도"),
     ("plots/summary_loq.png", "LoQ 아래 ITEM 그림 (LoQ 재확인 표시)"),
+    ("plots/summary_group_*.png", "그룹 하나의 판정 지도"),
     ("plots/*.png", "판정 요약 그림"),
     ("stability/overall.csv", "측정 안정도 전체 요약"),
     ("stability/groups.csv", "측정 안정도 그룹별 요약"),
