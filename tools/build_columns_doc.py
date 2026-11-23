@@ -49,6 +49,8 @@ PURPOSE = {
     "stability_by_group.csv": "그룹마다 기존·개선 흔들림 분포와 안정 순위를 적는다.",
     "group_dirs.csv": "그룹 이름과 그룹 그림 폴더 이름의 대응표.",
     "log_compare.csv": "log 진단 대상 ITEM의 선형·log 신뢰구간 반폭 / Δ를 견준다.",
+    "loq_review.csv": "LoQ 아래·LoQ 근처 ITEM을 LoQ 규칙과 무관한 근거(방향 일관성, 배수, 검출률, 꼬리)로 다시 보고 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.",
+    "log_review.csv": "log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보고, 선형 차이가 log로 동등이 된 ITEM과 꼬리가 바뀐 ITEM에 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.",
 }
 
 # 열 설명 문서마다 수식이 읽는 다른 문서 (그 파일이 입력으로 읽는 결과 파일). 원데이터는 모든 문서가 읽는다.
@@ -58,6 +60,7 @@ INPUTS = {
     "compare": ("items",), "log_compare": ("items",),
     "stability_overall": ("compare",), "worst_items": ("compare",), "group_summary": ("compare",),
     "verdict_by_group": ("compare",), "stability_by_group": ("compare",), "group_dirs": ("group_summary",),
+    "loq_review": ("items",), "log_review": ("items",),
 }
 
 HOW_TO_READ = (

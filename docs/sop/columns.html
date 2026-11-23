@@ -82,6 +82,8 @@
 <tr><td><a href="#stability-by-group-csv"><code>stability_by_group.csv</code></a></td><td>group_summary.py</td><td>그룹마다 기존·개선 흔들림 분포와 안정 순위를 적는다.</td></tr>
 <tr><td><a href="#group-dirs-csv"><code>group_dirs.csv</code></a></td><td>group_summary.py</td><td>그룹 이름과 그룹 그림 폴더 이름의 대응표.</td></tr>
 <tr><td><a href="#log-compare-csv"><code>log_compare.csv</code></a></td><td>log_compare.py (run_all)</td><td>log 진단 대상 ITEM의 선형·log 신뢰구간 반폭 / Δ를 견준다.</td></tr>
+<tr><td><a href="#loq-review-csv"><code>loq_review.csv</code></a></td><td>review.py (참고용 LoQ 재확인)</td><td>LoQ 아래·LoQ 근처 ITEM을 LoQ 규칙과 무관한 근거(방향 일관성, 배수, 검출률, 꼬리)로 다시 보고 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.</td></tr>
+<tr><td><a href="#log-review-csv"><code>log_review.csv</code></a></td><td>review.py (참고용 log 재확인)</td><td>log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보고, 선형 차이가 log로 동등이 된 ITEM과 꼬리가 바뀐 ITEM에 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.</td></tr>
 </tbody></table></div>
 </section>
 
@@ -430,6 +432,86 @@
 <tr><td><code>changed</code></td><td>판정 바뀜</td><td>선형 판정과 log 판정이 다른지.</td><td><code>verdict</code> ≠ <code>verdict_log</code>면 True (빈 칸도 글자로 비교)</td><td>True면 척도에 따라 판정이 갈린다. log_compare.png에서 X 표시다.</td></tr>
 <tr><td><code>log_fit</code></td><td>log 대칭 이득</td><td>log로 바꾸면 분포가 얼마나 더 대칭이 되는지.</td><td>items.csv <code>log_fit</code> 그대로</td><td>양수면 log 쪽이 더 대칭이다. 0.1을 넘고 <code>decades</code> ≥ 1이면 log 후보다.</td></tr>
 <tr><td><code>decades</code></td><td>자릿수 폭</td><td>값이 몇 자릿수에 걸쳐 있는지.</td><td>items.csv <code>decades</code> 그대로</td><td>1 이상이면 10배 넘게 퍼진 것이다. log 척도가 맞을 수 있다.</td></tr>
+</tbody></table></div>
+</section>
+<section id="loq-review-csv"><h2>loq_review.csv</h2>
+<p>LoQ 아래·LoQ 근처 ITEM을 LoQ 규칙과 무관한 근거(방향 일관성, 배수, 검출률, 꼬리)로 다시 보고 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.</p>
+<p class="s">만드는 명령 review.py (참고용 LoQ 재확인) · 위치 <code>review/loq_review.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
+<p class="s">열 36개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>ITEM</code></td><td>ITEM</td><td>ITEM 이름</td><td></td><td></td></tr>
+<tr><td><code>UNIT</code></td><td>단위</td><td>원데이터 UNIT 열. 표시용, 판정에 쓰지 않음</td><td></td><td></td></tr>
+<tr><td><code>zone</code></td><td>구간</td><td>정량 · 검출~정량 · 검출한계 이하 (|POR 중앙값|과 LoQ·LoD 비교) LoQ 근처 ITEM 은 정량</td><td></td><td></td></tr>
+<tr><td><code>verdict_final</code></td><td>최종 판정</td><td>기본 판정이 차이·미결일 때만 옵션 log → accuracy(LoQ 근처) → log_physics 순으로 보고 동등을 주는 첫 옵션, 없으면 대상인 log 옵션의 판정, 그것도 없으면 verdict</td><td></td><td></td></tr>
+<tr><td><code>verdict</code></td><td>판정</td><td>기본(선형) 판정. 동등 · 차이 · 미결 · 판정 제외</td><td></td><td></td></tr>
+<tr><td><code>n_die</code></td><td>die 수</td><td>die 수</td><td></td><td></td></tr>
+<tr><td><code>por_median</code></td><td>POR 중앙값</td><td>die별 기준 조건 J회 평균의 중앙값. 구간 나누기와 실용 한계에 씀</td><td></td><td></td></tr>
+<tr><td><code>LoQ</code></td><td>정량한계</td><td>정량한계 = 10 × (σ 후보 중 큰 값)</td><td>10 × σ</td><td></td></tr>
+<tr><td><code>LoD</code></td><td>검출한계</td><td>검출한계 = 3.29 × (같은 σ)</td><td>3.29 × σ</td><td></td></tr>
+<tr><td><code>center</code></td><td>편향</td><td>편향 b = die별 차이 d의 중앙값 (d = DOE − POR 회차 평균)</td><td>median(d)</td><td></td></tr>
+<tr><td><code>delta</code></td><td>허용 범위 Δ</td><td>허용 범위 Δ = 실용 한계 + 회차 예측 한계. 차이가 이 안이면 같다고 봄</td><td>r × |POR 중앙값| + t(0.95, J−1) × √(1 + 1/J) × sigma_run</td><td></td></tr>
+<tr><td><code>loq_ratio</code></td><td>LoQ 배수</td><td>|POR 중앙값| ÷ LoQ. 1 미만이면 바닥 아래, 1 이상이면 status LoQ 근처로 들어온 ITEM</td><td>|por_median| / LoQ</td><td></td></tr>
+<tr><td><code>n_die_raw</code></td><td>원데이터 die 수</td><td>재확인에 쓴 die 수 (모든 POR 회차와 DOE 에 있는 die). 비면 원데이터에서 ITEM 을 못 찾음</td><td></td><td></td></tr>
+<tr><td><code>n_up</code></td><td>증가 die 수</td><td>d = DOE − POR 회차 평균 이 양수인 die 수</td><td>#{d &gt; 0}</td><td></td></tr>
+<tr><td><code>n_down</code></td><td>감소 die 수</td><td>d 가 음수인 die 수</td><td>#{d &lt; 0}</td><td></td></tr>
+<tr><td><code>dir_p</code></td><td>방향 p값</td><td>부호검정: 증가와 감소가 반반인지 (d = 0 die 는 뺌)</td><td>binom(n_up | n_up + n_down, 0.5) 양쪽</td><td></td></tr>
+<tr><td><code>dir_q</code></td><td>방향 q값</td><td>dir_p 를 이 표의 ITEM 전체에서 Benjamini-Hochberg 로 보정한 값</td><td>BH(dir_p)</td><td>0.05 미만이면 한쪽으로 몰림</td></tr>
+<tr><td><code>ratio</code></td><td>배수</td><td>POR(회차 평균)·DOE 가 모두 양수인 die 의 DOE ÷ POR 중앙값. 그런 die 가 10개 미만이면 빈 칸</td><td>10^median(log10(DOE / POR 평균))</td><td>1.3 넘거나 1/1.3 미만이어야 방향 확인 필요</td></tr>
+<tr><td><code>ratio_lo</code></td><td>배수 하한</td><td>배수의 90% 신뢰구간 하한 (부호검정 순위)</td><td></td><td></td></tr>
+<tr><td><code>ratio_hi</code></td><td>배수 상한</td><td>배수의 90% 신뢰구간 상한</td><td></td><td></td></tr>
+<tr><td><code>n_ratio_die</code></td><td>배수에 쓴 die 수</td><td>POR 모든 회차와 DOE 가 양수인 die 수</td><td></td><td>10 미만이면 배수 없음</td></tr>
+<tr><td><code>det_rate_por</code></td><td>POR 검출률</td><td>|POR 값| ≥ LoQ 인 비율 (die × 회차)</td><td></td><td>참고 열. 확인 필요에 안 씀</td></tr>
+<tr><td><code>det_rate_doe</code></td><td>DOE 검출률</td><td>|DOE 값| ≥ LoQ 인 die 비율</td><td></td><td>참고 열</td></tr>
+<tr><td><code>det_change</code></td><td>검출률 변화</td><td>det_rate_doe − det_rate_por</td><td></td><td>참고 열</td></tr>
+<tr><td><code>det_p</code></td><td>검출률 p값</td><td>DOE 와 POR 각 회차의 짝지은 McNemar 검정 p값 중 가장 큰 값</td><td>max_j McNemar(POR_j, DOE)</td><td>참고 열</td></tr>
+<tr><td><code>tail_n_doe</code></td><td>크게 벗어난 DOE die 수</td><td>|d − d 중앙값| 이 한계를 넘는 die 수. 한계 = 5 × 1.4826 × MAD(POR 회차끼리의 차이). POR 회차끼리의 차이 = 각 회차 − 나머지 회차 평균, d 와 분산이 같게 √((1 + 1/J) / (1 + 1/(J − 1))) 배</td><td>#{|d − median d| &gt; 5 × 1.4826 × MAD(loo)}</td><td>몇 개 die 만 크게 바뀌었는지</td></tr>
+<tr><td><code>tail_n_por</code></td><td>크게 벗어난 POR 차이 수</td><td>같은 한계를 넘는 POR 회차끼리의 차이 수 (die × 회차 개). 잡음이 원래 꼬리가 길면 여기도 많다</td><td></td><td>0 이 보통. 많으면 꼬리 검사가 보수적이 됨</td></tr>
+<tr><td><code>tail_frac</code></td><td>벗어난 die 비율</td><td>tail_n_doe ÷ die 수</td><td>tail_n_doe / n</td><td>5% 이상이어야 꼬리 확인 필요</td></tr>
+<tr><td><code>tail_p</code></td><td>꼬리 p값</td><td>DOE 벗어남 수가 POR 쪽보다 많은지 정확 조건부 이항검정 (한쪽)</td><td>binom(tail_n_doe | tail_n_doe + tail_n_por, n / (n + n × J))</td><td></td></tr>
+<tr><td><code>tail_q</code></td><td>꼬리 q값</td><td>tail_p 를 이 표의 ITEM 전체에서 Benjamini-Hochberg 로 보정한 값</td><td>BH(tail_p)</td><td>0.05 미만이면 유의</td></tr>
+<tr><td><code>verdict_tost</code></td><td>TOST만 했다면</td><td>LoQ 규칙 없이 같은 신뢰구간과 허용폭으로 TOST 를 했을 때의 판정 (참고)</td><td>tost(center, ci_low, ci_high, delta)</td><td></td></tr>
+<tr><td><code>loq_source_ratio</code></td><td>LoQ 출처 배수</td><td>LoQ ÷ (10 × POR 반복 σ). 1 보다 크면 바닥이 blank·분해능으로 POR 반복보다 높게 잡힘</td><td>LoQ / (10 × sigma_die)</td><td></td></tr>
+<tr><td><code>flag_direction</code></td><td>방향 확인 필요</td><td>dir_q &lt; 0.05 이고 배수가 1/1.3 ~ 1.3 밖</td><td></td><td>True 면 die 대부분이 같은 쪽으로 움직임</td></tr>
+<tr><td><code>flag_tail</code></td><td>꼬리 확인 필요</td><td>tail_q &lt; 0.05 이고 tail_frac ≥ 5%</td><td></td><td>True 면 일부 die 만 크게 바뀜</td></tr>
+<tr><td><code>flag</code></td><td>확인 필요</td><td>확인 필요 표시. 판정은 바꾸지 않는다</td><td></td><td>True 인 ITEM 은 review/items/&lt;ITEM&gt;.png 를 볼 것</td></tr>
+<tr><td><code>why</code></td><td>쉬운 설명</td><td>이 행을 한 문장으로 (확인 필요면 이유 먼저)</td><td></td><td></td></tr>
+</tbody></table></div>
+</section>
+<section id="log-review-csv"><h2>log_review.csv</h2>
+<p>log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보고, 선형 차이가 log로 동등이 된 ITEM과 꼬리가 바뀐 ITEM에 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.</p>
+<p class="s">만드는 명령 review.py (참고용 log 재확인) · 위치 <code>review/log_review.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
+<p class="s">열 30개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>ITEM</code></td><td>ITEM</td><td>ITEM 이름</td><td></td><td></td></tr>
+<tr><td><code>UNIT</code></td><td>단위</td><td>원데이터 UNIT 열. 표시용, 판정에 쓰지 않음</td><td></td><td></td></tr>
+<tr><td><code>scale</code></td><td>scale</td><td>log 옵션 대상을 정한 scale: log, linear(scales 파일에 적음), auto→log, auto→linear(이번 실행의 그룹 ITEM으로 정함), item(그룹이 없거나 --scales 없음)</td><td></td><td></td></tr>
+<tr><td><code>verdict_final</code></td><td>최종 판정</td><td>기본 판정이 차이·미결일 때만 옵션 log → accuracy(LoQ 근처) → log_physics 순으로 보고 동등을 주는 첫 옵션, 없으면 대상인 log 옵션의 판정, 그것도 없으면 verdict</td><td></td><td></td></tr>
+<tr><td><code>verdict_basis</code></td><td>최종 판정 근거</td><td>최종 판정을 정한 쪽: linear, log, accuracy, log_physics</td><td></td><td></td></tr>
+<tr><td><code>verdict</code></td><td>판정</td><td>기본(선형) 판정. 동등 · 차이 · 미결 · 판정 제외</td><td></td><td></td></tr>
+<tr><td><code>verdict_log</code></td><td>log 판정</td><td>L = log10|값| 공간에서 TOST만 한 판정. 0이 없고 부호가 하나인 ITEM 전부. 0값·부호 섞임이면 판정 제외</td><td></td><td></td></tr>
+<tr><td><code>status</code></td><td>데이터 상태</td><td>판정과 별개인 데이터 상태: 조건 불안정, 회차 흔들림, 작을수록 흔들림, 클수록 흔들림, 분해능 부족, 산포 0, log 후보, 두 덩어리, LoQ 근처. 여러 개면 ';'로 이음. 없으면 정상</td><td></td><td></td></tr>
+<tr><td><code>decades</code></td><td>자릿수 폭</td><td>값이 몇 자릿수에 걸쳐 있는지</td><td>log10(P99|R| / P1|R|)</td><td></td></tr>
+<tr><td><code>log_fit</code></td><td>log 대칭 이득</td><td>양수면 log 쪽이 더 대칭</td><td>|skew_lin| − |skew_log|</td><td></td></tr>
+<tr><td><code>n_die</code></td><td>die 수</td><td>die 수</td><td></td><td></td></tr>
+<tr><td><code>por_median</code></td><td>POR 중앙값</td><td>die별 기준 조건 J회 평균의 중앙값. 구간 나누기와 실용 한계에 씀</td><td></td><td></td></tr>
+<tr><td><code>n_die_raw</code></td><td>원데이터 die 수</td><td>재확인에 쓴 die 수 (모든 POR 회차와 DOE 에 있는 die). 비면 원데이터에서 ITEM 을 못 찾음</td><td></td><td></td></tr>
+<tr><td><code>shift_pct</code></td><td>선형 이동 %</td><td>편향 ÷ |POR 중앙값|</td><td>100 × center / |por_median|</td><td></td></tr>
+<tr><td><code>ci_low_pct</code></td><td>선형 신뢰구간 하한 %</td><td>선형 이동량 범위(90% 신뢰구간)의 아래 끝을 POR 중앙값 대비 %로 적은 값.</td><td>100 × ci_low / |por_median|</td><td></td></tr>
+<tr><td><code>ci_high_pct</code></td><td>선형 신뢰구간 상한 %</td><td>선형 이동량 범위(90% 신뢰구간)의 위 끝을 POR 중앙값 대비 %로 적은 값.</td><td>100 × ci_high / |por_median|</td><td></td></tr>
+<tr><td><code>delta_pct</code></td><td>선형 허용폭 %</td><td>선형 판정에서 같다고 보는 범위(허용폭)를 POR 중앙값 대비 %로 적은 값.</td><td>100 × delta / |por_median|</td><td></td></tr>
+<tr><td><code>shift_log_pct</code></td><td>log 이동 %</td><td>log 편향을 배율 % 로</td><td>100 × (10^center_log − 1)</td><td></td></tr>
+<tr><td><code>ci_low_log_pct</code></td><td>log 신뢰구간 하한 %</td><td>log로 본 이동량 범위의 아래 끝을 배수에서 %로 바꾼 값 (예: 1.08배 → +8%).</td><td>100 × (10^ci_low_log − 1)</td><td></td></tr>
+<tr><td><code>ci_high_log_pct</code></td><td>log 신뢰구간 상한 %</td><td>log로 본 이동량 범위의 위 끝을 배수에서 %로 바꾼 값.</td><td>100 × (10^ci_high_log − 1)</td><td></td></tr>
+<tr><td><code>delta_log_pct</code></td><td>log 허용폭 %</td><td>log 허용폭의 위쪽 끝을 배율 % 로 (아래쪽은 100 × (10^−delta_log − 1))</td><td>100 × (10^delta_log − 1)</td><td></td></tr>
+<tr><td><code>log_overrode_diff</code></td><td>log 가 차이를 동등으로</td><td>기본 판정 차이, 최종 동등, 근거 log·log_physics (L1). 이것만으로 확인 필요</td><td></td><td>True 면 선형으로는 신뢰구간 전체가 허용폭 밖이었음</td></tr>
+<tr><td><code>tail_n_doe</code></td><td>크게 벗어난 DOE die 수</td><td>log10|값| 에서 |d − d 중앙값| 이 한계를 넘는 die 수. 한계 = 5 × 1.4826 × MAD(POR 회차끼리의 차이). POR 회차끼리의 차이 = 각 회차 − 나머지 회차 평균, d 와 분산이 같게 √((1 + 1/J) / (1 + 1/(J − 1))) 배</td><td>#{|d − median d| &gt; 5 × 1.4826 × MAD(loo)}</td><td>몇 개 die 만 크게 바뀌었는지</td></tr>
+<tr><td><code>tail_n_por</code></td><td>크게 벗어난 POR 차이 수</td><td>같은 한계를 넘는 POR 회차끼리의 차이 수 (die × 회차 개). 잡음이 원래 꼬리가 길면 여기도 많다</td><td></td><td>0 이 보통. 많으면 꼬리 검사가 보수적이 됨</td></tr>
+<tr><td><code>tail_frac</code></td><td>벗어난 die 비율</td><td>tail_n_doe ÷ die 수</td><td>tail_n_doe / n</td><td>5% 이상이어야 꼬리 확인 필요</td></tr>
+<tr><td><code>tail_p</code></td><td>꼬리 p값</td><td>DOE 벗어남 수가 POR 쪽보다 많은지 정확 조건부 이항검정 (한쪽)</td><td>binom(tail_n_doe | tail_n_doe + tail_n_por, n / (n + n × J))</td><td></td></tr>
+<tr><td><code>tail_q</code></td><td>꼬리 q값</td><td>tail_p 를 이 표의 ITEM 전체에서 Benjamini-Hochberg 로 보정한 값</td><td>BH(tail_p)</td><td>0.05 미만이면 유의</td></tr>
+<tr><td><code>flag_tail</code></td><td>꼬리 확인 필요</td><td>log10|값| 에서 tail_q &lt; 0.05 이고 tail_frac ≥ 5%</td><td></td><td></td></tr>
+<tr><td><code>flag</code></td><td>확인 필요</td><td>확인 필요 표시. 판정은 바꾸지 않는다</td><td></td><td>True 인 ITEM 은 review/items/&lt;ITEM&gt;.png 를 볼 것</td></tr>
+<tr><td><code>why</code></td><td>쉬운 설명</td><td>이 행을 한 문장으로 (확인 필요면 이유 먼저)</td><td></td><td></td></tr>
 </tbody></table></div>
 </section>
 
