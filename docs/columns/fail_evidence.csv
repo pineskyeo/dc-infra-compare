@@ -1,36 +1,36 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-ITEM,ITEM,실제 ITEM 이름,,
-ID,익명 번호,익명 ID (입력에 있을 때),,
-verdict,,,,
-judgement,,,,
-rule_hit,,,,
-doe_pct,,,,
-por{k}_pct,,,,
-por_gap_pct,,,,
-por_gap_over_delta,,,,
-por_gap_def,,por_gap 정의: '짝지은 회차 차' 또는 '옛 정의(회차 평균 차)',,
-median_out_over_delta,,"por_median이 POR·DOE 평균들의 [min, max] 밖으로 벗어난 거리/Δ. 참고용",,
-delta_pct,,,,
-center_over_delta,,,,
-ci_low_over_delta,,,,
-ci_high_over_delta,,,,
-ci_half_over_delta,,,,
-loq_multiple,,,,
-note,,,,
-status,,,,
-por_gap_over_noise,,,,
-run_jitter_pct,,,,
-run_jitter_over_delta,,,,
-spearman_size_jitter,,,,
-resolution_step,,,,
-resolution_over_delta,,,,
-fixed_share,,,,
-decades,,,,
-skew_lin,,,,
-skew_log,,,,
-log_fit,,,,
-bimodality_log,,,,
-mean_median_ratio,,,,
-sigma_meas,,,,
-meas_precision_pct,,,,
-sigma_meas_over_delta,,,,
+ITEM,ITEM 이름,측정 항목 이름.,items.csv `ITEM` 그대로,
+ID,익명 번호,items.csv에 ID 열이 있으면 같은 익명 번호.,items.csv `ID` 그대로,
+verdict,기본 판정,items.csv의 기본 판정. 최종 판정이 아니다.,items.csv `verdict` 그대로,`verdict_final`과 다를 수 있다. 이 파일의 근거 계산은 기본 판정이 차이·미결인 행만 한다.
+judgement,근거 분류,신뢰구간과 Δ만으로 이 파일이 다시 나눈 결과.,"`verdict`가 차이·미결일 때: `ci_high` < −`delta` 또는 `ci_low` > `delta`면 차이, 아니면 미결. 숫자가 비었거나 `delta` ≤ 0이거나 POR 회차 평균이 2개 미만이면 계산 불가. `verdict`가 판정 제외면 판정 제외, 그 밖은 대상 아님",`verdict`와 다르면 `note`에 'verdict와 다름'이 붙는다. die 부족 미결처럼 규칙이 다른 행에서 생긴다.
+rule_hit,맞은 규칙,`judgement`를 정한 규칙.,'CI 전체가 ±Δ 밖'(차이) 또는 'CI가 ±Δ 경계에 걸림'(미결),
+doe_pct,DOE 위치 %,DOE 평균이 POR 중앙값에서 몇 % 떨어졌나.,100 × (`DOE_mean` − `por_median`) / |`por_median`|. `por_median` = 0이면 빈 칸,`por{k}_pct`들과 견준다. DOE만 멀리 있으면 DOE 조건이 값을 바꾼 것이다.
+por{k}_pct,POR 회차 위치 %,k번째 POR 회차 평균이 POR 중앙값에서 몇 % 떨어졌나.,100 × (`POR{k}_mean` − `por_median`) / |`por_median`|,회차끼리 크게 다르면 조건이 회차마다 흔들린 것이다.
+por_gap_pct,회차 차 %,회차 사이 전체 이동을 POR 평균 대비 %로 본 것.,"100 × gap / |mean(`POR{k}_mean`)|. gap = items.csv `por_gap_over_delta` × `delta`, 그 값이 없으면 max(`POR{k}_mean`) − min(`POR{k}_mean`)",`delta_pct`보다 크면 회차 이동이 허용 범위보다 크다.
+por_gap_over_delta,회차 차 / 허용 범위,회차 사이 전체 이동이 Δ의 몇 배인지.,items.csv `por_gap_over_delta` 그대로. 없으면 (max(`POR{k}_mean`) − min(`POR{k}_mean`)) / `delta`,1 이상이면 회차 이동만으로 허용 범위를 넘는다. `por_gap_def`로 어느 정의인지 본다.
+por_gap_def,회차 차 정의,`por_gap_pct`와 `por_gap_over_delta`에 쓴 회차 차의 정의.,"items.csv에 `por_gap_over_delta` 값이 있으면 '짝지은 회차 차', 없으면 '옛 정의(회차 평균 차)'",옛 정의는 die 잡음만으로도 커질 수 있다.
+median_out_over_delta,중앙값 밖 거리 / 허용 범위,POR 중앙값이 회차 평균들과 DOE 평균 범위 밖으로 벗어난 거리. 참고용이다.,"max(0, min(m) − `por_median`, `por_median` − max(m)) / `delta`, m = `POR{k}_mean`들과 `DOE_mean`",0보다 크면 분포가 치우쳤거나 튀는 die가 평균을 끈 것이다.
+delta_pct,허용 범위 %,Δ를 POR 중앙값 대비 %로 본 것.,100 × `delta` / |`por_median`|. `por_median` = 0이면 빈 칸,r(기본 5%)보다 많이 크면 회차 예측 한계가 허용 범위를 키운 것이다.
+center_over_delta,이동량 / 허용 범위,이동량이 Δ의 몇 배인지.,`center` / `delta`,±1 밖이면 이동량이 허용 범위보다 크다.
+ci_low_over_delta,범위 아래 끝 / 허용 범위,신뢰구간 아래 끝을 Δ 단위로 본 것.,`ci_low` / `delta`,1보다 크면 범위 전체가 +Δ 밖이다.
+ci_high_over_delta,범위 위 끝 / 허용 범위,신뢰구간 위 끝을 Δ 단위로 본 것.,`ci_high` / `delta`,−1보다 작으면 범위 전체가 −Δ 밖이다.
+ci_half_over_delta,범위 반폭 / 허용 범위,신뢰구간 반폭이 Δ의 몇 배인지.,(`ci_high` − `ci_low`) / 2 / `delta`,1 이상이면 해상도 부족이다. 이동량이 0이어도 동등이 될 수 없다.
+loq_multiple,LoQ 배수,POR 중앙값이 정량한계의 몇 배인지.,|`por_median`| / `LoQ`. `LoQ` ≤ 0이면 빈 칸,1 미만이면 LoQ 미만이다. 1 이상 1/(10 × r) 미만(기본 1~2)이면 LoQ 근처다.
+note,메모,계산하지 못한 이유와 주의할 점.,"'계산 불가: …', 'verdict와 다름', 'por_median=0이라 % 계산 불가', 'LoQ <= 0'을 '; '로 이음",verdict와 다름이면 `verdict`와 `judgement`를 같이 본다.
+status,데이터 상태,"판정과 별개로 데이터에서 눈에 띄는 점. 여러 개면 ';'로 잇고, 없으면 정상이다.",items.csv `status` 그대로,상태는 판정을 바꾸지 않는다. 하지만 판정을 믿어도 되는지 알려 준다. 정상이 아니면 그 상태의 지표 열을 본다.
+por_gap_over_noise,회차 차 / die 잡음,회차 차가 die 잡음만으로 생길 크기의 몇 배인지.,items.csv `por_gap_over_noise` 그대로,3 이상이면 die 잡음으로 설명이 안 되는 회차 이동이다.
+run_jitter_pct,회차 흔들림 %,die 하나를 회차마다 다시 잴 때 값이 흔들린 폭을 값 대비 %로 본 것.,items.csv `run_jitter_pct` 그대로,크면 같은 die도 회차마다 값이 많이 바뀐다.
+run_jitter_over_delta,회차 흔들림 / 허용 범위,die별 회차 범위의 중앙값이 허용 범위의 몇 배인지.,items.csv `run_jitter_over_delta` 그대로,1 이상이면 status 회차 흔들림이다.
+spearman_size_jitter,크기와 흔들림의 순위상관,값이 작은 die일수록(또는 클수록) 회차 흔들림이 큰지 보는 순위상관 ρ. 범위 −1~1.,items.csv `spearman_size_jitter` 그대로,"−0.5 이하면 작을수록 흔들림, +0.5 이상이면 클수록 흔들림이다(die ≥ 10일 때 status). 이런 ITEM은 log 판정을 같이 본다."
+resolution_step,값 계단 크기,POR 모든 회차와 DOE 값 중 서로 다른 값 사이의 가장 작은 간격.,items.csv `resolution_step` 그대로,값이 계단처럼 기록되는지 본다. `resolution_over_delta`로 판단한다.
+resolution_over_delta,값 계단 / 허용 범위,값 계단이 허용 범위에 비해 얼마나 거친지.,items.csv `resolution_over_delta` 그대로,0.1 이상이면 분해능 부족이다. 장비 분해능이나 기록 자릿수를 확인한다.
+fixed_share,고정값 비율,한 값이 die를 얼마나 차지하는지.,items.csv `fixed_share` 그대로,0.5를 넘으면 산포 0이다. 측정이 한계값이나 기본값 같은 고정값을 내는지 확인한다.
+decades,자릿수 폭,값이 몇 자릿수에 걸쳐 있는지.,items.csv `decades` 그대로,1 이상이면 10배 넘게 퍼진 것이다. log 척도가 맞을 수 있다.
+skew_lin,선형 비대칭도,R 분포가 한쪽으로 치우친 정도 (Bowley 사분위 왜도). 범위 −1~1.,items.csv `skew_lin` 그대로,0이면 대칭이다. `skew_log`와 견준다.
+skew_log,log 비대칭도,log10|R| 분포가 한쪽으로 치우친 정도. 범위 −1~1.,items.csv `skew_log` 그대로,`skew_lin`보다 0에 가까우면 log 척도에서 더 대칭이다.
+log_fit,log 대칭 이득,log로 바꾸면 분포가 얼마나 더 대칭이 되는지.,items.csv `log_fit` 그대로,양수면 log 쪽이 더 대칭이다. 0.1을 넘고 `decades` ≥ 1이면 log 후보다.
+bimodality_log,두 덩어리 지수,log10|R|가 두 무리로 나뉘는 정도 (bimodality coefficient).,items.csv `bimodality_log` 그대로,"5/9를 넘고 die ≥ 10이면 두 덩어리다. die가 두 종류로 나뉘는지(공정 차이, 다른 칩) 확인한다."
+mean_median_ratio,평균과 중앙값의 차,분포가 한쪽으로 끌려간 정도. 판정에 안 쓴다.,items.csv `mean_median_ratio` 그대로,크면 일부 die가 평균을 한쪽으로 끌고 간다. 중앙값으로 판정하는 이유다.
+sigma_meas,측정 산포,반복성과 회차 이동을 합친 1회 측정의 전체 흔들림.,items.csv `sigma_meas` 그대로,낮을수록 좋다. `delta`와 견주어 본다.
+meas_precision_pct,측정 정밀도 %,측정 산포를 값 크기 대비 %로 나타낸 것 (상대표준편차).,items.csv `meas_precision_pct` 그대로,낮을수록 좋다. 값이 0 근처인 ITEM은 %가 커 보이니 `zone`을 같이 본다. status가 산포 0이면 작게 나와도 좋은 값으로 읽지 않는다.
+sigma_meas_over_delta,측정 산포 / 허용 범위,1회 측정 잡음이 허용 범위의 몇 배인지.,items.csv `sigma_meas_over_delta` 그대로,작을수록 판정이 쉽다. 1에 가까우면 잡음만으로 허용 범위를 다 쓴다.

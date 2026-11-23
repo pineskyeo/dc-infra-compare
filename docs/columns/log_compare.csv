@@ -1,10 +1,10 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-ITEM,,,,
-target_status,,,,
-ci_half_over_delta,,,,
-ci_half_over_delta_log,,,,
-verdict,,,,
-verdict_log,,,,
-changed,,,,
-log_fit,,,,
-decades,,,,
+ITEM,ITEM 이름,log 진단 대상 ITEM.,items.csv `ITEM` 그대로,
+target_status,대상 이유,이 ITEM이 대상이 된 이유.,"`status` 중 작을수록 흔들림, 클수록 흔들림을 '; '로 이음. 없고 `verdict` ≠ `verdict_log`면 'verdict≠verdict_log' (`verdict_log`가 판정 제외나 빈 칸이면 이 조건은 보지 않음)",
+ci_half_over_delta,범위 반폭 / 허용 범위,신뢰구간 반폭이 허용 범위의 몇 배인지. 측정이 판정하기에 충분히 촘촘한지 본다.,items.csv `ci_half_over_delta` 그대로,1 이상이면 이동량이 0이어도 동등이 될 수 없다(해상도 부족). 작을수록 좋다.
+ci_half_over_delta_log,log 범위 반폭 / log 허용 범위,`ci_half_over_delta`를 log 판정으로 계산한 값.,items.csv `ci_half_over_delta_log` 그대로,`ci_half_over_delta`와 비교해 어느 척도에서 판정이 더 촘촘한지 본다.
+verdict,기본 판정,items.csv의 선형 기본 판정.,items.csv `verdict` 그대로,
+verdict_log,log 판정,값을 log10으로 바꿔서 낸 판정. 기본 판정은 그대로 두고 따로 적는다.,items.csv `verdict_log` 그대로,값이 여러 자릿수에 걸친 ITEM(누설 전류 등)은 이 판정이 더 맞을 수 있다. `verdict`와 다르면 log_compare.csv에 나온다.
+changed,판정 바뀜,선형 판정과 log 판정이 다른지.,`verdict` ≠ `verdict_log`면 True (빈 칸도 글자로 비교),True면 척도에 따라 판정이 갈린다. log_compare.png에서 X 표시다.
+log_fit,log 대칭 이득,log로 바꾸면 분포가 얼마나 더 대칭이 되는지.,items.csv `log_fit` 그대로,양수면 log 쪽이 더 대칭이다. 0.1을 넘고 `decades` ≥ 1이면 log 후보다.
+decades,자릿수 폭,값이 몇 자릿수에 걸쳐 있는지.,items.csv `decades` 그대로,1 이상이면 10배 넘게 퍼진 것이다. log 척도가 맞을 수 있다.

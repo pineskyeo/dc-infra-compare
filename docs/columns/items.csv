@@ -1,71 +1,71 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-ID,익명 번호,항목군 + ITEM 이름 순서 번호. item_map.csv와 짝. summarize.py와 같은 값,,
-ITEM,ITEM,ITEM 이름,,
-UNIT,단위,"원데이터 UNIT 열. 표시용, 판정에 쓰지 않음",,
-verdict_final,최종 판정,"기본 판정이 차이·미결일 때만 옵션 log → accuracy(LoQ 근처) → log_physics 순으로 보고 동등을 주는 첫 옵션, 없으면 대상인 log 옵션의 판정, 그것도 없으면 verdict",,
-verdict_basis,최종 판정 근거,"최종 판정을 정한 쪽: linear, log, accuracy, log_physics",,
-scale,scale,"log 옵션 대상을 정한 scale: log, linear(scales 파일에 적음), auto→log, auto→linear(이번 실행의 그룹 ITEM으로 정함), item(그룹이 없거나 --scales 없음)",,
-verdict,판정,기본(선형) 판정. 동등 · 차이 · 미결 · 판정 제외,,
-verdict_log,log 판정,L = log10|값| 공간에서 TOST만 한 판정. 0이 없고 부호가 하나인 ITEM 전부. 0값·부호 섞임이면 판정 제외,,
-verdict_with_accuracy,장비 정확도 판정,"Δ' = max(Δ, 장비 정확도 폭)으로 낸 판정. LoQ 근처면 accuracy 옵션으로 최종 판정에 씀, 그 밖은 참고",,장비 정확도가 판정을 바꿨을지
-verdict_no_blank,blank 없이 낸 판정,blank 없이 낸 판정 (--blank),,blank가 판정을 바꿨는지
-zone,구간,정량 · 검출~정량 · 검출한계 이하 (|POR 중앙값|과 LoQ·LoD 비교),,
-reason,판정 사유,판정 사유,,
-log_reason,log 판정 사유,log 판정 사유,,
-status,데이터 상태,"판정과 별개인 데이터 상태: 조건 불안정, 회차 흔들림, 작을수록 흔들림, 클수록 흔들림, 분해능 부족, 산포 0, log 후보, 두 덩어리, LoQ 근처. 여러 개면 ';'로 이음. 없으면 정상",,
-n_die,die 수,die 수,,
-center,편향,편향 b = die별 차이 d의 중앙값 (d = DOE − POR 회차 평균),median(d),
-ci_low,신뢰구간 아래 끝,b의 90% 신뢰구간 아래 끝 (부호검정),,
-ci_high,신뢰구간 위 끝,b의 90% 신뢰구간 위 끝 (부호검정),,
-delta,허용 범위 Δ,허용 범위 Δ = 실용 한계 + 회차 예측 한계. 차이가 이 안이면 같다고 봄,"r × |POR 중앙값| + t(0.95, J−1) × √(1 + 1/J) × sigma_run",
-policy_margin,실용 한계,실용 한계 = 5% × |기준 조건 중앙값|,r × |por_median|,
-run_margin,회차 예측 한계,회차 예측 한계,"t(0.95, J−1) × √(1+1/J) × σrun",
-delta_source,Δ 출처,Δ를 정한 쪽: 실용 + 회차 예측 (장비 정확도는 기본 Δ에 안 들어감),,
-ci_half_over_delta,신뢰구간 반폭 / 허용폭,신뢰구간 반폭 / 허용폭. Δ ≤ 0이나 NaN이면 빈 칸,(ci_high − ci_low) / 2 / delta,
-por_median,POR 중앙값,die별 기준 조건 J회 평균의 중앙값. 구간 나누기와 실용 한계에 씀,,
-doe_center,DOE 중심,LoQ 미만일 때 비교 조건 중심 = 기준 조건 중앙값 + b,por_median + center,
-LoQ,정량한계,정량한계 = 10 × (σ 후보 중 큰 값),10 × σ,
-LoD,검출한계,검출한계 = 3.29 × (같은 σ),3.29 × σ,
-limit_source,LoQ 출처,LoQ를 정한 쪽: 기준 조건 반복 / 데이터 분해능 / 장비 분해능 / blank,,
-POR{k}_mean,POR 회차 평균,회차별 평균. 비교 조건만 벗어났는지 보는 용도,,
-DOE_mean,DOE 평균,회차별 평균. 비교 조건만 벗어났는지 보는 용도,,
-sigma_die,반복성,같은 die를 다시 잰 1회 측정 흔들림,1.4826 × MAD ÷ √2,
-sigma_run,회차 이동,"회차마다 모든 die가 함께 움직이는 크기 (컨택, 온도 등)","√(회차별 중앙값의 분산 − (π/2)·σdie²/n), 음수면 0",
-sigma_meas,측정 산포,측정 산포,√(sigma_die² + sigma_run²),낮을수록 좋음
-meas_precision_pct,측정 정밀도 (%),"측정 정밀도(%), 상대표준편차. por_median이 0이면 빈 칸",100 × sigma_meas / |por_median|,낮을수록 좋음. status가 산포 0이면 0에 가깝게 나와도 좋은 값으로 읽지 말 것
-sigma_meas_over_delta,측정 산포 / 허용폭,delta가 0이면 빈 칸,sigma_meas / delta,
-n_outlier_die,이상치 die 수,"튀는 die 수 (참고, 판정에 안 씀)",|d − median(d)| > 5·robustσ(d),일부 die만 다른지. 반복되는 이상치 die 위치
-por_gap_over_delta,,짝지은 회차 차 ÷ Δ. 조건 불안정의 근거 값,gap / Δ,
-por_gap_over_noise,,짝지은 회차 차 ÷ se (die 잡음으로 생기는 회차 차의 크기). 조건 불안정의 근거 값,gap / se,
-run_jitter_pct,,die별 회차 범위 / |회차 평균|의 중앙값 (%),100 × 중앙값(die별 회차 범위 / |회차 평균|),
-run_jitter_over_delta,,die별 회차 범위의 중앙값 / Δ. 1 이상이면 회차 흔들림,중앙값(die별 회차 범위) / Δ,
-spearman_size_jitter,,"값 크기와 log 회차 범위의 Spearman ρ. ≤ −0.5면 작을수록 흔들림, ≥ +0.5면 클수록 흔들림 (die ≥ 10)","Spearman ρ(log10|회차 평균|, log10|값|의 회차 범위)",
-resolution_step,,POR 전 회차·DOE 값의 서로 다른 값 사이 최소 간격,,
-resolution_over_delta,,resolution_step / Δ. 0.1 이상이면 분해능 부족,resolution_step / Δ,
-fixed_share,,R과 z 각각에서 가장 흔한 값의 die 비율 중 큰 쪽 (판정 제외 '고정값 NN%'와 같은 값),,
-decades,,값이 몇 자릿수에 걸쳐 있는지,log10(P99|R| / P1|R|),
-skew_lin,,R의 Bowley 사분위 왜도 (범위 −1~1),(Q3 + Q1 − 2·Q2) / (Q3 − Q1),
-skew_log,,log10|R|의 Bowley 사분위 왜도,,
-log_fit,,양수면 log 쪽이 더 대칭,|skew_lin| − |skew_log|,
-bimodality_log,,log10|R|의 bimodality coefficient. 5/9 넘고 die ≥ 10이면 두 덩어리,(g² + 1) / (k + 3(n−1)² / ((n−2)(n−3))),
-mean_median_ratio,,분포가 한쪽으로 끌려간 정도. 판정에 안 씀,(mean(R) − median(R)) / |median(R)|,
-center_log,,log 판정의 편향 (log10 값에서 die별 차이의 중앙값),,
-ci_low_log,,log 판정의 90% 신뢰구간 아래 끝,,
-ci_high_log,,log 판정의 90% 신뢰구간 위 끝,,
-delta_log,,log 판정의 허용 범위,log10(1 + r) + sigma_rep_log,
-ci_half_over_delta_log,,ci_half_over_delta를 log 판정으로 계산한 값,,ci_half_over_delta와 비교해 어느 공간에서 해상도가 나은지
-sigma_rep_log,,log 판정의 회차 항. die별 L 회차값 표준편차(ddof=1)의 die 중앙값 (유효 회차값 2개 미만 die 제외),,
-sigma_die_log,,"L에서 구한 σ_die (분석용, 판정에 안 씀). verdict_log가 판정 제외면 빈 칸",,
-sigma_run_log,,"L에서 구한 σ_run (분석용, 판정에 안 씀). verdict_log가 판정 제외면 빈 칸",,
-ttest,,"짝지은 t-test 결과 (참고, 판정에 안 씀)",,
-ttest_p,,"짝지은 t-test p 값 (참고, 판정에 안 씀)",,
-por_ttest_sig,,기준 조건 회차끼리 t-test 유의차 쌍 수 / 전체 쌍 수,,t-test가 기준 조건끼리도 차이라 하는지
-spec_status,,--level 관련,,
-level_check,,|파일값|/|CALCVAL| 이 LEVEL 자릿수 안인지 (1.15배 여유),,CALCVAL·LEVEL 입력 실수
-range_por,,원측정값이 들어가는 가장 작은 auto range (POR),,기준 조건과 비교 조건의 range가 다른지
-range_doe,,원측정값이 들어가는 가장 작은 auto range (DOE),,기준 조건과 비교 조건의 range가 다른지
-spec_resolution,,장비 분해능 (--level),,
-accuracy_margin,,"장비 정확도 폭 (--level, A·V ITEM)",,
-blank_item,,연결된 blank ITEM,,
-blank_status,,blank 적용 여부와 이유,,
-blank_LoQ_item,,blank LoQ (ITEM 단위),,
+ID,익명 번호,ITEM 이름을 감춘 번호. 항목군 순번과 ITEM 이름 순번으로 만든다.,F{항목군 순번 2자리}_I{ITEM 순번 4자리}. 항목군 = `ITEM` 앞쪽 영문자. 순번은 이름 순서,"같은 ITEM 목록이면 실행마다 같은 번호다. 공유할 때 ITEM 이름 대신 쓰고, item_map.csv로 실제 이름을 찾는다."
+ITEM,ITEM 이름,측정 항목 이름. 원데이터에 적힌 그대로다.,원데이터 `ITEM` 그대로,
+UNIT,단위,원데이터에 적힌 단위. 표시용이고 판정에 쓰지 않는다.,첫 POR 회차에서 그 ITEM 첫 줄의 `UNIT`,단위가 기대와 다르면 입력 파일을 확인한다.
+verdict_final,최종 판정,"이 ITEM의 마지막 판정. 기본 판정이 차이나 미결일 때만 옵션(log, 장비 정확도)으로 다시 본다.","`verdict`가 동등·판정 제외면 그대로. 아니면 옵션 log(`verdict_log`) → accuracy(`verdict_with_accuracy`) → log_physics(`verdict_log`) 순서로, 대상이고 판정이 나온 옵션 중 동등인 첫 옵션의 동등. 없으면 대상인 log 옵션의 판정, 그것도 없으면 `verdict`. 대상: log = `scale` item이고 `status`에 log 후보, 또는 `scale` auto→log이고 `decades` ≥ 1, `log_fit` > 0. accuracy = `status`에 LoQ 근처이고 `accuracy_margin`이 있음. log_physics = `scale` log이고 `decades` ≥ 1, `log_fit` > 0",판정 집계와 차이·미결 목록은 이 열을 쓴다. `verdict`와 다르면 `verdict_basis`로 어느 옵션이 바꿨는지 본다.
+verdict_basis,최종 판정 근거,최종 판정을 정한 방법.,"linear = `verdict` 그대로. log, log_physics = `verdict_log`. accuracy = `verdict_with_accuracy`","linear가 아니면 기본 판정이 옵션으로 바뀐 ITEM이다. 그 옵션의 가정(log 척도, 장비 정확도)이 이 ITEM에 맞는지 확인한다."
+scale,척도 설정,log 옵션의 대상을 정하는 척도. 그룹 파일(--groups)과 척도 파일(--scales)에서 온다.,"그룹이 없거나 --scales가 없으면 item. 척도 파일의 log, linear는 그대로. 파일에 없거나 auto인 그룹은 그 그룹 ITEM 중 `decades`와 `log_fit`가 둘 다 있는 ITEM의 절반 넘게 `decades` ≥ 1이고 그 `log_fit` 중앙값 > 0이면 auto→log, 아니면 auto→linear","item이면 ITEM마다 status 'log 후보'로 log 옵션을 본다. linear, auto→linear는 log 옵션 대상이 아니다. auto 결정은 scales_auto.csv에서 본다."
+verdict,기본 판정,"선형 값으로 낸 판정. 동등, 차이, 미결, 판정 제외 중 하나다.","die < 10이면 미결. 판정 제외 원인이 있으면 판정 제외. 정량(|`por_median`| ≥ `LoQ`): `ci_low` ≥ −`delta`이고 `ci_high` ≤ `delta`면 동등, `ci_low` > `delta` 또는 `ci_high` < −`delta`면 차이, 그 밖은 미결. 정량에서 `delta` ≤ 0이면 판정 제외. LoQ 미만: 신뢰구간이 통째로 ±`delta` 밖이고 |`doe_center`| ≥ `LoQ`일 때만 차이, 그 밖은 동등",동등은 차이가 허용 범위 안이라고 증명된 것. 차이는 허용 범위보다 크다고 증명된 것. 미결은 어느 쪽도 증명하지 못한 것. 판정 제외면 `reason`을 본다.
+verdict_log,log 판정,값을 log10으로 바꿔서 낸 판정. 기본 판정은 그대로 두고 따로 적는다.,"L = log10|`POR{k}`|, w = log10|`DOE`|. die별 차이 w − mean(L)의 중앙값과 부호검정 90% 신뢰구간을 ±`delta_log`와 비교(TOST). LoQ 판정은 없다. 값에 0이 있거나 부호가 섞이면 판정 제외, die < 10이면 미결",값이 여러 자릿수에 걸친 ITEM(누설 전류 등)은 이 판정이 더 맞을 수 있다. `verdict`와 다르면 log_compare.csv에 나온다.
+verdict_with_accuracy,장비 정확도 넣은 판정,허용 범위를 장비 정확도 폭까지 넓혀서 낸 판정. 정량 구간이고 장비 정확도 폭이 있을 때만 채운다.,"Δ' = max(`delta`, `accuracy_margin`). `ci_low`, `ci_high`를 ±Δ'와 비교(TOST). Δ' ≤ 0이면 판정 제외",LoQ 근처 ITEM이면 최종 판정에 쓴다(accuracy 옵션). 그 밖은 참고다. `verdict`와 다르면 장비 정확도 때문에 판정이 갈린 것이다.
+verdict_no_blank,blank 없이 낸 판정,blank로 LoQ를 올리지 않고 다시 낸 판정. blank ITEM이 연결된 ITEM만 채운다.,`blank_item`이 있을 때 blank LoQ를 빼고 `verdict`와 같은 규칙으로 다시 판정,`verdict`와 다르면 blank가 판정을 바꾼 것이다. blank 측정과 연결(--blank-map)이 맞는지 확인한다.
+zone,구간,기준 조건 값이 정량한계(LoQ)와 검출한계(LoD)에 비해 어디에 있는지.,"|`por_median`| ≥ `LoQ`면 정량, `LoD` ≤ |`por_median`| < `LoQ`면 검출~정량, |`por_median`| < `LoD`면 검출한계 이하. die < 10이면 die 부족, 판정 제외면 판정 제외",정량이 아니면 값이 바닥 잡음 수준이라 '<LoQ 보고 일치' 규칙으로 판정한다.
+reason,판정 사유,기본 판정이 왜 그렇게 나왔는지 적은 문장.,"판정 규칙이 붙이는 문장. 동등 '90% 신뢰구간이 ±Δ 안', 차이 'shift …가 ±Δ(…) 밖', 미결 '해상도 부족 (신뢰구간 반폭 ≥ Δ)' 또는 '경계 (신뢰구간이 Δ에 걸침)', LoQ 미만 '<LoQ 보고 일치 (…)', 판정 제외 '판정 제외: 원인; 원인'",해상도 부족이면 측정이 거칠어 판정을 못 한 것이라 회차나 die를 늘린다. 경계면 이동량이 Δ 근처다. 판정 제외면 적힌 원인을 본다.
+log_reason,log 판정 사유,log 판정이 왜 그렇게 나왔는지 적은 문장.,"`verdict_log`를 낸 규칙의 문장(`reason`과 같은 형식). 값에 0이 있으면 '0값 있음', 부호가 섞이면 '부호 섞임'",0값 있음이나 부호 섞임이면 log 판정을 할 수 없는 ITEM이다.
+status,데이터 상태,"판정과 별개로 데이터에서 눈에 띄는 점. 여러 개면 ';'로 잇고, 없으면 정상이다.","조건 불안정: `por_gap_over_delta` ≥ 1이고 `por_gap_over_noise` ≥ 3 (se가 0이면 앞 조건만). 회차 흔들림: `run_jitter_over_delta` ≥ 1. 작을수록 흔들림: `spearman_size_jitter` ≤ −0.5, 클수록 흔들림: ≥ +0.5 (둘 다 0값 없는 die ≥ 10). 분해능 부족: `resolution_over_delta` ≥ 0.1. 산포 0: `sigma_die` = 0 또는 `fixed_share` > 0.5. log 후보: `decades` ≥ 1이고 `log_fit` > 0.1. 두 덩어리: `bimodality_log` > 5/9이고 die ≥ 10. LoQ 근처: `LoQ` ≤ |`por_median`| < `LoQ` / (10 × r)",상태는 판정을 바꾸지 않는다. 하지만 판정을 믿어도 되는지 알려 준다. 정상이 아니면 그 상태의 지표 열을 본다.
+n_die,die 수,판정에 쓴 die 수. 모든 POR 회차와 DOE에 값이 있는 die만 센다.,"모든 회차에 값이 있는 (`WAFERID`, `COORD_X_Y`) 수",10 미만이면 미결(die 부족)이다. 기대보다 적으면 회차마다 좌표가 다른지 확인한다.
+center,이동량,DOE가 POR보다 얼마나 움직였나. die별 차이의 중앙값이다.,"median(`d`), `d` = `DOE` − mean(`POR{k}`) (die별)",0이면 그대로다. 부호가 방향이다. 크기는 `delta`와 견주어 본다.
+ci_low,이동량 범위 아래 끝,실제 이동량이 있을 만한 범위(90% 신뢰구간)의 아래 끝. 부호검정으로 구한다.,"`d`를 작은 순으로 놓은 (k+1)번째 값. k = 이항분포(n, 0.5)의 누적확률이 0.05 이하인 가장 큰 수, n = `n_die`. `d`가 모두 같으면 그 값",`ci_low`~`ci_high` 전체가 ±`delta` 안이면 동등이다. 튀는 die는 개수만 영향을 주고 크기는 영향이 없다.
+ci_high,이동량 범위 위 끝,실제 이동량이 있을 만한 범위(90% 신뢰구간)의 위 끝.,`d`를 작은 순으로 놓은 (n−k)번째 값 (k는 `ci_low`와 같음),`ci_low` > `delta`이거나 `ci_high` < −`delta`면 통째로 밖이라 차이다.
+delta,허용 범위 Δ,이동량이 이 안이면 같다고 본다. 실용 한계와 회차 예측 한계를 더한 값이다.,`policy_margin` + `run_margin`,클수록 판정이 너그럽다. `run_margin`이 `policy_margin`보다 크면 POR 회차 흔들림이 허용 범위를 키운 것이다.
+policy_margin,실용 한계,값 크기의 r배. 실행 전에 정하는 허용 비율이다 (기본 5%).,"r × |`por_median`|, r = --r (기본 0.05)",내부 기준이다. r을 바꾸면 모든 판정이 바뀐다.
+run_margin,회차 예측 한계,POR를 다시 재기만 해도 DOE 1회가 POR 평균에서 벗어날 수 있는 폭.,"t(0.95, J−1) × √(1 + 1/J) × `sigma_run`, J = POR 회차 수 (J = 3이면 계수 3.37)","크면 POR 회차끼리 많이 움직인 것이다. 측정 조건(컨택, 온도)을 점검한다."
+delta_source,Δ 출처,Δ를 무엇으로 정했는지. 정량 구간에서만 채운다.,항상 '정책 + 회차' (장비 정확도는 기본 Δ에 안 들어감),참고용이다.
+ci_half_over_delta,범위 반폭 / 허용 범위,신뢰구간 반폭이 허용 범위의 몇 배인지. 측정이 판정하기에 충분히 촘촘한지 본다.,(`ci_high` − `ci_low`) / 2 / `delta`. `delta` ≤ 0이나 빈 칸이면 빈 칸,1 이상이면 이동량이 0이어도 동등이 될 수 없다(해상도 부족). 작을수록 좋다.
+por_median,POR 중앙값,기준 조건 값의 대표값. die별 POR 회차 평균의 중앙값이다.,"median(R), R = die별 mean(`POR{k}`)","구간 나누기, 실용 한계, % 환산의 기준이다."
+doe_center,DOE 중심,LoQ 미만 ITEM에서 DOE 값의 대표값. LoQ 미만일 때만 채운다.,`por_median` + `center`,|DOE 중심| ≥ `LoQ`이고 신뢰구간이 ±`delta` 밖이면 차이다. 보고 값이 '<LoQ'에서 숫자로 바뀌기 때문이다.
+LoQ,정량한계,숫자로 믿고 비교할 수 있는 가장 작은 크기.,"10 × σ, σ = max(`sigma_die`, `resolution_step` / √12, `spec_resolution` / √12). blank LoQ(`blank_LoQ_item`)가 더 크면 그 값",|`por_median`|이 이보다 작으면 LoQ 미만 규칙으로 판정한다. `limit_source`로 무엇이 정했는지 본다.
+LoD,검출한계,0이 아니라고 말할 수 있는 가장 작은 크기.,"3.29 × σ (`LoQ`와 같은 σ). blank가 LoQ를 정하면 max(이 값, blank LoD), blank LoD = (|blank 평균| + 3.29 × blank σ) × |`CALCVAL`|",|`por_median`| < `LoD`면 검출한계 이하 구간이다.
+limit_source,LoQ 출처,LoQ를 정한 σ가 어디서 왔는지.,"`LoQ`의 σ 후보 중 가장 큰 쪽: POR 반복(`sigma_die`), 데이터 분해능, 장비 분해능. blank LoQ가 더 크면 blank",분해능이면 값이 계단처럼 거친 것이다. blank면 바닥 잡음이 LoQ를 정한 것이다.
+POR{k}_mean,POR 회차 평균,k번째 POR 회차의 die 평균.,mean(`POR{k}`) (die 평균),"DOE만 회차 평균들 밖으로 벗어났는지, 회차 하나만 튀었는지 본다."
+DOE_mean,DOE 평균,DOE의 die 평균.,mean(`DOE`) (die 평균),`POR{k}_mean`들과 견준다. DOE만 밖에 있으면 DOE 조건이 값을 바꾼 것이다.
+sigma_die,반복성 σ_die,같은 die를 다시 잴 때 1회 측정이 흔들리는 크기.,die별 이웃 회차 차(`POR{k}`의 다음 회차 − 이번 회차)를 회차쌍마다 그 중앙값을 빼고 모은 뒤 1.4826 × MAD / √2. MAD = 중앙값에서 떨어진 거리의 중앙값,클수록 측정이 불안정하다. 0이면 값이 계단처럼 고정됐을 수 있다(status 산포 0).
+sigma_run,회차 이동 σ_run,"회차마다 모든 die가 함께 움직이는 크기 (컨택, 온도 등).","√max(0, var(rr) − (π/2) × `sigma_die`² / n). rr = 회차마다 median(`POR{k}` − die별 회차 평균), var는 ddof=1, n = `n_die`",크면 `run_margin`이 커져 Δ가 넓어진다. 0이면 회차 사이 이동이 die 잡음보다 작은 것이다.
+sigma_meas,측정 산포,반복성과 회차 이동을 합친 1회 측정의 전체 흔들림.,√(`sigma_die`² + `sigma_run`²),낮을수록 좋다. `delta`와 견주어 본다.
+meas_precision_pct,측정 정밀도 %,측정 산포를 값 크기 대비 %로 나타낸 것 (상대표준편차).,100 × `sigma_meas` / |`por_median`|. `por_median` = 0이면 빈 칸,낮을수록 좋다. 값이 0 근처인 ITEM은 %가 커 보이니 `zone`을 같이 본다. status가 산포 0이면 작게 나와도 좋은 값으로 읽지 않는다.
+sigma_meas_over_delta,측정 산포 / 허용 범위,1회 측정 잡음이 허용 범위의 몇 배인지.,`sigma_meas` / `delta`. `delta` = 0이면 빈 칸,작을수록 판정이 쉽다. 1에 가까우면 잡음만으로 허용 범위를 다 쓴다.
+n_outlier_die,튀는 die 수,차이 d가 다른 die와 크게 다른 die 수. 참고용이고 판정에 안 쓴다.,|`d` − median(`d`)| > 5 × 1.4826 × MAD(`d`)인 die 수. MAD = 0이면 0,"0보다 크면 outlier_dies.csv에서 어느 die인지, 여러 ITEM에서 같은 die가 반복되는지 본다."
+por_gap_over_delta,회차 차 / 허용 범위,POR 회차끼리 전체가 얼마나 이동했는지를 Δ와 견준 값. 조건 불안정의 근거다.,"gap / `delta`, gap = max(rr) − min(rr), rr = 회차마다 median(`POR{k}` − die별 회차 평균). `delta` ≤ 0이면 빈 칸",1 이상이고 `por_gap_over_noise` ≥ 3이면 조건 불안정이다.
+por_gap_over_noise,회차 차 / die 잡음,회차 차가 die 잡음만으로 생길 크기의 몇 배인지.,"gap / se, se = 1.2533 × `sigma_die` × √2 / √n, n = `n_die`. se가 0이면 빈 칸",3 이상이면 die 잡음으로 설명이 안 되는 회차 이동이다.
+run_jitter_pct,회차 흔들림 %,die 하나를 회차마다 다시 잴 때 값이 흔들린 폭을 값 대비 %로 본 것.,"100 × median(`por_range` / |mean(`POR{k}`)|) (die별, 회차 평균이 0인 die는 뺌)",크면 같은 die도 회차마다 값이 많이 바뀐다.
+run_jitter_over_delta,회차 흔들림 / 허용 범위,die별 회차 범위의 중앙값이 허용 범위의 몇 배인지.,median(`por_range`) / `delta` (회차 평균이 0인 die는 뺌). `delta` ≤ 0이면 빈 칸,1 이상이면 status 회차 흔들림이다.
+spearman_size_jitter,크기와 흔들림의 순위상관,값이 작은 die일수록(또는 클수록) 회차 흔들림이 큰지 보는 순위상관 ρ. 범위 −1~1.,"Spearman ρ(log10|mean(`POR{k}`)|, max − min of log10|`POR{k}`|) (die별, 0값 있는 die는 뺌). die 3개 미만이면 빈 칸","−0.5 이하면 작을수록 흔들림, +0.5 이상이면 클수록 흔들림이다(die ≥ 10일 때 status). 이런 ITEM은 log 판정을 같이 본다."
+resolution_step,값 계단 크기,POR 모든 회차와 DOE 값 중 서로 다른 값 사이의 가장 작은 간격.,"`POR{k}`, `DOE`의 서로 다른 값을 정렬한 이웃 간격의 최솟값",값이 계단처럼 기록되는지 본다. `resolution_over_delta`로 판단한다.
+resolution_over_delta,값 계단 / 허용 범위,값 계단이 허용 범위에 비해 얼마나 거친지.,`resolution_step` / `delta`. `delta` ≤ 0이면 빈 칸,0.1 이상이면 분해능 부족이다. 장비 분해능이나 기록 자릿수를 확인한다.
+fixed_share,고정값 비율,한 값이 die를 얼마나 차지하는지.,"max(R의 최빈값 비율, `DOE`의 최빈값 비율), R = die별 mean(`POR{k}`)",0.5를 넘으면 산포 0이다. 측정이 한계값이나 기본값 같은 고정값을 내는지 확인한다.
+decades,자릿수 폭,값이 몇 자릿수에 걸쳐 있는지.,"log10(P99|R| / P1|R|), R = die별 mean(`POR{k}`). |R| ≥ 1E+90(Open 코드)은 뺌. 0이 있거나 부호가 섞이면 빈 칸",1 이상이면 10배 넘게 퍼진 것이다. log 척도가 맞을 수 있다.
+skew_lin,선형 비대칭도,R 분포가 한쪽으로 치우친 정도 (Bowley 사분위 왜도). 범위 −1~1.,"(Q3 + Q1 − 2 × Q2) / (Q3 − Q1), Q = R의 25·50·75% 값, R = die별 mean(`POR{k}`). die < 3이거나 Q3 = Q1이면 빈 칸",0이면 대칭이다. `skew_log`와 견준다.
+skew_log,log 비대칭도,log10|R| 분포가 한쪽으로 치우친 정도. 범위 −1~1.,`skew_lin`과 같은 식을 log10|R|에 적용. 0이 있거나 부호가 섞이면 빈 칸,`skew_lin`보다 0에 가까우면 log 척도에서 더 대칭이다.
+log_fit,log 대칭 이득,log로 바꾸면 분포가 얼마나 더 대칭이 되는지.,|`skew_lin`| − |`skew_log`|,양수면 log 쪽이 더 대칭이다. 0.1을 넘고 `decades` ≥ 1이면 log 후보다.
+bimodality_log,두 덩어리 지수,log10|R|가 두 무리로 나뉘는 정도 (bimodality coefficient).,"(g² + 1) / (k + 3(n−1)² / ((n−2)(n−3))), g = 표본 왜도, k = 표본 초과 첨도 (둘 다 보정식), n = 값 수. n < 4이거나 값이 모두 같으면 빈 칸","5/9를 넘고 die ≥ 10이면 두 덩어리다. die가 두 종류로 나뉘는지(공정 차이, 다른 칩) 확인한다."
+mean_median_ratio,평균과 중앙값의 차,분포가 한쪽으로 끌려간 정도. 판정에 안 쓴다.,"(mean(R) − median(R)) / |median(R)|, R = die별 mean(`POR{k}`). median(R) = 0이면 빈 칸",크면 일부 die가 평균을 한쪽으로 끌고 간다. 중앙값으로 판정하는 이유다.
+center_log,log 이동량,log10 값에서 본 이동량. die별 차이의 중앙값이다.,median(log10|`DOE`| − mean(log10|`POR{k}`|)) (die별),10^값 − 1이 비율 변화다. 0.0414면 DOE가 약 10% 크다.
+ci_low_log,log 이동량 범위 아래 끝,log 판정의 90% 신뢰구간 아래 끝.,log 차이에 `ci_low`와 같은 부호검정 순위,
+ci_high_log,log 이동량 범위 위 끝,log 판정의 90% 신뢰구간 위 끝.,log 차이에 `ci_high`와 같은 부호검정 순위,
+delta_log,log 허용 범위,log 판정의 허용 범위. 비율로 정한 한계와 log 회차 흔들림을 더한다.,log10(1 + r) + `sigma_rep_log` (t 계수 없음),r = 0.05면 앞 항은 0.0212로 5% 변화에 해당한다.
+ci_half_over_delta_log,log 범위 반폭 / log 허용 범위,`ci_half_over_delta`를 log 판정으로 계산한 값.,(`ci_high_log` − `ci_low_log`) / 2 / `delta_log`,`ci_half_over_delta`와 비교해 어느 척도에서 판정이 더 촘촘한지 본다.
+sigma_rep_log,log 회차 흔들림,log 판정의 회차 항. die 하나를 다시 잴 때 log 값이 흔들리는 크기다.,"median(std(log10|`POR{k}`|, ddof=1)) (die별 std, 유효한 회차 값이 2개 미만인 die는 뺌)",클수록 `delta_log`가 넓어진다.
+sigma_die_log,log 반복성,`sigma_die`를 log10|값|에서 구한 것. 분석용이고 판정에 안 쓴다.,`sigma_die`와 같은 식을 log10|`POR{k}`|에 적용. `verdict_log`가 판정 제외면 빈 칸,
+sigma_run_log,log 회차 이동,`sigma_run`을 log10|값|에서 구한 것. 분석용이고 판정에 안 쓴다.,`sigma_run`과 같은 식을 log10|`POR{k}`|에 적용. `verdict_log`가 판정 제외면 빈 칸,
+ttest,t-test 결과,짝지은 t-test로 DOE와 POR 평균 차이가 0인지 본 결과. 참고용이고 판정에 안 쓴다.,"`ttest_p` < 0.05면 유의차, 아니면 유의차 없음",유의차여도 동등일 수 있다. t-test는 작은 차이도 잡아서 '같다'를 증명하지 못한다.
+ttest_p,t-test p 값,짝지은 t-test의 p 값. 참고용이다.,"2 × P(T > |mean(`d`) / (sd(`d`) / √n)|), T는 자유도 n−1인 t 분포, n = `n_die`. sd(`d`) = 0이면 mean(`d`) = 0일 때 1, 아니면 0",
+por_ttest_sig,POR끼리 t-test 유의차,같은 조건인 POR 회차끼리 짝지은 t-test를 했을 때 유의차가 난 쌍의 수.,p < 0.05인 회차 쌍 수 / 전체 회차 쌍 수 (쌍마다 `POR{k}` 두 회차의 die별 차이로 t-test),같은 조건끼리도 유의차가 나면 t-test가 판정에 맞지 않는다는 근거다.
+spec_status,장비 사양 환산,--level 파일로 장비 사양을 ITEM 단위로 어떻게 바꿨는지.,"CALCVAL로 환산(실제 값 = |`por_median`| / |`CALCVAL`|), 자릿수 상한으로 환산(실제 값 = 10 × `LEVEL`), 변형: 장비 사양 미적용, POR 값 0: 환산 불가. --level이 없거나 그 ITEM이 없으면 빈 칸",변형이거나 빈 칸이면 장비 분해능과 정확도를 쓰지 않은 것이다.
+level_check,LEVEL 점검,CALCVAL로 되돌린 실제 값이 LEVEL 자릿수 안에 있는지.,"|`por_median`| / |`CALCVAL`|가 [L / 1.15, 11.5 × L) 안이면 일치, 아니면 불일치(값 적음). L = `LEVEL`을 숫자로 읽은 값 (10nA → 1e-8). `CALCVAL`이 있을 때만",불일치면 CALCVAL이나 LEVEL 입력이 틀렸을 수 있다.
+range_por,POR 측정 range,POR 실제 값이 들어가는 가장 작은 auto range (Keysight P9001A SMU 표).,auto range 상한이 실제 값(`spec_status`의 환산 값) 이상인 range 중 가장 작은 것,`range_doe`와 다르면 측정 range가 바뀌어 정확도가 달라졌을 수 있다.
+range_doe,DOE 측정 range,DOE 실제 값이 들어가는 가장 작은 auto range. LoQ 미만이면 빈 칸.,DOE 실제 값 = POR 실제 값 × |median(`DOE`)| / |`por_median`|,`range_por`와 다르면 기준 조건과 비교 조건의 range가 다르다.
+spec_resolution,장비 분해능,그 range의 측정 분해능을 ITEM 단위로 바꾼 값.,"P9001A 표의 분해능 × k, k = |`CALCVAL`| (없으면 |`por_median`| / (10 × `LEVEL`))",÷ √12 해서 `LoQ`의 σ 후보로 쓴다.
+accuracy_margin,장비 정확도 폭,두 측정이 각자 장비 사양 정확도 안에 있을 때 생길 수 있는 차이. A·V ITEM만 채운다.,"1.645 × √((u_POR² + u_DOE²) / 3) × k, u = a × 실제 값 + b × range + c (P9001A 사양표), k는 `spec_resolution`과 같음",`delta`보다 크면 장비 정확도가 허용 범위보다 크다. LoQ 근처면 accuracy 옵션에 쓴다.
+blank_item,연결된 blank ITEM,LoQ 하한으로 쓴 blank ITEM. blank σ를 구할 수 있을 때만 채운다.,"--blank-map의 `BLANK_ITEM`, 없으면 `ITEM`과 같은 이름",
+blank_status,blank 적용,blank를 LoQ에 넣었는지와 이유.,"적용, level.csv 없음: 미적용, 변형: 미적용, CALCVAL 없음: 미적용",미적용이면 blank가 LoQ에 안 들어갔다.
+blank_LoQ_item,blank LoQ,blank 반복 측정으로 구한 정량한계를 ITEM 단위로 바꾼 값.,"(|blank 평균| + 10 × blank σ) × |`CALCVAL`|. blank σ = blank 표준편차(ddof=1), 없으면 σ0(이웃 차 평균 / 1.128)",`LoQ`보다 크면 이 값이 LoQ가 된다(`limit_source` blank).

@@ -1,6 +1,6 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-metric,,,,
-ID,,,,
-before,,,,
-after,,,,
-ratio,,,,
+metric,지표,어느 비율 지표의 악화 목록인지.,"sigma_die_ratio, sigma_run_ratio, meas_precision_ratio 중 하나",
+ID,ITEM 이름,열 이름은 ID지만 실제 ITEM 이름이 들어 있다.,compare.csv `ITEM`,
+before,기존 값,기존 쪽 지표 값.,"`metric`에 따라 `sigma_die_before`, `sigma_run_before`, `meas_precision_pct_before`",
+after,개선 값,개선 쪽 지표 값.,"`metric`에 따라 `sigma_die_after`, `sigma_run_after`, `meas_precision_pct_after`",
+ratio,비 (개선/기존),"개선 값이 기존 값의 몇 배인지. 1보다 큰(나빠진) ITEM만, 큰 순으로 지표마다 최대 10개.","`after` / `before`, 둘 다 0보다 클 때만 (개수는 --plot-top, 기본 10)",가장 나빠진 ITEM부터 원인을 본다.

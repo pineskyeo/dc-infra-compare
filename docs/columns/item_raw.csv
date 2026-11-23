@@ -1,11 +1,11 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-WAFERID,,,,
-COORD_X_Y,,,,
-ITEM,,,,
-POR{k},,,,
-DOE,,,,
-blank_item,,,,
-blank_sigma0,,,,
-blank_offset,,,,
-d,,,,
-por_range,,,,
+WAFERID,wafer 번호,die가 있는 wafer. --key의 die 열이다.,원데이터 `WAFERID` 그대로,
+COORD_X_Y,die 좌표,wafer 안의 die 위치.,원데이터 `COORD_X_Y` 그대로,
+ITEM,ITEM 이름,측정 항목 이름.,원데이터 `ITEM` 그대로,
+POR{k},POR 회차 값,그 die의 k번째 POR 회차 측정값.,그 die·ITEM·회차의 median(`DATA`) (한 회차에 같은 die가 여러 줄이면 중앙값),회차끼리 크게 다른 die가 있는지 본다.
+DOE,DOE 값,그 die의 DOE 측정값.,그 die·ITEM의 DOE median(`DATA`),POR 회차 값들 밖에 있는 die가 많으면 DOE가 값을 바꾼 것이다.
+blank_item,연결된 blank ITEM,이 ITEM에 연결된 blank ITEM. blank 데이터에 없으면 빈 칸. --blank를 줬을 때만 열이 있다.,"--blank-map의 `BLANK_ITEM`, 없으면 `ITEM`과 같은 이름",
+blank_sigma0,blank 잡음 σ0,blank를 반복해서 잰 값의 이웃 차로 구한 잡음 크기.,"mean(|이웃 blank 측정 차|) / 1.128. blank 파일이 ITEM,SIGMA0 요약이면 그 값","LoQ 계산은 blank 표준편차가 있으면 그것을 쓰고, 없을 때만 σ0를 쓴다."
+blank_offset,blank 평균,blank 반복 측정값의 평균.,mean(blank 측정값),0에서 멀면 바닥이 떠 있는 것이다. blank LoQ에 더해진다.
+d,die별 차이,그 die에서 DOE가 POR 회차 평균보다 얼마나 다른지.,`DOE` − mean(`POR{k}`),이 값들의 중앙값이 items.csv `center`다. 한쪽에 몰린 die가 있는지 본다.
+por_range,POR 회차 범위,그 die의 POR 회차 값 중 가장 큰 값과 가장 작은 값의 차.,max(`POR{k}`) − min(`POR{k}`),크면 그 die는 다시 잴 때마다 값이 많이 바뀐다.

@@ -1,3 +1,3 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-ID,익명 번호,익명 번호. items.csv의 ID 열과 같은 번호,,공유하지 마세요
-ITEM,ITEM,실제 ITEM 이름,,
+ID,익명 번호,items.csv의 ID와 같은 익명 번호.,F{항목군 순번 2자리}_I{ITEM 순번 4자리}. 항목군 = `ITEM` 앞쪽 영문자. 순번은 이름 순서. summarize.py --keep-family면 F01 대신 항목군 이름 그대로,공유하지 않는다. 익명 번호를 실제 ITEM으로 되돌리는 표다.
+ITEM,ITEM 이름,실제 ITEM 이름.,items.csv `ITEM` 그대로,

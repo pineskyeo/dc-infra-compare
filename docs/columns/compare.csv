@@ -1,36 +1,36 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-ITEM,ITEM,실제 ITEM 이름 (비교 키),,
-ID,,,,
-presence,,,,
-misaligned,,정렬 의심: 같은 ITEM인데 por_median 상대차 > 20%,,
-por_median_rel_diff,,,,
-verdict_before,,,,
-verdict_after,,,,
-verdict_transition,,,,
-sigma_die_pct_before,,,,
-sigma_die_pct_after,,,,
-sigma_die_pct_change,,,,
-sigma_die_status,,,,
-sigma_run_pct_before,,,,
-sigma_run_pct_after,,,,
-sigma_run_pct_change,,,,
-sigma_run_status,,,,
-meas_precision_pct_before,,,,
-meas_precision_pct_after,,,,
-meas_precision_pct_change,,,,
-meas_precision_status,,,,
-delta_pct_before,,,,
-delta_pct_after,,,,
-delta_pct_change,,,,
-ci_width_pct_before,,,,
-ci_width_pct_after,,,,
-ci_width_pct_change,,,,
-both_lower,,,,
-por_median_before,,,,
-por_median_after,,,,
-sigma_die_before,,,,
-sigma_die_after,,,,
-sigma_run_before,,,,
-sigma_run_after,,,,
-center_delta_before,,,,
-center_delta_after,,,,
+ITEM,ITEM 이름,두 결과를 맞추는 키. 같은 ITEM 이름끼리 짝짓는다.,기존·개선 items.csv `ITEM`,
+ID,익명 번호,기존 표의 익명 번호. 기존에 없으면 개선 표의 번호.,"기존 items.csv `ID`, 없으면 개선 `ID`",
+presence,짝 상태,그 ITEM이 두 결과에 다 있는지.,"matched = 두 표에 다 있음, only_before = 기존에만, only_after = 개선에만",only_가 많으면 ITEM 이름이 바뀌었거나 측정 목록이 다르다.
+misaligned,정렬 의심,같은 이름인데 값 크기가 크게 다른 ITEM.,`por_median_rel_diff` > 0.2면 True,"True면 이름은 같아도 다른 측정일 수 있다. 기본은 집계에 넣고, --exclude-misaligned면 뺀다."
+por_median_rel_diff,POR 중앙값 상대차,기존과 개선의 POR 중앙값이 서로 몇 배 다른지.,"|`por_median_before` − `por_median_after`| / max(|`por_median_before`|, |`por_median_after`|). 둘 다 0이면 0",0.2를 넘으면 정렬 의심이다.
+verdict_before,기존 판정,기존 items.csv의 기본 판정. 최종 판정이 아니다.,기존 items.csv `verdict` 그대로,group_summary.py의 '동등 아님' 집계도 이 값을 쓴다.
+verdict_after,개선 판정,개선 items.csv의 기본 판정. 최종 판정이 아니다.,개선 items.csv `verdict` 그대로,
+verdict_transition,판정 변화,기존 판정에서 개선 판정으로 어떻게 바뀌었는지. 짝이 있는 ITEM만.,`verdict_before` + '→' + `verdict_after`,동등→차이처럼 나빠진 ITEM을 먼저 본다.
+sigma_die_pct_before,기존 반복성 %,기존 반복성을 POR 중앙값 대비 %로 본 것.,100 × `sigma_die_before` / |`por_median_before`|. 중앙값 0이면 빈 칸,낮을수록 안정적이다.
+sigma_die_pct_after,개선 반복성 %,개선 반복성을 POR 중앙값 대비 %로 본 것.,100 × `sigma_die_after` / |`por_median_after`|. 중앙값 0이면 빈 칸,낮을수록 안정적이다.
+sigma_die_pct_change,반복성 % 변화,개선 값에서 기존 값을 뺀 것. 단위 %p.,`sigma_die_pct_after` − `sigma_die_pct_before`. 한쪽이 비면 빈 칸,음수면 개선 쪽이 낮다. 반복성·회차 이동·정밀도는 낮을수록 좋다.
+sigma_die_status,반복성 변화 방향,개선에서 반복성이 낮아졌는지 높아졌는지.,"`sigma_die_after` < `sigma_die_before`면 lower, 크면 higher, 같으면 same, 둘 다 0이면 same 0. 한쪽이 비면 빈 칸",lower가 개선이다. 아주 작은 차이도 lower나 higher로 센다.
+sigma_run_pct_before,기존 회차 이동 %,기존 회차 이동을 POR 중앙값 대비 %로 본 것.,100 × `sigma_run_before` / |`por_median_before`|. 중앙값 0이면 빈 칸,낮을수록 안정적이다.
+sigma_run_pct_after,개선 회차 이동 %,개선 회차 이동을 POR 중앙값 대비 %로 본 것.,100 × `sigma_run_after` / |`por_median_after`|. 중앙값 0이면 빈 칸,낮을수록 안정적이다.
+sigma_run_pct_change,회차 이동 % 변화,개선 값에서 기존 값을 뺀 것. 단위 %p.,`sigma_run_pct_after` − `sigma_run_pct_before`. 한쪽이 비면 빈 칸,음수면 개선 쪽이 낮다. 반복성·회차 이동·정밀도는 낮을수록 좋다.
+sigma_run_status,회차 이동 변화 방향,개선에서 회차 이동이 낮아졌는지 높아졌는지.,"`sigma_run_after` < `sigma_run_before`면 lower, 크면 higher, 같으면 same, 둘 다 0이면 same 0. 한쪽이 비면 빈 칸",lower가 개선이다. 아주 작은 차이도 lower나 higher로 센다.
+meas_precision_pct_before,기존 측정 정밀도 %,기존 결과의 측정 정밀도 %.,기존 items.csv `meas_precision_pct` 그대로. 그 열이 없는 옛 결과면 100 × √(`sigma_die`² + `sigma_run`²) / |`por_median`|,낮을수록 좋다.
+meas_precision_pct_after,개선 측정 정밀도 %,개선 결과의 측정 정밀도 %.,개선 items.csv `meas_precision_pct` 그대로. 그 열이 없는 옛 결과면 100 × √(`sigma_die`² + `sigma_run`²) / |`por_median`|,낮을수록 좋다.
+meas_precision_pct_change,측정 정밀도 % 변화,개선 값에서 기존 값을 뺀 것. 단위 %p.,`meas_precision_pct_after` − `meas_precision_pct_before`. 한쪽이 비면 빈 칸,음수면 개선 쪽이 낮다. 반복성·회차 이동·정밀도는 낮을수록 좋다.
+meas_precision_status,측정 정밀도 변화 방향,개선에서 측정 정밀도이 낮아졌는지 높아졌는지.,"`meas_precision_pct_after` < `meas_precision_pct_before`면 lower, 크면 higher, 같으면 same, 둘 다 0이면 same 0. 한쪽이 비면 빈 칸",lower가 개선이다. 아주 작은 차이도 lower나 higher로 센다.
+delta_pct_before,기존 허용 범위 %,기존 Δ를 POR 중앙값 대비 %로 본 것.,100 × `delta` / |`por_median`| (기존 items.csv),
+delta_pct_after,개선 허용 범위 %,개선 Δ를 POR 중앙값 대비 %로 본 것.,100 × `delta` / |`por_median`| (개선 items.csv),
+delta_pct_change,허용 범위 % 변화,개선 값에서 기존 값을 뺀 것. 단위 %p.,`delta_pct_after` − `delta_pct_before`. 한쪽이 비면 빈 칸,음수면 개선 쪽이 낮다. 반복성·회차 이동·정밀도는 낮을수록 좋다.
+ci_width_pct_before,기존 범위 폭 %,기존 신뢰구간 폭을 POR 중앙값 대비 %로 본 것.,100 × (`ci_high` − `ci_low`) / |`por_median`| (기존 items.csv),좁을수록 판정이 촘촘하다.
+ci_width_pct_after,개선 범위 폭 %,개선 신뢰구간 폭을 POR 중앙값 대비 %로 본 것.,100 × (`ci_high` − `ci_low`) / |`por_median`| (개선 items.csv),좁을수록 판정이 촘촘하다.
+ci_width_pct_change,범위 폭 % 변화,개선 값에서 기존 값을 뺀 것. 단위 %p.,`ci_width_pct_after` − `ci_width_pct_before`. 한쪽이 비면 빈 칸,음수면 개선 쪽이 낮다.
+both_lower,두 흔들림 모두 낮아짐,반복성과 회차 이동이 둘 다 줄었는지. 짝이 있는 ITEM만 채운다.,"`sigma_die_status` lower이고 `sigma_run_status` lower면 yes, `sigma_die_status` lower이고 `sigma_run_status` same 0이면 same 0, 그 밖은 no. --exclude-misaligned면 정렬 의심 행은 빈 칸",yes가 많으면 개선 조건이 측정을 안정시킨 것이다.
+por_median_before,기존 POR 중앙값,기존 결과의 POR 중앙값.,기존 items.csv `por_median` 그대로,
+por_median_after,개선 POR 중앙값,개선 결과의 POR 중앙값.,개선 items.csv `por_median` 그대로,
+sigma_die_before,기존 반복성,기존 결과의 σ_die.,기존 items.csv `sigma_die` 그대로,
+sigma_die_after,개선 반복성,개선 결과의 σ_die.,개선 items.csv `sigma_die` 그대로,
+sigma_run_before,기존 회차 이동,기존 결과의 σ_run.,기존 items.csv `sigma_run` 그대로,
+sigma_run_after,개선 회차 이동,개선 결과의 σ_run.,개선 items.csv `sigma_run` 그대로,
+center_delta_before,기존 이동량 / 허용 범위,기존 이동량이 Δ의 몇 배인지.,`center` / `delta` (기존 items.csv). `delta` ≤ 0이면 빈 칸,±1 밖이면 허용 범위보다 크게 움직였다.
+center_delta_after,개선 이동량 / 허용 범위,개선 이동량이 Δ의 몇 배인지.,`center` / `delta` (개선 items.csv). `delta` ≤ 0이면 빈 칸,±1 밖이면 허용 범위보다 크게 움직였다.

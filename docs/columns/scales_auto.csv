@@ -1,6 +1,6 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-group,,,,
-decision,,"auto 그룹마다 정한 scale (log, linear)",,
-n_items,,decades와 log_fit이 둘 다 있는 그룹 ITEM 수,,
-n_decades_ge_1,,,,
-median_log_fit,,,,
+group,그룹,척도를 자동으로 정한 그룹 (척도 파일에 없거나 auto인 그룹).,--groups 파일의 group,
+decision,정한 척도,그 그룹에 정한 척도. 그룹 ITEM의 `scale`은 auto→log 또는 auto→linear가 된다.,"`n_decades_ge_1` > `n_items` / 2이고 `median_log_fit` > 0이면 log, 아니면 linear",확인 뒤 척도 파일에 옮겨 적으면 다음 실행에서 고정된다.
+n_items,쓴 ITEM 수,그룹 ITEM 중 `decades`와 `log_fit`가 둘 다 있는 ITEM 수.,"`decades`, `log_fit`가 둘 다 숫자인 그룹 ITEM 수",0이면 정할 근거가 없어 linear다.
+n_decades_ge_1,1자릿수 넘는 ITEM 수,그중 값이 10배 넘게 퍼진 ITEM 수.,`decades` ≥ 1인 ITEM 수,
+median_log_fit,log 대칭 이득 중앙값,그 ITEM들의 log 대칭 이득 중앙값.,median(`log_fit`). `n_items` = 0이면 빈 칸,양수면 log 쪽이 대체로 더 대칭이다.

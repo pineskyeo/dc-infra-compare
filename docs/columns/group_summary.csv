@@ -1,14 +1,14 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-그룹,,그룹 이름. 맨 위 '전체' 행,,
-ITEM 수,,,,
-σ_die 비 중앙값(개선/기존),,,,
-σ_die 감소 %,,,,
-σ_run 감소 %(비교 가능 중),,,,
-σ_run 증가 건수,,,,
-σ_run 둘 다 0 건수,,,,
-둘 다 감소 건수,,,,
-기존 동등 아님,,,,
-개선 동등 아님,,,,
-제외(짝 없음),,짝 없는 ITEM 수,,
-"제외(짝 없음, 정렬 의심)",,--exclude-misaligned 를 줄 때의 제외 열 이름,,
-판정 제외,,기존 또는 개선이 판정 제외라 뺀 ITEM 수. 그런 행이 있을 때만 붙음,,
+그룹,그룹,"그룹 이름. 맨 위 '전체' 다음 이름 순, 미지정은 맨 뒤.",--groups 파일의 group (이름이 안 맞으면 앞의 'F31_' 같은 접두어를 떼고 다시 맞춤). 없으면 미지정,
+ITEM 수,ITEM 수,집계에 쓴 ITEM 수.,"`presence` matched이고 `verdict_before`, `verdict_after` 둘 다 판정 제외가 아닌 ITEM 수 (--exclude-misaligned면 `misaligned`도 뺌)",
+σ_die 비 중앙값(개선/기존),반복성 비 중앙값,개선 반복성이 기존의 몇 배인지를 ITEM마다 구한 비의 중앙값.,"median(`sigma_die_after` / `sigma_die_before`), `sigma_die_before` > 0인 ITEM만, 소수 셋째 자리",1보다 작으면 개선 쪽 반복성이 좋아졌다.
+σ_die 감소 %,반복성 줄어든 비율,반복성이 줄어든 ITEM 비율.,"100 × (`sigma_die_after` < `sigma_die_before`인 ITEM 수) / `ITEM 수`, 소수 첫째 자리",50%보다 크면 줄어든 ITEM이 더 많다.
+σ_run 감소 %(비교 가능 중),회차 이동 줄어든 비율,둘 다 0인 ITEM을 뺀 ITEM 중 회차 이동이 줄어든 비율.,"100 × (`sigma_run_after` < `sigma_run_before`인 수) / (둘 다 0이 아니고 둘 다 있는 ITEM 수), 소수 첫째 자리",
+σ_run 증가 건수,회차 이동 늘어난 수,회차 이동이 늘어난 ITEM 수.,`sigma_run_after` > `sigma_run_before`인 ITEM 수,많으면 개선 조건의 회차 안정성을 의심한다.
+σ_run 둘 다 0 건수,회차 이동 둘 다 0,기존과 개선 모두 회차 이동이 0인 ITEM 수.,`sigma_run_before` = 0이고 `sigma_run_after` = 0인 ITEM 수,
+둘 다 감소 건수,둘 다 줄어든 수,반복성과 회차 이동이 둘 다 줄어든 ITEM 수.,`sigma_die_after` < `sigma_die_before`이고 `sigma_run_after` < `sigma_run_before`인 ITEM 수,
+기존 동등 아님,기존 동등 아님,기존 판정이 동등이 아닌 ITEM 수.,`verdict_before`가 동등이 아닌 ITEM 수 (compare.csv에 verdict_final_before 열이 있으면 그 값),compare.csv의 판정은 기본 판정이라 최종 판정 집계와 다를 수 있다.
+개선 동등 아님,개선 동등 아님,개선 판정이 동등이 아닌 ITEM 수.,`verdict_after`가 동등이 아닌 ITEM 수 (verdict_final_after 열이 있으면 그 값),기존보다 크면 개선 조건에서 동등이 줄었다.
+제외(짝 없음),뺀 ITEM (짝 없음),한쪽 결과에만 있어 뺀 ITEM 수.,`presence`가 matched가 아닌 ITEM 수,
+"제외(짝 없음, 정렬 의심)","뺀 ITEM (짝 없음, 정렬 의심)",--exclude-misaligned를 줄 때 이 이름으로 나온다.,`presence`가 matched가 아니거나 `misaligned`가 True인 ITEM 수,
+판정 제외,뺀 ITEM (판정 제외),기존 또는 개선이 판정 제외라 뺀 ITEM 수. 그런 ITEM이 있을 때만 열이 생긴다.,짝이 있고 `verdict_before` 또는 `verdict_after`가 판정 제외인 ITEM 수,

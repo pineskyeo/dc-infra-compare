@@ -1,6 +1,6 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-WAFERID,,,,
-COORD_X_Y,,,,
-ITEM,ITEM,ITEM 이름,,
-POR{k},,튀는 die의 기준 조건 회차별 값,,
-DOE,,튀는 die의 비교 조건 값,,
+WAFERID,wafer 번호,튀는 die가 있는 wafer.,원데이터 `WAFERID` 그대로,
+COORD_X_Y,die 좌표,튀는 die의 위치.,원데이터 `COORD_X_Y` 그대로,여러 ITEM에서 같은 좌표가 반복되면 그 die나 프로브 위치를 의심한다.
+ITEM,ITEM 이름,그 die가 튄 ITEM.,원데이터 `ITEM` 그대로,
+POR{k},POR 회차 값,튀는 die의 k번째 POR 회차 값.,median(`DATA`) (그 die·회차),회차끼리 같은데 DOE만 다르면 DOE에서 튄 것이다.
+DOE,DOE 값,튀는 die의 DOE 값.,median(`DATA`) (그 die),

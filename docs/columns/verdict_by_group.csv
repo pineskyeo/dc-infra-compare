@@ -1,3 +1,3 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-group,,,,
-{verdict}→{verdict},,그룹별 판정 변화 (기존→개선) ITEM 수,,
+group,그룹,그룹 이름. 맨 아래는 '전체' 합계 행.,"--groups 파일의 group, 없으면 미지정",
+{verdict}→{verdict},판정 변화별 ITEM 수,기존 판정에서 개선 판정으로 바뀐 모양마다 ITEM 수. 나온 모양만 열이 생긴다.,짝이 있는 ITEM(판정 제외 포함) 중 `verdict_before` → `verdict_after`가 그 모양인 수,동등→차이 같은 나빠진 변화가 어느 그룹에 몰리는지 본다.
