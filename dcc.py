@@ -20,7 +20,7 @@ from pathlib import Path
 
 from step_runner import run_step
 
-KEYS = {"por", "doe", "level", "blank", "blank_map", "key", "encoding", "r", "groups", "before", "out"}
+KEYS = {"por", "doe", "level", "blank", "blank_map", "key", "encoding", "r", "groups", "scales", "before", "out"}
 DEFAULT_OUT = "dcc_out"
 ALL = "all"
 
@@ -45,6 +45,7 @@ class Combo:
     encoding: str | None = None
     r: float | None = None
     groups: Path | None = None
+    scales: Path | None = None
     before: Path | None = None
 
     @property
@@ -52,7 +53,7 @@ class Combo:
         return self.out / "items.csv"
 
     def inputs(self) -> list[Path]:
-        single = [self.doe, self.level, self.blank_map, self.groups, self.before]
+        single = [self.doe, self.level, self.blank_map, self.groups, self.scales, self.before]
         return [*self.por, *self.blank, *(p for p in single if p is not None)]
 
     def raw_args(self) -> list[str]:
@@ -113,6 +114,7 @@ def _parse_combo(name: str, raw: dict[str, str], base: Path) -> Combo:
         encoding=opt_str("encoding"),
         r=r,
         groups=opt_path("groups"),
+        scales=opt_path("scales"),
         before=opt_path("before"),
     )
 
@@ -153,8 +155,13 @@ def check_inputs(combo: Combo) -> None:
 
 
 def judge_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
+    scales: list[str] = []
+    if c.scales is not None:
+        if c.groups is None:
+            raise ConfigError(f"[{c.name}] scales 에는 groups 가 필요합니다 (조합이나 [defaults] 에 groups = ITEM,그룹 파일)")
+        scales = ["--groups", str(c.groups), "--scales", str(c.scales)]
     return [
-        ("por_doe_compare", ["por_doe_compare.py", *c.raw_args(), "--out", str(c.out)]),
+        ("por_doe_compare", ["por_doe_compare.py", *c.raw_args(), *scales, "--out", str(c.out)]),
         ("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(c.items_csv), "--summary",
                            "--out", str(c.out / "plots")]),
     ]

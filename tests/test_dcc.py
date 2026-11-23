@@ -145,6 +145,25 @@ def test_plan_judge(cfg: Path):
     ]
 
 
+def test_plan_judge_passes_groups_and_scales_when_scales_set(cfg: Path):
+    base = cfg.parent.resolve()
+    make_paths(base, "scales.csv")
+    cfg.write_text(cfg.read_text(encoding="utf-8").replace("groups = groups.csv\n",
+                                                           "groups = groups.csv\nscales = scales.csv\n"),
+                   encoding="utf-8")
+    assert dcc.load_config(cfg)["A1"].scales == base / "scales.csv"
+    args = _plan(cfg, "judge", "A1")[0][1]
+    assert args[-6:] == ["--groups", str(base / "groups.csv"), "--scales", str(base / "scales.csv"),
+                         "--out", str(base / "결과" / "A1")]
+
+
+def test_scales_without_groups_is_a_config_error(tmp_path: Path, capsys):
+    make_paths(tmp_path, "p1", "p2", "d", "scales.csv")
+    path = write_config(tmp_path, "[A1]\npor = p1\n  p2\ndoe = d\nscales = scales.csv\n")
+    assert dcc.main(["judge", "A1", "--config", str(path)]) == 2
+    assert "scales 에는 groups 가 필요합니다" in capsys.readouterr().err
+
+
 def test_plan_item_and_group_run_judge_only_without_items_csv(cfg: Path):
     base = cfg.parent.resolve()
     out = base / "결과" / "A1"
