@@ -3,7 +3,7 @@
   python summarize.py 결과/items.csv
   → 결과/summary.txt   : 붙여 넣어 공유할 요약 (ITEM 이름 없음)
   → 결과/item_map.csv  : 익명 번호 ↔ 실제 ITEM (공유하지 말 것)
-  → 결과/items.csv     : ITEM 옆에 같은 익명 번호(ID 열)를 넣어 다시 저장
+  → 결과/items.csv     : ID 열(맨 앞, 없으면 넣음)을 같은 익명 번호로 다시 저장
 
 익명 번호는 ITEM 이름 순서로 매기므로 같은 ITEM 목록이면 실행마다 같은 번호가 나온다.
 """
@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from por_doe_compare import V_EXCLUDED, reason_group, verdict_col
+from por_doe_compare import FAMILY_REGEX, V_EXCLUDED, anon_ids, reason_group, verdict_col
 
 
 def not_equivalent(d: pd.DataFrame) -> pd.DataFrame:
@@ -27,22 +27,21 @@ def not_equivalent(d: pd.DataFrame) -> pd.DataFrame:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("items", help="por_doe_compare.py 가 만든 items.csv")
-    ap.add_argument("--family-regex", default=r"^([A-Za-z]+)", help="항목군을 뽑는 정규식 (기본: 앞쪽 영문자)")
+    ap.add_argument("--family-regex", default=FAMILY_REGEX, help="항목군을 뽑는 정규식 (기본: 앞쪽 영문자)")
     ap.add_argument("--keep-family", action="store_true", help="항목군 이름(VT, ION 등)은 그대로 둠")
     ap.add_argument("--list", type=int, default=60, help="표 최대 행 수 (기본 60)")
     a = ap.parse_args()
 
     path = Path(a.items)
-    raw = pd.read_csv(path).drop(columns=["ID"], errors="ignore")
-    d = raw.copy()
-    fam = d["ITEM"].astype(str).str.extract(a.family_regex, expand=False).fillna("?")
-    fam_ids = {f: f"F{i + 1:02d}" for i, f in enumerate(sorted(fam.unique()))}
-    item_no = {it: i + 1 for i, it in enumerate(sorted(d["ITEM"].astype(str)))}
-    d["FAMILY"] = fam if a.keep_family else fam.map(fam_ids)
-    d["ID"] = d["FAMILY"] + "_" + d["ITEM"].astype(str).map(lambda it: f"I{item_no[it]:04d}")
-    d[["ID", "ITEM"]].to_csv(path.parent / "item_map.csv", index=False, encoding="utf-8-sig")
-    raw.insert(raw.columns.get_loc("ITEM") + 1, "ID", d["ID"])
+    raw = pd.read_csv(path)
+    fam, ids = anon_ids(raw["ITEM"], a.family_regex, a.keep_family)
+    if "ID" in raw:
+        raw["ID"] = ids
+    else:
+        raw.insert(0, "ID", ids)
+    raw[["ID", "ITEM"]].to_csv(path.parent / "item_map.csv", index=False, encoding="utf-8-sig")
     raw.to_csv(path, index=False, encoding="utf-8-sig")
+    d = raw.assign(FAMILY=fam)
 
     q = d[d["zone"] == "정량"]
     low = d[d["zone"].isin(["검출한계 이하", "검출~정량"])]

@@ -71,6 +71,51 @@ LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log
             "ci_half_over_delta_log", "spearman_size_jitter_log", "log_reason",     # 0 없고 부호 하나인 ITEM 참고용
             "sigma_die_log", "sigma_run_log", "below_linear_loq", "policy_margin_log",   # 분석용, 판정에 안 씀
             "sigma_rep_log"]                                                             # log 판정의 회차 항
+POR_MEAN_RE = re.compile(r"POR\d+_mean")
+# items.csv 열 순서의 유일한 출처: 묶음 순서대로, 묶음 안은 적힌 순서. POR_MEAN_RE 는 맞는 열을 원래 순서로.
+# 표에 없는 열은 맨 끝에 원래 순서로 붙는다.
+COLUMN_GROUPS: tuple[tuple[str, tuple[str | re.Pattern, ...]], ...] = (
+    ("identity", ("ID", "ITEM", "UNIT")),
+    ("verdicts", ("verdict_final", "verdict_basis", "verdict", "verdict_log", "verdict_with_accuracy",
+                  "verdict_no_blank", "zone", "reason", "log_reason", "status")),
+    ("TOST", ("n_die", "center", "ci_low", "ci_high", "rel_shift", "delta", "policy_margin", "run_margin",
+              "delta_source", "ci_half_over_delta")),
+    ("LoQ", ("por_median", "doe_center", "LoQ", "LoD", "limit_source")),
+    ("values", (POR_MEAN_RE, "DOE_mean")),
+    ("noise", ("sigma_die", "sigma_run", *PRECISION_COLS, "n_outlier_die")),
+    ("data state", tuple(METRIC_COLS)),
+    ("shape", (*SHAPE_COLS, "mean_median_ratio")),
+    ("log", ("center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta_log", "sigma_rep_log",
+             "sigma_die_log", "sigma_run_log", "spearman_size_jitter_log", "below_linear_loq", "policy_margin_log")),
+    ("reference", ("ttest", "ttest_p", "por_ttest_sig",
+                   "spec_status", "level_check", "range_por", "range_doe", "spec_resolution", "accuracy_margin",
+                   "blank_item", "blank_status", "blank_LoQ_item")),
+)
+FAMILY_REGEX = r"^([A-Za-z]+)"
+
+
+def order_columns(cols) -> list[str]:
+    """COLUMN_GROUPS 순서로 cols 를 늘어놓는다. 표에 없는 열은 끝에 원래 순서로."""
+    cols = list(cols)
+    out = []
+    for _, group in COLUMN_GROUPS:
+        for entry in group:
+            out += [c for c in cols if (c == entry if isinstance(entry, str) else entry.fullmatch(c))]
+    return out + [c for c in cols if c not in out]
+
+
+def anon_ids(items: pd.Series, family_regex: str = FAMILY_REGEX,
+             keep_family: bool = False) -> tuple[pd.Series, pd.Series]:
+    """(FAMILY, ID). FAMILY = ITEM 에서 family_regex 첫 묶음 (못 뽑으면 '?'), keep_family 가 아니면 항목군 이름
+    순서의 F01, F02, ... ID = FAMILY + '_I' + ITEM 이름 순서 번호 4자리. 같은 ITEM 목록이면 실행마다 같다."""
+    names = items.astype(str)
+    fam = names.str.extract(family_regex, expand=False).fillna("?")
+    if not keep_family:
+        fam = fam.map({f: f"F{i + 1:02d}" for i, f in enumerate(sorted(fam.unique()))})
+    no = {it: i + 1 for i, it in enumerate(sorted(names))}
+    return fam, fam + "_" + names.map(lambda it: f"I{no[it]:04d}")
+
+
 def dc_jobs() -> int:
     """병렬 작업 수: 환경변수 DC_JOBS. 없거나 비었으면 os.cpu_count() or 1, 숫자가 아니거나 1 미만이면 1."""
     raw = os.environ.get("DC_JOBS", "").strip()
@@ -792,11 +837,9 @@ def main() -> None:
     rows = [res for res, _ in results]
     outl = [o for _, o in results if o is not None]
 
-    first = ["ITEM", "UNIT", "zone", "verdict", "reason"]
-    res = pd.DataFrame(rows)
-    tail = STATUS_COLS + PRECISION_COLS + [c for o in OPTIONS for c in o.columns]
-    res = res[first + [c for c in res.columns if c not in first + tail] + tail]
-    res = add_final_verdict(res)
+    res = add_final_verdict(pd.DataFrame(rows))
+    res.insert(0, "ID", anon_ids(res["ITEM"])[1])
+    res = res[order_columns(res.columns)]
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)

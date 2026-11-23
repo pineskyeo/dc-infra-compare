@@ -124,9 +124,7 @@ def test_compare_cli_writes_status_columns(tmp_path: Path):
     ])
     with open(out / "items.csv", encoding="utf-8-sig", newline="") as f:
         rows = list(csv.reader(f))
-    assert rows[0][-len(LOG_COLS):] == LOG_COLS
-    rows = [r[:-len(LOG_COLS)] for r in rows]
     header = rows[0]
-    assert header[-len(STATUS_COLS) - len(PRECISION_COLS):-len(PRECISION_COLS)] == STATUS_COLS
+    assert set(LOG_COLS + STATUS_COLS) <= set(header)     # 순서는 test_items_columns
     assert len(rows) > 1
     assert all(r[header.index("status")] for r in rows[1:])

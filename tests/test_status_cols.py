@@ -60,10 +60,9 @@ def test_v1_no_detail_column(items_header):
 # v2
 def test_v2_metrics_follow_status(items_header):
     assert METRIC_COLS == METRICS
-    i = items_header.index("status")
-    assert items_header[i + 1:i + 1 + len(METRICS)] == METRICS
-    assert items_header[-len(LOG_COLS):] == LOG_COLS
-    assert items_header[i:i + len(STATUS_COLS) + len(PRECISION_COLS)] == STATUS_COLS + PRECISION_COLS
+    i = items_header.index(METRICS[0])          # 데이터 상태 묶음 (COLUMN_GROUPS)
+    assert items_header[i:i + len(METRICS)] == METRICS
+    assert set(LOG_COLS + STATUS_COLS + PRECISION_COLS) <= set(items_header)
     st = item_status(*normal_data(), 5.0)
     assert list(st) == STATUS_COLS
 
