@@ -1,0 +1,8 @@
+﻿column,쉬운이름,뜻,수식,볼것
+WAFERID,웨이퍼,die 위치 키 (--key 에서 ITEM을 뺀 열),,
+COORD_X_Y,die 좌표,die 위치 키 (--key 에서 ITEM을 뺀 열),,
+score,die 점수,"ITEM마다 이 die의 POR 회차 범위가 그 ITEM die들의 중앙 범위의 몇 배인지, 그 값의 ITEM 중앙값. 회차 범위 중앙값이 0인 ITEM은 안 셈",median over ITEM of (max − min of POR 회차) / median over die of (같은 것),1 근처가 보통. 1.5 이상이면 이 위치는 다시 재면 잘 안 맞음 (프로빙·컨택 의심)
+share_over_3x,튀는 ITEM 비율,이 die의 회차 범위가 ITEM 중앙 범위의 3배를 넘는 ITEM 비율 (0~1),,0.2 이상이면 일부 ITEM에서만 흔들리는 die (점수 중앙값으로는 안 보임)
+n_items,ITEM 수,점수에 쓴 ITEM 수,,
+flagged,흔들리는 die,"score ≥ 1.5 또는 share_over_3x ≥ 0.2 (시뮬레이션: 5배 잡음 die 100% 잡음, 거짓 0.4% 이하)",,True인 위치의 DOE 차이는 공정보다 측정 탓일 수 있음
+n_doe_outlier,DOE 튐 횟수,outlier_dies.csv에 이 die가 나온 횟수 (DOE − POR이 튄 ITEM 수),,흔들리는 die가 아닌데 이 값만 크면 DOE 쪽 문제 (DOE 측정이나 실제 국소 변화)

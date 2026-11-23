@@ -1066,7 +1066,7 @@ def main() -> None:
     ap.add_argument("--blank-map", help="CSV ITEM,BLANK_ITEM. 없으면 같은 이름끼리 연결")
     ap.add_argument("--key", default="WAFERID,COORD_X_Y,ITEM")
     ap.add_argument("--encoding", default="auto")
-    ap.add_argument("--groups", help="ITEM,group 파일. --scales 와 같이 쓴다")
+    ap.add_argument("--groups", help="ITEM,group 파일. --scales 와 같이 쓰고, 주면 stability/groups.csv 도 쓴다")
     ap.add_argument("--scales", help="group,scale 파일 (scale = log, linear, auto). 그룹마다 log 옵션 대상을 정한다. "
                                      "표에 없는 그룹은 auto, 결정은 scales_auto.csv")
     ap.add_argument("--out", default="por_doe_out")
@@ -1077,6 +1077,8 @@ def main() -> None:
         sys.exit("--scales 에는 --groups (ITEM,group 파일) 가 필요합니다")
     key = a.key.split(",")
     die_cols = [k for k in key if k != "ITEM"]
+    import stability        # stability 가 이 모듈의 상수를 쓰므로 여기서 부른다
+    plotter = stability.Plotter.start()
 
     wide, por_cols, units = load_wide(a)
 
@@ -1097,9 +1099,10 @@ def main() -> None:
 
     res = pd.DataFrame(rows)
     auto = None
+    groups = read_groups(a.groups) if a.groups else None
+    group_of = None if groups is None else dict(zip(groups["ITEM"], groups["group"]))
     if a.scales:
-        groups = read_groups(a.groups)
-        res["scale"], auto = item_scales(res, dict(zip(groups["ITEM"], groups["group"])), read_scales(a.scales))
+        res["scale"], auto = item_scales(res, group_of, read_scales(a.scales))
     else:
         res["scale"] = SCALE_ITEM
     res = add_final_verdict(res)
@@ -1109,8 +1112,8 @@ def main() -> None:
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     res.to_csv(out / "items.csv", index=False, encoding="utf-8-sig")
-    (pd.concat(outl) if outl else pd.DataFrame(columns=die_cols + ["ITEM"])).to_csv(
-        out / "outlier_dies.csv", index=False, encoding="utf-8-sig")
+    outliers = pd.concat(outl) if outl else pd.DataFrame(columns=die_cols + ["ITEM"])
+    outliers.to_csv(out / "outlier_dies.csv", index=False, encoding="utf-8-sig")
     if auto is None:
         (out / SCALES_AUTO_CSV).unlink(missing_ok=True)     # 지난 --scales 실행의 결정이 이번 결과처럼 보이지 않게
     else:
@@ -1134,6 +1137,8 @@ def main() -> None:
     n_lv = int(res.get("level_check", pd.Series(dtype=str)).astype(str).str.startswith("불일치").sum())
     if n_lv:
         print(f"\n경고: CALCVAL로 환산한 실제 값이 LEVEL 자릿수와 다른 ITEM {n_lv}개 (level_check 열)")
+    stab = stability.write(out / stability.DIR, res, wide, por_cols, die_cols, outliers, group_of, plotter)
+    print(f"\n측정 안정도 ({out / stability.DIR}): {stability.takeaway(stab, die_cols)}")
     print(f"\n결과: {out / 'items.csv'}, {out / 'outlier_dies.csv'}  →  요약: python summarize.py {out / 'items.csv'}")
 
 

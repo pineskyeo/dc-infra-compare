@@ -1,0 +1,22 @@
+﻿column,쉬운이름,뜻,수식,볼것
+n_items,ITEM 수,이 표에 든 ITEM 수,,
+share_stable,안정 비율,judgeability가 안정인 ITEM 비율 (0~1),ci_half_over_delta ≤ 0.5 인 ITEM 수 / n_items,높을수록 측정이 판정에 충분히 안정. 같은 ITEM이 동등으로 나올 확률 약 98%
+share_caution,주의 비율,judgeability가 주의인 ITEM 비율,0.5 < ci_half_over_delta ≤ 0.8 인 ITEM 수 / n_items,같은 ITEM이 동등으로 나올 확률 약 61%. 미결이 섞여 나올 수 있음
+share_unstable,불안정 비율,judgeability가 불안정인 ITEM 비율,ci_half_over_delta > 0.8 인 ITEM 수 / n_items,같은 ITEM도 동등으로 나올 확률 약 8%. 이 비율이 높은 그룹은 미결이 측정 탓일 수 있음
+share_no_band,판정력 없음 비율,ci_half_over_delta가 빈 칸인 ITEM 비율 (판정 제외 등),judgeability 빈 칸 ITEM 수 / n_items,네 비율의 합은 1
+rsd_pct_median,정밀도 중앙값 (%),ITEM rsd_pct의 중앙값 (빈 칸 ITEM 제외),median(rsd_pct),허용폭 r(기본 5%)의 절반을 넘으면 많은 ITEM이 동등 증명이 어려움
+rsd_pct_p90,정밀도 상위 10% (%),ITEM rsd_pct의 90번째 백분위,P90(rsd_pct),값이 LoQ 근처·0 근처인 ITEM이 있으면 크게 나옴
+ci_half_over_delta_median,판정력 비 중앙값,ITEM ci_half_over_delta의 중앙값,median(ci_half_over_delta),0.5 이하면 대부분 안정
+ci_half_over_delta_p90,판정력 비 상위 10%,ITEM ci_half_over_delta의 90번째 백분위,P90(ci_half_over_delta),0.8을 넘으면 열 개 중 하나 이상이 불안정
+n_run_jitter,회차 흔들림 ITEM 수,status에 회차 흔들림이 있는 ITEM 수,,많으면 POR 회차 사이 프로빙·온도를 의심
+n_condition_unstable,조건 불안정 ITEM 수,status에 조건 불안정이 있는 ITEM 수,,많으면 POR 회차 하나가 통째로 다름. runs.csv와 같이 봄
+n_low_resolution,분해능 부족 ITEM 수,status에 분해능 부족이 있는 ITEM 수,,
+n_flat,산포 0 ITEM 수,status에 산포 0이 있는 ITEM 수,,
+n_near_loq,LoQ 근처 ITEM 수,status에 LoQ 근처가 있는 ITEM 수,,
+n_noise_unknown,잡음 판별 불가 ITEM 수,noise_pattern이 판별 불가인 ITEM 수,,
+n_noise_constant,잡음 일정 ITEM 수,noise_pattern이 일정(꺾임 포함)인 ITEM 수,,선형으로 보는 것이 맞는 ITEM
+n_noise_proportional,잡음 비례 ITEM 수,noise_pattern이 비례(꺾임 포함)인 ITEM 수,,log로 보는 것이 맞는 ITEM
+n_noise_widening_up,위로 갈수록 벌어짐 ITEM 수,noise_pattern이 위로 갈수록 벌어짐(꺾임 포함)인 ITEM 수,,
+n_noise_widening_down,아래로 갈수록 벌어짐 ITEM 수,noise_pattern이 아래로 갈수록 벌어짐(꺾임 포함)인 ITEM 수,,
+n_noise_between,잡음 사이 ITEM 수,noise_pattern이 사이(꺾임 포함)인 ITEM 수,,바닥 잡음 + 비례 잡음
+n_noise_bend,꺾임 ITEM 수,noise_pattern에 (꺾임)이 붙은 ITEM 수 (위 여섯 수와 겹침),,
