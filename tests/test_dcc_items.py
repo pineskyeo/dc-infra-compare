@@ -80,7 +80,7 @@ def _fake_runs(monkeypatch, rows) -> list[tuple[str, str, list]]:
 def test_judge_detail_selects_verdict_final_diff_and_pending(cfg: Path, monkeypatch, capsys):
     calls = _fake_runs(monkeypatch, ITEMS_CSV)
     assert dcc.main(["judge", "A1", "--detail", "--config", str(cfg)]) == 0
-    assert [(n, m) for n, m, _ in calls] == [("A1", "judge"), ("A1", "item")]
+    assert [(n, m) for n, m, _ in calls] == [("A1", "judge"), ("A1", "item"), ("A1", "report")]
     (name, args), = calls[1][2]
     assert name == "fail_evidence"
     assert args[args.index("--only") + 1] == "VT_SHIFT,IOFF_LEAK,VOS_OFFSET"
@@ -90,7 +90,7 @@ def test_judge_detail_selects_verdict_final_diff_and_pending(cfg: Path, monkeypa
 def test_judge_detail_without_diff_or_pending_skips_item(cfg: Path, monkeypatch, capsys):
     calls = _fake_runs(monkeypatch, [r for r in ITEMS_CSV if r[3] not in ("차이", "미결")])
     assert dcc.main(["judge", "all", "--detail", "--config", str(cfg)]) == 0
-    assert [(n, m) for n, m, _ in calls] == [("A1", "judge"), ("B2", "judge")]
+    assert [(n, m) for n, m, _ in calls] == [("A1", "judge"), ("A1", "report"), ("B2", "judge"), ("B2", "report")]
     out = capsys.readouterr().out
     assert "[A1] 차이·미결 ITEM 이 없어" in out and "[B2] 차이·미결 ITEM 이 없어" in out
 
@@ -98,7 +98,7 @@ def test_judge_detail_without_diff_or_pending_skips_item(cfg: Path, monkeypatch,
 def test_judge_without_detail_runs_no_item(cfg: Path, monkeypatch):
     calls = _fake_runs(monkeypatch, ITEMS_CSV)
     assert dcc.main(["judge", "A1", "--config", str(cfg)]) == 0
-    assert [m for _, m, _ in calls] == ["judge"]
+    assert [m for _, m, _ in calls] == ["judge", "report"]   # 판정 뒤 리포트만, item 분석 없음
 
 
 def _por3_config(por3_data: Path, folder: Path) -> Path:

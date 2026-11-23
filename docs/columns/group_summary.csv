@@ -7,8 +7,8 @@ ITEM 수,ITEM 수,집계에 쓴 ITEM 수.,"`presence` matched이고 `verdict_bef
 σ_run 증가 건수,회차 이동 늘어난 수,회차 이동이 늘어난 ITEM 수.,`sigma_run_after` > `sigma_run_before`인 ITEM 수,많으면 개선 조건의 회차 안정성을 의심한다.
 σ_run 둘 다 0 건수,회차 이동 둘 다 0,기존과 개선 모두 회차 이동이 0인 ITEM 수.,`sigma_run_before` = 0이고 `sigma_run_after` = 0인 ITEM 수,
 둘 다 감소 건수,둘 다 줄어든 수,반복성과 회차 이동이 둘 다 줄어든 ITEM 수.,`sigma_die_after` < `sigma_die_before`이고 `sigma_run_after` < `sigma_run_before`인 ITEM 수,
-기존 동등 아님,기존 동등 아님,기존 판정이 동등이 아닌 ITEM 수.,`verdict_before`가 동등이 아닌 ITEM 수 (compare.csv에 verdict_final_before 열이 있으면 그 값),compare.csv의 판정은 기본 판정이라 최종 판정 집계와 다를 수 있다.
-개선 동등 아님,개선 동등 아님,개선 판정이 동등이 아닌 ITEM 수.,`verdict_after`가 동등이 아닌 ITEM 수 (verdict_final_after 열이 있으면 그 값),기존보다 크면 개선 조건에서 동등이 줄었다.
+기존 동등 아님,기존 동등 아님,기존 판정이 동등이 아닌 ITEM 수.,`verdict_before`가 동등이 아닌 ITEM 수,`verdict_before`는 최종 판정이다 (옛 items.csv면 기본 판정).
+개선 동등 아님,개선 동등 아님,개선 판정이 동등이 아닌 ITEM 수.,`verdict_after`가 동등이 아닌 ITEM 수,기존보다 크면 개선 조건에서 동등이 줄었다.
 제외(짝 없음),뺀 ITEM (짝 없음),한쪽 결과에만 있어 뺀 ITEM 수.,`presence`가 matched가 아닌 ITEM 수,
 "제외(짝 없음, 정렬 의심)","뺀 ITEM (짝 없음, 정렬 의심)",--exclude-misaligned를 줄 때 이 이름으로 나온다.,`presence`가 matched가 아니거나 `misaligned`가 True인 ITEM 수,
 판정 제외,뺀 ITEM (판정 제외),기존 또는 개선이 판정 제외라 뺀 ITEM 수. 그런 ITEM이 있을 때만 열이 생긴다.,짝이 있고 `verdict_before` 또는 `verdict_after`가 판정 제외인 ITEM 수,

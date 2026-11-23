@@ -88,7 +88,6 @@ OUTPUTS: tuple[Output, ...] = (
            "stability_by_group", "group_summary.py"),
     Output("group_dirs.csv", ("group/summary/group_dirs.csv", "groups/group_dirs.csv"), "group_dirs",
            "group_summary.py"),
-    Output("log_compare.csv", ("log_compare/log_compare.csv",), "log_compare", "log_compare.py (run_all)"),
     Output("loq_review.csv", ("review/loq_review.csv",), "loq_review", "review.py (참고용 LoQ 재확인)"),
     Output("log_review.csv", ("review/log_review.csv",), "log_review", "review.py (참고용 log 재확인)"),
     Output("classes/counts.csv", ("classes/counts.csv",), "classes_counts", "classes.py (dcc classes)"),

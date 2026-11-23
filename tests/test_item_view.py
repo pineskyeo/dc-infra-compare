@@ -46,7 +46,7 @@ def runs(tmp_path_factory) -> dict[str, tuple[Path, Path]]:
 
 def _folders(fe_out: Path) -> dict[str, Path]:
     index = pd.read_csv(fe_out / fe.ITEMS_INDEX, encoding="utf-8-sig", dtype=str)
-    return {i: fe_out / f for i, f in zip(index["ID"], index["폴더"])}
+    return {i: fe_out / f for i, f in zip(index["ITEM"], index["폴더"])}
 
 
 def _items(items_csv: Path) -> pd.DataFrame:

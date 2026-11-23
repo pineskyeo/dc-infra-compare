@@ -79,6 +79,16 @@ def test_excluded_base_is_final_even_for_log_candidate():
     assert (d.loc[0, "verdict_final"], d.loc[0, "verdict_basis"]) == (V_EXCLUDED, "linear")
 
 
+
+def test_final_log_run_uses_the_fixed_log_verdict_in_the_same_cascade():
+    base = {"ITEM": ["A", "B"], "zone": ["정량", "정량"], "verdict": ["미결", "동등"], "reason": ["x", "x"],
+            "status": [ST_LOG_CANDIDATE, ST_LOG_CANDIDATE], "verdict_log": ["동등", "차이"]}
+    d = add_final_verdict(pd.DataFrame({**base, "verdict_log_run": ["미결", "차이"]}))
+    assert d[["verdict_final", "verdict_basis", "verdict_final_log_run"]].values.tolist() == [
+        ["동등", "log", "미결"], ["동등", "linear", "동등"]]       # 기본 판정 동등이면 둘 다 그대로
+    assert "verdict_final_log_run" not in add_final_verdict(pd.DataFrame(base))   # 옛 CSV 에는 만들지 않는다
+
+
 ST_TEST = "시험 옵션"
 
 

@@ -1,7 +1,7 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-ID,ITEM 이름,열 이름은 ID지만 실제 ITEM 이름이 들어 있다.,items.csv `ITEM` 그대로,
+ITEM,ITEM 이름,근거 폴더를 만든 ITEM의 실제 이름.,items.csv `ITEM` 그대로,
 유형,대표 상태,폴더 이름 앞에 붙는 대표 상태.,"`status`에서 정상이 아닌 이름 중 우선순위가 가장 앞인 것 (조건 설정 오류, 조건 불안정, 산포 0, 분해능 부족, 회차 흔들림, 작을수록 흔들림, 클수록 흔들림, log 후보, 두 덩어리, LoQ 근처 순). 없으면 `verdict`",같은 유형끼리 모아 보면 원인이 같은 ITEM을 찾기 쉽다.
 verdict,기본 판정,items.csv의 기본 판정.,items.csv `verdict` 그대로,폴더를 만들 ITEM은 `verdict_final` 기준으로 고르므로 이 값이 동등일 수도 있다.
 status,데이터 상태,"판정과 별개로 데이터에서 눈에 띄는 점. 여러 개면 ';'로 잇고, 없으면 정상이다.",items.csv `status` 그대로,상태는 판정을 바꾸지 않는다. 하지만 판정을 믿어도 되는지 알려 준다. 정상이 아니면 그 상태의 지표 열을 본다.
-폴더,폴더,그 ITEM의 근거 파일이 있는 폴더 (출력 폴더 기준).,"items/{`유형`}_{`ID`}. 한글·영문·숫자·-·_ 밖의 글자는 _, 이름이 겹치면 _2, _3","그 폴더에 summary.csv, raw.csv, drill.png 등이 있다."
+폴더,폴더,그 ITEM의 근거 파일이 있는 폴더 (출력 폴더 기준).,"items/{`유형`}_{`ITEM`}. 한글·영문·숫자·-·_ 밖의 글자는 _, 이름이 겹치면 _2, _3","그 폴더에 summary.csv, raw.csv, item_view.png, evidence.csv 등이 있다."
 log_target,log 진단 대상,log 진단 그림(log_diag.png)을 만든 ITEM인지.,"`status`에 작을수록 흔들림이나 클수록 흔들림이 있거나, `verdict`와 `verdict_log`가 둘 다 있고 다르면 True (`verdict_log`가 판정 제외면 아님)",True면 폴더의 log_diag.png로 선형과 log 판정을 견준다.

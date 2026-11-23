@@ -123,9 +123,8 @@ def main():
     c["ITEM"] = c["ITEM"].astype(str).str.strip()
     for k in need[3:7]:
         c[k] = pd.to_numeric(c[k], errors="coerce")
-    for side in ("before", "after"):   # 판정 집계는 최종 판정 (verdict_final_*), 없는 옛 CSV 면 verdict_*
-        k = f"verdict_{side}"
-        c[k] = c.get(f"verdict_final_{side}", c[k]).fillna("").astype(str).str.strip()
+    for k in ("verdict_before", "verdict_after"):
+        c[k] = c[k].fillna("").astype(str).str.strip()
 
     g = read_groups(a.groups)
     total = len(c)

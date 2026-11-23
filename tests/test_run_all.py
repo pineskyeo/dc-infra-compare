@@ -69,7 +69,10 @@ def test_run_all_success(por3_data: Path, tmp_path: Path):
     assert "[단계 5/5] plot_verdicts" in proc.stdout
     assert "생성 파일" in proc.stdout
     assert "items.csv" in proc.stdout
-    assert [p for p in (out / "log_compare").iterdir() if p.is_file()]
+    assert (out / "review" / "loq_review.csv").is_file() and (out / "review" / "log_review.csv").is_file()
+    assert not (out / "log_compare").exists()
+    listed = dict(line.split("  ", 1) for line in proc.stdout.split("생성 파일\n", 1)[1].splitlines() if "  " in line)
+    assert "산출물" not in listed.values(), [k for k, v in listed.items() if v == "산출물"]
 
     # 원데이터 인자를 fail_evidence 에도 넘기므로 대상 ITEM 폴더마다 raw.csv 가 있다.
     assert (out / "fail_evidence" / "items_index.csv").is_file()
@@ -89,15 +92,17 @@ def test_describe_summarize_outputs():
     assert run_all.describe("fail_evidence/summary.txt") == "Fail 근거 요약"
 
 
-def test_describe_fail_evidence_item_folders_and_log_compare():
+def test_describe_fail_evidence_item_folders_review_and_stability():
     import run_all
 
     assert run_all.describe("fail_evidence/items_index.csv") == "ITEM별 근거 폴더 목록"
     assert run_all.describe("fail_evidence/items/differ_A1/summary.csv") == "ITEM 하나의 판정 열 전체"
     assert run_all.describe("fail_evidence/items/differ_A1/raw.csv") == "ITEM 하나의 die별 원데이터"
-    assert run_all.describe("fail_evidence/items/differ_A1/item_view.png") == "ITEM 하나의 근거 그림"
-    assert run_all.describe("log_compare/log_compare.csv") != "산출물"
-    assert run_all.describe("log_compare/log_compare.png") != "산출물"
+    assert run_all.describe("fail_evidence/items/differ_A1/item_view.png").startswith("ITEM 한 장 보기")
+    assert run_all.describe("fail_evidence/items/differ_A1/status_run.png") == "ITEM 하나의 근거 그림"
+    for rel in ("review/loq_review.csv", "review/log_review.png", "review/items/IOFF_LEAK.png",
+                "stability/overall.csv", "stability/stability.png", "fail_evidence/items/differ_A1/evidence.csv"):
+        assert run_all.describe(rel) != "산출물", rel
 
 
 def test_run_all_before_and_groups(por3_data: Path, tmp_path: Path):
@@ -148,7 +153,7 @@ def test_run_all_groups_without_before_passes_groups_to_plot_verdicts(tmp_path: 
     assert "--groups" not in _planned(tmp_path)["plot_verdicts"]
 
 
-def test_plan_fail_evidence_gets_raw_args_and_log_compare_step(tmp_path: Path):
+def test_plan_review_and_fail_evidence_get_raw_args(tmp_path: Path):
     import run_all
 
     ap = run_all.build_parser()
@@ -163,9 +168,9 @@ def test_plan_fail_evidence_gets_raw_args_and_log_compare_step(tmp_path: Path):
     assert fe[fe.index("--doe") + 1] == str(Path("d").resolve())
     assert "--compare" not in fe  # compare 단계가 뒤에 있으니 넘기지 않는다
 
-    assert steps["log_compare"] == ["log_compare.py", str(tmp_path / "out" / "items.csv"),
-                                    "--out", str(tmp_path / "out" / "log_compare")]
-    assert names.index("summarize") + 1 == names.index("log_compare")
+    out = tmp_path / "out"
+    assert steps["review"] == ["review.py", "--input", str(out / "items.csv"), "--out", str(out), *fe[5:]]
+    assert names.index("por_doe_compare") < names.index("review") < names.index("plot_verdicts")
 
 
 def test_raw_forward_args_drops_unknown_options():

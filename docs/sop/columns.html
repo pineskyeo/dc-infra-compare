@@ -86,7 +86,6 @@
 <tr><td><a href="#verdict-by-group-csv"><code>verdict_by_group.csv</code></a></td><td>group_summary.py</td><td>그룹마다 판정 변화(기존→개선)별 ITEM 수를 센다.</td></tr>
 <tr><td><a href="#stability-by-group-csv"><code>stability_by_group.csv</code></a></td><td>group_summary.py</td><td>그룹마다 기존·개선 흔들림 분포와 안정 순위를 적는다.</td></tr>
 <tr><td><a href="#group-dirs-csv"><code>group_dirs.csv</code></a></td><td>group_summary.py</td><td>그룹 이름과 그룹 그림 폴더 이름의 대응표.</td></tr>
-<tr><td><a href="#log-compare-csv"><code>log_compare.csv</code></a></td><td>log_compare.py (run_all)</td><td>log 진단 대상 ITEM의 선형·log 신뢰구간 반폭 / Δ를 견준다.</td></tr>
 <tr><td><a href="#loq-review-csv"><code>loq_review.csv</code></a></td><td>review.py (참고용 LoQ 재확인)</td><td>LoQ 아래·LoQ 근처 ITEM을 LoQ 규칙과 무관한 근거(방향 일관성, 배수, 검출률, 꼬리)로 다시 보고 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.</td></tr>
 <tr><td><a href="#log-review-csv"><code>log_review.csv</code></a></td><td>review.py (참고용 log 재확인)</td><td>log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보고, 선형 차이가 log로 동등이 된 ITEM과 꼬리가 바뀐 ITEM에 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.</td></tr>
 <tr><td><a href="#classes-counts-csv"><code>classes/counts.csv</code></a></td><td>classes.py (dcc classes)</td><td>ITEM 분류 축(cls_*)과 판정 길(route)의 값마다 ITEM 수. 전체, --groups를 주면 그룹마다. 참고용이고 판정은 바꾸지 않는다.</td></tr>
@@ -97,16 +96,18 @@
 <section id="items-csv"><h2>items.csv</h2>
 <p>ITEM마다 판정, 판정 근거 숫자, 데이터 상태를 한 행에 적는다. 모든 결과의 출발점이다.</p>
 <p class="s">만드는 명령 por_doe_compare.py (dcc judge, run_all) · 위치 <code>items.csv</code></p>
-<p class="s">열 97개</p>
+<p class="s">열 100개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>ID</code></td><td>익명 번호</td><td>ITEM 이름을 감춘 번호. 항목군 순번과 ITEM 이름 순번으로 만든다.</td><td>F{항목군 순번 2자리}_I{ITEM 순번 4자리}. 항목군 = <code>ITEM</code> 앞쪽 영문자. 순번은 이름 순서</td><td>같은 ITEM 목록이면 실행마다 같은 번호다. 공유할 때 ITEM 이름 대신 쓰고, item_map.csv로 실제 이름을 찾는다.</td></tr>
 <tr><td><code>ITEM</code></td><td>ITEM 이름</td><td>측정 항목 이름. 원데이터에 적힌 그대로다.</td><td>원데이터 <code>ITEM</code> 그대로</td><td></td></tr>
 <tr><td><code>UNIT</code></td><td>단위</td><td>원데이터에 적힌 단위. 표시용이고 판정에 쓰지 않는다.</td><td>첫 POR 회차에서 그 ITEM 첫 줄의 <code>UNIT</code></td><td>단위가 기대와 다르면 입력 파일을 확인한다.</td></tr>
 <tr><td><code>verdict_final</code></td><td>최종 판정</td><td>이 ITEM의 마지막 판정. 기본 판정이 차이나 미결일 때만 옵션(log, 장비 정확도)으로 다시 본다.</td><td><code>verdict</code>가 동등·판정 제외면 그대로. 아니면 옵션 log(<code>verdict_log</code>) → accuracy(<code>verdict_with_accuracy</code>) → log_physics(<code>verdict_log</code>) 순서로, 대상이고 판정이 나온 옵션 중 동등인 첫 옵션의 동등. 없으면 대상인 log 옵션의 판정, 그것도 없으면 <code>verdict</code>. 대상: log = <code>scale</code> item이고 <code>status</code>에 log 후보, 또는 <code>scale</code> auto→log이고 <code>decades</code> ≥ 1, <code>log_fit</code> &gt; 0. accuracy = <code>status</code>에 LoQ 근처이고 <code>accuracy_margin</code>이 있음. log_physics = <code>scale</code> log이고 <code>decades</code> ≥ 1, <code>log_fit</code> &gt; 0</td><td>판정 집계와 차이·미결 목록은 이 열을 쓴다. <code>verdict</code>와 다르면 <code>verdict_basis</code>로 어느 옵션이 바꿨는지 본다.</td></tr>
+<tr><td><code>verdict_final_log_run</code></td><td>최종 판정 (log 허용폭 고친 방식)</td><td>log 허용폭만 고친 방식(<code>delta_log_run</code>)으로 바꿨을 때의 최종 판정. 참고용이며 집계와 목록은 <code>verdict_final</code>을 쓴다.</td><td><code>verdict_final</code>과 같은 순서로 옵션을 보되 log·log_physics 옵션이 <code>verdict_log</code> 대신 <code>verdict_log_run</code>을 쓴다</td><td><code>verdict_final</code>과 다른 ITEM이 log 허용폭 결정에 걸린 ITEM이다. 판정할 때 화면 끝에 바뀌는 수가 나온다.</td></tr>
 <tr><td><code>verdict_basis</code></td><td>최종 판정 근거</td><td>최종 판정을 정한 방법.</td><td>linear = <code>verdict</code> 그대로. log, log_physics = <code>verdict_log</code>. accuracy = <code>verdict_with_accuracy</code></td><td>linear가 아니면 기본 판정이 옵션으로 바뀐 ITEM이다. 그 옵션의 가정(log 척도, 장비 정확도)이 이 ITEM에 맞는지 확인한다.</td></tr>
 <tr><td><code>scale</code></td><td>척도 설정</td><td>log 옵션의 대상을 정하는 척도. 그룹 파일(--groups)과 척도 파일(--scales)에서 온다.</td><td>그룹이 없거나 --scales가 없으면 item. 척도 파일의 log, linear는 그대로. 파일에 없거나 auto인 그룹은 그 그룹 ITEM 중 <code>decades</code>와 <code>log_fit</code>가 둘 다 있는 ITEM의 절반 넘게 <code>decades</code> ≥ 1이고 그 <code>log_fit</code> 중앙값 &gt; 0이면 auto→log, 아니면 auto→linear</td><td>item이면 ITEM마다 status 'log 후보'로 log 옵션을 본다. linear, auto→linear는 log 옵션 대상이 아니다. auto 결정은 scales_auto.csv에서 본다.</td></tr>
 <tr><td><code>verdict</code></td><td>기본 판정</td><td>선형 값으로 낸 판정. 동등, 차이, 미결, 판정 제외 중 하나다.</td><td>die &lt; 10이면 미결. 판정 제외 원인이 있으면 판정 제외. 정량(|<code>por_median</code>| ≥ <code>LoQ</code>): <code>ci_low</code> ≥ −<code>delta</code>이고 <code>ci_high</code> ≤ <code>delta</code>면 동등, <code>ci_low</code> &gt; <code>delta</code> 또는 <code>ci_high</code> &lt; −<code>delta</code>면 차이, 그 밖은 미결. 정량에서 <code>delta</code> ≤ 0이면 판정 제외. LoQ 미만: 신뢰구간이 통째로 ±<code>delta</code> 밖이고 |<code>doe_center</code>| ≥ <code>LoQ</code>일 때만 차이, 그 밖은 동등</td><td>동등은 차이가 허용 범위 안이라고 증명된 것. 차이는 허용 범위보다 크다고 증명된 것. 미결은 어느 쪽도 증명하지 못한 것. 판정 제외면 <code>reason</code>을 본다.</td></tr>
-<tr><td><code>verdict_log</code></td><td>log 판정</td><td>값을 log10으로 바꿔서 낸 판정. 기본 판정은 그대로 두고 따로 적는다.</td><td>L = log10|<code>POR{k}</code>|, w = log10|<code>DOE</code>|. die별 차이 w − mean(L)의 중앙값과 부호검정 90% 신뢰구간을 ±<code>delta_log</code>와 비교(TOST). LoQ 판정은 없다. 값에 0이 있거나 부호가 섞이면 판정 제외, die &lt; 10이면 미결</td><td>값이 여러 자릿수에 걸친 ITEM(누설 전류 등)은 이 판정이 더 맞을 수 있다. <code>verdict</code>와 다르면 log_compare.csv에 나온다.</td></tr>
+<tr><td><code>verdict_log</code></td><td>log 판정</td><td>값을 log10으로 바꿔서 낸 판정. 기본 판정은 그대로 두고 따로 적는다.</td><td>L = log10|<code>POR{k}</code>|, w = log10|<code>DOE</code>|. die별 차이 w − mean(L)의 중앙값과 부호검정 90% 신뢰구간을 ±<code>delta_log</code>와 비교(TOST). LoQ 판정은 없다. 값에 0이 있거나 부호가 섞이면 판정 제외, die &lt; 10이면 미결</td><td>값이 여러 자릿수에 걸친 ITEM(누설 전류 등)은 이 판정이 더 맞을 수 있다. <code>verdict</code>와 다르면 ITEM 근거 폴더의 log_diag.png로 견준다.</td></tr>
+<tr><td><code>verdict_log_run</code></td><td>log 판정 (고친 허용폭)</td><td><code>verdict_log</code>와 같은 신뢰구간을 고친 허용폭 <code>delta_log_run</code>과 비교한 판정. 참고용이다.</td><td><code>ci_low_log</code>, <code>ci_high_log</code>를 ±<code>delta_log_run</code>과 비교(TOST). 0값·부호 섞임·die &lt; 10·판정 제외 조건은 <code>verdict_log</code>와 같다</td><td><code>verdict_log</code>가 동등인데 이 열이 미결이면, 지금 log 허용폭의 회차 항이 넓어서 동등이 된 ITEM이다.</td></tr>
 <tr><td><code>verdict_with_accuracy</code></td><td>장비 정확도 넣은 판정</td><td>허용 범위를 장비 정확도 폭까지 넓혀서 낸 판정. 정량 구간이고 장비 정확도 폭이 있을 때만 채운다.</td><td>Δ' = max(<code>delta</code>, <code>accuracy_margin</code>). <code>ci_low</code>, <code>ci_high</code>를 ±Δ'와 비교(TOST). Δ' ≤ 0이면 판정 제외</td><td>LoQ 근처 ITEM이면 최종 판정에 쓴다(accuracy 옵션). 그 밖은 참고다. <code>verdict</code>와 다르면 장비 정확도 때문에 판정이 갈린 것이다.</td></tr>
 <tr><td><code>verdict_no_blank</code></td><td>blank 없이 낸 판정</td><td>blank로 LoQ를 올리지 않고 다시 낸 판정. blank ITEM이 연결된 ITEM만 채운다.</td><td><code>blank_item</code>이 있을 때 blank LoQ를 빼고 <code>verdict</code>와 같은 규칙으로 다시 판정</td><td><code>verdict</code>와 다르면 blank가 판정을 바꾼 것이다. blank 측정과 연결(--blank-map)이 맞는지 확인한다.</td></tr>
 <tr><td><code>zone</code></td><td>구간</td><td>기준 조건 값이 정량한계(LoQ)와 검출한계(LoD)에 비해 어디에 있는지.</td><td>|<code>por_median</code>| ≥ <code>LoQ</code>면 정량, <code>LoD</code> ≤ |<code>por_median</code>| &lt; <code>LoQ</code>면 검출~정량, |<code>por_median</code>| &lt; <code>LoD</code>면 검출한계 이하. die &lt; 10이면 die 부족, 판정 제외면 판정 제외</td><td>정량이 아니면 값이 바닥 잡음 수준이라 '&lt;LoQ 보고 일치' 규칙으로 판정한다.</td></tr>
@@ -163,7 +164,8 @@
 <tr><td><code>center_log</code></td><td>log 이동량</td><td>log10 값에서 본 이동량. die별 차이의 중앙값이다.</td><td>median(log10|<code>DOE</code>| − mean(log10|<code>POR{k}</code>|)) (die별)</td><td>10^값 − 1이 비율 변화다. 0.0414면 DOE가 약 10% 크다.</td></tr>
 <tr><td><code>ci_low_log</code></td><td>log 이동량 범위 아래 끝</td><td>log 판정의 90% 신뢰구간 아래 끝.</td><td>log 차이에 <code>ci_low</code>와 같은 부호검정 순위</td><td></td></tr>
 <tr><td><code>ci_high_log</code></td><td>log 이동량 범위 위 끝</td><td>log 판정의 90% 신뢰구간 위 끝.</td><td>log 차이에 <code>ci_high</code>와 같은 부호검정 순위</td><td></td></tr>
-<tr><td><code>delta_log</code></td><td>log 허용 범위</td><td>log 판정의 허용 범위. 비율로 정한 한계와 log 회차 흔들림을 더한다.</td><td>log10(1 + r) + <code>sigma_rep_log</code> (t 계수 없음)</td><td>r = 0.05면 앞 항은 0.0212로 5% 변화에 해당한다.</td></tr>
+<tr><td><code>delta_log</code></td><td>log 허용 범위 (지금 방식)</td><td>log 판정의 허용 범위. 비율로 정한 한계와 log 회차 흔들림을 더한다.</td><td>log10(1 + r) + <code>sigma_rep_log</code> (t 계수 없음)</td><td>r = 0.05면 앞 항은 0.0212로 5% 변화에 해당한다.</td></tr>
+<tr><td><code>delta_log_run</code></td><td>log 허용 범위 (고친 방식)</td><td>선형 허용폭과 같은 꼴로 만든 log 허용 범위. 회차 항에 die 반복 잡음 대신 웨이퍼 공통 회차 흔들림을 쓴다.</td><td>log10(1 + r) + t(0.95, J − 1) × √(1 + 1/J) × <code>sigma_run_log</code> (J = POR 회차 수)</td><td><code>delta_log</code>보다 좁은 경우가 많다. die 반복 잡음은 이미 신뢰구간 폭에 들어 있어 <code>delta_log</code>는 그것을 두 번 센다. POR 회차가 실제로 어긋난 ITEM은 오히려 넓어진다.</td></tr>
 <tr><td><code>ci_half_over_delta_log</code></td><td>log 범위 반폭 / log 허용 범위</td><td><code>ci_half_over_delta</code>를 log 판정으로 계산한 값.</td><td>(<code>ci_high_log</code> − <code>ci_low_log</code>) / 2 / <code>delta_log</code></td><td><code>ci_half_over_delta</code>와 비교해 어느 척도에서 판정이 더 촘촘한지 본다.</td></tr>
 <tr><td><code>sigma_rep_log</code></td><td>log 회차 흔들림</td><td>log 판정의 회차 항. die 하나를 다시 잴 때 log 값이 흔들리는 크기다.</td><td>median(std(log10|<code>POR{k}</code>|, ddof=1)) (die별 std, 유효한 회차 값이 2개 미만인 die는 뺌)</td><td>클수록 <code>delta_log</code>가 넓어진다.</td></tr>
 <tr><td><code>sigma_die_log</code></td><td>log 반복성</td><td><code>sigma_die</code>를 log10|값|에서 구한 것. 분석용이고 판정에 안 쓴다.</td><td><code>sigma_die</code>와 같은 식을 log10|<code>POR{k}</code>|에 적용. <code>verdict_log</code>가 판정 제외면 빈 칸</td><td></td></tr>
@@ -361,11 +363,11 @@
 <p class="s">만드는 명령 fail_evidence.py · 위치 <code>item/items_index.csv</code> · <code>fail_evidence/items_index.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
 <p class="s">열 6개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
-<tr><td><code>ID</code></td><td>ITEM 이름</td><td>열 이름은 ID지만 실제 ITEM 이름이 들어 있다.</td><td>items.csv <code>ITEM</code> 그대로</td><td></td></tr>
+<tr><td><code>ITEM</code></td><td>ITEM 이름</td><td>근거 폴더를 만든 ITEM의 실제 이름.</td><td>items.csv <code>ITEM</code> 그대로</td><td></td></tr>
 <tr><td><code>유형</code></td><td>대표 상태</td><td>폴더 이름 앞에 붙는 대표 상태.</td><td><code>status</code>에서 정상이 아닌 이름 중 우선순위가 가장 앞인 것 (조건 설정 오류, 조건 불안정, 산포 0, 분해능 부족, 회차 흔들림, 작을수록 흔들림, 클수록 흔들림, log 후보, 두 덩어리, LoQ 근처 순). 없으면 <code>verdict</code></td><td>같은 유형끼리 모아 보면 원인이 같은 ITEM을 찾기 쉽다.</td></tr>
 <tr><td><code>verdict</code></td><td>기본 판정</td><td>items.csv의 기본 판정.</td><td>items.csv <code>verdict</code> 그대로</td><td>폴더를 만들 ITEM은 <code>verdict_final</code> 기준으로 고르므로 이 값이 동등일 수도 있다.</td></tr>
 <tr><td><code>status</code></td><td>데이터 상태</td><td>판정과 별개로 데이터에서 눈에 띄는 점. 여러 개면 ';'로 잇고, 없으면 정상이다.</td><td>items.csv <code>status</code> 그대로</td><td>상태는 판정을 바꾸지 않는다. 하지만 판정을 믿어도 되는지 알려 준다. 정상이 아니면 그 상태의 지표 열을 본다.</td></tr>
-<tr><td><code>폴더</code></td><td>폴더</td><td>그 ITEM의 근거 파일이 있는 폴더 (출력 폴더 기준).</td><td>items/{<code>유형</code>}_{<code>ID</code>}. 한글·영문·숫자·-·_ 밖의 글자는 _, 이름이 겹치면 _2, _3</td><td>그 폴더에 summary.csv, raw.csv, drill.png 등이 있다.</td></tr>
+<tr><td><code>폴더</code></td><td>폴더</td><td>그 ITEM의 근거 파일이 있는 폴더 (출력 폴더 기준).</td><td>items/{<code>유형</code>}_{<code>ITEM</code>}. 한글·영문·숫자·-·_ 밖의 글자는 _, 이름이 겹치면 _2, _3</td><td>그 폴더에 summary.csv, raw.csv, item_view.png, evidence.csv 등이 있다.</td></tr>
 <tr><td><code>log_target</code></td><td>log 진단 대상</td><td>log 진단 그림(log_diag.png)을 만든 ITEM인지.</td><td><code>status</code>에 작을수록 흔들림이나 클수록 흔들림이 있거나, <code>verdict</code>와 <code>verdict_log</code>가 둘 다 있고 다르면 True (<code>verdict_log</code>가 판정 제외면 아님)</td><td>True면 폴더의 log_diag.png로 선형과 log 판정을 견준다.</td></tr>
 </tbody></table></div>
 </section>
@@ -434,8 +436,8 @@
 <tr><td><code>presence</code></td><td>짝 상태</td><td>그 ITEM이 두 결과에 다 있는지.</td><td>matched = 두 표에 다 있음, only_before = 기존에만, only_after = 개선에만</td><td>only_가 많으면 ITEM 이름이 바뀌었거나 측정 목록이 다르다.</td></tr>
 <tr><td><code>misaligned</code></td><td>정렬 의심</td><td>같은 이름인데 값 크기가 크게 다른 ITEM.</td><td><code>por_median_rel_diff</code> &gt; 0.2면 True</td><td>True면 이름은 같아도 다른 측정일 수 있다. 기본은 집계에 넣고, --exclude-misaligned면 뺀다.</td></tr>
 <tr><td><code>por_median_rel_diff</code></td><td>POR 중앙값 상대차</td><td>기존과 개선의 POR 중앙값이 서로 몇 배 다른지.</td><td>|<code>por_median_before</code> − <code>por_median_after</code>| / max(|<code>por_median_before</code>|, |<code>por_median_after</code>|). 둘 다 0이면 0</td><td>0.2를 넘으면 정렬 의심이다.</td></tr>
-<tr><td><code>verdict_before</code></td><td>기존 판정</td><td>기존 items.csv의 기본 판정. 최종 판정이 아니다.</td><td>기존 items.csv <code>verdict</code> 그대로</td><td>group_summary.py의 '동등 아님' 집계도 이 값을 쓴다.</td></tr>
-<tr><td><code>verdict_after</code></td><td>개선 판정</td><td>개선 items.csv의 기본 판정. 최종 판정이 아니다.</td><td>개선 items.csv <code>verdict</code> 그대로</td><td></td></tr>
+<tr><td><code>verdict_before</code></td><td>기존 판정</td><td>기존 items.csv의 최종 판정.</td><td>기존 items.csv <code>verdict_final</code> 그대로 (그 열이 없는 옛 items.csv면 <code>verdict</code>)</td><td>group_summary.py의 '동등 아님' 집계도 이 값을 쓴다.</td></tr>
+<tr><td><code>verdict_after</code></td><td>개선 판정</td><td>개선 items.csv의 최종 판정.</td><td>개선 items.csv <code>verdict_final</code> 그대로 (그 열이 없는 옛 items.csv면 <code>verdict</code>)</td><td></td></tr>
 <tr><td><code>verdict_transition</code></td><td>판정 변화</td><td>기존 판정에서 개선 판정으로 어떻게 바뀌었는지. 짝이 있는 ITEM만.</td><td><code>verdict_before</code> + '→' + <code>verdict_after</code></td><td>동등→차이처럼 나빠진 ITEM을 먼저 본다.</td></tr>
 <tr><td><code>sigma_die_pct_before</code></td><td>기존 반복성 %</td><td>기존 반복성을 POR 중앙값 대비 %로 본 것.</td><td>100 × <code>sigma_die_before</code> / |<code>por_median_before</code>|. 중앙값 0이면 빈 칸</td><td>낮을수록 안정적이다.</td></tr>
 <tr><td><code>sigma_die_pct_after</code></td><td>개선 반복성 %</td><td>개선 반복성을 POR 중앙값 대비 %로 본 것.</td><td>100 × <code>sigma_die_after</code> / |<code>por_median_after</code>|. 중앙값 0이면 빈 칸</td><td>낮을수록 안정적이다.</td></tr>
@@ -497,7 +499,7 @@
 <p class="s">열 5개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>metric</code></td><td>지표</td><td>어느 비율 지표의 악화 목록인지.</td><td>sigma_die_ratio, sigma_run_ratio, meas_precision_ratio 중 하나</td><td></td></tr>
-<tr><td><code>ID</code></td><td>ITEM 이름</td><td>열 이름은 ID지만 실제 ITEM 이름이 들어 있다.</td><td>compare.csv <code>ITEM</code></td><td></td></tr>
+<tr><td><code>ITEM</code></td><td>ITEM 이름</td><td>나빠진 ITEM의 실제 이름.</td><td>compare.csv <code>ITEM</code></td><td></td></tr>
 <tr><td><code>before</code></td><td>기존 값</td><td>기존 쪽 지표 값.</td><td><code>metric</code>에 따라 <code>sigma_die_before</code>, <code>sigma_run_before</code>, <code>meas_precision_pct_before</code></td><td></td></tr>
 <tr><td><code>after</code></td><td>개선 값</td><td>개선 쪽 지표 값.</td><td><code>metric</code>에 따라 <code>sigma_die_after</code>, <code>sigma_run_after</code>, <code>meas_precision_pct_after</code></td><td></td></tr>
 <tr><td><code>ratio</code></td><td>비 (개선/기존)</td><td>개선 값이 기존 값의 몇 배인지. 1보다 큰(나빠진) ITEM만, 큰 순으로 지표마다 최대 10개.</td><td><code>after</code> / <code>before</code>, 둘 다 0보다 클 때만 (개수는 --plot-top, 기본 10)</td><td>가장 나빠진 ITEM부터 원인을 본다.</td></tr>
@@ -516,8 +518,8 @@
 <tr><td><code>σ_run 증가 건수</code></td><td>회차 이동 늘어난 수</td><td>회차 이동이 늘어난 ITEM 수.</td><td><code>sigma_run_after</code> &gt; <code>sigma_run_before</code>인 ITEM 수</td><td>많으면 개선 조건의 회차 안정성을 의심한다.</td></tr>
 <tr><td><code>σ_run 둘 다 0 건수</code></td><td>회차 이동 둘 다 0</td><td>기존과 개선 모두 회차 이동이 0인 ITEM 수.</td><td><code>sigma_run_before</code> = 0이고 <code>sigma_run_after</code> = 0인 ITEM 수</td><td></td></tr>
 <tr><td><code>둘 다 감소 건수</code></td><td>둘 다 줄어든 수</td><td>반복성과 회차 이동이 둘 다 줄어든 ITEM 수.</td><td><code>sigma_die_after</code> &lt; <code>sigma_die_before</code>이고 <code>sigma_run_after</code> &lt; <code>sigma_run_before</code>인 ITEM 수</td><td></td></tr>
-<tr><td><code>기존 동등 아님</code></td><td>기존 동등 아님</td><td>기존 판정이 동등이 아닌 ITEM 수.</td><td><code>verdict_before</code>가 동등이 아닌 ITEM 수 (compare.csv에 verdict_final_before 열이 있으면 그 값)</td><td>compare.csv의 판정은 기본 판정이라 최종 판정 집계와 다를 수 있다.</td></tr>
-<tr><td><code>개선 동등 아님</code></td><td>개선 동등 아님</td><td>개선 판정이 동등이 아닌 ITEM 수.</td><td><code>verdict_after</code>가 동등이 아닌 ITEM 수 (verdict_final_after 열이 있으면 그 값)</td><td>기존보다 크면 개선 조건에서 동등이 줄었다.</td></tr>
+<tr><td><code>기존 동등 아님</code></td><td>기존 동등 아님</td><td>기존 판정이 동등이 아닌 ITEM 수.</td><td><code>verdict_before</code>가 동등이 아닌 ITEM 수</td><td><code>verdict_before</code>는 최종 판정이다 (옛 items.csv면 기본 판정).</td></tr>
+<tr><td><code>개선 동등 아님</code></td><td>개선 동등 아님</td><td>개선 판정이 동등이 아닌 ITEM 수.</td><td><code>verdict_after</code>가 동등이 아닌 ITEM 수</td><td>기존보다 크면 개선 조건에서 동등이 줄었다.</td></tr>
 <tr><td><code>제외(짝 없음)</code></td><td>뺀 ITEM (짝 없음)</td><td>한쪽 결과에만 있어 뺀 ITEM 수.</td><td><code>presence</code>가 matched가 아닌 ITEM 수</td><td></td></tr>
 <tr><td><code>제외(짝 없음, 정렬 의심)</code></td><td>뺀 ITEM (짝 없음, 정렬 의심)</td><td>--exclude-misaligned를 줄 때 이 이름으로 나온다.</td><td><code>presence</code>가 matched가 아니거나 <code>misaligned</code>가 True인 ITEM 수</td><td></td></tr>
 <tr><td><code>판정 제외</code></td><td>뺀 ITEM (판정 제외)</td><td>기존 또는 개선이 판정 제외라 뺀 ITEM 수. 그런 ITEM이 있을 때만 열이 생긴다.</td><td>짝이 있고 <code>verdict_before</code> 또는 <code>verdict_after</code>가 판정 제외인 ITEM 수</td><td></td></tr>
@@ -566,22 +568,6 @@
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>그룹</code></td><td>그룹</td><td>그룹 이름.</td><td>group_summary.csv의 <code>그룹</code>과 같은 이름 ('전체' 제외)</td><td></td></tr>
 <tr><td><code>폴더</code></td><td>폴더</td><td>그 그룹의 지표 그림이 있는 폴더 이름.</td><td><code>그룹</code>에서 한글·영문·숫자·-·_ 밖의 글자를 _로 바꿈. 겹치면 _2, _3을 붙임</td><td></td></tr>
-</tbody></table></div>
-</section>
-<section id="log-compare-csv"><h2>log_compare.csv</h2>
-<p>log 진단 대상 ITEM의 선형·log 신뢰구간 반폭 / Δ를 견준다.</p>
-<p class="s">만드는 명령 log_compare.py (run_all) · 위치 <code>log_compare/log_compare.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
-<p class="s">열 9개</p>
-<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
-<tr><td><code>ITEM</code></td><td>ITEM 이름</td><td>log 진단 대상 ITEM.</td><td>items.csv <code>ITEM</code> 그대로</td><td></td></tr>
-<tr><td><code>target_status</code></td><td>대상 이유</td><td>이 ITEM이 대상이 된 이유.</td><td><code>status</code> 중 작을수록 흔들림, 클수록 흔들림을 '; '로 이음. 없고 <code>verdict</code> ≠ <code>verdict_log</code>면 'verdict≠verdict_log' (<code>verdict_log</code>가 판정 제외나 빈 칸이면 이 조건은 보지 않음)</td><td></td></tr>
-<tr><td><code>ci_half_over_delta</code></td><td>범위 반폭 / 허용 범위</td><td>신뢰구간 반폭이 허용 범위의 몇 배인지. 측정이 판정하기에 충분히 촘촘한지 본다.</td><td>items.csv <code>ci_half_over_delta</code> 그대로</td><td>1 이상이면 이동량이 0이어도 동등이 될 수 없다(해상도 부족). 작을수록 좋다.</td></tr>
-<tr><td><code>ci_half_over_delta_log</code></td><td>log 범위 반폭 / log 허용 범위</td><td><code>ci_half_over_delta</code>를 log 판정으로 계산한 값.</td><td>items.csv <code>ci_half_over_delta_log</code> 그대로</td><td><code>ci_half_over_delta</code>와 비교해 어느 척도에서 판정이 더 촘촘한지 본다.</td></tr>
-<tr><td><code>verdict</code></td><td>기본 판정</td><td>items.csv의 선형 기본 판정.</td><td>items.csv <code>verdict</code> 그대로</td><td></td></tr>
-<tr><td><code>verdict_log</code></td><td>log 판정</td><td>값을 log10으로 바꿔서 낸 판정. 기본 판정은 그대로 두고 따로 적는다.</td><td>items.csv <code>verdict_log</code> 그대로</td><td>값이 여러 자릿수에 걸친 ITEM(누설 전류 등)은 이 판정이 더 맞을 수 있다. <code>verdict</code>와 다르면 log_compare.csv에 나온다.</td></tr>
-<tr><td><code>changed</code></td><td>판정 바뀜</td><td>선형 판정과 log 판정이 다른지.</td><td><code>verdict</code> ≠ <code>verdict_log</code>면 True (빈 칸도 글자로 비교)</td><td>True면 척도에 따라 판정이 갈린다. log_compare.png에서 X 표시다.</td></tr>
-<tr><td><code>log_fit</code></td><td>log 대칭 이득</td><td>log로 바꾸면 분포가 얼마나 더 대칭이 되는지.</td><td>items.csv <code>log_fit</code> 그대로</td><td>양수면 log 쪽이 더 대칭이다. 0.1을 넘고 <code>decades</code> ≥ 1이면 log 후보다.</td></tr>
-<tr><td><code>decades</code></td><td>자릿수 폭</td><td>값이 몇 자릿수에 걸쳐 있는지.</td><td>items.csv <code>decades</code> 그대로</td><td>1 이상이면 10배 넘게 퍼진 것이다. log 척도가 맞을 수 있다.</td></tr>
 </tbody></table></div>
 </section>
 <section id="loq-review-csv"><h2>loq_review.csv</h2>

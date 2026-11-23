@@ -1,16 +1,18 @@
 """이름 붙인 POR/DOE 조합(combos.ini)으로 판정·ITEM 근거·그룹 요약을 한 명령으로 실행한다.
 
   python dcc.py list                              조합 이름, POR 회차 수, DOE, 출력 폴더
-  python dcc.py judge A1                          판정(por_doe_compare) + 판정 요약 그림
+  python dcc.py judge A1                          판정(por_doe_compare) + LoQ·log 재확인(review) + 판정 지도
   python dcc.py judge all                         파일 순서대로 모든 조합 (하나가 실패해도 계속)
   python dcc.py judge A1 --detail                 판정 뒤 차이·미결 ITEM 전부 item 분석까지
   python dcc.py item A1 VT_SAME,VT_SHIFT [--plots]  그 ITEM 만 Fail 근거 (+ 상세 그림)
   python dcc.py item A1 --items-file 볼항목.txt    ITEM 목록 파일 (한 줄에 하나, 또는 ITEM·ID 열 CSV)
   python dcc.py group A1 [--before 이전/items.csv]  그룹별 요약 그림 (+ 기존·개선 비교, 그룹 요약)
+  python dcc.py report A1 [--anon]                리포트만 다시 (--anon: 익명 ID 만, report_anon.html)
   python dcc.py classes A1                        ITEM 분류와 판정 길 (참고, 판정 불변): 개수, 목록, 그림, 길마다 예시 ITEM
 
 설정 파일은 기본으로 현재 폴더의 combos.ini (--config 로 바꿈). 형식은 combos.example.ini.
-조합 하나의 산출물은 <out>/<이름>/ 에 둔다: items.csv, plots/, item/, group/, classes/.
+조합 하나의 산출물은 <out>/<이름>/ 에 둔다: items.csv, stability/, review/, plots/, item/, group/, classes/.
+judge, item, group 이 끝나면 report.html (+ item/report.html, group/report.html) 을 다시 쓴다.
 item, group, classes 는 <out>/<이름>/items.csv 를 다시 쓰고, 없을 때만 judge 단계를 먼저 실행한다.
 """
 from __future__ import annotations
@@ -219,6 +221,7 @@ def judge_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
     extra = ["--groups", str(c.groups), *(s for flag, p in given.items() for s in (flag, str(p)))] if given else []
     return [
         ("por_doe_compare", ["por_doe_compare.py", *c.raw_args(), *extra, "--out", str(c.out)]),
+        ("review", ["review.py", "--input", str(c.items_csv), "--out", str(c.out), *c.raw_args()]),
         ("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(c.items_csv), "--summary",
                            "--out", str(c.out / "plots")]),
     ]
@@ -264,11 +267,21 @@ def classes_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
                          *c.raw_args()])]
 
 
-MODES = {"judge": judge_steps, "item": item_steps, "group": group_steps, "classes": classes_steps}
+def report_step(c: Combo, anon: bool = False) -> Step:
+    groups = ["--groups", str(c.groups)] if c.groups is not None else []
+    return ("report", ["report.py", str(c.out), *groups, *(["--anon"] if anon else [])])
+
+
+def report_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
+    return [report_step(c, a.anon)]
+
+
+MODES = {"judge": judge_steps, "item": item_steps, "group": group_steps, "report": report_steps,
+         "classes": classes_steps}
 
 
 def plan(mode: str, c: Combo, a: argparse.Namespace) -> list[Step]:
-    """모드의 단계 목록. item·group 은 items.csv 가 없으면 judge 단계를 앞에 붙인다."""
+    """모드의 단계 목록. item·group·report 는 items.csv 가 없으면 judge 단계를 앞에 붙인다."""
     steps = MODES[mode](c, a)
     if mode != "judge" and not c.items_csv.is_file():
         steps = judge_steps(c, a) + steps
@@ -290,16 +303,19 @@ def run_combo(c: Combo, mode: str, steps: list[Step]) -> tuple[str, int] | None:
 
 
 def run_target(c: Combo, a: argparse.Namespace, steps: list[Step]) -> tuple[str, int] | None:
-    """조합 하나 실행. judge --detail 이면 판정이 성공한 뒤 차이·미결 ITEM 을 item 분석한다."""
+    """조합 하나 실행. judge --detail 이면 판정이 성공한 뒤 차이·미결 ITEM 을 item 분석한다.
+    다 성공하면 리포트를 다시 쓴다 (report 명령은 이미 그 단계뿐)."""
     failed = run_combo(c, a.cmd, steps)
-    if failed is not None or not getattr(a, "detail", False):
+    if failed is None and getattr(a, "detail", False):
+        names = detail_items(c.items_csv)
+        if names:
+            print(f"[{c.name}] 차이·미결 ITEM {len(names)}개 item 분석", flush=True)
+            failed = run_combo(c, "item", evidence_steps(c, names, plots=False))
+        else:
+            print(f"[{c.name}] 차이·미결 ITEM 이 없어 item 분석을 건너뜁니다", flush=True)
+    if failed is not None or a.cmd == "report":
         return failed
-    names = detail_items(c.items_csv)
-    if not names:
-        print(f"[{c.name}] 차이·미결 ITEM 이 없어 item 분석을 건너뜁니다", flush=True)
-        return None
-    print(f"[{c.name}] 차이·미결 ITEM {len(names)}개 item 분석", flush=True)
-    return run_combo(c, "item", evidence_steps(c, names, plots=False))
+    return run_combo(c, "report", [report_step(c)])
 
 
 def print_list(combos: dict[str, Combo]) -> None:
@@ -318,7 +334,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--config", default="combos.ini", help="조합 설정 파일 (기본: 현재 폴더의 combos.ini)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("list", parents=[common], help="조합 목록")
-    p = sub.add_parser("judge", parents=[common], help="판정 + 판정 요약 그림")
+    p = sub.add_parser("judge", parents=[common], help="판정 + LoQ·log 재확인 + 판정 지도")
     p.add_argument("name", help=f"조합 이름, 또는 {ALL} (모든 조합)")
     p.add_argument("--detail", action="store_true",
                    help="판정 뒤 verdict_final 이 차이·미결인 ITEM 을 모두 item 분석 (<out>/<이름>/item/)")
@@ -333,6 +349,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("name", help="조합 이름")
     p.add_argument("--before", help="기존(이전) 결과 items.csv. 주면 기존·개선 비교와 그룹 요약 추가 "
                                     "(조합의 before 키보다 우선)")
+    p = sub.add_parser("report", parents=[common], help="리포트만 다시 쓰기 (report.html, item/, group/)")
+    p.add_argument("name", help="조합 이름")
+    p.add_argument("--anon", action="store_true", help="ITEM 이름 대신 익명 ID 만 (report_anon.html, 밖으로 공유할 때)")
     p = sub.add_parser("classes", parents=[common], help="ITEM 분류와 판정 길, 참고 (<out>/<이름>/classes/)")
     p.add_argument("name", help="조합 이름")
     return ap

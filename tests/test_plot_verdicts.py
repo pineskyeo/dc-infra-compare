@@ -12,9 +12,9 @@ import pytest
 
 # plot_verdicts selects Agg before pyplot is imported.
 from plot_verdicts import (
-    CATEGORY_ORDER, KOREAN_TEXTS, LOQ_AXIS_MAX, LOQ_AXIS_MIN, NO_GROUP, SUMMARY_MAX_HEIGHT_IN, build_parser,
-    clip_summary, configure_font, dashboard_layout, detail_text, draw_loq, main, plot_dashboard,
-    plot_loq, plot_summary, recompute, safe_item_name, split_summary, summary_legend_labels,
+    CATEGORY_ORDER, KOREAN_TEXTS, LOQ_AXIS_MAX, LOQ_AXIS_MIN, NO_GROUP, build_parser, clip_summary,
+    configure_font, detail_text, direction_counts, draw_loq, main, map_points, map_this_run, plot_dashboard,
+    plot_loq, plot_summary, read_loq_flags, recompute, safe_item_name, split_summary, summary_legend_labels,
     verdict_category, V_EXCLUDED,
 )
 import matplotlib.pyplot as plt
@@ -223,32 +223,75 @@ def dashboard_frame(n: int = 2000) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def test_dashboard_layout_never_exceeds_max_height():
-    previous_shown = 0
-    for n in (0, 1, 10, 100, 300, 1000, 2000, 50_000):
-        ncols, height, shown = dashboard_layout(n)
-        assert height <= SUMMARY_MAX_HEIGHT_IN
-        assert 1 <= ncols <= 6
-        assert shown <= n and shown >= previous_shown
-        previous_shown = shown
-    assert dashboard_layout(10)[0] == 1 and dashboard_layout(10)[2] == 10
-    ncols, _, shown = dashboard_layout(2000)
-    assert ncols > 1 and shown < 2000  # 열을 늘려도 모자라 앞쪽만 표시
-
-
-def test_plot_dashboard_writes_one_png_within_height_limit(tmp_path: Path):
+def test_plot_dashboard_writes_one_map_png(tmp_path: Path):
     frame = dashboard_frame(2000)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)  # 판정 제외 경고
-        path = plot_dashboard(frame, tmp_path, dpi=40)
+    path = plot_dashboard(frame, tmp_path, dpi=40)
     assert path == tmp_path / "summary.png"
     assert [p.name for p in tmp_path.iterdir()] == ["summary.png"]
-    _, height_px = png_size(path)
-    assert height_px <= SUMMARY_MAX_HEIGHT_IN * 40
+    width_px, height_px = png_size(path)
+    assert width_px == 13 * 40 and height_px > 8 * 40      # 아래 읽는 법·이번 결과 만큼 늘어남
 
     # LoQ 행·차이/미결 행이 없어도 그린다.
     quiet = summary_frame().loc[lambda f: f["zone"] == "정량"].assign(verdict="동등", reason="안")
     assert plot_dashboard(quiet, tmp_path / "quiet", dpi=40).stat().st_size > 0
+
+
+def map_frame() -> pd.DataFrame:
+    """최종 판정 근거가 다른 정량 ITEM 넷 (옵션 열 포함), LoQ 아래 하나, 신뢰구간이 한쪽으로 긴 동등 하나, die 부족 하나."""
+    nan = float("nan")
+    return pd.DataFrame({
+        "ITEM": ["LIN", "LOG", "ACC", "OLD_BLANK", "FLOOR", "SKEW", "FEW"],
+        "zone": ["정량", "정량", "정량", "정량", "검출한계 이하", "정량", "die 부족"],
+        "verdict": ["차이", "차이", "미결", "미결", "동등", "동등", "미결"],
+        "verdict_final": ["차이", "동등", "동등", "미결", "동등", "동등", "미결"],
+        "verdict_basis": ["linear", "log", "accuracy", "", "linear", "linear", "linear"],
+        "center": [3.0, 3.0, 1.0, -1.0, 0.0, 0.8, 0.1],
+        "ci_low": [2.0, 2.0, 0.0, -2.0, 0.0, 0.2, 0.0],
+        "ci_high": [4.0, 4.0, 2.0, 0.0, 0.0, 0.9, 0.2],
+        "delta": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        "accuracy_margin": [nan, nan, 4.0, nan, nan, nan, nan],
+        "center_log": [nan, 0.1, nan, nan, nan, nan, nan],
+        "ci_low_log": [nan, 0.05, nan, nan, nan, nan, nan],
+        "ci_high_log": [nan, 0.25, nan, nan, nan, nan, nan],
+        "delta_log": [nan, 0.5, nan, nan, nan, nan, nan],
+    })
+
+
+def test_map_points_place_each_item_by_the_tost_that_set_its_final_verdict():
+    points = map_points(map_frame()).set_index("ITEM")
+    assert points.loc["LIN", ["x", "y"]].tolist() == [3.0, 1.0]
+    assert points.loc["LOG", ["x", "y"]].tolist() == pytest.approx([0.3, 0.2])   # log 열, 허용폭 delta_log
+    assert points.loc["ACC", ["x", "y"]].tolist() == [0.25, 0.25]                # 허용폭 max(delta, 정확도 폭)
+    assert points.loc["OLD_BLANK", "basis"] == "linear"
+    assert points.loc["LOG", "verdict"] == "동등" and bool(points.loc["FLOOR", "loq_zone"])
+    assert points.loc["SKEW", ["x", "y"]].tolist() == pytest.approx([0.55, 0.35])  # 가로는 중심 0.8 이 아니라 구간 가운데
+    for item in ("LOG", "ACC", "SKEW"):   # 색(최종 판정)과 칸이 맞는다
+        x, y = points.loc[item, ["x", "y"]]
+        assert abs(x) + y <= 1
+    assert math.isnan(points.loc["FEW", "x"])   # TOST 없이 미결이라 지도에 놓지 않는다
+
+
+def test_every_map_point_sits_in_the_region_of_its_verdict(por3_results: tuple[Path, Path]):
+    _, items_csv = por3_results
+    points = map_points(pd.read_csv(items_csv, encoding="utf-8-sig"))
+    on = points[~points["loq_zone"] & points["x"].notna() & points["y"].notna()]
+    region = [("동등" if abs(x) + y <= 1 else "차이" if abs(x) - y > 1 else "미결") for x, y in zip(on["x"], on["y"])]
+    assert len(on) > 0
+    assert region == on["verdict"].tolist()
+
+
+def test_map_this_run_counts_directions_and_flags_one_sided_moves():
+    rows = pd.DataFrame({"ITEM": [f"D{i}" for i in range(10)], "zone": "정량", "verdict": "차이",
+                         "center": [1.0] * 9 + [-1.0], "ci_low": 0.5, "ci_high": 1.5, "delta": 0.4})
+    points = map_points(rows)
+    assert direction_counts(points) == {"차이": (1, 9), "미결": (0, 0)}
+    text = map_this_run(points)
+    assert "차이 10개 중 + 방향 9개, − 방향 1개." in text and "+ 방향으로 몰려 있다" in text
+
+    even = map_points(rows.assign(center=[1.0, -1.0] * 5))
+    assert "몰리지 않았다" in map_this_run(even)
+    assert "개수가 적어" in map_this_run(map_points(rows.head(4)))
+    assert "옵션이 판정을 정한 ITEM 2개" in map_this_run(map_points(map_frame()))
 
 
 def test_main_writes_summary_pages_only_with_full(tmp_path: Path):
@@ -313,15 +356,15 @@ def test_main_groups_writes_one_dashboard_per_group_and_cleans_up(tmp_path: Path
 
 
 def loq_frame() -> pd.DataFrame:
-    """LoQ 미만 zone 4개(범위 안 1, x 범위 위 1, y 범위 아래 1, center 0 1)와 정량 1개."""
+    """LoQ 미만 zone 5개(범위 안 1, x 범위 위 1, y 범위 아래 1, center 0 1, center·delta 둘 다 0 1)와 정량 1개."""
     return pd.DataFrame({
-        "ITEM": ["L_IN", "L_X_HIGH", "L_Y_LOW", "L_ZERO", "Q_SKIP"],
-        "zone": ["검출~정량", "검출~정량", "검출한계 이하", "검출한계 이하", "정량"],
-        "verdict": ["동등", "차이", "미결", "동등", "동등"],
-        "doe_center": [2.0, 5000.0, -0.5, 0.5, 1.0],
-        "LoQ": [1.0, 1.0, 1.0, 1.0, 1.0],
-        "center": [0.5, 3.0, -1e-5, 0.0, 0.1],
-        "delta": [1.0, 1.0, 1.0, 1.0, 1.0],
+        "ITEM": ["L_IN", "L_X_HIGH", "L_Y_LOW", "L_ZERO", "L_STILL", "Q_SKIP"],
+        "zone": ["검출~정량", "검출~정량", "검출한계 이하", "검출한계 이하", "검출한계 이하", "정량"],
+        "verdict": ["동등", "차이", "미결", "동등", "동등", "동등"],
+        "doe_center": [2.0, 5000.0, -0.5, 0.5, 0.0, 1.0],
+        "LoQ": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        "center": [0.5, 3.0, -1e-5, 0.0, 0.0, 0.1],
+        "delta": [1.0, 1.0, 1.0, 1.0, 0.0, 1.0],
     })
 
 
@@ -335,20 +378,30 @@ def test_draw_loq_uses_log_axes_and_counts_clipped_points():
         assert ax.get_legend() is not None
     finally:
         plt.close(fig)
-    assert counts == {"n": 4, "clipped": 3, "zero": 1, "excluded": 0}
+    assert {k: counts[k] for k in ("n", "clipped", "zero", "excluded", "flagged")} == {
+        "n": 5, "clipped": 4, "zero": 2, "excluded": 0, "flagged": 0}   # 이동 0·허용폭 0 도 버리지 않는다
 
 
-def test_draw_loq_compact_drops_legend_and_plot_loq_writes_png(tmp_path: Path):
+def test_loq_review_flags_are_marked_only_when_review_exists(tmp_path: Path):
+    items_csv = tmp_path / "items.csv"
+    loq_frame().to_csv(items_csv, index=False, encoding="utf-8-sig")
+    assert read_loq_flags(items_csv) is None
+    (tmp_path / "review").mkdir()
+    pd.DataFrame({"ITEM": ["L_IN", "L_X_HIGH", "Q_SKIP"], "flag": [True, False, True]}).to_csv(
+        tmp_path / "review" / "loq_review.csv", index=False, encoding="utf-8-sig")
+    flags = read_loq_flags(items_csv)
+    assert flags == {"L_IN", "Q_SKIP"}
+
     fig, ax = plt.subplots()
     try:
-        counts = draw_loq(ax, loq_frame(), compact=True)
-        assert ax.get_legend() is None
-        assert ax.get_xscale() == "log"
+        counts = draw_loq(ax, loq_frame(), flags)
+        labels = [t.get_text() for t in ax.get_legend().get_texts()]
     finally:
         plt.close(fig)
-    assert counts["clipped"] == 3
+    assert counts["flagged"] == 1       # Q_SKIP 은 정량 zone 이라 이 그림에 없다
+    assert "LoQ 재확인 '확인 필요' 1" in labels
 
-    path = plot_loq(loq_frame(), tmp_path / "plots", dpi=60)
+    path = plot_loq(loq_frame(), tmp_path / "plots", dpi=60, flagged=flags)
     assert path.name == "summary_loq.png" and path.stat().st_size > 0
 
 

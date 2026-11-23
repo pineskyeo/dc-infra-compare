@@ -74,6 +74,25 @@ def test_judge_log_policy_is_log10_1_plus_r():
     assert "blank_status" not in lr and "accuracy_margin" not in lr
 
 
+def test_log_run_tolerance_has_the_linear_form_and_judges_the_same_interval():
+    Y, z = size_jitter_data()
+    lr = pdc.judge_log(Y, z, R)
+    assert lr["delta_run"] == pytest.approx(math.log10(1 + R) + pdc.run_factor(3) * lr["sigma_run"])
+    assert lr["verdict_run"] == pdc.tost(lr["center"], lr["ci_low"], lr["ci_high"], lr["delta_run"])[0]
+
+
+def test_repeat_noise_counted_twice_makes_only_the_current_log_tolerance_pass():
+    """die 반복 잡음 0.04 decade, 회차 공통 이동 없음, DOE 가 실제로 ×1.08: 지금 Δ_log 는 반복 잡음을 한 번 더 더해 동등,
+    선형 꼴 Δ_log_run 은 동등을 주지 않는다."""
+    rng = np.random.default_rng(3)
+    size = 10 ** rng.uniform(-12, -6, 61)
+    Y = size[:, None] * 10 ** rng.normal(0, 0.04, (61, 3))
+    z = size * 1.08 * 10 ** rng.normal(0, 0.04, 61)
+    lr = pdc.judge_log(Y, z, R)
+    assert lr["delta"] > lr["delta_run"]
+    assert lr["verdict"] == "동등" and lr["verdict_run"] in ("미결", "차이")
+
+
 def test_t2_non_jitter_status_still_fills_log_columns():
     """WO-U-A2: log 열 대상은 status 무관 (0 없고 부호 하나인 모든 ITEM)."""
     row = run_item(*log_normal_data())
@@ -137,7 +156,7 @@ def test_t5_old_columns_unchanged(monkeypatch, data):
     old = run_item(Y, z)
     assert is_subsequence(OLD_COLS, list(old))
     assert list(old)[-len(OLD_COLS[-11:]):] == OLD_COLS[-11:]
-    assert list(row) == list(old) + LOG_COLS
+    assert list(row) == list(old) + pdc.LOG_RUN_COLS + LOG_COLS
     for c in old:
         a, b = row[c], old[c]
         assert (a == b) or (isinstance(a, float) and math.isnan(a) and math.isnan(b)), c
