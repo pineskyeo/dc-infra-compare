@@ -1,0 +1,6 @@
+﻿column,쉬운이름,뜻,수식,볼것
+group,그룹,"센 ITEM 묶음. 전체가 먼저, --groups를 주면 그룹마다 (파일에 없는 ITEM은 미지정, 맨 끝).",전체 또는 --groups 파일의 group,
+axis,분류 축,센 items.csv 열 이름. cls_* 분류 축과 route.,"`cls_valid`, `cls_sign`, `cls_level`, `cls_resolution`, `cls_shape`, `cls_noise`, `cls_scale`, `cls_run`, `route`",
+value,값,"그 축의 값 하나. 규칙에 적힌 값은 0개여도 적고, 그 밖의 값은 많은 순서로 뒤에 붙는다.","';'로 이은 값(`cls_shape`, `cls_valid`)은 하나씩 나눠 센다",
+n_items,ITEM 수,그 묶음에서 그 값을 가진 ITEM 수.,,
+share,비율,그 묶음 ITEM 중 그 값을 가진 비율.,`n_items` / 그 묶음 ITEM 수,`cls_shape`와 `cls_valid`는 한 ITEM이 값 여러 개에 들 수 있어 합이 1을 넘을 수 있다.

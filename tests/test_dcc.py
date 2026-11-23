@@ -164,6 +164,35 @@ def test_scales_without_groups_is_a_config_error(tmp_path: Path, capsys):
     assert "scales 에는 groups 가 필요합니다" in capsys.readouterr().err
 
 
+def test_plan_judge_passes_groups_once_with_scales_and_abs_tol(cfg: Path):
+    base = cfg.parent.resolve()
+    make_paths(base, "scales.csv", "abs.csv")
+    cfg.write_text(cfg.read_text(encoding="utf-8").replace(
+        "groups = groups.csv\n", "groups = groups.csv\nscales = scales.csv\nabs_tol = abs.csv\n"), encoding="utf-8")
+    args = _plan(cfg, "judge", "A1")[0][1]
+    assert args[-8:] == ["--groups", str(base / "groups.csv"), "--scales", str(base / "scales.csv"),
+                         "--abs-tol", str(base / "abs.csv"), "--out", str(base / "결과" / "A1")]
+
+
+def test_abs_tol_without_groups_is_a_config_error(tmp_path: Path, capsys):
+    make_paths(tmp_path, "p1", "p2", "d", "abs.csv")
+    path = write_config(tmp_path, "[A1]\npor = p1\n  p2\ndoe = d\nabs_tol = abs.csv\n")
+    assert dcc.main(["judge", "A1", "--config", str(path)]) == 2
+    assert "abs_tol 에는 groups 가 필요합니다" in capsys.readouterr().err
+
+
+def test_plan_classes_runs_judge_only_without_items_csv(cfg: Path):
+    base = cfg.parent.resolve()
+    out = base / "결과" / "A1"
+    assert [n for n, _ in _plan(cfg, "classes", "A1")] == ["por_doe_compare", "plot_verdicts", "classes"]
+    make_paths(out, "items.csv")
+    (name, args), = _plan(cfg, "classes", "A1")
+    assert name == "classes"
+    assert args[:7] == ["classes.py", "--input", str(out / "items.csv"), "--out", str(out / "classes"),
+                        "--groups", str(base / "groups.csv")]
+    assert args[7:9] == ["--por", str(base / "A/POR1")]
+
+
 def test_plan_item_and_group_run_judge_only_without_items_csv(cfg: Path):
     base = cfg.parent.resolve()
     out = base / "결과" / "A1"

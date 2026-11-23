@@ -89,13 +89,15 @@
 <tr><td><a href="#log-compare-csv"><code>log_compare.csv</code></a></td><td>log_compare.py (run_all)</td><td>log 진단 대상 ITEM의 선형·log 신뢰구간 반폭 / Δ를 견준다.</td></tr>
 <tr><td><a href="#loq-review-csv"><code>loq_review.csv</code></a></td><td>review.py (참고용 LoQ 재확인)</td><td>LoQ 아래·LoQ 근처 ITEM을 LoQ 규칙과 무관한 근거(방향 일관성, 배수, 검출률, 꼬리)로 다시 보고 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.</td></tr>
 <tr><td><a href="#log-review-csv"><code>log_review.csv</code></a></td><td>review.py (참고용 log 재확인)</td><td>log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보고, 선형 차이가 log로 동등이 된 ITEM과 꼬리가 바뀐 ITEM에 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.</td></tr>
+<tr><td><a href="#classes-counts-csv"><code>classes/counts.csv</code></a></td><td>classes.py (dcc classes)</td><td>ITEM 분류 축(cls_*)과 판정 길(route)의 값마다 ITEM 수. 전체, --groups를 주면 그룹마다. 참고용이고 판정은 바꾸지 않는다.</td></tr>
+<tr><td><a href="#classes-items-by-route-csv"><code>classes/items_by_route.csv</code></a></td><td>classes.py (dcc classes)</td><td>ITEM마다 판정 길, 그 길의 참고 판정, 분류 값을 판정 길 순서로 적는다.</td></tr>
 </tbody></table></div>
 </section>
 
 <section id="items-csv"><h2>items.csv</h2>
 <p>ITEM마다 판정, 판정 근거 숫자, 데이터 상태를 한 행에 적는다. 모든 결과의 출발점이다.</p>
 <p class="s">만드는 명령 por_doe_compare.py (dcc judge, run_all) · 위치 <code>items.csv</code></p>
-<p class="s">열 81개</p>
+<p class="s">열 97개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>ID</code></td><td>익명 번호</td><td>ITEM 이름을 감춘 번호. 항목군 순번과 ITEM 이름 순번으로 만든다.</td><td>F{항목군 순번 2자리}_I{ITEM 순번 4자리}. 항목군 = <code>ITEM</code> 앞쪽 영문자. 순번은 이름 순서</td><td>같은 ITEM 목록이면 실행마다 같은 번호다. 공유할 때 ITEM 이름 대신 쓰고, item_map.csv로 실제 이름을 찾는다.</td></tr>
 <tr><td><code>ITEM</code></td><td>ITEM 이름</td><td>측정 항목 이름. 원데이터에 적힌 그대로다.</td><td>원데이터 <code>ITEM</code> 그대로</td><td></td></tr>
@@ -178,6 +180,22 @@
 <tr><td><code>blank_item</code></td><td>연결된 blank ITEM</td><td>LoQ 하한으로 쓴 blank ITEM. blank σ를 구할 수 있을 때만 채운다.</td><td>--blank-map의 <code>BLANK_ITEM</code>, 없으면 <code>ITEM</code>과 같은 이름</td><td></td></tr>
 <tr><td><code>blank_status</code></td><td>blank 적용</td><td>blank를 LoQ에 넣었는지와 이유.</td><td>적용, level.csv 없음: 미적용, 변형: 미적용, CALCVAL 없음: 미적용</td><td>미적용이면 blank가 LoQ에 안 들어갔다.</td></tr>
 <tr><td><code>blank_LoQ_item</code></td><td>blank LoQ</td><td>blank 반복 측정으로 구한 정량한계를 ITEM 단위로 바꾼 값.</td><td>(|blank 평균| + 10 × blank σ) × |<code>CALCVAL</code>|. blank σ = blank 표준편차(ddof=1), 없으면 σ0(이웃 차 평균 / 1.128)</td><td><code>LoQ</code>보다 크면 이 값이 LoQ가 된다(<code>limit_source</code> blank).</td></tr>
+<tr><td><code>cls_valid</code></td><td>판정 가능 분류</td><td>POR 값만 보고 판정할 거리가 있는지. 판정 제외 원인을 DOE 없이 다시 본다. 참고용이다.</td><td>die 수 &lt; 10이면 die 부족. 아니면 판정 제외 원인 표(중심·신뢰구간 계산 불가, 회차 0값, 모든 값 같음, die 산포 0, 고정값)를 DOE 자리에 POR 값을 넣어 보고, 맞는 원인을 ';'로 잇는다 (괄호 속 값은 뺌). 없으면 정상. LoQ는 <code>cls_level</code>의 POR LoQ</td><td>정상이 아니면 판정 길이 제외다. <code>verdict</code>가 판정 제외가 아니어도 POR만으로는 판정할 거리가 없다는 뜻이다.</td></tr>
+<tr><td><code>cls_sign</code></td><td>부호</td><td>POR 값의 부호.</td><td>Open 코드(|값| ≥ 1E+90)를 뺀 <code>POR{k}</code> 값에 양수와 음수가 다 있으면 부호 섞임, 아니면 0이 있으면 0 포함, 아니면 양수만 또는 음수만 (값이 없으면 값 없음)</td><td>부호 섞임·0 포함이면 log 판정을 할 수 없다.</td></tr>
+<tr><td><code>cls_level</code></td><td>값 높이</td><td>POR 중앙값이 바닥(정량 한계)에서 얼마나 위인지. 0 근처에 퍼진 값은 0 중심이다.</td><td>POR LoQ = 10 × max(<code>sigma_die</code>, POR 값 분해능 / √12, <code>spec_resolution</code> / √12), <code>blank_LoQ_item</code>이 더 크면 그 값. POR 값 분해능 = <code>POR{k}</code> 고유값 이웃 차의 최솟값. <code>cls_sign</code> 부호 섞임이고 |<code>por_median</code>| &lt; POR LoQ면 0 중심, |<code>por_median</code>| &lt; POR LoQ면 바닥 아래, POR LoQ ≤ |<code>por_median</code>| &lt; POR LoQ / (10 r)이면 바닥 근처, 그 밖은 정량</td><td><code>LoQ</code>는 DOE 값 분해능도 보므로 <code>zone</code>과 드물게 다를 수 있다.</td></tr>
+<tr><td><code>cls_resolution</code></td><td>계단 값</td><td>POR 값이 허용폭에 비해 띄엄띄엄(계단)인지.</td><td>POR 값 분해능 ≥ 0.1 × <code>delta</code>이면 계단, 아니면 연속. POR 값 분해능은 <code>cls_level</code>과 같다</td><td>계단이면 값 한 칸이 상대 허용폭의 10분의 1보다 크다. 양자화된 Vt 같은 ITEM이다.</td></tr>
+<tr><td><code>cls_shape</code></td><td>분포 모양</td><td>POR die 분포의 모양. 여러 개가 맞으면 ';'로 잇는다.</td><td>두 덩어리 = <code>status</code>에 두 덩어리. 튀는 die = POR die 평균(부호가 하나이고 0이 없으면 log10|값|)이 중앙값에서 5 × robust σ 넘게 떨어진 die가 있음. 한계에 걸림 = POR 값에 한계 값이 있음. 한계 = Open 코드(|값| ≥ 1E+90)이거나, Open 코드를 뺀 POR 값 중 최댓값(또는 최솟값)에 붙은 값이 5% 이상일 때 그 값 이상(이하). 하나도 없으면 한 덩어리</td><td>한계에 걸림이면 sweep 한계나 Open에 막힌 die가 있어 판정 길이 한계 비교다.</td></tr>
+<tr><td><code>cls_noise</code></td><td>잡음 모양</td><td><code>noise_pattern</code>을 분류 축으로 그대로 옮긴 것.</td><td><code>noise_pattern</code></td><td></td></tr>
+<tr><td><code>cls_scale</code></td><td>척도</td><td>값을 log로 볼 ITEM인지.</td><td><code>scale</code>이 log·linear(scales 표)면 그 값. 아니면 <code>spread_robust</code> &lt; 0.3이거나 <code>noise_slope</code>를 못 구하면 판별 불가, <code>noise_slope</code> ≥ 0.7이면 log, 그 밖은 linear</td><td>log면 위로 갈수록 퍼짐이 커지는 ITEM이다 (잡음이 값에 비례).</td></tr>
+<tr><td><code>cls_run</code></td><td>POR 회차 상태</td><td>POR 회차끼리 얼마나 같은지.</td><td>POR 회차 하나가 통째로 밀렸고 (stability/runs.csv) 이 ITEM의 그 회차 점수(median(회차 − 다른 회차 평균) / <code>sigma_die</code>)가 같은 부호로 0.25 이상이면 회차 밀림. 아니면 <code>status</code>에 조건 불안정이 있으면 조건 불안정, 회차 흔들림이 있으면 회차 흔들림, 없으면 안정</td><td>회차 밀림이면 그 ITEM 하나가 아니라 POR 회차 전체의 문제다.</td></tr>
+<tr><td><code>route</code></td><td>판정 길</td><td>ITEM 종류에 맞는 판정 방법. 참고용이고 <code>verdict_final</code>은 바꾸지 않는다.</td><td>위에서부터 처음 맞는 것. 제외(<code>cls_valid</code>가 정상 아님), 한계 비교(<code>cls_shape</code>에 한계에 걸림), 절대 허용폭(<code>cls_level</code> 0 중심, 또는 <code>cls_resolution</code> 계단이고 <code>cls_level</code> 정량·바닥 근처), LoQ 판정(<code>cls_level</code> 바닥 아래), log TOST(<code>cls_scale</code> log이고 <code>cls_sign</code> 양수만·음수만), 선형 TOST</td><td>판정 길별 개수와 예시 ITEM 그림은 dcc classes가 만든다.</td></tr>
+<tr><td><code>verdict_abs</code></td><td>절대 허용폭 판정</td><td>판정 길이 절대 허용폭인 ITEM을 그룹의 절대 허용폭으로 다시 본 참고 판정. 다른 ITEM은 빈 칸이다.</td><td><code>ci_low</code>·<code>ci_high</code>가 ±<code>abs_delta</code> 안이면 동등, 통째로 밖이면 차이, 걸치면 미결 (판정과 같은 신뢰구간의 TOST)</td><td><code>verdict_final</code>과 다르면 상대 허용폭과 절대 허용폭이 다른 답을 낸 ITEM이다.</td></tr>
+<tr><td><code>abs_delta</code></td><td>절대 허용폭</td><td>--abs-tol 파일에 적은 그 ITEM 그룹의 허용폭 (ITEM 단위).</td><td>--abs-tol 파일(group,abs_delta)에서 --groups로 찾은 그룹의 값. 판정 길이 절대 허용폭이고 그룹 행이 있을 때만</td><td>비었으면 <code>route_note</code>에 이유가 있다.</td></tr>
+<tr><td><code>verdict_limit</code></td><td>한계 비교 판정</td><td>판정 길이 한계 비교인 ITEM을 한계 밖 die만으로 본 참고 판정. 다른 ITEM은 빈 칸이다.</td><td>POR 모든 회차와 DOE가 한계 밖인 die의 <code>d</code>로 중앙값 TOST (Δ = <code>delta</code>). 그런 die가 10개 미만이면 미결. 한계는 <code>cls_shape</code>와 같다</td><td><code>limit_p</code>와 같이 본다. 한계 밖 값이 같아도 한계에 걸린 die 수가 바뀌었을 수 있다.</td></tr>
+<tr><td><code>limit_share_por</code></td><td>POR 한계 비율</td><td>POR에서 한계에 걸린 die 비율 (회차 평균).</td><td>회차마다 한계에 걸린 die 비율의 평균. 한계는 <code>cls_shape</code>와 같다</td><td></td></tr>
+<tr><td><code>limit_share_doe</code></td><td>DOE 한계 비율</td><td>DOE에서 한계에 걸린 die 비율.</td><td>POR에서 정한 같은 한계로 본 <code>DOE</code> 값의 비율 (한계 값 이상·이하도 걸린 것으로 셈)</td><td></td></tr>
+<tr><td><code>limit_p</code></td><td>한계 비율 p</td><td>POR과 DOE 사이에 한계에 걸린 die가 바뀌었는지 본 p 값.</td><td>정확 McNemar. POR은 회차 절반 이상이 한계면 걸린 die. POR만 걸린 die 수 b, DOE만 걸린 die 수 c로 양측 이항검정 p(min(b, c); b + c, 0.5). 엇갈린 die가 없으면 1</td><td>0.05보다 작으면 DOE에서 한계에 걸린 die 수가 달라졌다.</td></tr>
+<tr><td><code>route_note</code></td><td>판정 길 메모</td><td>참고 판정(<code>verdict_abs</code>, <code>verdict_limit</code>)의 사유나 빈 칸인 이유.</td><td>절대 허용폭: TOST 사유, 또는 --abs-tol 파일 없음, ITEM 그룹 없음, --abs-tol 에 그룹 없음, 신뢰구간 없음. 한계 비교: 한계 밖 die 수와 TOST 사유</td><td></td></tr>
 </tbody></table></div>
 </section>
 <section id="outlier-dies-csv"><h2>outlier_dies.csv</h2>
@@ -644,6 +662,45 @@
 <tr><td><code>flag_tail</code></td><td>꼬리 확인 필요</td><td>log10|값| 에서 tail_q &lt; 0.05 이고 tail_frac ≥ 5%</td><td></td><td></td></tr>
 <tr><td><code>flag</code></td><td>확인 필요</td><td>확인 필요 표시. 판정은 바꾸지 않는다</td><td></td><td>True 인 ITEM 은 review/items/&lt;ITEM&gt;.png 를 볼 것</td></tr>
 <tr><td><code>why</code></td><td>쉬운 설명</td><td>이 행을 한 문장으로 (확인 필요면 이유 먼저)</td><td></td><td></td></tr>
+</tbody></table></div>
+</section>
+<section id="classes-counts-csv"><h2>classes/counts.csv</h2>
+<p>ITEM 분류 축(cls_*)과 판정 길(route)의 값마다 ITEM 수. 전체, --groups를 주면 그룹마다. 참고용이고 판정은 바꾸지 않는다.</p>
+<p class="s">만드는 명령 classes.py (dcc classes) · 위치 <code>classes/counts.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
+<p class="s">열 5개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>group</code></td><td>그룹</td><td>센 ITEM 묶음. 전체가 먼저, --groups를 주면 그룹마다 (파일에 없는 ITEM은 미지정, 맨 끝).</td><td>전체 또는 --groups 파일의 group</td><td></td></tr>
+<tr><td><code>axis</code></td><td>분류 축</td><td>센 items.csv 열 이름. cls_* 분류 축과 route.</td><td><code>cls_valid</code>, <code>cls_sign</code>, <code>cls_level</code>, <code>cls_resolution</code>, <code>cls_shape</code>, <code>cls_noise</code>, <code>cls_scale</code>, <code>cls_run</code>, <code>route</code></td><td></td></tr>
+<tr><td><code>value</code></td><td>값</td><td>그 축의 값 하나. 규칙에 적힌 값은 0개여도 적고, 그 밖의 값은 많은 순서로 뒤에 붙는다.</td><td>';'로 이은 값(<code>cls_shape</code>, <code>cls_valid</code>)은 하나씩 나눠 센다</td><td></td></tr>
+<tr><td><code>n_items</code></td><td>ITEM 수</td><td>그 묶음에서 그 값을 가진 ITEM 수.</td><td></td><td></td></tr>
+<tr><td><code>share</code></td><td>비율</td><td>그 묶음 ITEM 중 그 값을 가진 비율.</td><td><code>n_items</code> / 그 묶음 ITEM 수</td><td><code>cls_shape</code>와 <code>cls_valid</code>는 한 ITEM이 값 여러 개에 들 수 있어 합이 1을 넘을 수 있다.</td></tr>
+</tbody></table></div>
+</section>
+<section id="classes-items-by-route-csv"><h2>classes/items_by_route.csv</h2>
+<p>ITEM마다 판정 길, 그 길의 참고 판정, 분류 값을 판정 길 순서로 적는다.</p>
+<p class="s">만드는 명령 classes.py (dcc classes) · 위치 <code>classes/items_by_route.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
+<p class="s">열 20개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>route</code></td><td>판정 길</td><td>items.csv <code>route</code>와 같다. 이 표는 판정 길 순서(제외, 한계 비교, 절대 허용폭, LoQ 판정, log TOST, 선형 TOST), 그 안은 ITEM 이름 순서다.</td><td><code>route</code></td><td></td></tr>
+<tr><td><code>ID</code></td><td>익명 번호</td><td>items.csv <code>ID</code>와 같다.</td><td><code>ID</code></td><td></td></tr>
+<tr><td><code>ITEM</code></td><td>ITEM 이름</td><td>items.csv <code>ITEM</code>와 같다.</td><td><code>ITEM</code></td><td></td></tr>
+<tr><td><code>group</code></td><td>그룹</td><td>--groups 파일의 ITEM 그룹. 파일에 없는 ITEM은 미지정. --groups를 줄 때만 있는 열이다.</td><td>--groups 파일 ITEM,group</td><td></td></tr>
+<tr><td><code>verdict_final</code></td><td>최종 판정</td><td>items.csv <code>verdict_final</code>와 같다.</td><td><code>verdict_final</code></td><td></td></tr>
+<tr><td><code>verdict_abs</code></td><td>절대 허용폭 판정</td><td>items.csv <code>verdict_abs</code>와 같다.</td><td><code>verdict_abs</code></td><td></td></tr>
+<tr><td><code>abs_delta</code></td><td>절대 허용폭</td><td>items.csv <code>abs_delta</code>와 같다.</td><td><code>abs_delta</code></td><td></td></tr>
+<tr><td><code>verdict_limit</code></td><td>한계 비교 판정</td><td>items.csv <code>verdict_limit</code>와 같다.</td><td><code>verdict_limit</code></td><td></td></tr>
+<tr><td><code>limit_share_por</code></td><td>POR 한계 비율</td><td>items.csv <code>limit_share_por</code>와 같다.</td><td><code>limit_share_por</code></td><td></td></tr>
+<tr><td><code>limit_share_doe</code></td><td>DOE 한계 비율</td><td>items.csv <code>limit_share_doe</code>와 같다.</td><td><code>limit_share_doe</code></td><td></td></tr>
+<tr><td><code>limit_p</code></td><td>한계 비율 p</td><td>items.csv <code>limit_p</code>와 같다.</td><td><code>limit_p</code></td><td></td></tr>
+<tr><td><code>route_note</code></td><td>판정 길 메모</td><td>items.csv <code>route_note</code>와 같다.</td><td><code>route_note</code></td><td></td></tr>
+<tr><td><code>cls_valid</code></td><td>판정 가능 분류</td><td>items.csv <code>cls_valid</code>와 같다.</td><td><code>cls_valid</code></td><td></td></tr>
+<tr><td><code>cls_sign</code></td><td>부호</td><td>items.csv <code>cls_sign</code>와 같다.</td><td><code>cls_sign</code></td><td></td></tr>
+<tr><td><code>cls_level</code></td><td>값 높이</td><td>items.csv <code>cls_level</code>와 같다.</td><td><code>cls_level</code></td><td></td></tr>
+<tr><td><code>cls_resolution</code></td><td>계단 값</td><td>items.csv <code>cls_resolution</code>와 같다.</td><td><code>cls_resolution</code></td><td></td></tr>
+<tr><td><code>cls_shape</code></td><td>분포 모양</td><td>items.csv <code>cls_shape</code>와 같다.</td><td><code>cls_shape</code></td><td></td></tr>
+<tr><td><code>cls_noise</code></td><td>잡음 모양</td><td>items.csv <code>cls_noise</code>와 같다.</td><td><code>cls_noise</code></td><td></td></tr>
+<tr><td><code>cls_scale</code></td><td>척도</td><td>items.csv <code>cls_scale</code>와 같다.</td><td><code>cls_scale</code></td><td></td></tr>
+<tr><td><code>cls_run</code></td><td>POR 회차 상태</td><td>items.csv <code>cls_run</code>와 같다.</td><td><code>cls_run</code></td><td></td></tr>
 </tbody></table></div>
 </section>
 

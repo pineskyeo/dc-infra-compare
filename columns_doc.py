@@ -91,6 +91,9 @@ OUTPUTS: tuple[Output, ...] = (
     Output("log_compare.csv", ("log_compare/log_compare.csv",), "log_compare", "log_compare.py (run_all)"),
     Output("loq_review.csv", ("review/loq_review.csv",), "loq_review", "review.py (참고용 LoQ 재확인)"),
     Output("log_review.csv", ("review/log_review.csv",), "log_review", "review.py (참고용 log 재확인)"),
+    Output("classes/counts.csv", ("classes/counts.csv",), "classes_counts", "classes.py (dcc classes)"),
+    Output("classes/items_by_route.csv", ("classes/items_by_route.csv",), "classes_items_by_route",
+           "classes.py (dcc classes)"),
 )
 
 

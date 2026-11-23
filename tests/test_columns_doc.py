@@ -44,6 +44,7 @@ out = {base / "dcc"}
     config = ["--config", base / "combos.ini"]
     run(ROOT / "dcc.py", "judge", "A1", *config)
     run(ROOT / "dcc.py", "item", "A1", "VT_SHIFT,VT_SAME,IOFF_LEAK,VT_NOISY_DOE", *config)
+    run(ROOT / "dcc.py", "classes", "A1", *config)
     before = base / "before.csv"
     shutil.copy(base / "dcc" / "A1" / "items.csv", before)
     run(ROOT / "dcc.py", "group", "A1", "--before", before, *config)

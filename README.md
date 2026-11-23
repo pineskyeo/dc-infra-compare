@@ -33,8 +33,9 @@ doe = data/A/DOE
 ```
 
 - `[defaults]` 밖의 섹션 하나가 조합 하나이고, 섹션 이름이 조합 이름입니다. 조합에 적은 키가 `[defaults]`보다 우선합니다.
-- 키는 `por`(한 줄에 회차 하나, 2회 이상), `doe`, 그리고 선택으로 `level`, `blank`(한 줄에 하나), `blank_map`, `key`, `encoding`, `r`, `groups`, `scales`, `before`, `out`입니다. 뜻은 아래 옵션 표와 같습니다.
+- 키는 `por`(한 줄에 회차 하나, 2회 이상), `doe`, 그리고 선택으로 `level`, `blank`(한 줄에 하나), `blank_map`, `key`, `encoding`, `r`, `groups`, `scales`, `abs_tol`, `before`, `out`입니다. 뜻은 아래 옵션 표와 같습니다.
 - `scales`를 적으면 판정 단계(`por_doe_compare.py`)에 `--groups`와 `--scales`를 같이 넘깁니다. 그래서 `scales`에는 `groups`가 필요합니다. 적지 않으면 판정은 그룹을 보지 않습니다(`groups`는 그룹 그림·요약에만 씀).
+- `abs_tol`(group,abs_delta 파일, ITEM 단위)을 적으면 판정 단계에 `--groups`와 `--abs-tol`을 넘깁니다. 판정 길이 절대 허용폭인 ITEM의 참고 판정 `verdict_abs`에만 쓰고 판정은 바꾸지 않습니다. `groups`가 필요합니다.
 - 상대 경로는 현재 폴더가 아니라 설정 파일이 있는 폴더 기준입니다.
 - 모르는 이름·키, POR 1회, 없는 경로는 아무것도 실행하기 전에 알려 주고 끝납니다(rc=2).
 
@@ -46,6 +47,7 @@ python dcc.py item A1 VT_SAME,VT_SHIFT      # 그 ITEM만 Fail 근거 (원데이
 python dcc.py item A1 VT_SAME --plots       # + ITEM 상세 그림 (원데이터 전체를 읽어 느림)
 python dcc.py group A1                      # 그룹별 판정 요약 그림 (groups 필요)
 python dcc.py group A1 --before 이전/items.csv  # + 기존·개선 비교와 그룹별 비교 요약
+python dcc.py classes A1                    # ITEM 분류와 판정 길 (참고, 판정 불변): 개수, 목록, 그림, 길마다 예시 ITEM
 ```
 
 조합 하나의 산출물은 `<out>/<이름>/`에 모입니다.
@@ -57,6 +59,7 @@ python dcc.py group A1 --before 이전/items.csv  # + 기존·개선 비교와 �
 | `item/` | 고른 ITEM의 Fail 근거(`fail_evidence.py --only`), `item/plots/`는 `--plots` 상세 그림 | `item` |
 | `group/plots/` | 그룹별 대시보드 | `group` |
 | `group/compare/`, `group/summary/` | 기존·개선 비교, 그룹별 비교 요약 | `group --before`(또는 조합의 `before` 키) |
+| `classes/` | ITEM 분류 개수(`counts.csv`), 판정 길별 목록(`items_by_route.csv`), `classes.png`, `examples/<판정 길>/` | `classes` |
 
 `item`과 `group`은 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize), log 비교, 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
 

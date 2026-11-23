@@ -29,7 +29,8 @@
      LoQ 미만이면 (4)(5)는 보지 않고 LoQ 판정으로 간다. 그 밖은 zone 판정: LoQ 미만은 Δ와 무관하게 판정하고,
      정량은 Δ가 0 이하·NaN일 때만 판정 제외
 
-4. 참고 (판정에 안 씀): t-test (NIST 7.3.1.1), POR 회차끼리 t-test, 튀는 die (|d − 중앙값| > 5 robust σ)
+4. 참고 (판정에 안 씀): t-test (NIST 7.3.1.1), POR 회차끼리 t-test, 튀는 die (|d − 중앙값| > 5 robust σ),
+   ITEM 분류와 판정 길 (classify.py, CLASS_COLS. POR 값만 본다. --abs-tol 은 절대 허용폭 참고 판정에만)
 
 5. 최종 판정 verdict_final: 위 판정(verdict)이 동등이나 판정 제외면 그대로. 차이·미결인 ITEM만 +@ 옵션(OPTIONS)이
    재판정하고, 옵션은 모두 TOST 만 한다 (LoQ 판정 없음). OPTIONS 순서로 대상인 옵션 중 동등을 주는 첫 옵션이 정한다.
@@ -106,6 +107,10 @@ LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log
             "sigma_die_log", "sigma_run_log",            # 분석용, 판정에 안 씀
             "sigma_rep_log"]                             # log 판정의 회차 항
 POR_MEAN_RE = re.compile(r"POR\d+_mean")
+# ITEM 분류와 판정 길 (classify.py, 참고, 판정에 안 씀). classify.AXES 열 순서 + route + 판정 길 참고 결과
+CLASS_COLS = ("cls_valid", "cls_sign", "cls_level", "cls_resolution", "cls_shape", "cls_noise", "cls_scale", "cls_run",
+              "route", "verdict_abs", "abs_delta", "verdict_limit", "limit_share_por", "limit_share_doe", "limit_p",
+              "route_note")
 # items.csv 열 순서의 유일한 출처: 묶음 순서대로, 묶음 안은 적힌 순서. POR_MEAN_RE 는 맞는 열을 원래 순서로.
 # 표에 없는 열은 맨 끝에 원래 순서로 붙는다.
 COLUMN_GROUPS: tuple[tuple[str, tuple[str | re.Pattern, ...]], ...] = (
@@ -124,6 +129,7 @@ COLUMN_GROUPS: tuple[tuple[str, tuple[str | re.Pattern, ...]], ...] = (
     ("reference", ("ttest", "ttest_p", "por_ttest_sig",
                    "spec_status", "level_check", "range_por", "range_doe", "spec_resolution", "accuracy_margin",
                    "blank_item", "blank_status", "blank_LoQ_item")),
+    ("classes", CLASS_COLS),
 )
 FAMILY_REGEX = r"^([A-Za-z]+)"
 
@@ -621,11 +627,19 @@ class ExclusionFacts:
         return not abs(self.por_median) < self.loq
 
 
-def zero_value_sides(Y: np.ndarray, z: np.ndarray) -> tuple[str, ...]:
-    """die 절반 넘게 정확히 0인 POR 회차·DOE 이름. 다른 회차나 DOE 하나라도 die 절반 넘게 0이 아닐 때만, 아니면 ()."""
-    sides = [(f"POR{k + 1}", Y[:, k]) for k in range(Y.shape[1])] + [("DOE", z)]
+def por_sides(Y: np.ndarray) -> list[tuple[str, np.ndarray]]:
+    return [(f"POR{k + 1}", Y[:, k]) for k in range(Y.shape[1])]
+
+
+def zero_sides(sides: list[tuple[str, np.ndarray]]) -> tuple[str, ...]:
+    """die 절반 넘게 정확히 0인 쪽 이름. 다른 쪽 하나라도 die 절반 넘게 0이 아닐 때만, 아니면 ()."""
     zero = [name for name, v in sides if (v == 0).mean() > 0.5]
     return tuple(zero) if any((v != 0).mean() > 0.5 for _, v in sides) else ()
+
+
+def zero_value_sides(Y: np.ndarray, z: np.ndarray) -> tuple[str, ...]:
+    """die 절반 넘게 정확히 0인 POR 회차·DOE 이름 (zero_sides)."""
+    return zero_sides(por_sides(Y) + [("DOE", z)])
 
 
 def _cause_ci(f: ExclusionFacts) -> str | None:
@@ -680,6 +694,14 @@ def _verdict_with_accuracy(center: float, lo: float, hi: float, delta: float, ma
     return tost(center, lo, hi, d)[0] if d > 0 else V_EXCLUDED
 
 
+def limit_sigma(s_die: float, vals: np.ndarray, spec_resolution: float) -> tuple[float, str]:
+    """LoD·LoQ 의 σ 와 출처: POR 반복 sigma_die, 데이터 분해능 / √12, 장비 분해능 / √12 중 가장 큰 것.
+    vals 는 정렬된 고유값 (데이터 분해능 = 이웃 차의 최솟값, 값이 하나면 0)."""
+    return max([(s_die, "POR 반복"),
+                (float(np.diff(vals).min()) / np.sqrt(12) if len(vals) > 1 else 0.0, "데이터 분해능"),
+                (spec_resolution / np.sqrt(12), "장비 분해능")], key=lambda t: t[0])
+
+
 def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None,
           info: ItemInfo | None = None) -> tuple[dict, np.ndarray]:
     """ITEM 하나 판정. (결과, 튀는 die 표시)"""
@@ -689,9 +711,7 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None,
     s_die, s_run = robust_noise(Y)
     vals = np.unique(np.concatenate([Y.ravel(), z]))
     sp = spec_terms(info, level, abs(float(np.median(z))))
-    s_lim, src = max([(s_die, "POR 반복"),
-                      (float(np.diff(vals).min()) / np.sqrt(12) if len(vals) > 1 else 0.0, "데이터 분해능"),
-                      (sp.get("spec_resolution", 0.0) / np.sqrt(12), "장비 분해능")], key=lambda t: t[0])
+    s_lim, src = limit_sigma(s_die, vals, sp.get("spec_resolution", 0.0))
     lod, loq = K_LOD * s_lim, K_LOQ * s_lim
     bl = {}
     if blank_lim:
@@ -1049,10 +1069,12 @@ def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: 
 
 def _judge_group(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: float,
                  levels: dict[str, ItemInfo], blank: pd.DataFrame, bmap: dict,
-                 die_cols: list[str]) -> tuple[dict, pd.DataFrame | None]:
-    """pool_map 용 최상위 함수: judge_item 결과 행과 튀는 die 표(없으면 None)."""
+                 die_cols: list[str]):
+    """pool_map 용 최상위 함수: judge_item 결과 행, 튀는 die 표(없으면 None), 분류 사실 (classify.item_facts)."""
+    import classify
     res, mask = judge_item(item, g, por_cols, units, r, levels, blank, bmap)
-    return res, (g.loc[mask, die_cols + ["ITEM"] + por_cols + ["DOE"]] if mask.any() else None)
+    facts = classify.item_facts(g[por_cols].to_numpy(float), g["DOE"].to_numpy(float), res, r)
+    return res, (g.loc[mask, die_cols + ["ITEM"] + por_cols + ["DOE"]] if mask.any() else None), facts
 
 
 def main() -> None:
@@ -1069,12 +1091,18 @@ def main() -> None:
     ap.add_argument("--groups", help="ITEM,group 파일. --scales 와 같이 쓰고, 주면 stability/groups.csv 도 쓴다")
     ap.add_argument("--scales", help="group,scale 파일 (scale = log, linear, auto). 그룹마다 log 옵션 대상을 정한다. "
                                      "표에 없는 그룹은 auto, 결정은 scales_auto.csv")
+    ap.add_argument("--abs-tol", help="group,abs_delta 파일 (ITEM 단위의 절대 허용폭). 판정 길이 절대 허용폭인 ITEM 의 "
+                                      "참고 판정 verdict_abs 에 쓴다 (판정은 그대로). --groups 가 필요")
     ap.add_argument("--out", default="por_doe_out")
     a = ap.parse_args()
     if len(a.por) < 2:
         sys.exit("POR은 2회 이상 필요합니다 (--por 를 회차마다 따로)")
     if a.scales and not a.groups:
         sys.exit("--scales 에는 --groups (ITEM,group 파일) 가 필요합니다")
+    if a.abs_tol and not a.groups:
+        sys.exit("--abs-tol 에는 --groups (ITEM,group 파일) 가 필요합니다")
+    import classify
+    abs_tol = classify.read_abs_tol(a.abs_tol) if a.abs_tol else None
     key = a.key.split(",")
     die_cols = [k for k in key if k != "ITEM"]
     import stability        # stability 가 이 모듈의 상수를 쓰므로 여기서 부른다
@@ -1094,8 +1122,9 @@ def main() -> None:
     tasks = [(item, g, por_cols, units, a.r, levels, blank, bmap, die_cols)
              for item, g in wide.groupby("ITEM", sort=False)]
     results = pool_map(_judge_group, tasks)
-    rows = [res for res, _ in results]
-    outl = [o for _, o in results if o is not None]
+    rows = [res for res, _, _ in results]
+    outl = [o for _, o, _ in results if o is not None]
+    facts = {res["ITEM"]: f for res, _, f in results}
 
     res = pd.DataFrame(rows)
     auto = None
@@ -1106,6 +1135,7 @@ def main() -> None:
     else:
         res["scale"] = SCALE_ITEM
     res = add_final_verdict(res)
+    res = classify.add_columns(res, facts, wide, por_cols, group_of, abs_tol)
     res.insert(0, "ID", anon_ids(res["ITEM"])[1])
     res = res[order_columns(res.columns)]
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
@@ -1130,6 +1160,7 @@ def main() -> None:
         if len(auto):
             print(f"auto 그룹 결정 ({out / SCALES_AUTO_CSV}, 확인 후 scales 파일에 옮겨 적을 수 있음)")
             print(auto.to_string(index=False))
+    print(f"\n{classify.takeaway(res)}")
     bad = reason_group(res.loc[res["verdict"] != "동등", "reason"]).value_counts()
     if len(bad):
         print("\n동등이 아닌 사유")

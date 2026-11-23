@@ -84,16 +84,27 @@ def die_scores(wide: pd.DataFrame, por_cols: list[str], die_cols: list[str], out
     return out.reset_index().sort_values(["flagged", "score"], ascending=False, ignore_index=True)
 
 
-def run_scores(wide: pd.DataFrame, por_cols: list[str], sigma_die: pd.Series) -> pd.DataFrame:
-    """POR 회차마다 score, n_items, flagged, note. sigma_die 는 ITEM → items.csv sigma_die (0 이하·NaN ITEM 은 뺀다).
-    회차 하나를 s 만큼 밀면 다른 회차 점수도 −s/(J−1) 움직이므로 가장 큰 |점수| 회차 하나만 볼 수 있다.
-    note 는 밀린 회차로 보지 않은 첫 사유, 밀린 회차면 빈 칸."""
+def item_run_scores(wide: pd.DataFrame, por_cols: list[str], sigma_die: pd.Series) -> pd.DataFrame:
+    """ITEM × POR 회차 점수: median_die(회차 − 다른 회차 평균) ÷ sigma_die. sigma_die 는 ITEM → items.csv sigma_die
+    (0 이하·NaN ITEM 은 뺀다)."""
     J = len(por_cols)
     Y = wide[por_cols].to_numpy(float)
     dev = Y - (Y.sum(axis=1, keepdims=True) - Y) / (J - 1)
     per_item = pd.DataFrame(dev, columns=por_cols).groupby(wide["ITEM"].to_numpy()).median()
     s = sigma_die.reindex(per_item.index)
-    per_item = per_item[s > 0].div(s[s > 0], axis=0)
+    return per_item[s > 0].div(s[s > 0], axis=0)
+
+
+def run_scores(wide: pd.DataFrame, por_cols: list[str], sigma_die: pd.Series) -> pd.DataFrame:
+    """POR 회차마다 score, n_items, flagged, note (run_table(item_run_scores(...)))."""
+    return run_table(item_run_scores(wide, por_cols, sigma_die), por_cols)
+
+
+def run_table(per_item: pd.DataFrame, por_cols: list[str]) -> pd.DataFrame:
+    """POR 회차마다 score (ITEM 점수의 중앙값), n_items, flagged, note.
+    회차 하나를 s 만큼 밀면 다른 회차 점수도 −s/(J−1) 움직이므로 가장 큰 |점수| 회차 하나만 볼 수 있다.
+    note 는 밀린 회차로 보지 않은 첫 사유, 밀린 회차면 빈 칸."""
+    J = len(por_cols)
     n = len(per_item)
     score = per_item.median() if n else pd.Series(np.nan, index=por_cols)
     top = score.abs().idxmax() if score.notna().any() else None

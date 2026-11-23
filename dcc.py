@@ -7,10 +7,11 @@
   python dcc.py item A1 VT_SAME,VT_SHIFT [--plots]  그 ITEM 만 Fail 근거 (+ 상세 그림)
   python dcc.py item A1 --items-file 볼항목.txt    ITEM 목록 파일 (한 줄에 하나, 또는 ITEM·ID 열 CSV)
   python dcc.py group A1 [--before 이전/items.csv]  그룹별 요약 그림 (+ 기존·개선 비교, 그룹 요약)
+  python dcc.py classes A1                        ITEM 분류와 판정 길 (참고, 판정 불변): 개수, 목록, 그림, 길마다 예시 ITEM
 
 설정 파일은 기본으로 현재 폴더의 combos.ini (--config 로 바꿈). 형식은 combos.example.ini.
-조합 하나의 산출물은 <out>/<이름>/ 에 둔다: items.csv, plots/, item/, group/.
-item, group 은 <out>/<이름>/items.csv 를 다시 쓰고, 없을 때만 judge 단계를 먼저 실행한다.
+조합 하나의 산출물은 <out>/<이름>/ 에 둔다: items.csv, plots/, item/, group/, classes/.
+item, group, classes 는 <out>/<이름>/items.csv 를 다시 쓰고, 없을 때만 judge 단계를 먼저 실행한다.
 """
 from __future__ import annotations
 
@@ -24,7 +25,8 @@ from pathlib import Path
 
 from step_runner import run_step
 
-KEYS = {"por", "doe", "level", "blank", "blank_map", "key", "encoding", "r", "groups", "scales", "before", "out"}
+KEYS = {"por", "doe", "level", "blank", "blank_map", "key", "encoding", "r", "groups", "scales", "abs_tol", "before",
+        "out"}
 DEFAULT_OUT = "dcc_out"
 ALL = "all"
 DETAIL_VERDICTS = ("차이", "미결")
@@ -51,6 +53,7 @@ class Combo:
     r: float | None = None
     groups: Path | None = None
     scales: Path | None = None
+    abs_tol: Path | None = None
     before: Path | None = None
 
     @property
@@ -58,7 +61,7 @@ class Combo:
         return self.out / "items.csv"
 
     def inputs(self) -> list[Path]:
-        single = [self.doe, self.level, self.blank_map, self.groups, self.scales, self.before]
+        single = [self.doe, self.level, self.blank_map, self.groups, self.scales, self.abs_tol, self.before]
         return [*self.por, *self.blank, *(p for p in single if p is not None)]
 
     def raw_args(self) -> list[str]:
@@ -120,6 +123,7 @@ def _parse_combo(name: str, raw: dict[str, str], base: Path) -> Combo:
         r=r,
         groups=opt_path("groups"),
         scales=opt_path("scales"),
+        abs_tol=opt_path("abs_tol"),
         before=opt_path("before"),
     )
 
@@ -208,13 +212,13 @@ def check_inputs(combo: Combo) -> None:
 
 
 def judge_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
-    scales: list[str] = []
-    if c.scales is not None:
-        if c.groups is None:
-            raise ConfigError(f"[{c.name}] scales 에는 groups 가 필요합니다 (조합이나 [defaults] 에 groups = ITEM,그룹 파일)")
-        scales = ["--groups", str(c.groups), "--scales", str(c.scales)]
+    given = {flag: p for flag, p in (("--scales", c.scales), ("--abs-tol", c.abs_tol)) if p is not None}
+    if given and c.groups is None:
+        keys = ", ".join(flag[2:].replace("-", "_") for flag in given)
+        raise ConfigError(f"[{c.name}] {keys} 에는 groups 가 필요합니다 (조합이나 [defaults] 에 groups = ITEM,그룹 파일)")
+    extra = ["--groups", str(c.groups), *(s for flag, p in given.items() for s in (flag, str(p)))] if given else []
     return [
-        ("por_doe_compare", ["por_doe_compare.py", *c.raw_args(), *scales, "--out", str(c.out)]),
+        ("por_doe_compare", ["por_doe_compare.py", *c.raw_args(), *extra, "--out", str(c.out)]),
         ("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(c.items_csv), "--summary",
                            "--out", str(c.out / "plots")]),
     ]
@@ -254,7 +258,13 @@ def group_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
     return steps
 
 
-MODES = {"judge": judge_steps, "item": item_steps, "group": group_steps}
+def classes_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
+    groups = ["--groups", str(c.groups)] if c.groups is not None else []
+    return [("classes", ["classes.py", "--input", str(c.items_csv), "--out", str(c.out / "classes"), *groups,
+                         *c.raw_args()])]
+
+
+MODES = {"judge": judge_steps, "item": item_steps, "group": group_steps, "classes": classes_steps}
 
 
 def plan(mode: str, c: Combo, a: argparse.Namespace) -> list[Step]:
@@ -323,6 +333,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("name", help="조합 이름")
     p.add_argument("--before", help="기존(이전) 결과 items.csv. 주면 기존·개선 비교와 그룹 요약 추가 "
                                     "(조합의 before 키보다 우선)")
+    p = sub.add_parser("classes", parents=[common], help="ITEM 분류와 판정 길, 참고 (<out>/<이름>/classes/)")
+    p.add_argument("name", help="조합 이름")
     return ap
 
 

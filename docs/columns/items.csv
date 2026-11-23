@@ -80,3 +80,19 @@ accuracy_margin,장비 정확도 폭,두 측정이 각자 장비 사양 정확�
 blank_item,연결된 blank ITEM,LoQ 하한으로 쓴 blank ITEM. blank σ를 구할 수 있을 때만 채운다.,"--blank-map의 `BLANK_ITEM`, 없으면 `ITEM`과 같은 이름",
 blank_status,blank 적용,blank를 LoQ에 넣었는지와 이유.,"적용, level.csv 없음: 미적용, 변형: 미적용, CALCVAL 없음: 미적용",미적용이면 blank가 LoQ에 안 들어갔다.
 blank_LoQ_item,blank LoQ,blank 반복 측정으로 구한 정량한계를 ITEM 단위로 바꾼 값.,"(|blank 평균| + 10 × blank σ) × |`CALCVAL`|. blank σ = blank 표준편차(ddof=1), 없으면 σ0(이웃 차 평균 / 1.128)",`LoQ`보다 크면 이 값이 LoQ가 된다(`limit_source` blank).
+cls_valid,판정 가능 분류,POR 값만 보고 판정할 거리가 있는지. 판정 제외 원인을 DOE 없이 다시 본다. 참고용이다.,"die 수 < 10이면 die 부족. 아니면 판정 제외 원인 표(중심·신뢰구간 계산 불가, 회차 0값, 모든 값 같음, die 산포 0, 고정값)를 DOE 자리에 POR 값을 넣어 보고, 맞는 원인을 ';'로 잇는다 (괄호 속 값은 뺌). 없으면 정상. LoQ는 `cls_level`의 POR LoQ",정상이 아니면 판정 길이 제외다. `verdict`가 판정 제외가 아니어도 POR만으로는 판정할 거리가 없다는 뜻이다.
+cls_sign,부호,POR 값의 부호.,"Open 코드(|값| ≥ 1E+90)를 뺀 `POR{k}` 값에 양수와 음수가 다 있으면 부호 섞임, 아니면 0이 있으면 0 포함, 아니면 양수만 또는 음수만 (값이 없으면 값 없음)",부호 섞임·0 포함이면 log 판정을 할 수 없다.
+cls_level,값 높이,POR 중앙값이 바닥(정량 한계)에서 얼마나 위인지. 0 근처에 퍼진 값은 0 중심이다.,"POR LoQ = 10 × max(`sigma_die`, POR 값 분해능 / √12, `spec_resolution` / √12), `blank_LoQ_item`이 더 크면 그 값. POR 값 분해능 = `POR{k}` 고유값 이웃 차의 최솟값. `cls_sign` 부호 섞임이고 |`por_median`| < POR LoQ면 0 중심, |`por_median`| < POR LoQ면 바닥 아래, POR LoQ ≤ |`por_median`| < POR LoQ / (10 r)이면 바닥 근처, 그 밖은 정량",`LoQ`는 DOE 값 분해능도 보므로 `zone`과 드물게 다를 수 있다.
+cls_resolution,계단 값,POR 값이 허용폭에 비해 띄엄띄엄(계단)인지.,"POR 값 분해능 ≥ 0.1 × `delta`이면 계단, 아니면 연속. POR 값 분해능은 `cls_level`과 같다",계단이면 값 한 칸이 상대 허용폭의 10분의 1보다 크다. 양자화된 Vt 같은 ITEM이다.
+cls_shape,분포 모양,POR die 분포의 모양. 여러 개가 맞으면 ';'로 잇는다.,"두 덩어리 = `status`에 두 덩어리. 튀는 die = POR die 평균(부호가 하나이고 0이 없으면 log10|값|)이 중앙값에서 5 × robust σ 넘게 떨어진 die가 있음. 한계에 걸림 = POR 값에 한계 값이 있음. 한계 = Open 코드(|값| ≥ 1E+90)이거나, Open 코드를 뺀 POR 값 중 최댓값(또는 최솟값)에 붙은 값이 5% 이상일 때 그 값 이상(이하). 하나도 없으면 한 덩어리",한계에 걸림이면 sweep 한계나 Open에 막힌 die가 있어 판정 길이 한계 비교다.
+cls_noise,잡음 모양,`noise_pattern`을 분류 축으로 그대로 옮긴 것.,`noise_pattern`,
+cls_scale,척도,값을 log로 볼 ITEM인지.,"`scale`이 log·linear(scales 표)면 그 값. 아니면 `spread_robust` < 0.3이거나 `noise_slope`를 못 구하면 판별 불가, `noise_slope` ≥ 0.7이면 log, 그 밖은 linear",log면 위로 갈수록 퍼짐이 커지는 ITEM이다 (잡음이 값에 비례).
+cls_run,POR 회차 상태,POR 회차끼리 얼마나 같은지.,"POR 회차 하나가 통째로 밀렸고 (stability/runs.csv) 이 ITEM의 그 회차 점수(median(회차 − 다른 회차 평균) / `sigma_die`)가 같은 부호로 0.25 이상이면 회차 밀림. 아니면 `status`에 조건 불안정이 있으면 조건 불안정, 회차 흔들림이 있으면 회차 흔들림, 없으면 안정",회차 밀림이면 그 ITEM 하나가 아니라 POR 회차 전체의 문제다.
+route,판정 길,ITEM 종류에 맞는 판정 방법. 참고용이고 `verdict_final`은 바꾸지 않는다.,"위에서부터 처음 맞는 것. 제외(`cls_valid`가 정상 아님), 한계 비교(`cls_shape`에 한계에 걸림), 절대 허용폭(`cls_level` 0 중심, 또는 `cls_resolution` 계단이고 `cls_level` 정량·바닥 근처), LoQ 판정(`cls_level` 바닥 아래), log TOST(`cls_scale` log이고 `cls_sign` 양수만·음수만), 선형 TOST",판정 길별 개수와 예시 ITEM 그림은 dcc classes가 만든다.
+verdict_abs,절대 허용폭 판정,판정 길이 절대 허용폭인 ITEM을 그룹의 절대 허용폭으로 다시 본 참고 판정. 다른 ITEM은 빈 칸이다.,"`ci_low`·`ci_high`가 ±`abs_delta` 안이면 동등, 통째로 밖이면 차이, 걸치면 미결 (판정과 같은 신뢰구간의 TOST)",`verdict_final`과 다르면 상대 허용폭과 절대 허용폭이 다른 답을 낸 ITEM이다.
+abs_delta,절대 허용폭,--abs-tol 파일에 적은 그 ITEM 그룹의 허용폭 (ITEM 단위).,"--abs-tol 파일(group,abs_delta)에서 --groups로 찾은 그룹의 값. 판정 길이 절대 허용폭이고 그룹 행이 있을 때만",비었으면 `route_note`에 이유가 있다.
+verdict_limit,한계 비교 판정,판정 길이 한계 비교인 ITEM을 한계 밖 die만으로 본 참고 판정. 다른 ITEM은 빈 칸이다.,POR 모든 회차와 DOE가 한계 밖인 die의 `d`로 중앙값 TOST (Δ = `delta`). 그런 die가 10개 미만이면 미결. 한계는 `cls_shape`와 같다,`limit_p`와 같이 본다. 한계 밖 값이 같아도 한계에 걸린 die 수가 바뀌었을 수 있다.
+limit_share_por,POR 한계 비율,POR에서 한계에 걸린 die 비율 (회차 평균).,회차마다 한계에 걸린 die 비율의 평균. 한계는 `cls_shape`와 같다,
+limit_share_doe,DOE 한계 비율,DOE에서 한계에 걸린 die 비율.,POR에서 정한 같은 한계로 본 `DOE` 값의 비율 (한계 값 이상·이하도 걸린 것으로 셈),
+limit_p,한계 비율 p,POR과 DOE 사이에 한계에 걸린 die가 바뀌었는지 본 p 값.,"정확 McNemar. POR은 회차 절반 이상이 한계면 걸린 die. POR만 걸린 die 수 b, DOE만 걸린 die 수 c로 양측 이항검정 p(min(b, c); b + c, 0.5). 엇갈린 die가 없으면 1",0.05보다 작으면 DOE에서 한계에 걸린 die 수가 달라졌다.
+route_note,판정 길 메모,"참고 판정(`verdict_abs`, `verdict_limit`)의 사유나 빈 칸인 이유.","절대 허용폭: TOST 사유, 또는 --abs-tol 파일 없음, ITEM 그룹 없음, --abs-tol 에 그룹 없음, 신뢰구간 없음. 한계 비교: 한계 밖 die 수와 TOST 사유",
