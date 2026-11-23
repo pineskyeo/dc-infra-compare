@@ -12,8 +12,9 @@
 3. 판정. die별 d = DOE − POR 회차 평균, shift = d의 중앙값, 90% 신뢰구간 = 부호검정 (Hollander & Wolfe)
    허용폭 Δ = r × |POR 중앙값| + t(0.95, J−1) × √(1 + 1/J) × sigma_run
      뒤쪽은 DOE 1회가 POR J회 평균에서 같은 프로그램 안에서도 벗어날 수 있는 폭 (90% 예측구간 한쪽)
-     --level 의 A·V ITEM 장비 정확도 폭(accuracy_margin, GUM 4.3.7)은 판정에 쓰지 않는다.
-       그 폭이 Δ보다 클 때 바꿨다면 나왔을 TOST 판정을 verdict_with_accuracy 에 참고로 남긴다
+     --level 의 A·V ITEM 장비 정확도 폭(accuracy_margin, GUM 4.3.7)은 기본 판정에 쓰지 않는다.
+       Δ' = max(Δ, accuracy_margin) 의 TOST 판정을 verdict_with_accuracy 에 남기고 (정량 zone 만),
+       LoQ 근처 ITEM 에서만 accuracy 옵션(5)이 쓴다. 그 밖은 참고
    정량 (|POR| ≥ LoQ): 신뢰구간이 ±Δ 안 → 동등, 통째로 밖 → 차이, 걸침 → 미결
    LoQ 미만: 값은 "<LoQ"로 보고한다 (IUPAC). 신뢰구간이 통째로 ±Δ 밖이고 DOE 중심(POR 중앙값 + shift)이
      LoQ 이상이라 보고가 달라질 때만 차이, 그 밖은 동등 ("<LoQ 보고 일치")
@@ -30,9 +31,20 @@
 
 4. 참고 (판정에 안 씀): t-test (NIST 7.3.1.1), POR 회차끼리 t-test, 튀는 die (|d − 중앙값| > 5 robust σ)
 
-5. 최종 판정 verdict_final: 위 판정(verdict)이 차이·미결인 ITEM만 +@ 옵션(OPTIONS)이 재판정한다.
-   동등과 판정 제외는 그대로. 옵션마다 대상 조건(status 태그)과 판정 규칙이 따로 있고, 대상인 첫 옵션이 정한다.
-   log 옵션: status 'log 후보' ITEM을 log10 값에서 TOST로만 판정 (LoQ 판정 없음, judge_log)
+5. 최종 판정 verdict_final: 위 판정(verdict)이 동등이나 판정 제외면 그대로. 차이·미결인 ITEM만 +@ 옵션(OPTIONS)이
+   재판정하고, 옵션은 모두 TOST 만 한다 (LoQ 판정 없음). OPTIONS 순서로 대상인 옵션 중 동등을 주는 첫 옵션이 정한다.
+   동등이 없으면 대상이고 판정이 나온 log 옵션(log, log_physics)의 판정, 그것도 없으면 기본 판정 (basis linear).
+   accuracy 옵션은 동등일 때만 판정을 바꾼다 (final_verdict)
+   1) log: scale item 이면 status 'log 후보' (decades ≥ 1, log_fit > 0.1), auto→log 면 decades ≥ 1, log_fit > 0.
+      log10 값에서 TOST (judge_log)
+   2) accuracy: status 'LoQ 근처' (LoQ ≤ |POR 중앙값| < LoQ / (10 r)) 이고 accuracy_margin 이 있음.
+      Δ' = max(Δ, accuracy_margin) 의 TOST (verdict_with_accuracy). LoQ = 10σ 라 이 구간에서는 1회 측정 잡음(LoQ/10)이
+      허용폭 r × |POR| 보다 크다
+   3) log_physics: scale log 이고 decades ≥ 1, log_fit > 0. 1) 과 같은 log10 TOST (verdict_log)
+   scale (--groups ITEM,group 과 --scales group,scale): 표의 log·linear 는 그대로, 표에 없거나 auto 인 그룹은 이번 실행의
+   그 그룹 ITEM 으로 정한다 (auto→log·auto→linear, scales_auto.csv). decades·log_fit 이 있는 ITEM 중 절반 넘게
+   decades ≥ 1 이고 그 ITEM 들의 log_fit 중앙값 > 0 이면 log. 그룹이 없거나 --scales 가 없으면 item.
+   linear·auto→linear 는 log 옵션 대상이 아니고, 한 ITEM 은 두 log 옵션 중 많아야 하나의 대상이다
 """
 from __future__ import annotations
 
@@ -41,7 +53,7 @@ import multiprocessing
 import os
 import re
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -49,7 +61,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from infra_compare import blank_limits, load_blank, load_side, read_csv_auto
+from infra_compare import blank_limits, load_blank, load_side, read_csv_auto, read_groups, read_pairs
 
 Z90 = 1.645
 K_LOD, K_LOQ = 3.29, 10.0
@@ -61,6 +73,7 @@ SIZE_JITTER_RHO_POS = 0.5       # 클수록 흔들림: Spearman ρ(크기, log �
 SIZE_JITTER_MIN_DIE = 10
 LOG_DECADES_MIN = 1.0           # log 후보: decades ≥ 이 값 그리고 log_fit > LOG_FIT_MIN
 LOG_FIT_MIN = 0.1               # log 후보: log_fit > 이 값 (|skew_lin| − |skew_log|, log 쪽이 이만큼은 더 대칭이어야)
+LOG_FIT_MIN_SCALE = 0.0         # scale log·auto→log ITEM 과 auto 그룹 결정: log_fit > 이 값 (그룹이 log 라 문턱을 낮춤)
 BIMODAL_BC_MIN = 5 / 9          # 두 덩어리: bimodality_log > 이 값 (균일분포 BC = 5/9 ≈ 0.555). 기준값 추천(검토 필요)
 BIMODAL_MIN_DIE = 10            # 두 덩어리: POR 회차평균이 유한한 die ≥ 이 수, Open 코드(|x| ≥ 1E+90) die는 세지 않음. 기준값 추천(검토 필요)
 JITTER_COLS = ["run_jitter_pct", "run_jitter_over_delta", "spearman_size_jitter"]
@@ -82,7 +95,7 @@ POR_MEAN_RE = re.compile(r"POR\d+_mean")
 # 표에 없는 열은 맨 끝에 원래 순서로 붙는다.
 COLUMN_GROUPS: tuple[tuple[str, tuple[str | re.Pattern, ...]], ...] = (
     ("identity", ("ID", "ITEM", "UNIT")),
-    ("verdicts", ("verdict_final", "verdict_basis", "verdict", "verdict_log", "verdict_with_accuracy",
+    ("verdicts", ("verdict_final", "verdict_basis", "scale", "verdict", "verdict_log", "verdict_with_accuracy",
                   "verdict_no_blank", "zone", "reason", "log_reason", "status")),
     ("TOST", ("n_die", "center", "ci_low", "ci_high", "delta", "policy_margin", "run_margin", "delta_source",
               "ci_half_over_delta")),
@@ -154,6 +167,7 @@ POR_GAP_NOISE_K = 3            # 조건 불안정: 짝지은 회차 차 ≥ 이 
 ST_OK, ST_UNSTABLE, ST_RESOLUTION, ST_FLAT = "정상", "조건 불안정", "분해능 부족", "산포 0"
 ST_RUN_JITTER, ST_SIZE_JITTER, ST_SIZE_JITTER_POS = "회차 흔들림", "작을수록 흔들림", "클수록 흔들림"
 ST_LOG_CANDIDATE, ST_BIMODAL = "log 후보", "두 덩어리"     # 분포 모양 (SHAPE_COLS)
+ST_NEAR_LOQ = "LoQ 근처"      # LoQ ≤ |POR 중앙값| < LoQ / (10 r): 1회 측정 잡음(LoQ/10)이 허용폭 r × |POR| 보다 큼
 ST_SETUP_ERROR = "조건 설정 오류"     # 예약 값. 판정에 필요한 입력이 없어 지금은 쓰지 않음
 V_EXCLUDED = "판정 제외"
 ORDER = {"차이": 0, "미결": 1, "동등": 2, V_EXCLUDED: 3}
@@ -355,7 +369,13 @@ def shape_cols(x: np.ndarray) -> dict:
     return out
 
 
-def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
+def near_loq(por_median: float, loq: float, r: float) -> bool:
+    """LoQ ≤ |POR 중앙값| < LoQ / (10 r). r ≤ 0 이면 위쪽 끝이 없다. 값이 NaN 이면 False."""
+    upper = loq / (10 * r) if r > 0 else np.inf
+    return bool(loq <= abs(por_median) < upper)
+
+
+def item_status(Y: np.ndarray, z: np.ndarray, delta: float, loq: float = np.nan, r: float = np.nan) -> dict:
     """판정과 별개인 데이터 상태. 해당하는 이름을 모두 ';'로 잇고, 판단에 쓴 값을 METRIC_COLS 로 같이 돌려준다.
     지표는 status 여부와 무관하게 계산할 수 있으면 채우고 못 하면 NaN.
     resolution_step = 값(POR 전 회차·DOE) 고유값 간 최소 차, resolution_over_delta = step / Δ,
@@ -368,7 +388,8 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
     (se가 0이거나 유한하지 않으면 gap ≥ Δ 만). GAP_COLS: por_gap_over_delta = gap / Δ, por_gap_over_noise = gap / se,
     계산할 수 없으면 NaN (POR 1회면 둘 다 NaN, 조건 불안정 없음). 작을수록·클수록 흔들림은 0값 없는 die가 SIZE_JITTER_MIN_DIE개 이상일 때만.
     분포 모양 SHAPE_COLS = shape_cols(die별 POR 회차평균). log 후보: decades ≥ LOG_DECADES_MIN 그리고 log_fit > LOG_FIT_MIN.
-    두 덩어리: bimodality_log > BIMODAL_BC_MIN 그리고 die ≥ BIMODAL_MIN_DIE (Open 코드(|x| ≥ 1E+90) die는 세지 않음). 판정(judge)과 다른 status는 바꾸지 않는다."""
+    두 덩어리: bimodality_log > BIMODAL_BC_MIN 그리고 die ≥ BIMODAL_MIN_DIE (Open 코드(|x| ≥ 1E+90) die는 세지 않음).
+    LoQ 근처: near_loq(POR 중앙값, loq, r). loq·r 를 안 주면 (NaN) 보지 않는다. 판정(judge)과 다른 status는 바꾸지 않는다."""
     Y, z = np.asarray(Y, float), np.asarray(z, float)
     R = Y.mean(axis=1)
     has_delta = bool(delta > 0)     # NaN도 False
@@ -419,6 +440,8 @@ def item_status(Y: np.ndarray, z: np.ndarray, delta: float) -> dict:
         names.append(ST_BIMODAL)
 
     med = float(np.median(R))
+    if near_loq(med, loq, r):
+        names.append(ST_NEAR_LOQ)
     return {"status": ";".join(names) or ST_OK, **gap_cols, **jit, **res_cols, "fixed_share": share, **shape,
             "mean_median_ratio": (float(R.mean()) - med) / abs(med) if med != 0 else np.nan}
 
@@ -550,7 +573,7 @@ def excluded_reason(f: ExclusionFacts) -> str | None:
 
 
 def _verdict_with_accuracy(center: float, lo: float, hi: float, delta: float, margin: float) -> str | float:
-    """장비 정확도 폭이 Δ보다 크면 그 폭으로 바꿨을 때의 TOST 판정 (참고, 판정에 안 씀). accuracy_margin 이 없으면 NaN."""
+    """Δ' = max(Δ, accuracy_margin) 의 TOST 판정. accuracy 옵션(LoQ 근처 ITEM)이 쓰고 그 밖은 참고. margin 이 없으면 NaN."""
     if not np.isfinite(margin):
         return np.nan
     d = float(np.fmax(delta, margin))
@@ -698,22 +721,6 @@ def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict) -> dict:
             "sigma_rep_log": lr["sigma_rep_log"]}
 
 
-@dataclass(frozen=True)
-class Option:
-    """기본 판정(judge) 뒤의 +@ 재판정 하나. status 에 이 태그가 있는 ITEM만 재판정 대상이고, 판정 규칙은 옵션마다 다르다.
-    compute(Y, z, r, 기본 판정 결과) → columns 의 값. 열은 status 와 무관하게 모든 ITEM에 채운다 (참고용)."""
-    basis: str
-    status: str
-    verdict_col: str
-    columns: tuple[str, ...]
-    compute: Callable[[np.ndarray, np.ndarray, float, dict], dict]
-
-
-# 순서가 우선순위: 재판정 대상인 옵션 중 앞의 것이 최종 판정을 정한다
-OPTIONS = (Option("log", ST_LOG_CANDIDATE, "verdict_log", tuple(LOG_COLS), log_columns),)
-JUDGED = ("동등", "차이", "미결")
-
-
 LOG_TARGET_STATUSES = (ST_SIZE_JITTER, ST_SIZE_JITTER_POS)
 
 
@@ -743,29 +750,122 @@ def is_log_target(status, verdict=None, verdict_log=None) -> bool:
     return bool(log_target_statuses(status)) or verdict_log_differs(verdict, verdict_log)
 
 
-def final_verdict(status, verdict, *option_verdicts) -> tuple[str, str]:
-    """최종 판정 (verdict_final, verdict_basis). option_verdicts 는 OPTIONS 순서의 각 옵션 판정.
-    기본 판정이 동등이나 판정 제외면 그대로 (verdict, 'linear'). 아니면 OPTIONS 순서로 status 에 옵션 태그가 있고
-    옵션 판정이 동등·차이·미결인 첫 옵션의 (판정, basis). 없으면 (verdict, 'linear')."""
-    if _text(verdict) not in ("동등", V_EXCLUDED):
-        parts = _status_parts(status)
-        for opt, v in zip(OPTIONS, option_verdicts, strict=True):
-            if opt.status in parts and _text(v) in JUDGED:
-                return _text(v), opt.basis
-    return verdict, "linear"
+SCALE_ITEM, SCALE_LOG, SCALE_LINEAR, SCALE_AUTO = "item", "log", "linear", "auto"
+AUTO_SCALES = {SCALE_LOG: "auto→log", SCALE_LINEAR: "auto→linear"}       # auto 그룹 결정 → items.csv scale 값
+
+
+def _num(row: Mapping, key: str) -> float:
+    try:
+        return float(row.get(key))
+    except (TypeError, ValueError):
+        return np.nan
+
+
+def _log_shape(row: Mapping) -> bool:
+    return _num(row, "decades") >= LOG_DECADES_MIN and _num(row, "log_fit") > LOG_FIT_MIN_SCALE     # NaN이면 False
+
+
+# scale → (그 scale 의 ITEM 이 대상인 log 옵션 basis, 대상 검사). 표에 없는 scale(linear, auto→linear)은 log 옵션 대상이 아니다.
+# scale 마다 basis 가 하나라 한 ITEM 이 두 log 옵션의 대상이 될 수 없다. item 은 옛 items.csv 에도 있는 status 로 본다.
+SCALE_LOG_RULES: dict[str, tuple[str, Callable[[Mapping], bool]]] = {
+    SCALE_ITEM: ("log", lambda row: ST_LOG_CANDIDATE in _status_parts(row.get("status"))),
+    AUTO_SCALES[SCALE_LOG]: ("log", _log_shape),
+    SCALE_LOG: ("log_physics", _log_shape),
+}
+
+
+def _scale(row: Mapping) -> str:
+    """row 의 scale. scale 열이 없거나 빈 옛 items.csv 는 item."""
+    return _text(row.get("scale")) or SCALE_ITEM
+
+
+def _log_rule(basis: str) -> Callable[[Mapping], bool]:
+    def eligible(row: Mapping) -> bool:
+        rule = SCALE_LOG_RULES.get(_scale(row))
+        return rule is not None and rule[0] == basis and rule[1](row)
+    return eligible
+
+
+def _near_loq_with_margin(row: Mapping) -> bool:
+    return ST_NEAR_LOQ in _status_parts(row.get("status")) and bool(np.isfinite(_num(row, "accuracy_margin")))
+
+
+@dataclass(frozen=True)
+class Option:
+    """기본 판정(judge) 뒤의 +@ 재판정 하나 (TOST 만). eligible(row): row 는 items.csv 한 행 (dict 처럼 get).
+    replaces: 대상이고 판정이 나오면 동등이 아니어도 기본 판정을 대신하는지. False 면 동등일 때만 쓴다.
+    compute(Y, z, r, 기본 판정 결과) → 이 옵션이 채우는 열, 모든 ITEM에 채운다 (참고용). 판정 열을 다른 곳(judge,
+    다른 옵션)이 채우면 None."""
+    basis: str
+    verdict_col: str
+    eligible: Callable[[Mapping], bool]
+    replaces: bool
+    compute: Callable[[np.ndarray, np.ndarray, float, dict], dict] | None = None
+
+
+# 순서가 cascade 순서 (final_verdict). verdict_with_accuracy 는 judge 가 정량 zone 에서 채운다
+OPTIONS = (Option("log", "verdict_log", _log_rule("log"), replaces=True, compute=log_columns),
+           Option("accuracy", "verdict_with_accuracy", _near_loq_with_margin, replaces=False),
+           Option("log_physics", "verdict_log", _log_rule("log_physics"), replaces=True))
+JUDGED = ("동등", "차이", "미결")
+
+
+def final_verdict(row: Mapping) -> tuple[str, str]:
+    """최종 판정 (verdict_final, verdict_basis). row 는 items.csv 한 행 (verdict, status, scale, 옵션 판정 열 등).
+    기본 판정이 동등이나 판정 제외면 (verdict, 'linear'). 아니면 OPTIONS 순서로 대상이고 판정(동등·차이·미결)이
+    나온 옵션 중 동등인 첫 옵션의 (동등, basis), 없으면 replaces 인 첫 옵션의 (판정, basis), 없으면 (verdict, 'linear').
+    없는 열은 빈 칸으로 본다 (옛 items.csv)."""
+    verdict = row.get("verdict")
+    if _text(verdict) in ("동등", V_EXCLUDED):
+        return verdict, "linear"
+    judged = [(v, o) for o in OPTIONS if o.eligible(row) and (v := _text(row.get(o.verdict_col))) in JUDGED]
+    pick = next((j for j in judged if j[0] == "동등"), None) or next((j for j in judged if j[1].replaces), None)
+    return (pick[0], pick[1].basis) if pick else (verdict, "linear")
 
 
 def add_final_verdict(res: pd.DataFrame) -> pd.DataFrame:
-    """res 에 verdict_final·verdict_basis 열을 verdict 바로 뒤에 넣어 돌려준다. 옵션 판정 열이 없는 옛 CSV 는 빈 칸으로 본다."""
-    missing = pd.Series(np.nan, index=res.index)
-    st = res["status"] if "status" in res else pd.Series("", index=res.index)
-    ov = [res[o.verdict_col] if o.verdict_col in res else missing for o in OPTIONS]
-    fb = [final_verdict(s, v, *o) for s, v, *o in zip(st, res["verdict"], *ov)]
+    """res 에 verdict_final·verdict_basis 열을 verdict 바로 뒤에 넣어 돌려준다. 없는 열은 빈 칸으로 본다 (옛 CSV)."""
+    fb = [final_verdict(row) for row in res.to_dict("records")]
     res = res.drop(columns=["verdict_final", "verdict_basis"], errors="ignore")
     at = res.columns.get_loc("verdict") + 1
     res.insert(at, "verdict_final", [f for f, _ in fb])
     res.insert(at + 1, "verdict_basis", [b for _, b in fb])
     return res
+
+
+AUTO_COLS = ["group", "decision", "n_items", "n_decades_ge_1", "median_log_fit"]
+SCALES_AUTO_CSV = "scales_auto.csv"
+
+
+def read_scales(path) -> dict[str, str]:
+    """group,scale 파일 → 그룹 → log·linear·auto. 다른 scale 값이 있으면 종료."""
+    t = read_pairs(path, ("group", "scale"))
+    t["scale"] = t["scale"].fillna("").str.lower()
+    bad = t.loc[~t["scale"].isin((SCALE_LOG, SCALE_LINEAR, SCALE_AUTO)), "group"].tolist()
+    if bad:
+        sys.exit(f"{path}: scale 은 log, linear, auto 중 하나여야 합니다 (그룹 {', '.join(bad[:5])})")
+    return dict(zip(t["group"], t["scale"]))
+
+
+def auto_decision(decades, log_fit) -> dict:
+    """auto 그룹 하나의 결정 (AUTO_COLS 의 group 뒤). n_items = decades·log_fit 이 둘 다 유한한 ITEM 수.
+    그중 decades ≥ LOG_DECADES_MIN 이 절반 넘고 그 n_items 개의 log_fit 중앙값 > LOG_FIT_MIN_SCALE 이면 log, 아니면 linear."""
+    d, f = np.asarray(decades, float), np.asarray(log_fit, float)
+    ok = np.isfinite(d) & np.isfinite(f)
+    n, wide = int(ok.sum()), int((d[ok] >= LOG_DECADES_MIN).sum())
+    med = float(np.median(f[ok])) if n else np.nan
+    return {"decision": SCALE_LOG if wide > n / 2 and med > LOG_FIT_MIN_SCALE else SCALE_LINEAR,
+            "n_items": n, "n_decades_ge_1": wide, "median_log_fit": med}
+
+
+def item_scales(res: pd.DataFrame, groups: dict[str, str], scales: dict[str, str]) -> tuple[pd.Series, pd.DataFrame]:
+    """(ITEM 마다 scale, auto 그룹 결정 표 AUTO_COLS). 그룹이 없는 ITEM 은 item, scales 에 없는 그룹은 auto."""
+    group = res["ITEM"].astype(str).str.strip().map(groups)
+    table = {g: scales.get(g, SCALE_AUTO) for g in group.dropna().unique()}
+    auto = pd.DataFrame([{"group": g, **auto_decision(res.loc[group == g, "decades"], res.loc[group == g, "log_fit"])}
+                         for g in sorted(table) if table[g] == SCALE_AUTO], columns=AUTO_COLS)
+    table.update({g: AUTO_SCALES[d] for g, d in zip(auto["group"], auto["decision"])})
+    return group.map(table).fillna(SCALE_ITEM), auto
 
 
 def verdict_col(df: pd.DataFrame) -> pd.Series:
@@ -838,9 +938,9 @@ def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: 
     res, mask = judge(Y, z, r, lim, info)
     if lim:
         extra["verdict_no_blank"] = judge(Y, z, r, None, info)[0]["verdict"]
-    status = item_status(Y, z, res["delta"])
+    status = item_status(Y, z, res["delta"], res["LoQ"], r)
     prec = meas_precision(*(res.get(k, np.nan) for k in ("sigma_die", "sigma_run", "por_median", "delta")))
-    opts = {k: v for o in OPTIONS for k, v in o.compute(Y, z, r, res).items()}
+    opts = {k: v for o in OPTIONS if o.compute for k, v in o.compute(Y, z, r, res).items()}
     return {"ITEM": item, "UNIT": units.get(item), **res, **extra, **status, **prec, **opts}, mask
 
 
@@ -863,10 +963,15 @@ def main() -> None:
     ap.add_argument("--blank-map", help="CSV ITEM,BLANK_ITEM. 없으면 같은 이름끼리 연결")
     ap.add_argument("--key", default="WAFERID,COORD_X_Y,ITEM")
     ap.add_argument("--encoding", default="auto")
+    ap.add_argument("--groups", help="ITEM,group 파일. --scales 와 같이 쓴다")
+    ap.add_argument("--scales", help="group,scale 파일 (scale = log, linear, auto). 그룹마다 log 옵션 대상을 정한다. "
+                                     "표에 없는 그룹은 auto, 결정은 scales_auto.csv")
     ap.add_argument("--out", default="por_doe_out")
     a = ap.parse_args()
     if len(a.por) < 2:
         sys.exit("POR은 2회 이상 필요합니다 (--por 를 회차마다 따로)")
+    if a.scales and not a.groups:
+        sys.exit("--scales 에는 --groups (ITEM,group 파일) 가 필요합니다")
     key = a.key.split(",")
     die_cols = [k for k in key if k != "ITEM"]
 
@@ -887,7 +992,14 @@ def main() -> None:
     rows = [res for res, _ in results]
     outl = [o for _, o in results if o is not None]
 
-    res = add_final_verdict(pd.DataFrame(rows))
+    res = pd.DataFrame(rows)
+    auto = None
+    if a.scales:
+        groups = read_groups(a.groups)
+        res["scale"], auto = item_scales(res, dict(zip(groups["ITEM"], groups["group"])), read_scales(a.scales))
+    else:
+        res["scale"] = SCALE_ITEM
+    res = add_final_verdict(res)
     res.insert(0, "ID", anon_ids(res["ITEM"])[1])
     res = res[order_columns(res.columns)]
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
@@ -896,11 +1008,22 @@ def main() -> None:
     res.to_csv(out / "items.csv", index=False, encoding="utf-8-sig")
     (pd.concat(outl) if outl else pd.DataFrame(columns=die_cols + ["ITEM"])).to_csv(
         out / "outlier_dies.csv", index=False, encoding="utf-8-sig")
+    if auto is None:
+        (out / SCALES_AUTO_CSV).unlink(missing_ok=True)     # 지난 --scales 실행의 결정이 이번 결과처럼 보이지 않게
+    else:
+        auto.to_csv(out / SCALES_AUTO_CSV, index=False, encoding="utf-8-sig")
 
     print(f"\n판정 (허용폭 ±{a.r:.0%} + POR 회차 흔들림, 중앙값 TOST, LoQ 미만은 '<LoQ 보고 일치')")
     print(pd.crosstab(res["zone"], res["verdict"], margins=True, margins_name="합계").to_string())
-    print("\n최종 판정 (차이·미결만 옵션 재판정, log 후보는 log10 TOST)")
+    print("\n최종 판정 (차이·미결만 옵션 재판정, 순서 log → accuracy (LoQ 근처, Δ' = max(Δ, 장비 정확도 폭)) → "
+          "log_physics, 동등을 주는 첫 옵션)")
     print(pd.crosstab(res["verdict_basis"], res["verdict_final"], margins=True, margins_name="합계").to_string())
+    if auto is not None:
+        print("\nscale (--scales)")
+        print(res["scale"].value_counts().to_string())
+        if len(auto):
+            print(f"auto 그룹 결정 ({out / SCALES_AUTO_CSV}, 확인 후 scales 파일에 옮겨 적을 수 있음)")
+            print(auto.to_string(index=False))
     bad = reason_group(res.loc[res["verdict"] != "동등", "reason"]).value_counts()
     if len(bad):
         print("\n동등이 아닌 사유")

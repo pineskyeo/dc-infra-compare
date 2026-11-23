@@ -35,7 +35,7 @@ CAND = f"{ST_SIZE_JITTER};{ST_LOG_CANDIDATE}"
     (ST_OK, "동등", "차이", ("동등", "linear")),                # 비후보
 ])
 def test_final_verdict_rules(status, verdict, verdict_log, want):
-    assert final_verdict(status, verdict, verdict_log) == want
+    assert final_verdict({"status": status, "verdict": verdict, "verdict_log": verdict_log}) == want
 
 
 @pytest.mark.parametrize("verdict, status, verdict_log, want", [
@@ -46,7 +46,7 @@ def test_final_verdict_rules(status, verdict, verdict_log, want):
 ])
 def test_z3_linear_first_then_log_for_non_equiv_candidates(verdict, status, verdict_log, want):
     """선형 먼저, 동등이 아닌 log 후보만 log 로 재판정."""
-    assert final_verdict(status, verdict, verdict_log) == want
+    assert final_verdict({"status": status, "verdict": verdict, "verdict_log": verdict_log}) == want
 
 
 def items_frame() -> pd.DataFrame:

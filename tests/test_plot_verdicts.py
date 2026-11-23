@@ -382,7 +382,8 @@ def test_detail_default_writes_exactly_difference_and_undecided_items(
 ):
     data, items_csv = por3_results
     items = pd.read_csv(items_csv, encoding="utf-8-sig")
-    expected = items.loc[items["verdict"].isin(["차이", "미결"]), "ITEM"].astype(str)
+    # 상세 그림은 최종 판정(verdict_final)을 따른다. accuracy 옵션으로 동등이 된 LoQ 근처 ITEM 은 빠진다
+    expected = items.loc[items["verdict_final"].isin(["차이", "미결"]), "ITEM"].astype(str)
     assert not expected.empty
     plots = tmp_path / "plots"
 

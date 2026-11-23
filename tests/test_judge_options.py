@@ -72,7 +72,8 @@ def test_log_option_has_no_loq_zone_or_reason(data, factor):
 
 
 def test_excluded_base_is_final_even_for_log_candidate():
-    assert final_verdict(ST_LOG_CANDIDATE, V_EXCLUDED, "동등") == (V_EXCLUDED, "linear")
+    row = {"status": ST_LOG_CANDIDATE, "verdict": V_EXCLUDED, "verdict_log": "동등"}
+    assert final_verdict(row) == (V_EXCLUDED, "linear")
     d = add_final_verdict(pd.DataFrame({"ITEM": ["A"], "zone": [V_EXCLUDED], "verdict": [V_EXCLUDED],
                                         "reason": ["x"], "status": [ST_LOG_CANDIDATE], "verdict_log": ["차이"]}))
     assert (d.loc[0, "verdict_final"], d.loc[0, "verdict_basis"]) == (V_EXCLUDED, "linear")
@@ -81,25 +82,36 @@ def test_excluded_base_is_final_even_for_log_candidate():
 ST_TEST = "시험 옵션"
 
 
-def test_second_option_order_and_eligibility(monkeypatch):
-    extra = Option("test", ST_TEST, "verdict_test", ("verdict_test",), lambda Y, z, r, res: {"verdict_test": "미결"})
-    monkeypatch.setattr(pdc, "OPTIONS", (*pdc.OPTIONS, extra))
+def extra_option(replaces: bool) -> Option:
+    return Option("test", "verdict_test", lambda row: ST_TEST in str(row.get("status")).split(";"), replaces,
+                  lambda Y, z, r, res: {"verdict_test": "미결"})
+
+
+def test_appended_option_order_and_eligibility(monkeypatch):
+    # 규칙 4: 동등을 주는 첫 대상 옵션, 없으면 replaces 인 대상 옵션 (log 가 앞), 없으면 기본 판정
+    monkeypatch.setattr(pdc, "OPTIONS", (*pdc.OPTIONS, extra_option(replaces=True)))
     both = f"{ST_LOG_CANDIDATE};{ST_TEST}"
     d = add_final_verdict(pd.DataFrame({
-        "ITEM": ["both", "second", "second_after_log_excluded", "equal", "excluded", "none"],
-        "verdict": ["차이", "차이", "차이", "동등", V_EXCLUDED, "미결"],
-        "status": [both, ST_TEST, both, both, both, ST_OK],
-        "verdict_log": ["동등", "동등", V_EXCLUDED, "차이", "동등", "동등"],
-        "verdict_test": ["차이", "동등", "미결", "차이", "동등", "동등"],
+        "ITEM": ["both", "second", "second_after_log_excluded", "log_not_equal", "equal", "excluded", "none"],
+        "verdict": ["차이", "차이", "차이", "차이", "동등", V_EXCLUDED, "미결"],
+        "status": [both, ST_TEST, both, both, both, both, ST_OK],
+        "verdict_log": ["동등", "동등", V_EXCLUDED, "미결", "차이", "동등", "동등"],
+        "verdict_test": ["차이", "동등", "미결", "동등", "차이", "동등", "동등"],
     }))
     got = list(zip(d["verdict_final"], d["verdict_basis"]))
-    assert got == [("동등", "log"), ("동등", "test"), ("미결", "test"),
+    assert got == [("동등", "log"), ("동등", "test"), ("미결", "test"), ("동등", "test"),
                    ("동등", "linear"), (V_EXCLUDED, "linear"), ("미결", "linear")]
 
 
-def test_second_option_columns_reach_judge_item(monkeypatch):
-    extra = Option("test", ST_TEST, "verdict_test", ("verdict_test",), lambda Y, z, r, res: {"verdict_test": "미결"})
-    monkeypatch.setattr(pdc, "OPTIONS", (*pdc.OPTIONS, extra))
+def test_option_that_does_not_replace_changes_only_to_equal(monkeypatch):
+    monkeypatch.setattr(pdc, "OPTIONS", (extra_option(replaces=False),))
+    d = add_final_verdict(pd.DataFrame({"ITEM": ["a", "b"], "verdict": ["미결", "미결"], "status": [ST_TEST] * 2,
+                                        "verdict_test": ["차이", "동등"]}))
+    assert list(zip(d["verdict_final"], d["verdict_basis"])) == [("미결", "linear"), ("동등", "test")]
+
+
+def test_option_columns_reach_judge_item(monkeypatch):
+    monkeypatch.setattr(pdc, "OPTIONS", (*pdc.OPTIONS, extra_option(replaces=True)))
     row = run_item(*wide_data(1.15))
     assert list(row)[-len(pdc.LOG_COLS) - 1:] == [*pdc.LOG_COLS, "verdict_test"]
     assert row["verdict_test"] == "미결"

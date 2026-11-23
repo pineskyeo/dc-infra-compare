@@ -27,8 +27,8 @@ import por_doe_compare  # noqa: E402
 from compare_metrics import safe_group_name  # noqa: E402
 from infra_compare import find_files, read_dcnormal  # noqa: E402
 from por_doe_compare import (  # noqa: E402
-    POR_GAP_NOISE_K, ST_BIMODAL, ST_FLAT, ST_LOG_CANDIDATE, ST_OK, ST_RESOLUTION, ST_RUN_JITTER, ST_SETUP_ERROR,
-    ST_SIZE_JITTER, ST_SIZE_JITTER_POS, ST_UNSTABLE, is_log_target,
+    POR_GAP_NOISE_K, ST_BIMODAL, ST_FLAT, ST_LOG_CANDIDATE, ST_NEAR_LOQ, ST_OK, ST_RESOLUTION, ST_RUN_JITTER,
+    ST_SETUP_ERROR, ST_SIZE_JITTER, ST_SIZE_JITTER_POS, ST_UNSTABLE, is_log_target,
     add_common_args, load_blank, load_wide, pool_map, read_csv_auto,
 )
 
@@ -330,7 +330,7 @@ CMP_PREFIX = "cmp_"
 NO_RAW_MSG = "원데이터 없음: raw.csv·drill.png 건너뜀"
 # 대표 status(폴더 <유형>): 여러 status가 ';'로 붙어 있으면 이 표에서 앞에 있는 것. 표에 없는 이름은 맨 뒤(나온 순서).
 STATUS_PRIORITY = (ST_SETUP_ERROR, ST_UNSTABLE, ST_FLAT, ST_RESOLUTION, ST_RUN_JITTER, ST_SIZE_JITTER,
-                   ST_SIZE_JITTER_POS, ST_LOG_CANDIDATE, ST_BIMODAL)
+                   ST_SIZE_JITTER_POS, ST_LOG_CANDIDATE, ST_BIMODAL, ST_NEAR_LOQ)
 
 
 def item_type(status: str, verdict: str) -> str:
@@ -763,7 +763,8 @@ STATUS_PANELS = {
 
 
 def plot_status_panels(rows: pd.DataFrame, summary: dict, item: str, status: str, folder: Path) -> list[Path]:
-    """status(';' 구분, 정상 제외)마다 패널 한 장을 folder/status_<이름>.png 로. 모르는 status는 경고 한 줄만."""
+    """status(';' 구분, 정상 제외)마다 패널 한 장을 folder/status_<이름>.png 로. 패널이 없는 status 는 건너뛰고,
+    STATUS_PRIORITY 에도 없는 모르는 status 는 경고 한 줄만."""
     rows = rows.reset_index(drop=True)
     por_cols = [c for c in rows.columns if POR_COL_RE.match(str(c))]
     text = "" if pd.isna(status) else str(status)
@@ -772,7 +773,8 @@ def plot_status_panels(rows: pd.DataFrame, summary: dict, item: str, status: str
     for name in names:
         draw = STATUS_PANELS.get(name)
         if draw is None:
-            print(f"{item}: 경고: 모르는 status '{name}' — 패널 없음")
+            if name not in STATUS_PRIORITY:
+                print(f"{item}: 경고: 모르는 status '{name}' — 패널 없음")
             continue
         fig, ax = plt.subplots(figsize=(6.5, 4.5))
         draw(ax, rows, summary, por_cols)
