@@ -1,7 +1,7 @@
 """POR/DOE 판정부터 요약·LoQ·log 재확인·근거·그림(선택: 기존·개선 비교, 그룹 요약)까지 한 번에 실행한다.
 
   python run_all.py --por POR1/ --por POR2/ --por POR3/ --doe DOE/ --level item_info.csv --out 결과
-  python run_all.py ... --groups groups.csv        (그룹별 대시보드 그림)
+  python run_all.py ... --groups groups.csv        (그룹별 판정 지도)
   python run_all.py ... --before 이전결과/items.csv --groups groups.csv   (+ 그룹별 비교 요약)
 
 각 단계는 repo 안 스크립트를 별도 프로세스로 실행하고, 실패하면 그 단계에서 멈춘다.
@@ -77,7 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_common_args(ap)
     ap.add_argument("--out", default="run_all_out", help="모든 산출물을 둘 폴더 (기본 run_all_out)")
     ap.add_argument("--before", help="기존(이전) 결과 items.csv. 주면 기존·개선 비교 단계 추가")
-    ap.add_argument("--groups", help="ITEM,그룹 파일. 주면 그룹별 대시보드(plots/summary_group_*.png)를 그리고, "
+    ap.add_argument("--groups", help="ITEM,그룹 파일. 주면 그룹별 판정 지도(plots/summary_group_*.png)를 그리고, "
                                      "--before도 주면 그룹별 비교 요약 단계(groups/) 추가")
     ap.add_argument("--plot-top", type=int, default=None,
                     help="비율 지표 그림의 악화 상위 표 ITEM 수 (compare 기본 10)")

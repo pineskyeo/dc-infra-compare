@@ -40,29 +40,35 @@ doe = data/A/DOE
 
 ```bash
 python dcc.py list                          # 조합 이름, POR 회차 수, DOE, 출력 폴더
-python dcc.py judge A1                      # 판정(por_doe_compare) + 판정 요약 그림
+python dcc.py judge A1                      # 판정(por_doe_compare) → LoQ·log 재확인(review) → 판정 지도(plot_verdicts)
+python dcc.py judge A1 --detail             # + 최종 판정이 차이·미결인 ITEM 전부 item 분석
 python dcc.py judge all                     # 모든 조합을 파일 순서대로. 실패한 조합이 있어도 계속하고 끝에 조합별 결과 한 줄
-python dcc.py item A1 VT_SAME,VT_SHIFT      # 그 ITEM만 Fail 근거 (원데이터 포함)
+python dcc.py item A1 VT_SAME,VT_SHIFT      # 그 ITEM만 Fail 근거 (원데이터 포함: item_view.png, evidence.csv)
+python dcc.py item A1 --items-file 볼항목.txt  # ITEM 목록 파일 (한 줄에 하나, # 뒤는 주석, 또는 ITEM·ID 열이 있는 CSV)
 python dcc.py item A1 VT_SAME --plots       # + ITEM 상세 그림 (원데이터 전체를 읽어 느림)
-python dcc.py group A1                      # 그룹별 판정 요약 그림 (groups 필요)
+python dcc.py group A1                      # 그룹별 판정 지도 (groups 필요)
 python dcc.py group A1 --before 이전/items.csv  # + 기존·개선 비교와 그룹별 비교 요약
 ```
+
+`--items-file`에는 명령행 ITEM을 같이 줄 수 있고, 둘을 합쳐 중복 없이 씁니다. `items_index.csv`나 `worst_items.csv`처럼 `ITEM` 열이 있는 결과 표를 그대로 넘겨도 됩니다.
 
 조합 하나의 산출물은 `<out>/<이름>/`에 모입니다.
 
 | 경로 | 내용 | 명령 |
 |---|---|---|
 | `items.csv`, `outlier_dies.csv` | 판정 결과 | `judge` |
-| `plots/` | 판정 요약 그림 | `judge` |
-| `item/` | 고른 ITEM의 Fail 근거(`fail_evidence.py --only`), `item/plots/`는 `--plots` 상세 그림 | `item` |
-| `group/plots/` | 그룹별 대시보드 | `group` |
+| `stability/` | 측정 안정도 ([아래](#측정-안정도-stability)) | `judge` |
+| `review/` | LoQ·log 판정 재확인 ([아래](#loqlog-판정-재확인-review)) | `judge` |
+| `plots/` | 판정 지도 `summary.png`, LoQ 아래 ITEM 그림 `summary_loq.png` | `judge` |
+| `item/` | 고른 ITEM의 Fail 근거(`fail_evidence.py --only`), `item/plots/`는 `--plots` 상세 그림 | `item`, `judge --detail` |
+| `group/plots/` | 그룹별 판정 지도 | `group` |
 | `group/compare/`, `group/summary/` | 기존·개선 비교, 그룹별 비교 요약 | `group --before`(또는 조합의 `before` 키) |
 
-`item`과 `group`은 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize), log 비교, 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
+`item`과 `group`은 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize)과 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
 
 ### run_all.py로 한 번에
 
-판정 → 요약 → Fail 근거 → 판정 요약 그림을 차례로 돌리고, 모든 산출물을 `--out` 폴더 하나에 모읍니다. 입력 옵션은 `por_doe_compare.py`와 같습니다(아래 표). 각 도구는 실행을 시작할 때 같은 --out 폴더에서 자기가 만드는 그림·표 파일만 지우고 다시 만듭니다(다른 파일은 그대로).
+판정 → 요약 → LoQ·log 재확인 → Fail 근거 → 판정 지도를 차례로 돌리고, 모든 산출물을 `--out` 폴더 하나에 모읍니다. 입력 옵션은 `por_doe_compare.py`와 같습니다(아래 표). 각 도구는 실행을 시작할 때 같은 --out 폴더에서 자기가 만드는 그림·표 파일만 지우고 다시 만듭니다(다른 파일은 그대로).
 
 ```bash
 python run_all.py --por POR1/ --por POR2/ --por POR3/ --doe DOE/ \
@@ -70,15 +76,16 @@ python run_all.py --por POR1/ --por POR2/ --por POR3/ --doe DOE/ \
 ```
 
 - `--before 이전결과/items.csv`: 기존·개선 비교(`compare_before_after.py compare`)를 추가해 `결과/compare/`에 둡니다.
-- `--groups groups.csv`: ITEM,그룹 두 열 파일입니다. 그룹마다 대시보드 `결과/plots/summary_group_<이름>.png`를 그립니다. `--before`도 함께 주면 그룹별 비교 요약(`group_summary.py`)을 추가해 `결과/groups/`에 둡니다.
+- `--groups groups.csv`: ITEM,그룹 두 열 파일입니다. 그룹마다 판정 지도 `결과/plots/summary_group_<이름>.png`를 그립니다. `--before`도 함께 주면 그룹별 비교 요약(`group_summary.py`)을 추가해 `결과/groups/`에 둡니다.
 
 어느 단계든 실패하면 `[실패] 단계 N/M <이름>: <명령>`, `rc=…`, 그 단계 오류 끝 20줄을 보여 주고 멈춥니다. 출력 형태 예시(실제 실행값이 아님):
 
 ```text
-[단계 1/4] por_doe_compare
-[단계 2/4] summarize
-[단계 3/4] fail_evidence
-[단계 4/4] plot_verdicts
+[단계 1/5] por_doe_compare
+[단계 2/5] summarize
+[단계 3/5] review
+[단계 4/5] fail_evidence
+[단계 5/5] plot_verdicts
 
 생성 파일
 items.csv  ITEM별 판정·상태
@@ -95,8 +102,10 @@ items.csv  ITEM별 판정·상태
 |---|---|---|
 | `./` | `items.csv`(ITEM별 판정·상태), `outlier_dies.csv`(튀는 die) | `por_doe_compare.py` (항상) |
 | `./` | `summary_items.txt`(summarize 출력) | `summarize.py` (항상) |
-| `fail_evidence/` | `fail_evidence.csv`(Fail 근거), `forest.png`(전체 그림) 등 | `fail_evidence.py` (항상) |
-| `plots/` | `summary.png`, `summary_loq.png`(판정 요약 그림) | `plot_verdicts.py` (항상) |
+| `stability/` | `overall.csv`, `dies.csv`, `runs.csv`, `stability.png`(측정 안정도), `groups.csv`(`--groups`일 때) | `por_doe_compare.py` (항상) |
+| `review/` | `loq_review.csv`, `log_review.csv`, `loq_review.png`, `log_review.png`, `items/<ITEM>.png`(확인 필요 ITEM) | `review.py` (항상) |
+| `fail_evidence/` | `fail_evidence.csv`(Fail 근거), `forest.png`(전체 그림), `items_index.csv`, `items/<유형>_<ITEM>/`(`item_view.png`, `evidence.csv` 등) | `fail_evidence.py` (항상) |
+| `plots/` | `summary.png`(판정 지도), `summary_loq.png`(LoQ 아래 ITEM) | `plot_verdicts.py` (항상) |
 | `plots/` | `summary_group_<이름>.png`(그룹 수만큼) | `plot_verdicts.py`, `--groups` |
 | `compare/` | `compare.csv`, `summary.txt`, `stability_overall.csv`, `worst_items.csv`, 지표 그림 6장 | `compare_before_after.py compare`, `--before` (`--groups` 없어도 생김) |
 | `groups/` | `group_summary.csv`, `verdict_by_group.csv`, `stability_by_group.csv`, `group_dirs.csv`, 지표 그림 6장(그룹 비교) | `group_summary.py`, `--before`와 `--groups` 둘 다 |
@@ -295,7 +304,7 @@ VT_N1,SHORT_V
 
 - `sigma_die_log`, `sigma_run_log` = L에서 구한 σ_die, σ_run. `verdict_log`가 판정 제외면 빈 칸. `sigma_run_log`(웨이퍼 공통 회차 이동)는 Δ_log에 쓰지 않습니다.
 
-log 진단 대상(`is_log_target`: `fail_evidence.py`의 log 진단 그림, `log_compare.py`)은 판정 대상과 다릅니다. `status`에 `작을수록 흔들림`이나 `클수록 흔들림`이 있거나, `verdict`와 `verdict_log`가 둘 다 값이 있고 다른 ITEM입니다(`verdict_log`가 판정 제외면 다르다고 보지 않음).
+log 진단 대상(`is_log_target`: `fail_evidence.py`의 log 진단 그림)은 판정 대상과 다릅니다. `status`에 `작을수록 흔들림`이나 `클수록 흔들림`이 있거나, `verdict`와 `verdict_log`가 둘 다 값이 있고 다른 ITEM입니다(`verdict_log`가 판정 제외면 다르다고 보지 않음).
 
 `sigma_meas`를 제곱합의 제곱근으로 잡는 이유: die 간 산포와 회차 산포는 서로 독립이므로 분산이 더해집니다. 표준편차를 단순히 더하면 과대 추정이 됩니다.
 
@@ -368,9 +377,8 @@ python summarize.py p3/out/items.csv
 
 `plot_verdicts.py`는 `items.csv`로 요약 그림을 만들고, 원시 측정 데이터를 함께 주면 ITEM별 상세 그림도 만듭니다.
 
-- **요약**은 기본으로 만듭니다. 한 장짜리 대시보드 `summary.png`와 `summary_loq.png`를 저장합니다.
-  - `summary.png` 위쪽은 정량 ITEM의 중심/Δ 히스토그램입니다. 판정별로 색을 쌓고 판정별 개수와 ±1 선을 표시합니다. `--xlim X`(기본 범위 ±X) 밖의 값은 끝에 모아 그립니다.
-  - 아래쪽은 차이·미결 ITEM만 막대로 여러 열에 나누어 그립니다. 그림 높이는 16 in까지이며, 다 못 넣으면 '표시 n / 전체 m · 나머지는 --full'이라고 적습니다. 작은 LoQ 패널도 함께 들어갑니다.
+- **요약**은 기본으로 만듭니다. 판정 지도 `summary.png`와 `summary_loq.png`를 저장합니다. 읽는 법은 [아래](#판정-지도-summarypng).
+  - `--xlim X`(기본 3)는 판정 지도 가로축 범위 ±X입니다. 밖의 값은 축 끝에 삼각형으로 붙입니다.
   - `--full`을 주면 모든 정량 ITEM을 그린 `summary_001.png`, `summary_002.png` …도 만듭니다. 한 장에는 최대 `--per-page`개의 ITEM을 넣습니다(기본 1200). 점은 차이/Δ의 중심이고 가로선은 90% 신뢰구간입니다.
   - `--groups FILE`(ITEM,group 두 열)을 주면 그룹마다 같은 모양의 `summary_group_<이름>.png`를 만듭니다. 파일에 없는 ITEM은 '(그룹 없음)'으로 모으고 경고를 냅니다.
 - **상세**는 `--detail`을 줄 때만 만듭니다. 대상을 정하지 않으면 차이와 미결 ITEM을 그리고, `--items A,B`로 ITEM 코드를 고르거나 `--all`로 전체를 고릅니다. `--jobs N`은 상세 그림을 그리는 작업 프로세스 수입니다(기본 1).
@@ -378,7 +386,7 @@ python summarize.py p3/out/items.csv
 
 판정 제외 ITEM은 요약·LoQ 그림에서 빠지고, 경고 '판정 제외 n개'가 나옵니다.
 
-`summary_loq.png` 읽는 법: x축은 |DOE 중심|/LoQ, y축은 |중심|/Δ이고 두 축 모두 로그 눈금입니다. x=1 선 왼쪽은 DOE 값이 LoQ보다 작고, y=1 선 위쪽은 차이가 Δ보다 큽니다. 두 선이 만드는 네 칸에 각 칸의 뜻을 적어 두었습니다. 축 범위를 벗어난 값과 0인 값(로그 눈금에 못 그림)은 축 끝에 다른 모양의 점으로 그리고, 그 개수를 따로 적습니다.
+`summary_loq.png` 읽는 법: 점 하나가 LoQ 아래 ITEM 하나입니다. 가로는 DOE 값 ÷ LoQ(1을 넘으면 DOE가 숫자로 보고됨), 세로는 이동량 ÷ 허용폭(1을 넘으면 허용폭보다 크게 움직임)이고 두 축 모두 로그 눈금입니다. 네 칸에 쉬운 이름을 적었습니다. 왼쪽 위 주황 칸은 둘 다 '<LoQ'로 보고되어 동등이지만 실제로는 움직였을 수 있는 곳입니다. `items.csv` 옆에 `review/loq_review.csv`가 있으면 LoQ 재확인이 '확인 필요'로 본 ITEM을 검은 마름모로 겹쳐 그립니다. 축 범위를 벗어난 값과 0인 값(로그 눈금에 못 그림)은 축 끝에 삼각형으로 그리고, 그 개수를 따로 적습니다. 색은 최종 판정입니다.
 
 요약만 그릴 때는 판정 결과 `items.csv` 하나면 충분합니다.
 
@@ -409,10 +417,12 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 |---|---|---|---|---|
 | 데이터 생성 | `make_load_data.py` | 1.8 s | - | 73 MB |
 | 판정 계산 | `por_doe_compare.py` | 12.0 s | 683 MB | items.csv 등 3.2 MB |
-| 요약 (기본) | `plot_verdicts.py --items-csv` | 2.1 s (5장 + LoQ 1장) | 199 MB | 500 KB |
+| 요약 (기본) | `plot_verdicts.py --items-csv` | 2.1 s (5장 + LoQ 1장, 판정 지도로 바뀌기 전 대시보드) | 199 MB | 500 KB |
 | 상세 `--all`, `--jobs 1` | | 2,045 s (ITEM당 평균 0.34 s) | 714 MB | 447 MB (6,000장, 장당 평균 74 KB) |
 | 상세 `--all`, `--jobs 4` | | 329 s (ITEM당 평균 0.055 s) | 714 MB | 447 MB |
 | 요약 + 상세 `--all`, `--jobs 4` | | 330 s | 719 MB | 448 MB |
+
+판정 지도로 바꾼 뒤 같은 6,000 ITEM 데이터의 요약(판정 지도 + LoQ 그림 2장)은 다른 기계(macOS, Apple 실리콘, Python 3.13.15, matplotlib 3.11.2)에서 1.25 s였습니다(3회 중앙값). 위 표와 기계가 달라 표의 숫자는 바꾸지 않았습니다.
 
 `--jobs 1` 측정 중에는 다른 짧은 작업(테스트 실행)이 같은 기계에서 잠깐 겹쳐 실제보다 조금 느릴 수 있습니다. 전체 상세는 `--jobs 4` 이상을 쓰고, 보통은 요약과 `--items`로 고른 ITEM만 그립니다.
 
@@ -420,6 +430,47 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 요약은 `items.csv`만으로 빠르게 만들 수 있습니다.  
 상세는 원시 데이터를 함께 주고, 필요한 ITEM만 골라 만드는 것이 좋습니다.
+
+## 결과 읽기
+
+판정은 `items.csv`가 정합니다. 아래 결과는 그 판정을 사람이 읽고, 의심 가는 ITEM을 데이터로 다시 확인하라고 만든 것입니다. 어느 것도 판정을 바꾸지 않습니다. 그림마다 아래에 "읽는 법"과 "이번 결과" 두 줄이 붙습니다.
+
+### 판정 지도 (`summary.png`)
+
+- 점 하나가 ITEM 하나입니다. 가로는 DOE가 움직인 양 ÷ 허용폭(0 = 그대로, ±1 = 허용폭만큼), 세로는 측정이 흔들리는 정도(90% 신뢰구간 반폭) ÷ 허용폭입니다.
+- 가운데 아래 초록 삼각형(|x| + y < 1)은 "같다 (동등)", 좌우 주황 칸(|x| − y > 1)은 "달라졌다 (차이)", 그 사이는 "경계에 걸침 (미결)", 위쪽은 "흔들려서 판단 불가 (미결)"입니다. 칸 경계는 신뢰구간이 좌우 대칭이라고 보고 그린 선이라, 경계 근처 점은 색과 칸이 다를 수 있습니다.
+- 점 색은 최종 판정(`verdict_final`)입니다. log·장비 정확도 옵션이 판정을 정한 ITEM은 검은 테두리이고, 그 옵션의 이동·신뢰구간·허용폭 자리에 놓입니다.
+- 맨 위 두 줄은 최종 판정별 개수와 판정 근거별 개수입니다. 오른쪽 위 막대는 차이·미결 ITEM이 + 방향(DOE가 높음)과 − 방향 중 어느 쪽으로 움직였는지 셉니다. 한쪽으로 몰리면 "이번 결과"에 공정 변화일 수 있다고 적습니다.
+- LoQ 아래 ITEM은 이 지도에 없고 `summary_loq.png`에 있습니다.
+
+### LoQ·log 판정 재확인 (`review/`)
+
+`review.py`가 판정 뒤에 원데이터를 다시 읽어 두 가지를 봅니다. `dcc.py judge`와 `run_all.py`가 같이 돌립니다. 따로 돌리려면 `python review.py --input <items.csv> --out <폴더> --por ... --doe ...`입니다(원데이터 인자는 판정 때와 같게).
+
+- **LoQ 재확인** (`loq_review.csv`, `loq_review.png`): LoQ 아래이거나 LoQ 근처인 ITEM은 "둘 다 '<LoQ'면 동등"으로 끝나서, 바닥 아래에서 실제로 늘어난 것이 가려질 수 있습니다. LoQ 규칙과 상관없이 die 대부분이 같은 방향으로 움직였는지(배수가 1.3배 넘게), 일부 die만 크게 벗어났는지(꼬리, 5% 이상)를 보고, 둘 중 하나가 여러 ITEM 동시 검정 보정(BH q < 0.05) 뒤에도 유의하면 "확인 필요"로 표시합니다.
+- **log 재확인** (`log_review.csv`, `log_review.png`): log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보여 줍니다. 선형으로는 차이인데 log로 동등이 된 ITEM과, log 값에서 꼬리가 유의한 ITEM이 "확인 필요"입니다.
+- `items/<ITEM>.png`: 확인 필요 ITEM마다 회차별 die 값, 같은 die의 POR·DOE 짝, die별 차이를 한 장에 그립니다.
+- "확인 필요"는 다시 볼 ITEM 목록입니다. 판정에 넣을지는 결과를 보고 정합니다.
+
+### 측정 안정도 (`stability/`)
+
+같은 die를 POR로 다시 쟀을 때 얼마나 같게 나오는지 봅니다(참고, 판정에 안 씀). `por_doe_compare.py`가 판정 뒤에 같이 씁니다.
+
+- `overall.csv`: 한 행. ITEM을 판정력(신뢰구간 반폭 ÷ 허용폭)으로 0.5 이하 안정, 0.8 이하 주의, 그 위 불안정으로 나눈 비율과 정밀도 중앙값 등. `groups.csv`는 같은 것을 그룹마다 씁니다(`--groups`를 줄 때만).
+- `dies.csv`: die 위치마다 흔들림 점수(1이 보통). 여러 ITEM에서 같이 크게 흔들리는 die는 프로빙을 의심합니다.
+- `runs.csv`: POR 회차마다 다른 회차 대비 밀린 정도. 회차 하나가 통째로 밀렸는지 봅니다.
+- `stability.png`: 위 네 가지를 한 장에 그립니다.
+
+### ITEM 한 장 보기 (`item_view.png`, `evidence.csv`)
+
+`fail_evidence.py`가 원데이터를 받으면 ITEM 폴더(`items/<유형>_<ITEM>/`)마다 만듭니다. `dcc.py item`과 `dcc.py judge --detail`도 같은 것을 만듭니다.
+
+- `item_view.png`: 맨 위 판정 카드(최종 판정과 근거, 이동량, 신뢰구간, 허용폭 구성, 쉬운 말 사유)와 같은 die의 POR·DOE 짝 그림, die별 차이 순서 막대, 웨이퍼맵(좌표가 있을 때), 값 분포, Blank(이 ITEM에 blank를 쓸 때)입니다.
+- `evidence.csv`: 같은 근거를 한 행으로 적습니다. 신뢰구간 양 끝을 정한 die와 그 값, 올라간·내려간 die 수, 허용폭 구성, 튀는 die, LoQ 배수.
+
+### 열 사전 ([`docs/sop/columns.html`](docs/sop/columns.html))
+
+모든 결과 CSV의 열마다 쉬운 이름, 뜻, 수식, 볼 것을 한 쪽에 모았습니다. 내용은 `docs/columns/*.csv`에서 `python tools/build_columns_doc.py`로 만듭니다. 결과 폴더에 열 사전에 없는 열이 있는지는 `python columns_doc.py <결과 폴더>`로 확인합니다.
 
 ## 근거
 
@@ -435,7 +486,7 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 ## Fail ITEM 근거 (`fail_evidence.py`)
 
-`python fail_evidence.py --input <items.csv> --out <폴더> [--items ID,...]` — por_doe_compare.py 결과 표(`--out` 폴더의 `items.csv`, 탭 구분 표도 됨. `ITEM` 열과 `<이름>_mean` 회차 열은 compare_before_after.py와 같은 방식으로 읽음)에서 verdict가 '차이'·'미결'인 ITEM의 근거를 규칙으로 계산해 `fail_evidence.csv`, `forest.png`, `summary.txt`, `items_index.csv`와 ITEM별 폴더 `items/<유형>_<ITEM>/`를 만듭니다. 폴더에는 항상 `summary.csv`가 있고, 원데이터(`--por`·`--doe`)를 주면 `raw.csv`(die별 원데이터, 행이 없으면 머리줄만)와 `drill.png`, status별 `status_<이름>.png`, log 진단 대상이면 `log_diag.png`가 붙습니다(log 진단만 하는 ITEM 폴더는 `summary.csv`·`raw.csv`·`log_diag.png`). `fail_evidence.csv` 첫 열은 실제 `ITEM` 이름이고, 익명 `ID` 열이 있으면 그 옆에 붙습니다. `--items`를 주면 그 ID만 ITEM 그림을 그립니다(CSV·forest는 전체). `--only ID,...`(`--items`와 같이 쓸 수 없음)는 차이·미결 기본 대상 없이 지정 ITEM(실제 이름 또는 익명 ID, 판정 제외 ITEM 포함)만 폴더를 만들고, 원데이터 DCNORMAL 파일도 읽을 때부터 그 ITEM 줄만 파싱하며(`infra_compare.read_dcnormal(..., items=)`, 결과는 전체를 읽고 거른 것과 같음) `fail_evidence.csv`·`forest.png`·`items_index`도 그 ITEM만 담습니다. 이 거르기의 속도는 `python tools/bench_read_only.py [--items 6000 --dies 60 --files 3 --pick 2 --repeat 3 --seed 0]`(합성 파일로 전체 읽기 후 거르기와 비교, 결과 동일 확인)로 잴 수 있습니다.
+`python fail_evidence.py --input <items.csv> --out <폴더> [--items ID,...]` — por_doe_compare.py 결과 표(`--out` 폴더의 `items.csv`, 탭 구분 표도 됨. `ITEM` 열과 `<이름>_mean` 회차 열은 compare_before_after.py와 같은 방식으로 읽음)에서 verdict가 '차이'·'미결'인 ITEM의 근거를 규칙으로 계산해 `fail_evidence.csv`, `forest.png`, `summary.txt`, `items_index.csv`와 ITEM별 폴더 `items/<유형>_<ITEM>/`를 만듭니다. 폴더에는 항상 `summary.csv`가 있고, 원데이터(`--por`·`--doe`)를 주면 `raw.csv`(die별 원데이터, 행이 없으면 머리줄만)와 `item_view.png`, `evidence.csv`([아래](#item-한-장-보기-item_viewpng-evidencecsv)), status별 `status_<이름>.png`, log 진단 대상이면 `log_diag.png`가 붙습니다(log 진단만 하는 ITEM 폴더는 `summary.csv`·`raw.csv`·`log_diag.png`). `fail_evidence.csv` 첫 열은 실제 `ITEM` 이름이고, 익명 `ID` 열이 있으면 그 옆에 붙습니다. `--items`를 주면 그 ID만 ITEM 그림을 그립니다(CSV·forest는 전체). `--only ID,...`(`--items`와 같이 쓸 수 없음)는 차이·미결 기본 대상 없이 지정 ITEM(실제 이름 또는 익명 ID, 판정 제외 ITEM 포함)만 폴더를 만들고, 원데이터 DCNORMAL 파일도 읽을 때부터 그 ITEM 줄만 파싱하며(`infra_compare.read_dcnormal(..., items=)`, 결과는 전체를 읽고 거른 것과 같음) `fail_evidence.csv`·`forest.png`·`items_index`도 그 ITEM만 담습니다. 이 거르기의 속도는 `python tools/bench_read_only.py [--items 6000 --dies 60 --files 3 --pick 2 --repeat 3 --seed 0]`(합성 파일로 전체 읽기 후 거르기와 비교, 결과 동일 확인)로 잴 수 있습니다.
 
 입력에 items.csv의 `status`, 데이터 상태 지표, 분포 모양 열(`por_doe_compare.py`의 `STATUS_COLS` 순서, `por_gap_over_delta`는 이 도구가 따로 계산해 뺌)과 `sigma_meas`, `meas_precision_pct`, `sigma_meas_over_delta` 열이 있으면 `fail_evidence.csv` 맨 끝에 이 순서로 값을 그대로 옮기고, 없으면 빈 칸 열로 둡니다(판정에는 쓰지 않음).
 
