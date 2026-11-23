@@ -48,6 +48,7 @@ python dcc.py item A1 --items-file 볼항목.txt  # ITEM 목록 파일 (한 줄�
 python dcc.py item A1 VT_SAME --plots       # + ITEM 상세 그림 (원데이터 전체를 읽어 느림)
 python dcc.py group A1                      # 그룹별 판정 지도 (groups 필요)
 python dcc.py group A1 --before 이전/items.csv  # + 기존·개선 비교와 그룹별 비교 요약
+python dcc.py report A1 --anon                # 리포트만 다시. --anon 은 익명 ID 만 (report_anon.html)
 ```
 
 `--items-file`에는 명령행 ITEM을 같이 줄 수 있고, 둘을 합쳐 중복 없이 씁니다. `items_index.csv`나 `worst_items.csv`처럼 `ITEM` 열이 있는 결과 표를 그대로 넘겨도 됩니다.
@@ -434,6 +435,12 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 ## 결과 읽기
 
 판정은 `items.csv`가 정합니다. 아래 결과는 그 판정을 사람이 읽고, 의심 가는 ITEM을 데이터로 다시 확인하라고 만든 것입니다. 어느 것도 판정을 바꾸지 않습니다. 그림마다 아래에 "읽는 법"과 "이번 결과" 두 줄이 붙습니다.
+
+### 리포트 (`report.html`)
+
+- `judge`, `item`, `group`이 끝나면 조합 폴더에 `report.html`이 생깁니다. `item/`, `group/`이 있으면 그 안에도 `report.html`이 생깁니다. 웹브라우저로 엽니다.
+- 판정별 개수, 판정 지도, 차이·미결 표, 판정 제외 표, LoQ·log 확인 필요, 측정 안정도가 한 쪽에 있습니다. 그림이 파일 안에 들어 있어 인터넷 없이 열리고 메일로 보내도 됩니다.
+- 밖으로 보낼 때는 `python dcc.py report A1 --anon`으로 `report_anon.html`을 만듭니다. ITEM 이름 대신 익명 ID만 쓰고, ITEM 이름이 그려진 그림은 뺍니다. 실명 `report.html`은 그대로 둡니다.
 
 ### 판정 지도 (`summary.png`)
 

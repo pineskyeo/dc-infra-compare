@@ -21,6 +21,7 @@ import report  # noqa: E402
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 DATA_URI = re.compile(r"data:image/png;base64,([A-Za-z0-9+/=]+)")
 REPORTS = ("report.html", "item/report.html", "group/report.html")
+ANON_REPORTS = tuple(r.replace("report.html", "report_anon.html") for r in REPORTS)
 GROUPS = {"VT_SAME": "VT", "VT_SHIFT": "VT", "VT_NOISY_DOE": "VT", "VOS_OFFSET": "VT", "RON_CONTACT": "RES",
           "IOFF_FLOOR": "LEAK", "IOFF_LEAK": "LEAK", "IOFF_RUNWOBBLE": "LEAK", "IOFF_STEP": "LEAK",
           "ION_OUTLIER": "ION", "IDSAT_SPEC": "ION"}
@@ -181,16 +182,16 @@ def test_group_table_counts_match_items(plain):
 def test_anon_has_no_item_name_anywhere(anon):
     items = pd.read_csv(anon / "items.csv")
     names = set(items["ITEM"]) | set(items["blank_item"].dropna())
-    for rel in REPORTS:
+    for rel in ANON_REPORTS:
         text = visible_text(anon / rel)
         assert not [n for n in names if n in text], rel
-    judge = visible_text(anon / "report.html")
+    judge = visible_text(anon / "report_anon.html")
     assert all(i in judge for i in items.loc[items["verdict_final"].isin(["차이", "미결"]), "ID"])
     assert "익명 리포트라" in judge
 
 
 def test_anon_figures_are_only_name_free_ones(anon):
-    html = (anon / "report.html").read_text(encoding="utf-8")
+    html = (anon / "report_anon.html").read_text(encoding="utf-8")
     blobs = [base64.b64decode(b) for b in DATA_URI.findall(html)]
     assert blobs == [(anon / "stability" / "stability.png").read_bytes()]
 
@@ -217,8 +218,8 @@ def test_builds_with_only_items_csv(built, tmp_path):
     out.mkdir()
     shutil.copy(built["full"] / "items.csv", out / "items.csv")
     written = report.write_reports(out, anon=True)
-    assert written == [out / "report.html"]
-    html = visible_text(out / "report.html")
+    assert written == [out / "report_anon.html"]
+    html = visible_text(out / "report_anon.html")
     for missing in ("review/loq_review.csv", "review/log_review.csv", "stability/ 폴더", "그림 파일"):
         assert f"{missing} 없음" in html, missing
 

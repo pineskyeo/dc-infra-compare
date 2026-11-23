@@ -7,7 +7,8 @@
   <폴더>/item/report.html    item/ 이 있으면: ITEM 마다 판정 카드, ITEM 한 장 그림, 근거 숫자
   <폴더>/group/report.html   group/ 이 있으면: 그룹별 표, 그룹 그림, 기존·개선 비교 표
 
---anon 이면 ITEM 이름 대신 익명 ID 만 쓴다. ITEM 이름이 그려진 그림은 넣지 않는다.
+--anon 이면 ITEM 이름 대신 익명 ID 만 쓰고 report_anon.html 로 따로 쓴다 (실명 report.html 은 그대로).
+ITEM 이름이 그려진 그림은 넣지 않는다.
 그룹 파일은 폴더 안에 없어서 그룹별 판정 개수 표는 --groups 를 줄 때만 만든다.
 """
 from __future__ import annotations
@@ -73,6 +74,7 @@ class Namer:
 
     def __init__(self, items: pd.DataFrame, anon: bool):
         self.anon = anon
+        self.report_file = "report_anon.html" if anon else "report.html"   # 익명본이 실명본을 덮지 않게
         names = items["ITEM"].astype(str)
         ids = items["ID"].astype(str) if "ID" in items else pd.Series([f"ITEM{i + 1:04d}" for i in range(len(items))])
         self.id_of = dict(zip(names, ids))
@@ -467,7 +469,7 @@ def how_to_read(page: Page) -> None:
 
 
 def judge_report(folder: Path, items: pd.DataFrame, namer: Namer) -> Path:
-    page = Page(f"판정 리포트 · {folder.name}", namer, folder / "report.html")
+    page = Page(f"판정 리포트 · {folder.name}", namer, folder / namer.report_file)
     nav(page, [("kpi", "한눈에"), ("map", "판정 지도"), ("problems", "차이·미결"), ("excluded", "판정 제외"),
                ("loq", "LoQ 확인 필요"), ("log", "log 확인 필요"), ("stability", "측정 안정도"), ("how", "읽는 법")])
     page.h2("한눈에", "kpi")
@@ -520,7 +522,7 @@ def item_report(folder: Path, namer: Namer) -> Path | None:
     item_dir = folder / "item"
     if not item_dir.is_dir():
         return None
-    page = Page(f"ITEM 리포트 · {folder.name}", namer, item_dir / "report.html")
+    page = Page(f"ITEM 리포트 · {folder.name}", namer, item_dir / namer.report_file)
     page.p("ITEM 마다 판정 카드(쉬운 말), ITEM 한 장 그림, 판정 근거 숫자(evidence.csv)를 싣는다.")
     page.figure(Figure(item_dir / "forest.png", "ITEM 별 이동량과 허용폭 (forest)", names=True))
     cards_shown = 0
@@ -625,7 +627,7 @@ def group_report(folder: Path, items: pd.DataFrame, namer: Namer, groups: Path |
     group_dir = folder / "group"
     if not group_dir.is_dir():
         return None
-    page = Page(f"그룹 리포트 · {folder.name}", namer, group_dir / "report.html")
+    page = Page(f"그룹 리포트 · {folder.name}", namer, group_dir / namer.report_file)
     nav(page, [("groups", "그룹별 표"), ("figures", "그룹 그림"), ("compare", "기존·개선 비교")])
     page.h2("그룹별 표", "groups")
     if groups is not None and groups.is_file():

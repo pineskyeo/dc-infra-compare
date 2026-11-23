@@ -243,6 +243,7 @@ blank_map = {por3_data / "blank_map.csv"}
     assert proc.stdout.rstrip().endswith("결과\nBAD  실패 (단계 por_doe_compare, rc=1)\nA1  성공")
     assert (out / "items.csv").is_file() and (out / "plots" / "summary.png").is_file()
     assert (out / "review" / "loq_review.csv").is_file() and (out / "review" / "log_review.png").is_file()
+    assert "[단계 1/1] report" in proc.stdout and (out / "report.html").is_file()
 
     proc = run_dcc("item", "A1", "VT_SHIFT,VT_SAME", "--plots", "--config", path)
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -250,6 +251,7 @@ blank_map = {por3_data / "blank_map.csv"}
     item_dirs = [d.name for d in (out / "item" / "items").iterdir() if not d.name.startswith(".")]
     assert sorted(name.split("_", 1)[1] for name in item_dirs) == ["VT_SAME", "VT_SHIFT"], item_dirs
     assert list((out / "item" / "plots").rglob("*.png"))
+    assert (out / "item" / "report.html").is_file()
 
     before = tmp_path / "before.csv"
     shutil.copy(out / "items.csv", before)
@@ -260,3 +262,13 @@ blank_map = {por3_data / "blank_map.csv"}
         "summary_group_A.png", "summary_group_B.png"]
     assert (out / "group" / "compare" / "compare.csv").is_file()
     assert (out / "group" / "summary" / "group_summary.csv").is_file()
+    assert "그룹 파일(--groups)을 주지 않아" not in (out / "group" / "report.html").read_text(encoding="utf-8")
+
+    named = (out / "report.html").read_text(encoding="utf-8")
+    proc = run_dcc("report", "A1", "--anon", "--config", path)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "por_doe_compare" not in proc.stdout
+    anon = (out / "report_anon.html").read_text(encoding="utf-8")
+    assert "VT_SHIFT" not in anon and "VT_SHIFT" in named
+    assert (out / "report.html").read_text(encoding="utf-8") == named   # 익명본이 실명본을 덮지 않는다
+    assert (out / "item" / "report_anon.html").is_file() and (out / "group" / "report_anon.html").is_file()
