@@ -157,7 +157,7 @@ def verdict_table(items_csv: Path) -> str:
 
 def build_data(root: Path, names=None) -> dict[str, Path]:
     """root 아래에 DATASETS 를 만든다 (names 만, 기본 전부). 이름 → 데이터 폴더."""
-    out = {}
+    root, out = Path(root).resolve(), {}
     for name in names or DATASETS:
         DATASETS[name](root / name)
         out[name] = root / name
