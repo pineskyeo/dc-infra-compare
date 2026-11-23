@@ -9,7 +9,7 @@ import por_doe_compare as pdc
 from por_doe_compare import LOG_COLS, V_EXCLUDED
 
 R = 0.05
-LOG_NUM = [c for c in LOG_COLS if c not in ("verdict_log", "verdict_log_run", "log_reason", "ci_half_over_delta")]
+LOG_NUM = [c for c in LOG_COLS if c not in ("verdict_log", "log_reason", "ci_half_over_delta")]
 
 
 def parts(s: str) -> list[str]:
@@ -156,7 +156,7 @@ def test_t5_old_columns_unchanged(monkeypatch, data):
     old = run_item(Y, z)
     assert is_subsequence(OLD_COLS, list(old))
     assert list(old)[-len(OLD_COLS[-11:]):] == OLD_COLS[-11:]
-    assert list(row) == list(old) + LOG_COLS
+    assert list(row) == list(old) + pdc.LOG_RUN_COLS + LOG_COLS
     for c in old:
         a, b = row[c], old[c]
         assert (a == b) or (isinstance(a, float) and math.isnan(a) and math.isnan(b)), c

@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from por_doe_compare import LOG_COLS, LOQ_REF_COLS, SHAPE_REF_COLS, ci_median, ci_rank
+from por_doe_compare import LOG_COLS, LOG_RUN_COLS, LOQ_REF_COLS, SHAPE_REF_COLS, ci_median, ci_rank
 
 ROOT = Path(__file__).resolve().parents[1]
 GENERATOR = ROOT / "examples" / "make_por3_data.py"
@@ -76,7 +76,7 @@ def test_items_csv_matches_frozen_legacy_by_column_name(por3_data: Path, tmp_pat
                    "decades", "skew_lin", "skew_log", "log_fit", "bimodality_log",
                    "mean_median_ratio",
                    "sigma_meas", "meas_precision_pct", "sigma_meas_over_delta"]
-    added = {"ID", "verdict_final", "verdict_basis", "verdict_final_log_run", "scale", *LOG_COLS, *status_cols,
+    added = {"ID", "verdict_final", "verdict_basis", "verdict_final_log_run", "scale", *LOG_COLS, *LOG_RUN_COLS, *status_cols,
              *LOQ_REF_COLS, *SHAPE_REF_COLS, "judgeability"}
     assert set(new_rows[0]) == (set(legacy_rows[0]) - set(REMOVED_COLS)) | added
     for r in new_rows:

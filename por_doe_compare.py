@@ -104,8 +104,9 @@ JUDGEABILITY_BANDS = ((0.5, "안정"), (0.8, "주의"), (np.inf, "불안정"))
 LOG_COLS = ["verdict_log", "center_log", "ci_low_log", "ci_high_log", "delta_log", "ci_half_over_delta",
             "ci_half_over_delta_log", "log_reason",      # 0 없고 부호 하나인 ITEM 참고용
             "sigma_die_log", "sigma_run_log",            # 분석용, 판정에 안 씀
-            "sigma_rep_log",                             # log 판정의 회차 항
-            "verdict_log_run", "delta_log_run"]          # 참고: 회차 항을 선형처럼 t·√(1+1/J)·sigma_run_log 로 둔 log 판정
+            "sigma_rep_log"]                             # log 판정의 회차 항
+# 참고: 회차 항을 선형처럼 t·√(1+1/J)·sigma_run_log 로 둔 log 판정 (log 허용폭 결정용)
+LOG_RUN_COLS = ["verdict_log_run", "delta_log_run"]
 POR_MEAN_RE = re.compile(r"POR\d+_mean")
 # items.csv 열 순서의 유일한 출처: 묶음 순서대로, 묶음 안은 적힌 순서. POR_MEAN_RE 는 맞는 열을 원래 순서로.
 # 표에 없는 열은 맨 끝에 원래 순서로 붙는다.
@@ -806,14 +807,14 @@ def _ci_half_over_delta(res: dict) -> float:
 
 
 def log_columns(Y: np.ndarray, z: np.ndarray, r: float, res: dict) -> dict:
-    """LOG_COLS. 모든 ITEM (status 무관): POR·DOE 값에 0 이 없고 부호가 하나면 log 판정 값을 채운다.
+    """LOG_COLS 와 LOG_RUN_COLS. 모든 ITEM (status 무관): POR·DOE 값에 0 이 없고 부호가 하나면 log 판정 값을 채운다.
     0 이 있거나 부호가 섞이면 verdict_log 판정 제외, log_reason 에 사유, log 숫자 열 NaN.
     log_reason 은 log 판정이 된 ITEM 이면 judge_log 의 reason.
     분석용 열 (판정에 안 씀): sigma_*_log 는 judge_log 결과의 sigma_die·sigma_run, verdict_log 가 판정 제외면 NaN.
     sigma_run_log (웨이퍼 공통 회차 이동) 은 판정에 안 씀.
     sigma_rep_log = verdict_log 의 회차 항 (Δ_log = log10(1 + r) + sigma_rep_log), log 판정이 된 ITEM 만
     (0값·부호 섞임이면 NaN)."""
-    out = {**dict.fromkeys(LOG_COLS, np.nan), "log_reason": ""}
+    out = {**dict.fromkeys([*LOG_RUN_COLS, *LOG_COLS], np.nan), "log_reason": ""}
     out["ci_half_over_delta"] = _ci_half_over_delta(res)
     vals = np.concatenate([Y.ravel(), z])
     causes = [c for c, bad in (("0값 있음", (vals == 0).any()),
