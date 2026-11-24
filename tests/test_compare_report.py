@@ -208,6 +208,22 @@ def test_kpi_table_on_hand_built_frame():
     assert ne["improved_pct"] == pytest.approx(100.0)             # 동등 아니던 둘 다 동등이 됨
 
 
+@pytest.mark.parametrize("before, after, want", [
+    (["차이"] * 20, ["차이"] * 19 + ["동등"], "비슷"),          # 20 → 19: 하나 준 것은 비슷 (±10% 안)
+    (["차이"] * 10, ["차이"] * 5 + ["동등"] * 5, "좋아짐"),
+    (["동등"] * 4, ["동등"] * 4, "비슷"),                      # 0 → 0
+    (["동등"] * 4, ["동등"] * 3 + ["미결"], "나빠짐"),           # 0 → 1
+])
+def test_not_equivalent_count_uses_the_same_band(before, after, want):
+    n = len(before)
+    d = pd.DataFrame({"verdict_before": before, "verdict_after": after})
+    for k in cm.RATIO_KPIS:
+        d[f"{k.value}_before"], d[f"{k.value}_after"] = 1.0, 1.0
+        d[f"{k.ratio}_before"], d[f"{k.ratio}_after"] = 1.0, 1.0
+    assert len(d) == n
+    assert cm.kpi_table(d).set_index("kpi").loc["not_equivalent", "trend"] == want
+
+
 # ── 그룹 파일 없이 ─────────────────────────────────────────────────────────────
 
 def test_without_groups_file_all_matched_items_and_no_group_sections(ungrouped):

@@ -203,8 +203,8 @@ def with_ratios(df):
 
 
 def trend(ratio_median):
-    """비 중앙값 → 좋아짐(< 1 − TREND_BAND) / 나빠짐(> 1 + TREND_BAND) / 비슷. 계산할 수 없으면 빈 글자."""
-    if not np.isfinite(ratio_median):
+    """비 중앙값 → 좋아짐(< 1 − TREND_BAND) / 나빠짐(> 1 + TREND_BAND, 무한대 포함) / 비슷. NaN 이면 빈 글자."""
+    if np.isnan(ratio_median):
         return ""
     return BETTER if ratio_median < 1 - TREND_BAND else WORSE if ratio_median > 1 + TREND_BAND else SAME
 
@@ -216,7 +216,8 @@ def _median(s):
 
 def kpi_table(d):
     """요약 지표 표 (OVERVIEW_COLS, 지표 한 행). d 는 with_pct 를 거친 compare 행 (판정 제외는 이미 뺀 것).
-    improved_pct 는 비가 1 − TREND_BAND 미만인 ITEM 비율 (%), 동등 아닌 수는 기존 동등 아님 중 동등이 된 비율."""
+    improved_pct 는 비가 1 − TREND_BAND 미만인 ITEM 비율 (%), 동등 아닌 수는 기존 동등 아님 중 동등이 된 비율.
+    동등 아닌 수의 판단도 개수 비 (개선/기존) 에 같은 ±TREND_BAND 를 쓴다 (기존 0 이면 개선도 0 일 때만 비슷)."""
     rows = []
     for k in RATIO_KPIS:
         r = item_ratio(d, k).dropna()
@@ -232,7 +233,7 @@ def kpi_table(d):
     rows.append({"kpi": NOT_EQUIV, "name": NOT_EQUIV_NAME, "before": nb, "after": na, "change": na - nb,
                  "ratio_median": np.nan, "improved_pct": 100 * fixed / nb if nb else np.nan,
                  "n_ratio": len(d), "n_skipped": 0,
-                 "trend": BETTER if na < nb else WORSE if na > nb else SAME})
+                 "trend": trend(na / nb if nb else (1.0 if na == 0 else np.inf))})
     return pd.DataFrame(rows, columns=OVERVIEW_COLS)
 
 

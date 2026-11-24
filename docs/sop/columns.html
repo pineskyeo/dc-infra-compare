@@ -530,7 +530,7 @@
 <tr><td><code>improved_pct</code></td><td>좋아진 ITEM %</td><td>비가 0.9 미만인 ITEM 비율. not_equivalent는 기존에 동등이 아니던 ITEM 중 개선에서 동등이 된 비율.</td><td>100 × (비 &lt; 0.9인 ITEM 수) / <code>n_ratio</code>. not_equivalent는 100 × (<code>verdict_before</code> 동등 아님이고 <code>verdict_after</code> 동등인 수) / <code>before</code></td><td></td></tr>
 <tr><td><code>n_ratio</code></td><td>비에 쓴 ITEM</td><td>비를 계산한 ITEM 수. not_equivalent는 센 ITEM 수.</td><td></td><td></td></tr>
 <tr><td><code>n_skipped</code></td><td>비에서 뺀 ITEM</td><td>기존 값이 0 이하이거나 어느 쪽이든 비어 비를 못 구한 ITEM 수.</td><td>scope.csv n_used − <code>n_ratio</code></td><td>회차 이동은 기존 σ_run이 0인 ITEM이 많아 크게 나온다.</td></tr>
-<tr><td><code>trend</code></td><td>판단</td><td>좋아짐 · 비슷 · 나빠짐.</td><td>흔들림 지표: <code>ratio_median</code> &lt; 0.9면 좋아짐, &gt; 1.1이면 나빠짐, 그 사이 비슷. not_equivalent: <code>after</code> &lt; <code>before</code>면 좋아짐, 크면 나빠짐, 같으면 비슷</td><td>동등 아닌 수는 하나만 줄어도 좋아짐이다. 개수 차이를 같이 본다.</td></tr>
+<tr><td><code>trend</code></td><td>판단</td><td>좋아짐 · 비슷 · 나빠짐.</td><td>흔들림 지표: <code>ratio_median</code> &lt; 0.9면 좋아짐, &gt; 1.1이면 나빠짐, 그 사이 비슷. not_equivalent: <code>after</code> ÷ <code>before</code>에 같은 기준 (기존 0이면 개선도 0일 때만 비슷, 아니면 나빠짐)</td><td>동등 아닌 수가 조금 바뀐 것은 비슷으로 본다. 개수도 같이 본다.</td></tr>
 </tbody></table></div>
 </section>
 <section id="compare-group-levels-csv"><h2>compare/group_levels.csv</h2>

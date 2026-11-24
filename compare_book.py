@@ -21,7 +21,7 @@ SUMMARY, GROUPS, VERDICTS, ITEMS, WORSENED, LEVELS = "요약", "그룹별", "판
 TOTAL = "전체"
 
 RULE = (f"판단: 비(ITEM마다 개선÷기존을 구한 값의 중앙값)가 {1 - TREND_BAND:.1f} 미만이면 {BETTER}, "
-        f"{1 + TREND_BAND:.1f} 초과면 {WORSE}, 그 사이는 {SAME} (±{TREND_BAND:.0%}). 동등 아닌 ITEM 수는 줄면 {BETTER}. "
+        f"{1 + TREND_BAND:.1f} 초과면 {WORSE}, 그 사이는 {SAME} (±{TREND_BAND:.0%}). 동등 아닌 ITEM 수도 개수 비(개선÷기존)로 같은 기준. "
         "기존 값이 0이거나 빈 ITEM은 비에서 뺀다 (비에서 뺀 ITEM 열). 그룹의 판단은 측정 정밀도 비로 정한다.")
 LEVELS_NOTE = ("그룹 × LEVEL 은 기존·개선 결과 폴더 둘 다 stability/group_levels.csv 가 있을 때 만든다 "
                "(판정할 때 level 파일과 groups 파일을 준 결과).")
