@@ -1,167 +1,51 @@
-<!-- legacy -->
-<p class="loc"><a href="concepts.html">개념 익히기</a> › 0 근처와 절대 허용폭 (개념 14 / 19) · 쓰는 단계 <a href="step-6.html#typed">⑥</a></p>
-<h1>0 근처에서 %가 안 되는 이유와 절대 허용폭</h1>
-
-<section id="q"><h2>이 쪽이 답하는 질문</h2>
-<p class="q">값이 0 근처인 ITEM은 왜 '기준 조건의 5%' 허용폭으로 보면 안 되나 · 대신 쓰는 <a class="g" href="glossary.html#abs-tol"><abbr title="절대 허용폭 · 값의 크기와 상관없이 ITEM 단위로 정한 고정 허용폭 (abs_delta)">절대 허용폭</abbr></a>은 무엇인가</p></section>
-
-<section id="plain"><h2>쉬운 말로</h2>
-<ul>
-<li>Δ = 5% × |기준 조건 중앙값| + 회차 몫 · 앞쪽 5% 몫은 중앙값에 비례 <span class="from"><a href="c-delta.html">허용 범위 Δ</a></span></li>
-<li>중앙값이 0으로 가면 5% 몫도 0 → Δ가 회차 몫만 남아 아주 좁아짐</li>
-<li>그래서 <b>같은 이동</b>인데 중앙값만 0에 가까워져도 동등 → 미결 → 차이로 바뀜</li>
-<li>절대 허용폭 = 값 크기와 상관없는 고정 폭 (ITEM 단위) · 중앙값이 어디 있든 그대로</li>
-<li>쓰는 ITEM: 0 중심(부호 섞임 + |중앙값| &lt; LoQ) · 값이 계단인 정량·바닥 근처 ITEM <span class="from"><a href="c-routes.html">ITEM 유형과 판정 길</a></span></li>
-</ul></section>
-
-<section id="figure"><h2>그림</h2>
-<figure class="abf" id="fig-abs">
-<svg id="ab-svg" viewBox="0 0 680 500" role="img" aria-label="기준 조건 중앙값을 100에서 0으로 옮기면 5퍼센트 허용폭 Δ가 줄어 같은 이동 구간이 동등에서 미결, 차이로 바뀌고 고정 허용폭은 그대로 동등"></svg>
-<figcaption class="s">합성 예시 · 이동 90% 신뢰구간 [3, 5] 고정 · Δ = 5% × 중앙값 + 회차 몫 1.7 · 고정 허용폭 = LoQ 10</figcaption>
-</figure>
-<div class="ab-ctl"><button id="ab-play" type="button">▶ 재생</button><span class="s">위 그림을 가로로 끌어 중앙값을 바꿀 수 있음</span></div>
-<div class="tw"><table class="states"><thead><tr><th>기준 조건 중앙값</th><th>Δ (5% 몫 + 1.7)</th><th>Δ로 본 판정</th><th>고정 허용폭 10으로 본 판정</th></tr></thead><tbody>
-<tr><td>100</td><td>5 + 1.7 = 6.7</td><td><span class="pill ok">동등</span></td><td><span class="pill ok">동등</span></td></tr>
-<tr><td>40</td><td>2 + 1.7 = 3.7</td><td><span class="pill hold">미결</span></td><td><span class="pill ok">동등</span></td></tr>
-<tr><td>10</td><td>0.5 + 1.7 = 2.2</td><td><span class="pill bad">차이</span></td><td><span class="pill ok">동등</span></td></tr>
-<tr><td>0</td><td>0 + 1.7 = 1.7</td><td><span class="pill bad">차이</span></td><td><span class="pill ok">동등</span></td></tr>
-</tbody></table></div>
-<p class="look"><b>여기서 볼 것</b> · ① 회색 띠 = 이동 구간 [3, 5] · Δ 선이 띠 위면 동등, 띠 안이면 미결, 띠 아래면 차이 ② 중앙값을 0으로 옮기면 Δ 선이 띠를 뚫고 내려감 · 이동은 그대로인데 판정만 바뀜 ③ 파란 고정 허용폭 선은 높이가 그대로라 늘 동등</p>
-<p class="s">그림은 허용폭 두 가지만 견줌 · 실제 도구는 |중앙값| &lt; LoQ면 2단계 <a href="c-loq.html">LoQ 판정</a>을 먼저 하고, 거기서 동등이 아닐 때만 3단계 절대 허용폭으로 감</p>
-</section>
-
-<section id="formula"><h2>수식</h2>
-<div class="formula"><div>Δ = r·|기준 조건 중앙값| + t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub>     → 중앙값 0이면 회차 몫만 남음</div><div>절대 허용폭 TOST: 같은 90% CI ⊂ (−abs_delta, +abs_delta) → 동등 · 통째로 밖 → 차이 · 걸침 → 미결</div><div class="c">CI는 1·2단계와 같은 것 · 허용폭만 바꿈</div></div>
-<h3>abs_delta 정하는 법</h3>
-<div class="tw"><table><thead><tr><th>경우</th><th>abs_delta</th></tr></thead><tbody>
-<tr><td>abs_tol 파일(group,abs_delta)에 그 ITEM 그룹이 있음</td><td>파일의 그룹 값 (ITEM 단위)</td></tr>
-<tr><td>파일 없음 · 0 중심</td><td>그 ITEM의 LoQ</td></tr>
-<tr><td>파일 없음 · 계단 (정량)</td><td>max(Δ, 값 간격 한 칸)</td></tr>
-<tr><td>파일 없음 · 계단 + 바닥 근처</td><td>max(Δ, 값 간격 한 칸, 장비 정확도 폭)</td></tr>
-</tbody></table></div>
-<ul>
-<li>계단 = 값 간격 한 칸 ≥ 0.1·Δ · 한 칸보다 작은 이동은 볼 수 없으니 허용폭을 한 칸보다 좁게 두지 않음 <span class="from"><a href="c-loq.html">분해능과 √12</a></span></li>
-<li>abs_tol 파일은 combos.ini의 <code>abs_tol</code> 키 · <code>groups</code>도 필요 <span class="from"><a href="run.html#dcc">실행 방법</a></span></li>
+<section class="easy">
+<div data-scene="c-abs-tol"></div>
+<ul class="points">
+<li>허용폭의 5% 몫은 POR 중앙값에 비례한다.</li>
+<li>중앙값이 0에 가까우면 5% 몫도 0으로 줄어 Δ가 아주 좁아진다.</li>
+<li>그러면 같은 이동인데도 중앙값 때문에 미결·차이가 된다.</li>
+<li>0 근처·계단 ITEM은 값 크기와 상관없는 고정 폭(절대 허용폭)을 쓴다.</li>
 </ul>
-<p class="s"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 기본값 규칙과 적용 대상</p>
+<div data-tracker="5"></div>
+<p class="c-use">쓰는 단계: <a href="step-5.html">⑤ 허용폭 Δ</a> · <a href="step-6.html">⑥ 판정 3단계</a></p>
 </section>
 
-<style>
-.abf{--eq:#1A8754;--df:#D93A3A;--und:#C27C0E;--fix:#2563EB;--fg:var(--tx);--muted:var(--tx2);--axis:#9CA3AF;--grid:var(--ln);margin:0 0 8px}
-.abf svg{display:block;width:100%;max-width:680px;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
-.abf .ab-t{font-family:var(--font-sans);fill:var(--fg)}
-.abf .ab-m{font-family:var(--font-sans);fill:var(--muted)}
-.abf .ab-n{font-family:var(--font-mono);fill:var(--muted)}
-.ab-ctl{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
-.ab-ctl button{font:600 13px var(--font-sans);color:var(--tx);background:#FFFFFF;border:1px solid var(--bd);border-radius:999px;padding:6px 14px;cursor:pointer}
-.ab-ctl button:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
-</style>
-<script>
-(() => {
-  const NS = "http://www.w3.org/2000/svg";
-  const svg = document.getElementById("ab-svg");
-  const R = 0.05, RUN = 1.7, FIX = 10, LO = 3, HI = 5;
-  const X0 = 60, X1 = 600, YT = 56, YB = 250, YMAX = 12, NL = 384, SMAX = 12;
-  const mx = m => X0 + m / 100 * (X1 - X0);
-  const xm = px => (px - X0) / (X1 - X0) * 100;
-  const my = v => YB - v / YMAX * (YB - YT);
-  const sx = s => X0 + (s + SMAX) / (2 * SMAX) * (X1 - X0);
-  function el(tag, attrs = {}, parent = svg) {
-    const e = document.createElementNS(NS, tag);
-    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
-    parent.appendChild(e);
-    return e;
-  }
-  const txt = (x, y, s, attrs = {}) => { const t = el("text", { x, y, class: "ab-t", "font-size": 15, ...attrs }); t.textContent = s; return t; };
-  const f1 = v => v.toFixed(1);
-  const delta = m => R * m + RUN;
-  const judge = d => HI <= d ? ["동등", "--eq"] : LO > d ? ["차이", "--df"] : ["미결", "--und"];
+<section class="expert" data-title="Δ가 무너지는 이유 · abs_delta 정하는 법 · 근거 · 코드">
+<h2 id="collapse">Δ가 무너지는 이유</h2>
+<div class="formula">Δ = r·|m| + t<sub>0.95, J−1</sub>·√(1+1/J)·σ<sub>run</sub>
+m → 0  ⇒  Δ → 회차 몫만 (σ<sub>run</sub> = 0 이면 Δ → 0)</div>
+<p>이동 구간은 그대로인데 중앙값만 0에 가까워져도 동등 → 미결 → 차이로 바뀐다. 0 근처 값은 '몇 %'로 말하는 것이 뜻이 없어, ITEM 단위의 고정 폭으로 본다.</p>
 
-  for (const v of [0, 5, 10]) {
-    el("line", { x1: X0, x2: X1, y1: my(v), y2: my(v), style: "stroke: var(--grid)" });
-    txt(X0 - 10, my(v) + 5, String(v), { "text-anchor": "end", class: "ab-n", "font-size": 14 });
-  }
-  el("rect", { x: X0, y: my(HI), width: X1 - X0, height: my(LO) - my(HI), style: "fill: #6B7280; fill-opacity: .14" });
-  txt(X0 + 8, my(4) + 5, "이동 구간 [3, 5]", { class: "ab-m", "font-size": 13 });
-  el("line", { x1: X0, x2: X1, y1: YB, y2: YB, style: "stroke: var(--axis); stroke-width: 2" });
-  el("line", { x1: X0, x2: X0, y1: YT - 6, y2: YB, style: "stroke: var(--axis)" });
-  for (const m of [0, 25, 50, 75, 100]) txt(mx(m), YB + 22, String(m), { "text-anchor": "middle", class: "ab-n", "font-size": 14 });
-  txt((X0 + X1) / 2, YB + 46, "기준 조건 중앙값 (왼쪽 끝 = 0)", { "text-anchor": "middle", "font-weight": 600 });
-  txt(X0, YT - 22, "허용폭", { "font-weight": 600 });
-  for (const [v, lab, col] of [[0.6, "차이", "--df"], [4, "미결", "--und"], [7.2, "동등", "--eq"]])
-    txt(X1 + 10, my(v) + 5, lab, { "font-size": 14, "font-weight": 700, style: `fill: var(${col})` });
+<h2 id="abs-delta">abs_delta 정하는 법</h2>
+<div class="tw"><table><thead><tr><th>경우</th><th>abs_delta</th><th>출처 (route_note)</th></tr></thead><tbody>
+<tr><td>--abs-tol 파일(group,abs_delta)에 ITEM 그룹이 있음</td><td>파일의 그룹 값 (ITEM 단위)</td><td>abs_tol 그룹</td></tr>
+<tr><td>파일 없음 · 0 중심</td><td>그 ITEM의 LoQ</td><td>기본값 LoQ</td></tr>
+<tr><td>파일 없음 · 계단 (정량)</td><td>max(Δ, 값 간격)</td><td>기본값 max(Δ, 값 간격)</td></tr>
+<tr><td>파일 없음 · 계단 + 바닥 근처</td><td>max(Δ, 값 간격, 장비 정확도 폭)</td><td>기본값 max(Δ, 값 간격, 장비 정확도)</td></tr>
+</tbody></table></div>
+<p>계단은 POR 값 간격(<code>resolution_step</code>)이 0.1·Δ 이상인 ITEM이다. 한 칸보다 작은 이동은 볼 수 없으니 허용폭을 한 칸보다 좁게 두지 않는다. 장비 정확도 폭은 두 측정이 각자 사양 정확도 안에 있을 때 생길 수 있는 차이다<sup data-ref="11"></sup>. 기본값 규칙과 적용 대상은 내부 기준이다 <span class="st st-int">내부 기준</span>. --abs-tol 파일은 --groups 와 함께 줘야 한다.</p>
 
-  el("line", { x1: mx(0), y1: my(0), x2: mx(100), y2: my(R * 100), style: "stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 3 4" });
-  txt(mx(62), my(R * 62) + 18, "5% 몫 (0까지 줄어듦)", { class: "ab-m", "font-size": 13 });
-  el("line", { x1: mx(0), y1: my(delta(0)), x2: mx(100), y2: my(delta(100)), style: "stroke: var(--fg); stroke-width: 3" });
-  txt(mx(100) - 4, my(delta(100)) - 10, "Δ = 5% 몫 + 회차 몫", { "text-anchor": "end", "font-weight": 600 });
-  el("line", { x1: X0, x2: X1, y1: my(FIX), y2: my(FIX), style: "stroke: var(--fix); stroke-width: 3; stroke-dasharray: 9 5" });
-  txt(X1 - 4, my(FIX) - 10, "고정 허용폭 = LoQ 10 (그대로)", { "text-anchor": "end", "font-weight": 600, style: "fill: var(--fix)" });
+<h2 id="judge">판정</h2>
+<div class="formula">같은 90% 구간 [L, U] ⊂ [−abs_delta, +abs_delta] → 동등
+구간 전체가 밖 → 차이,  걸침 → 미결                 <span class="c">verdict_abs</span></div>
+<p>구간은 1·2단계와 같고 허용폭만 바꾼다<sup data-ref="12"></sup>. 계단 ITEM은 구간 끝과 허용폭이 같은 격자 값이라 상대 오차 10⁻⁹ 안이면 같은 값으로 본다. 이 길은 1·2단계가 동등이 아닐 때만 쓴다. |m| &lt; LoQ 인 0 중심 ITEM은 2단계 LoQ 판정을 먼저 한다.</p>
+<ul>
+<li>예제 '0 근처': 구간 +6.46 ~ +7.20 pA, abs_delta = LoQ 10.6 pA → 구간 전체가 ±10.6 pA 안 → 동등 (1·2단계는 Δ 0.27 pA 로 차이).</li>
+<li>예제 '계단 값': 구간 +2 ~ +4 µV, abs_delta = 값 간격 2 µV (Δ 1.57 µV 보다 큼) → 위 끝 4 µV 가 +2 µV 밖, 아래 끝은 안 → 미결 (경계).</li>
+</ul>
+<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>items.csv 열</th></tr></thead><tbody>
+<tr><td>abs_delta</td><td>절대 허용폭 (ITEM 단위)</td><td><code>abs_delta</code></td></tr>
+<tr><td>값 간격</td><td>POR 값 고유값의 이웃 차 최솟값</td><td><code>resolution_step</code></td></tr>
+<tr><td>판정</td><td>±abs_delta TOST 판정, 출처와 이유</td><td><code>verdict_abs</code>, <code>route_note</code></td></tr>
+</tbody></table></div>
 
-  const guide = el("line", { y1: YT - 4, y2: YB, style: "stroke: var(--muted); stroke-dasharray: 2 4" });
-  const dotFix = el("circle", { r: 7, style: "fill: var(--fix); stroke: #FFFFFF; stroke-width: 2" });
-  const dotD = el("circle", { r: 9, style: "stroke: #FFFFFF; stroke-width: 3; cursor: grab" });
-  const mLab = txt(670, 22, "", { "text-anchor": "end", "font-size": 18, "font-weight": 700 });
+<h2>근거와 문헌</h2>
+<div data-refs></div>
 
-  txt(X0, NL - 58, "이동 = 비교 조건 − 기준 조건", { "font-weight": 600 });
-  const bandD = el("rect", { y: NL - 16, height: 32, rx: 6, style: "fill: var(--eq); fill-opacity: .16" });
-  el("rect", { x: sx(-FIX), y: NL - 22, width: sx(FIX) - sx(-FIX), height: 44, rx: 8, style: "fill: none; stroke: var(--fix); stroke-width: 2; stroke-dasharray: 9 5" });
-  el("line", { x1: X0, x2: X1, y1: NL, y2: NL, style: "stroke: var(--axis); stroke-width: 2" });
-  for (const s of [-10, -5, 0, 5, 10]) txt(sx(s), NL + 40, String(s).replace("-", "−"), { "text-anchor": "middle", class: "ab-n", "font-size": 14 });
-  const ci = el("rect", { x: sx(LO), y: NL - 8, width: sx(HI) - sx(LO), height: 16, rx: 8 });
-  const dLab = txt(0, NL - 28, "", { "text-anchor": "middle", class: "ab-n", "font-size": 13 });
-  const outD = txt(X0, NL + 78, "", { "font-weight": 600 });
-  const outF = txt(X0, NL + 104, "고정 허용폭 ±10 → CI [3, 5]가 안 → 동등", { "font-weight": 600, style: "fill: var(--fix)" });
-
-  let m = 10;
-  function render() {
-    const d = delta(m), [name, col] = judge(d), color = `var(${col})`;
-    guide.setAttribute("x1", mx(m)); guide.setAttribute("x2", mx(m));
-    dotD.setAttribute("cx", mx(m)); dotD.setAttribute("cy", my(d)); dotD.style.fill = color;
-    dotFix.setAttribute("cx", mx(m)); dotFix.setAttribute("cy", my(FIX));
-    mLab.textContent = `중앙값 ${Math.round(m)}`;
-    bandD.setAttribute("x", sx(-d)); bandD.setAttribute("width", sx(d) - sx(-d));
-    dLab.setAttribute("x", sx(d)); dLab.textContent = `+Δ ${f1(d)}`;
-    ci.style.fill = color;
-    outD.textContent = `Δ = ${f1(R * m)} + 1.7 = ${f1(d)} → CI [3, 5]${name === "동등" ? "가 ±Δ 안" : name === "차이" ? "가 통째로 밖" : "가 +Δ에 걸침"} → ${name}`;
-    outD.style.fill = color;
-  }
-
-  const STEPS = [[100, 1200], [100, 900], [40, 2600], [40, 900], [10, 2000], [10, 900], [0, 1200], [0, 1000], [10, 900]];
-  const ease = p => p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-  const btn = document.getElementById("ab-play");
-  let si = STEPS.length, t0 = null, from = m, playing = false, raf = 0;
-  const setBtn = () => { btn.textContent = playing ? "❚❚ 멈춤" : si < STEPS.length ? "▶ 이어 재생" : "▶ 재생"; };
-  function frame(ts) {
-    if (!playing) return;
-    const [to, d] = STEPS[si];
-    if (t0 === null) { t0 = ts; from = m; }
-    const p = Math.min(1, (ts - t0) / d);
-    m = from + (to - from) * ease(p); render();
-    if (p >= 1) { si++; t0 = null; if (si >= STEPS.length) { playing = false; setBtn(); return; } }
-    raf = requestAnimationFrame(frame);
-  }
-  btn.addEventListener("click", () => {
-    if (playing) { playing = false; cancelAnimationFrame(raf); setBtn(); return; }
-    if (si >= STEPS.length) si = 0;
-    playing = true; t0 = null; setBtn(); raf = requestAnimationFrame(frame);
-  });
-  let dragging = false;
-  function moveTo(evt) {
-    const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
-    m = Math.round(Math.max(0, Math.min(100, xm(pt.matrixTransform(svg.getScreenCTM().inverse()).x)))); render();
-  }
-  svg.addEventListener("pointerdown", evt => {
-    playing = false; cancelAnimationFrame(raf); si = STEPS.length; setBtn();
-    dragging = true; svg.setPointerCapture(evt.pointerId); moveTo(evt);
-  });
-  svg.addEventListener("pointermove", evt => { if (dragging) moveTo(evt); });
-  svg.addEventListener("pointerup", () => { dragging = false; });
-  svg.addEventListener("pointercancel", () => { dragging = false; });
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) btn.hidden = true;
-  render(); setBtn();
-  svg.dataset.ready = "1";
-})();
-</script>
-
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-delta.html">허용 범위 Δ</a></li><li><a href="c-loq.html">분해능과 √12</a></li><li><a href="c-loq.html">LoQ 아래 판정</a></li><li><a href="c-routes.html">ITEM 유형과 판정 길</a></li><li><a href="step-6.html#typed">⑥ 판정 · 3단계</a></li></ul></nav>
+<h2>코드 위치</h2>
+<ul>
+<li>abs_delta 기본값: <code data-code="classify.py:abs_delta_for"></code>, 판정: <code data-code="classify.py:abs_result"></code></li>
+<li>계단 문턱: <code data-code="classify.py:RESOLUTION_STEP_MIN"></code>, 파일 읽기: <code data-code="classify.py:read_abs_tol"></code></li>
+<li>TOST와 격자 값 허용: <code data-code="por_doe_compare.py:tost"></code></li>
+</ul>
+</section>
