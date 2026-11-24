@@ -88,11 +88,17 @@ def detection(Y: np.ndarray, z: np.ndarray, loq: float) -> dict:
             "det_p": max(mcnemar_p(runs[:, j], doe) for j in range(Y.shape[1]))}
 
 
+def loo_scale(J: int) -> float:
+    """POR 회차 하나 − 나머지 J − 1 회차 평균의 차에 곱하면 DOE − J 회차 평균의 차와 분산이 같아지는 배수
+    √((1 + 1/J) / (1 + 1/(J − 1)))."""
+    return float(np.sqrt((1 + 1 / J) / (1 + 1 / (J - 1))))
+
+
 def _tail_parts(Y: np.ndarray, z: np.ndarray, k: float) -> tuple[np.ndarray, np.ndarray, float]:
     """(d = DOE - POR run mean, centred POR leave-one-run-out differences scaled to Var d, outlier limit)."""
     J = Y.shape[1]
     d = z - Y.mean(axis=1)
-    loo = (Y - (Y.sum(axis=1, keepdims=True) - Y) / (J - 1)).ravel() * np.sqrt((1 + 1 / J) / (1 + 1 / (J - 1)))
+    loo = (Y - (Y.sum(axis=1, keepdims=True) - Y) / (J - 1)).ravel() * loo_scale(J)
     loo = loo - np.median(loo)
     return d, loo, k * 1.4826 * np.median(np.abs(loo))
 
