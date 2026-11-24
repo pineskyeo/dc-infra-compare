@@ -2,7 +2,7 @@
 <html lang="ko" data-layer="easy">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>중앙값 90% 구간 구하기 · DC Test 동일성 검증</title>
-<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/scenes/steps-a.css"><link rel="stylesheet" href="assets/scenes/steps-b.css"><link rel="stylesheet" href="assets/scenes/guide.css"><link rel="stylesheet" href="assets/scenes/concepts.css"><link rel="stylesheet" href="assets/legacy.css">
+<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/scenes/steps-a.css"><link rel="stylesheet" href="assets/scenes/steps-b.css"><link rel="stylesheet" href="assets/scenes/guide.css"><link rel="stylesheet" href="assets/scenes/concepts.css">
 <script>try{if(localStorage.getItem('sop-layer')==='expert')document.documentElement.setAttribute('data-layer','expert');}catch(e){}</script>
 </head>
 <body data-page="c-median-ci">
@@ -12,358 +12,81 @@
 <div id="sop-error" class="sop-error" role="alert" hidden></div>
 <nav class="side" aria-label="문서"><a href="index.html">개요</a><div class="nav-group"><p class="nav-h">따라하기</p><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 나누기</a><a href="step-3.html">③ LoQ와 ITEM 유형</a><a href="step-4.html">④ 변화 구간</a><a href="step-5.html">⑤ 허용폭 Δ</a><a href="step-6.html">⑥ 판정 3단계</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="journey.html">예제 따라가기</a></div><div class="nav-group"><p class="nav-h">결과 읽기</p><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a></div><div class="nav-group"><p class="nav-h">공부하기</p><a href="concepts.html">개념 익히기</a><details class="nav-more" open><summary>개념 9쪽</summary><a href="c-sigma-split.html">σ_die와 σ_run</a><a href="c-loq.html">LoQ와 10배</a><a href="c-median-ci.html" aria-current="page">중앙값 90% 구간 구하기</a><a href="c-delta.html">허용폭 Δ</a><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a><a href="c-routes.html">ITEM 유형과 판정 길</a><a href="c-abs-tol.html">0 근처와 절대 허용폭</a><a href="c-log-scale.html">잡음이 값에 비례하면 log</a><a href="c-power.html">검정력과 표본 크기</a></details></div><div class="nav-group"><p class="nav-h">참고</p><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></div></nav>
 <main id="main"><nav class="strip" aria-label="단계"><a href="step-0.html" class="chip" title="⓪ 표본 크기 정하기">⓪</a><a href="step-1.html" class="chip" title="① 반복 측정">①</a><a href="step-2.html" class="chip" title="② 흔들림 나누기">②</a><a href="step-3.html" class="chip" title="③ LoQ와 ITEM 유형">③</a><a href="step-4.html" class="chip" title="④ 변화 구간">④</a><a href="step-5.html" class="chip" title="⑤ 허용폭 Δ">⑤</a><a href="step-6.html" class="chip" title="⑥ 판정 3단계">⑥</a><a href="step-7.html" class="chip" title="⑦ 미결·차이일 때 다음 행동">⑦</a></nav>
-<article class="page legacy">
-<!-- legacy -->
-<p class="loc"><a href="concepts.html">개념 익히기</a> › 중앙값의 90% 신뢰구간 (개념 7 / 19) · 쓰는 단계 <a href="step-4.html">④</a></p>
-<h1>중앙값의 90% 신뢰구간(CI, Confidence Interval)은 어떻게 구하나</h1>
-
-<section id="q"><h2>이 쪽이 답하는 질문</h2>
-<p class="q" id="def"><a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a> 60개 <span class="from">합성 예시 <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>의 die 수 n</span>의 차이 d로 진짜 중앙값이 어디쯤인지 범위를 어떻게 정하나 · 이 범위가 90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a> <span class="from">90% = ④에서 쓰는 신뢰 수준</span></p></section>
-
-<section id="meaning"><h2>먼저: 90%는 무슨 뜻인가</h2>
-<ul>
-<li>진짜 중앙값(참값) m은 정해진 하나의 수 · 다만 아무도 모름 <span class="from">예: 참값 0.8이라고 가정</span></li>
-<li>die를 새로 뽑아 다시 재면 CI도 매번 조금씩 달라짐 <span class="from">예: [0.6, 1.1], [0.5, 0.9], [0.7, 1.2] …</span></li>
-<li>같은 실험을 100번 반복해 CI를 100개 만들면 → 약 90개는 참값 0.8을 포함, 약 10개는 놓침 <span class="from">놓친 예: [0.85, 1.3]</span><sup class="fnref"><a href="#fn5" aria-label="출처 5">5</a></sup></li>
-<li>90% = 이 방법이 참값을 잡아내는 성공률 · 움직이는 것은 구간, 참값은 그대로</li>
-<li>측정한 중앙값 b(예시 0.786)는 늘 자기 CI 안에 있음 → 90%가 말하는 대상은 b가 아니라 모르는 참값 m</li>
-<li>CI 폭은 90%와 별개 · 폭은 die 수와 die 간 흔들림이 정함 → die 수별 폭은 아래 그림</li>
+<article class="page">
+<header class="page-head"><p class="kicker">공부하기</p><h1>중앙값 90% 구간 구하기</h1><p class="purpose">구간 끝 순위를 정하는 계산.</p></header>
+<section class="layer easy" aria-label="쉽게">
+<div data-scene="c-median-ci"></div>
+<ul class="points">
+<li>die마다 차이 d = DOE − POR 평균을 구해 작은 것부터 세운다.</li>
+<li>가운데 값(중앙값)은 크게 튄 die 하나에 끌려가지 않는다.</li>
+<li>양 끝에서 같은 수만큼 떼고 남은 범위가 90% 구간이다.</li>
+<li>구간 끝도 순위로 정해 튄 값의 크기에 흔들리지 않는다.</li>
 </ul>
-<h3>CI와 TOST는 다른 것</h3>
-<ul>
-<li>CI = 참값이 있을 만한 범위만 알려 줌 · 판정은 안 함 <span class="from">예: 참 차이는 아마 0.610 ~ 1.102</span></li>
-<li><a class="g" href="glossary.html#tost"><abbr title="두 번의 한쪽 검정 · '차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등">두 번의 한쪽 검정(TOST, Two One-Sided Tests)</abbr></a> = CI를 허용 범위 ±Δ와 비교해 판정하는 규칙 · 통째로 안 → 동등, 통째로 밖 → 차이, 걸침 → 미결</li>
-<li>비유: CI는 자로 잰 길이, TOST는 그 길이로 규격 합격을 정하는 규칙</li>
-<li>90%를 쓰는 이유: TOST는 '+Δ보다 작다', '−Δ보다 크다'를 각각 5% 오류로 확인 → 두 확인을 합친 것 = 90% CI가 ±Δ 안에 있는지<sup class="fnref"><a href="#fn6" aria-label="출처 6">6</a></sup> · 판정은 <a href="c-tost.html">TOST와 동등 · 차이 · 미결</a></li>
-</ul>
-<p class="look"><b>한 줄 요약</b> · 90% CI = 같은 실험을 100번 하면 약 90번은 모르는 참값을 덮는 구간</p>
+<div class="tracker" data-tracker="4" data-next-href="step-5.html" data-next-title="⑤ 허용폭 Δ"></div>
+<p class="c-use">쓰는 단계: <a href="step-4.html">④ 변화 구간</a> · <a href="step-6.html">⑥ 판정 3단계</a></p>
 </section>
 
-<section id="plain"><h2>쉬운 말로</h2>
-<h3 id="pics">그림으로 먼저: d → 진짜 중앙값 m → 동전 → 양끝 자르기</h3>
+<details class="layer expert"><summary><span class="layer-tag">전문</span><span class="layer-title">90%의 뜻 · 순위 계산 · 효율 · 근거 · 코드</span></summary><div class="layer-body">
+<h2 id="meaning">90%는 무슨 뜻인가</h2>
+<p>d의 참 중앙값 m은 정해진 하나의 수이지만 모른다. die를 새로 뽑아 다시 재면 구간이 매번 조금씩 달라진다. 같은 실험을 100번 해서 구간을 100개 만들면 약 90개가 m을 덮는다. 움직이는 것은 구간이고 m은 그대로다. 측정한 중앙값 b는 늘 자기 구간 안에 있으니, 90%가 말하는 대상은 b가 아니라 m이다. 구간 폭은 90%와 따로, die 수와 d의 흩어짐이 정한다.</p>
+
+<h2 id="formula">수식</h2>
+<div class="formula">d<sub>i</sub> = DOE<sub>i</sub> − (POR<sub>i1</sub> + … + POR<sub>iJ</sub>) / J          <span class="c">die i 의 차이</span>
+b = median(d<sub>1</sub> … d<sub>n</sub>)
+B ~ 이항(n, ½)                              <span class="c">d 가 m 보다 작은 die 수 (동전 n번의 앞면 수)</span>
+k = P(B ≤ k−1) ≤ 0.05 인 가장 큰 정수
+[L, U] = [d<sub>(k)</sub>, d<sub>(n−k+1)</sub>]                      <span class="c">작은 것부터 k번째, n−k+1번째</span>
+포함 확률 = 1 − 2·P(B ≤ k−1)</div>
+<p>m은 중앙값이라 die 하나의 d가 m보다 작을 확률이 ½이다. 그래서 'm보다 작은 die 수'는 동전 n번의 앞면 수와 같은 꼴이다. m이 구간 밖에 있는 경우는 둘뿐이다: m보다 작은 die가 k−1개 이하이거나, 큰 die가 k−1개 이하. 각각 확률이 P(B ≤ k−1)이고, 이것이 5% 이하인 가장 큰 k를 고른다<sup class="ref"><a href="#ref-9" aria-label="근거 1">1</a></sup>. 값의 크기는 쓰지 않고 순번만 쓰니 d의 분포 모양을 가정하지 않는다. 이 생각이 부호검정이다. d를 die마다 짝지어 만드는 것은 같은 대상을 두 조건으로 잰 쌍 설계다<sup class="ref"><a href="#ref-1" aria-label="근거 2">2</a></sup>.</p>
+<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>items.csv 열</th></tr></thead><tbody>
+<tr><td>n</td><td>판정에 쓴 die 수</td><td><code>n_die</code></td></tr>
+<tr><td>b</td><td>d 의 중앙값 (이동)</td><td><code>center</code></td></tr>
+<tr><td>L, U</td><td>90% 구간의 아래 끝, 위 끝</td><td><code>ci_low</code>, <code>ci_high</code></td></tr>
+<tr><td>k</td><td>아래 끝 순번 (1부터 셈). 위 끝은 n−k+1</td><td>(계산)</td></tr>
+</tbody></table></div>
+
+<h2 id="ranks">die 수별 순번</h2>
+<div class="tw"><table><thead><tr><th>die 수 n</th><th>아래 끝 k</th><th>위 끝 n−k+1</th><th>포함 확률</th></tr></thead><tbody>
+<tr><td>10</td><td>2</td><td>9</td><td>97.85%</td></tr>
+<tr><td>20</td><td>6</td><td>15</td><td>95.86%</td></tr>
+<tr><td>30</td><td>11</td><td>20</td><td>90.13%</td></tr>
+<tr><td>45</td><td>17</td><td>29</td><td>92.75%</td></tr>
+<tr><td>60</td><td>24</td><td>37</td><td>90.75%</td></tr>
+<tr><td>61</td><td>24</td><td>38</td><td>92.78%</td></tr>
+<tr><td>90</td><td>37</td><td>54</td><td>92.75%</td></tr>
+</tbody></table></div>
+<p>순번은 정수라 포함 확률이 딱 90%가 되지 않고, 90% 이상인 것 중 가장 좁은 짝을 쓴다. 엑셀로는 =BINOM.DIST(k−1, n, 0.5, TRUE)를 k를 올려 가며 계산해 5% 이하인 마지막 k를 찾는다. 같은 값의 d가 여럿이면 순번만 센다.</p>
+
+<h2 id="example">예시 계산 (예제 '정량 · 선형', n = 60)</h2>
 <ul>
-<li>그림 1: die마다 <a class="g" href="glossary.html#d"><abbr title="die별 차이 · 비교 조건 값 − 기준 조건 3회 평균">차이 d</abbr></a> = <a class="g" href="glossary.html#cand"><abbr title="비교 조건 · 바꾸려는 조건">비교 조건(Candidate)</abbr></a> 값 − <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> 3회 평균부터 만듦 · 기준 조건 값(100 근처)과 비교하는 것이 아님</li>
-<li>그림 2: d들의 진짜 중앙값 m(= 진짜 차이)을 기준으로 die 하나가 위냐 아래냐 → 동전 한 번</li>
-<li>그림 3: 동전 60번의 확률로 양끝을 몇 개 뗄지 정함 → 남은 구간이 90% CI</li>
+<li>P(B ≤ 23) = 4.62% ≤ 5% &lt; P(B ≤ 24) = 7.75% → k = 24</li>
+<li>구간 = [d<sub>(24)</sub>, d<sub>(37)</sub>] = [0.610, 1.10233] Ω, 포함 확률 = 1 − 2 × 0.04623 = 90.75%</li>
+<li>b = (30번째 0.785 + 31번째 0.78667) / 2 = 0.78583 Ω</li>
+<li>d 평균은 0.8758 Ω. 가장 큰 d가 100이 되어도 24번째·37번째 값과 중앙값은 그대로다</li>
 </ul>
-<figure class="cfig" id="fig-mci-d">
-<svg viewBox="0 0 480 300" style="max-width:480px" role="img" aria-labelledby="mcid-t"><title id="mcid-t">die 1~5의 기준 조건 3회 평균과 비교 조건 값 · 화살표 길이가 d · 아래 수직선에 d 다섯 개를 모음</title>
-<defs><marker id="mcid-ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#2563EB"/></marker></defs>
-<text x="8" y="24" class="val">die</text><text x="104" y="24" text-anchor="end" class="val">기준 3회 평균</text><text x="250" y="24" text-anchor="middle" class="val">차이 화살표</text><text x="396" y="24" text-anchor="end" class="val">비교 조건</text><text x="472" y="24" text-anchor="end" class="val">d</text>
-<text x="8" y="56">die 1</text><text x="104" y="56" text-anchor="end">96.486</text>
-<line class="ax" x1="170" y1="52" x2="330" y2="52"/>
-<line class="ring" x1="250" y1="52" x2="273.1" y2="52" marker-end="url(#mcid-ar)"/>
-<circle class="dot" cx="250" cy="52" r="4"/><circle class="hi" cx="273.1" cy="52" r="4"/>
-<text x="396" y="56" text-anchor="end">97.258</text><text x="472" y="56" text-anchor="end" class="val">+0.772</text>
-<text x="8" y="86">die 2</text><text x="104" y="86" text-anchor="end">99.238</text>
-<line class="ax" x1="170" y1="82" x2="330" y2="82"/>
-<line class="ring" x1="250" y1="82" x2="303.0" y2="82" marker-end="url(#mcid-ar)"/>
-<circle class="dot" cx="250" cy="82" r="4"/><circle class="hi" cx="303.0" cy="82" r="4"/>
-<text x="396" y="86" text-anchor="end">101.005</text><text x="472" y="86" text-anchor="end" class="val">+1.767</text>
-<text x="8" y="116">die 3</text><text x="104" y="116" text-anchor="end">95.285</text>
-<line class="ax" x1="170" y1="112" x2="330" y2="112"/>
-<line class="ring" x1="250" y1="112" x2="296.0" y2="112" marker-end="url(#mcid-ar)"/>
-<circle class="dot" cx="250" cy="112" r="4"/><circle class="hi" cx="296.0" cy="112" r="4"/>
-<text x="396" y="116" text-anchor="end">96.819</text><text x="472" y="116" text-anchor="end" class="val">+1.534</text>
-<text x="8" y="146">die 4</text><text x="104" y="146" text-anchor="end">102.004</text>
-<line class="ax" x1="170" y1="142" x2="330" y2="142"/>
-<line class="ring" x1="250" y1="142" x2="232.3" y2="142" marker-end="url(#mcid-ar)"/>
-<circle class="dot" cx="250" cy="142" r="4"/><circle class="hi" cx="232.3" cy="142" r="4"/>
-<text x="396" y="146" text-anchor="end">101.415</text><text x="472" y="146" text-anchor="end" class="val">−0.589</text>
-<text x="8" y="176">die 5</text><text x="104" y="176" text-anchor="end">106.948</text>
-<line class="ax" x1="170" y1="172" x2="330" y2="172"/>
-<line class="ring" x1="250" y1="172" x2="265.2" y2="172" marker-end="url(#mcid-ar)"/>
-<circle class="dot" cx="250" cy="172" r="4"/><circle class="hi" cx="265.2" cy="172" r="4"/>
-<text x="396" y="176" text-anchor="end">107.455</text><text x="472" y="176" text-anchor="end" class="val">+0.507</text>
-<text x="250" y="200" text-anchor="middle">회색 점 = 기준 조건 3회 평균 · 파란 점 = 비교 조건 값 · 화살표 = d</text>
-<text x="8" y="232" class="val">d만 모아 한 줄에</text>
-<line class="ax" x1="40" y1="262" x2="440" y2="262"/>
-<line class="ax" x1="40.0" y1="258" x2="40.0" y2="266"/><text x="40.0" y="282" text-anchor="middle">−1</text>
-<line class="ax" x1="173.3" y1="258" x2="173.3" y2="266"/><text x="173.3" y="282" text-anchor="middle">0</text>
-<line class="ax" x1="306.7" y1="258" x2="306.7" y2="266"/><text x="306.7" y="282" text-anchor="middle">+1</text>
-<line class="ax" x1="440.0" y1="258" x2="440.0" y2="266"/><text x="440.0" y="282" text-anchor="middle">+2</text>
-<circle class="hi" cx="276.2" cy="262" r="5"/><text x="276.2" y="252" text-anchor="middle">1</text>
-<circle class="hi" cx="408.9" cy="262" r="5"/><text x="408.9" y="252" text-anchor="middle">2</text>
-<circle class="hi" cx="377.8" cy="262" r="5"/><text x="377.8" y="252" text-anchor="middle">3</text>
-<circle class="hi" cx="94.8" cy="262" r="5"/><text x="94.8" y="252" text-anchor="middle">4</text>
-<circle class="hi" cx="240.9" cy="262" r="5"/><text x="240.9" y="252" text-anchor="middle">5</text>
-</svg>
-<figcaption class="s">예시 ITEM의 die 1~5 실제 값(examples/example_wide.csv) · 기준 조건 값은 die마다 95 ~ 107로 다르지만 화살표 길이(d)만 남김 · 아래 수직선의 숫자 = die 번호 <span class="badge-int">내부 기준(문헌 근거 없음)</span></figcaption>
-</figure>
-<details><summary>d 계산 (die 1~5)</summary><ol class="calc">
-<li>die 1: 기준 3회 평균 = (96.104 + 96.890 + 96.465) / 3 = 96.4863<span class="cl">d = 97.258 − 96.4863 = +0.7717</span></li>
-<li>die 2: 기준 3회 평균 = (99.194 + 98.516 + 100.005) / 3 = 99.2383<span class="cl">d = 101.005 − 99.2383 = +1.7667</span></li>
-<li>die 3: 기준 3회 평균 = (94.828 + 95.894 + 95.134) / 3 = 95.2853<span class="cl">d = 96.819 − 95.2853 = +1.5337</span></li>
-<li>die 4: 기준 3회 평균 = (102.294 + 101.657 + 102.060) / 3 = 102.0037<span class="cl">d = 101.415 − 102.0037 = −0.5887</span></li>
-<li>die 5: 기준 3회 평균 = (106.554 + 105.866 + 108.424) / 3 = 106.9480<span class="cl">d = 107.455 − 106.9480 = +0.5070</span></li>
-</ol></details>
-<p class="look"><b>여기서 볼 것</b> · 비교하는 것은 die별 차이 d · 기준 조건 값 자체(95 ~ 107)는 d를 만들고 나면 더 안 씀</p>
-<figure class="cfig" id="fig-mci-coin">
-<svg viewBox="0 0 480 260" style="max-width:480px" role="img" aria-labelledby="mcic-t"><title id="mcic-t">die 1~10의 d를 한 줄씩 찍고 모르는 진짜 중앙값 m을 점선으로 · m보다 아래는 앞면, 위는 뒷면</title>
-<text x="191.4" y="18" text-anchor="middle" class="hi" stroke="none">m보다 아래 = 앞면 · 6개</text>
-<text x="401.4" y="18" text-anchor="middle" class="ok" stroke="none">m보다 위 = 뒷면 · 4개</text>
-<text x="8" y="58" font-size="11">die 1</text><line class="ax" x1="60" y1="54" x2="460" y2="54" stroke-dasharray="1 3"/><circle class="hi" cx="319.6" cy="54" r="5"/>
-<text x="8" y="73" font-size="11">die 2</text><line class="ax" x1="60" y1="69" x2="460" y2="69" stroke-dasharray="1 3"/><circle class="ok" cx="433.3" cy="69" r="5"/>
-<text x="8" y="88" font-size="11">die 3</text><line class="ax" x1="60" y1="84" x2="460" y2="84" stroke-dasharray="1 3"/><circle class="ok" cx="406.7" cy="84" r="5"/>
-<text x="8" y="103" font-size="11">die 4</text><line class="ax" x1="60" y1="99" x2="460" y2="99" stroke-dasharray="1 3"/><circle class="hi" cx="164.2" cy="99" r="5"/>
-<text x="8" y="118" font-size="11">die 5</text><line class="ax" x1="60" y1="114" x2="460" y2="114" stroke-dasharray="1 3"/><circle class="hi" cx="289.4" cy="114" r="5"/>
-<text x="8" y="133" font-size="11">die 6</text><line class="ax" x1="60" y1="129" x2="460" y2="129" stroke-dasharray="1 3"/><circle class="hi" cx="111.4" cy="129" r="5"/>
-<text x="8" y="148" font-size="11">die 7</text><line class="ax" x1="60" y1="144" x2="460" y2="144" stroke-dasharray="1 3"/><circle class="ok" cx="393.3" cy="144" r="5"/>
-<text x="8" y="163" font-size="11">die 8</text><line class="ax" x1="60" y1="159" x2="460" y2="159" stroke-dasharray="1 3"/><circle class="hi" cx="301.1" cy="159" r="5"/>
-<text x="8" y="178" font-size="11">die 9</text><line class="ax" x1="60" y1="174" x2="460" y2="174" stroke-dasharray="1 3"/><circle class="hi" cx="314.5" cy="174" r="5"/>
-<text x="8" y="193" font-size="11">die 10</text><line class="ax" x1="60" y1="189" x2="460" y2="189" stroke-dasharray="1 3"/><circle class="ok" cx="417.9" cy="189" r="5"/>
-<line class="ax" x1="60" y1="207" x2="460" y2="207"/>
-<line class="ax" x1="117.1" y1="203" x2="117.1" y2="211"/><text x="117.1" y="223" text-anchor="middle">−1</text>
-<line class="ax" x1="231.4" y1="203" x2="231.4" y2="211"/><text x="231.4" y="223" text-anchor="middle">0</text>
-<line class="ax" x1="345.7" y1="203" x2="345.7" y2="211"/><text x="345.7" y="223" text-anchor="middle">+1</text>
-<line class="ax" x1="460.0" y1="203" x2="460.0" y2="211"/><text x="460.0" y="223" text-anchor="middle">+2</text>
-<line class="tx" x1="322.9" y1="28" x2="322.9" y2="207" stroke-dasharray="5 4" fill="none"/>
-<text x="327.9" y="40" class="val">m · 모름</text>
-<text x="240" y="247" text-anchor="middle" class="val">die 하나당 위 / 아래 반반 → 동전 한 번 · 이번 10개는 앞면 수 B = 6</text>
-</svg>
-<figcaption class="s">점 = 예시 ITEM die 1~10의 d · 가로 = d 값 · 점선 m은 실제로는 모르는 값이라 설명용으로 0.8에 둠(가정) · 파랑 = m보다 아래(앞면), 초록 = m보다 위(뒷면) <span class="badge-int">내부 기준(문헌 근거 없음)</span></figcaption>
-</figure>
-<ul>
-<li>m = d들의 진짜 중앙값 = 두 조건의 진짜 차이 → 뜻 자체가 '절반은 아래, 절반은 위'</li>
-<li>그래서 die 하나의 d가 m보다 아래일 확률 = 1/2 → 동전 앞면 확률과 같음</li>
-<li>m 아래 die 수 B = 동전 n번의 앞면 수 → <span>이항분포(Binomial distribution)</span>를 따름 <span class="from">이번 10개: 아래 -1.050, -0.589, 0.507, 0.610, 0.727, 0.772 → B = 6</span></li>
-</ul>
-<p class="look"><b>여기서 볼 것</b> · m 위치는 몰라도 'die마다 위·아래 반반'은 확실 → 이 사실 하나로 범위를 잡음</p>
-<figure class="cfig" id="fig-mci-cut">
-<svg viewBox="0 0 480 300" style="max-width:480px" role="img" aria-labelledby="mcik-t"><title id="mcik-t">동전 60번의 앞면 수 분포 · 양쪽 꼬리 23 이하와 37 이상이 각 4.62% · 아래 크기순 d 60개에서 양끝 23개씩 떼면 24번째 0.610부터 37번째 1.102까지 남음</title>
-<text x="8" y="20" class="val">위: 동전 60번에서 앞면 수 B의 확률</text>
-<rect class="bad" x="146.2" y="149.7" width="5.6" height="0.3"/>
-<rect class="bad" x="153.2" y="149.2" width="5.6" height="0.8"/>
-<rect class="bad" x="160.2" y="148.3" width="5.6" height="1.7"/>
-<rect class="bad" x="167.2" y="146.5" width="5.6" height="3.5"/>
-<rect class="bad" x="174.2" y="143.2" width="5.6" height="6.8"/>
-<rect class="bad" x="181.2" y="138.0" width="5.6" height="12.0"/>
-<rect class="bad" x="188.2" y="130.2" width="5.6" height="19.8"/>
-<rect class="barhi" x="195.2" y="119.5" width="5.6" height="30.5"/>
-<rect class="barhi" x="202.2" y="106.1" width="5.6" height="43.9"/>
-<rect class="barhi" x="209.2" y="90.9" width="5.6" height="59.1"/>
-<rect class="barhi" x="216.2" y="75.6" width="5.6" height="74.4"/>
-<rect class="barhi" x="223.2" y="62.3" width="5.6" height="87.7"/>
-<rect class="barhi" x="230.2" y="53.2" width="5.6" height="96.8"/>
-<rect class="barhi" x="237.2" y="50.0" width="5.6" height="100.0"/>
-<rect class="barhi" x="244.2" y="53.2" width="5.6" height="96.8"/>
-<rect class="barhi" x="251.2" y="62.3" width="5.6" height="87.7"/>
-<rect class="barhi" x="258.2" y="75.6" width="5.6" height="74.4"/>
-<rect class="barhi" x="265.2" y="90.9" width="5.6" height="59.1"/>
-<rect class="barhi" x="272.2" y="106.1" width="5.6" height="43.9"/>
-<rect class="barhi" x="279.2" y="119.5" width="5.6" height="30.5"/>
-<rect class="bad" x="286.2" y="130.2" width="5.6" height="19.8"/>
-<rect class="bad" x="293.2" y="138.0" width="5.6" height="12.0"/>
-<rect class="bad" x="300.2" y="143.2" width="5.6" height="6.8"/>
-<rect class="bad" x="307.2" y="146.5" width="5.6" height="3.5"/>
-<rect class="bad" x="314.2" y="148.3" width="5.6" height="1.7"/>
-<rect class="bad" x="321.2" y="149.2" width="5.6" height="0.8"/>
-<rect class="bad" x="328.2" y="149.7" width="5.6" height="0.3"/>
-<line class="ax" x1="30" y1="150" x2="450" y2="150"/>
-<text x="30.0" y="164" text-anchor="middle" font-size="10">0</text>
-<text x="191.0" y="164" text-anchor="middle" font-size="10">23</text>
-<text x="240.0" y="164" text-anchor="middle" font-size="10">30</text>
-<text x="289.0" y="164" text-anchor="middle" font-size="10">37</text>
-<text x="450.0" y="164" text-anchor="middle" font-size="10">60</text>
-<text x="114.0" y="110" text-anchor="middle" class="bad" stroke="none">B ≤ 23 · 4.62%</text>
-<text x="366.0" y="110" text-anchor="middle" class="bad" stroke="none">B ≥ 37 · 4.62%</text>
-<text x="275.0" y="62" class="hi" stroke="none">가운데 24 ~ 36 = 90.75%</text>
-<text x="8" y="186" class="val">아래: 예시 ITEM d 60개 크기순 (1번째 ~ 60번째)</text>
-<rect class="pb-bg" x="30.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="37.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="44.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="51.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="58.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="65.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="72.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="79.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="86.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="93.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="100.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="107.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="114.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="121.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="128.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="135.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="142.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="149.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="156.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="163.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="170.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="177.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="184.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="191.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="198.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="205.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="212.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="219.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="226.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="233.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="240.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="247.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="254.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="261.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="268.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="275.7" y="200" width="5.6" height="22"/>
-<rect class="hi" x="282.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="289.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="296.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="303.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="310.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="317.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="324.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="331.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="338.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="345.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="352.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="359.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="366.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="373.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="380.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="387.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="394.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="401.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="408.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="415.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="422.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="429.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="436.7" y="200" width="5.6" height="22"/>
-<rect class="pb-bg" x="443.7" y="200" width="5.6" height="22"/>
-<line class="ring" x1="194.5" y1="232" x2="285.5" y2="232"/>
-<text x="194.5" y="250" text-anchor="end">24번째 0.610</text><text x="285.5" y="250">37번째 1.102</text>
-<text x="110.5" y="216" text-anchor="middle" font-size="10">뗌 23개</text><text x="369.5" y="216" text-anchor="middle" font-size="10">뗌 23개</text>
-<text x="240" y="280" text-anchor="middle" class="val">90% CI = [0.610, 1.102] · 실제 신뢰도 90.75%</text>
-</svg>
-<figcaption class="s">위 막대 = P(B = i) = C(60, i) / 2<sup>60</sup> · 빨강 = 꼬리(m이 구간 밖) · 아래 칸 = 예시 ITEM d 60개 크기순, 회색 = 뗀 die, 파랑 = 남은 die · m이 24번째보다 아래 = 앞면 23번 이하(B ≤ 23) <span class="badge-int">내부 기준(문헌 근거 없음)</span></figcaption>
-</figure>
-<ol class="calc">
-<li>한쪽 꼬리 P(B ≤ 23) = Σ<sub>i=0..23</sub> C(60, i) / 2<sup>60</sup> = 0.04623 = 4.62% ≤ 5%<span class="cl">P(B ≤ 24) = 0.07750 = 7.75% &gt; 5% → k = 23</span></li>
-<li>반대쪽 P(B ≥ 37) = 뒷면 23번 이하 = 같은 4.62%<span class="cl">두 꼬리 합 = 2 × 0.04623 = 0.09246 ≈ 9.25%</span></li>
-<li>실제 신뢰도 = 1 − 0.09246 = 0.90754 → 90.75%</li>
-<li>남은 구간 = 23+1 = 24번째 ~ 60 − 23 = 37번째 = [0.610, 1.102] <span class="from">아래 '예시 계산'과 같은 값</span></li>
+
+<h2 id="efficiency">중앙값을 쓰는 대가</h2>
+<div class="formula">평균의 90% 구간  ≈ ±1.645 · σ / √n
+중앙값의 90% 구간 ≈ ±1.645 · √(π/2) · σ / √n     <span class="c">√(π/2) = 1.2533</span></div>
+<p>d가 정규분포처럼 흩어지면 중앙값은 평균보다 √(π/2) ≈ 1.25배 더 흔들려 구간이 약 25% 넓다<sup class="ref"><a href="#ref-14b" aria-label="근거 3">3</a></sup>. 대신 분포 모양을 몰라도 되고 튀는 die 몇 개에 흔들리지 않는다. 튀는 die는 빼지 않고 개수만 센다: |d − median(d)| &gt; 5 × robust σ 이면 <code>n_outlier_die</code>에 더한다<sup class="ref"><a href="#ref-8" aria-label="근거 4">4</a></sup>. 튀는 die의 크기는 구간에 영향이 없지만, 개수가 늘면 순번이 밀려 구간이 바뀐다.</p>
+
+<h2>근거와 문헌</h2>
+<ol class="refs" id="sources">
+<li id="ref-9"><span class="st st-ok">확인</span> <b>편향 b = median(d), 부호검정 90% 구간 [d(24), d(38)] (n = 61)</b><span class="ref-src">NIST Dataplot Reference Manual · MEDIAN CONFIDENCE LIMITS (Method 1) <a href="https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/mediancl.htm" rel="noopener">원문</a><br>NIST Dataplot Reference Manual · SIGN TEST <a href="https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/signtest.htm" rel="noopener">원문</a><br>Hollander &amp; Wolfe, Nonparametric Statistical Methods (2차: U. Minnesota Geyer 강의 페이지) · 3장 예 3.5, 3.6 (부호검정과 중앙값 구간) <a href="https://www.stat.umn.edu/geyer/5601/examp/sign.html" rel="noopener">원문</a></span><span class="ref-note">단 NIST e-Handbook 본문이 아니라 NIST Dataplot 매뉴얼. e-Handbook 본문에서는 중앙값 부호검정 구간 절을 찾지 못함. H&amp;W 원서는 미열람</span><span class="ref-no">대조표 #9</span></li>
+<li id="ref-1"><span class="st st-ok">확인</span> <b>대응 차이 d = Cand − Ref 3회 평균</b><span class="ref-src">NIST/SEMATECH e-Handbook · 7.3.1.1 Analysis of paired observations <a href="https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm" rel="noopener">원문</a><br>ASTM E2935-21 · 4.2.1, 4.2.1.1 (Significance and Use) <a href="https://store.astm.org/e2935-21.html" rel="noopener">원문</a></span><span class="ref-note">쌍 설계. Ref를 J회 평균으로 쓰는 것은 설계 선택</span><span class="ref-no">대조표 #1</span></li>
+<li id="ref-14b"><span class="st st-part">부분</span> <b>1.25 = √(π/2), 중앙값 효율 2/π</b><span class="ref-src">Wikipedia &quot;Efficiency (statistics)&quot;, &quot;Median&quot;, &quot;Sign test&quot; (2차. 각각 Maindonald &amp; Braun 2010 p.104, Conover 1999 인용) · Efficiency of the median 절, Sign test의 검정력 비교 절</span><span class="ref-note">2차 출처로만 확인. 1차 문헌 Hollander &amp; Wolfe / Conover 원서 미열람.</span><span class="ref-no">대조표 #14b</span></li>
+<li id="ref-8"><span class="st st-part">부분</span> <b>이상치 die: |d − median(d)| &gt; 5·robustσ, 세기만 하고 빼지 않음</b><span class="ref-src">NIST e-Handbook · 1.3.5.17 Detection of Outliers <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm" rel="noopener">원문</a><br>FDA &quot;Statistical Approaches to Establishing Bioequivalence&quot; (2001) · VII.C Outlier Considerations <a href="https://www.gmp-compliance.org/files/guidemgr/3616fnl.pdf" rel="noopener">원문</a></span><span class="ref-note">MAD 기반 표시와 &quot;빼지 않음&quot;은 확인. 기준 5는 NIST 권고 3.5보다 느슨한 내부 기준</span><span class="ref-no">대조표 #8</span></li>
 </ol>
-<p class="look"><b>여기서 볼 것</b> · 동전이 한쪽으로 몰리는 드문 경우(각 4.62%)만 m이 구간 밖 → 양끝 23개씩 떼고 남은 [0.610, 1.102]가 90% CI</p>
-<h3>말로 정리</h3>
-<ul id="why">
-<li>d: die마다 <a class="g" href="glossary.html#cand"><abbr title="비교 조건 · 바꾸려는 조건">비교 조건(Candidate)</abbr></a> 값 − <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> 3회 평균 <span class="from">합성 예시는 기준 조건 3회(J = 3)</span> · d 60개의 진짜 중앙값 m은 모름<ul class="chain"><li>→ die를 다시 뽑아 재면 중앙값이 조금씩 달라짐</li><li>→ m이 있을 만한 범위가 필요</li></ul></li>
-<li>die마다 d가 진짜 중앙값 m보다 작게 나올 확률은 반반 <span class="from">m이 중앙값이라 절반은 아래, 절반은 위</span><ul class="chain"><li>→ 'm보다 작은 die 수' = '동전 60번 던졌을 때 앞면 수(B)'와 같은 꼴<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup> · 동전 비유 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li></ul></li>
-<li>d를 크기순으로 세우고 양끝에서 k개씩 떼면 → 남은 구간 = 아래에서 k+1번째 값 ~ n−k번째 값</li>
-<li>진짜 중앙값이 남은 구간 밖에 있는 경우는 둘뿐: 'm보다 작은 die가 k개 이하(앞면이 k번 이하)' 또는 'm보다 큰 die가 k개 이하(뒷면이 k번 이하)'<ul class="chain"><li>→ 두 쪽 확률이 같아 각각 한쪽 P(B ≤ k)<sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li></ul></li>
-<li>한쪽 P(B ≤ k)가 5% 이하인 가장 큰 k를 고름 <span class="from">5% × 2쪽 = 10% → 남은 90%</span><ul class="chain"><li>→ die 60개면 k = 23, 구간은 24번째 ~ 37번째 값, 실제 신뢰도 90.75% <span class="from">예시 계산 1~3줄</span><sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup><sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li></ul></li>
-<li>값의 크기는 쓰지 않고 순번만 씀 → <a class="g" href="glossary.html#sign-test"><abbr title="부호검정 · 차이가 +인 die와 −인 die 수만 세어 중앙값을 따지는 방법">부호검정</abbr></a>과 같은 생각 · 판정에서의 쓰임은 <a href="c-median-ci.html">부호검정과 중앙값 90% 신뢰구간</a></li>
+
+<h2>코드 위치</h2>
+<ul>
+<li>아래 끝 순번: <code class="codeptr">por_doe_compare.py · ci_rank()</code>, 중앙값과 구간: <code class="codeptr">por_doe_compare.py · ci_median()</code></li>
+<li>튀는 die 기준 배수: <code class="codeptr">por_doe_compare.py · OUTLIER_K</code>, d 와 구간을 만드는 곳: <code class="codeptr">por_doe_compare.py · judge()</code></li>
 </ul>
-<details><summary>보충</summary><ul>
-<li>실제 신뢰도가 딱 90%가 아닌 이유: k는 정수<ul class="chain"><li>→ 고를 수 있는 신뢰도가 몇 개뿐</li><li>→ 90% 이상 중 가장 가까운 값을 씀<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li></ul></li>
-<li>die 수가 바뀔 때 k 찾는 법: 엑셀 =BINOM.DIST(k, n, 0.5, TRUE)를 k를 1씩 올리며 계산<ul class="chain"><li>→ 5% 이하인 마지막 k</li><li>→ 구간 = k+1번째 ~ n−k번째 값</li></ul></li>
-<li>die 수별 결과 (같은 규칙)
-<div class="tw"><table><thead><tr><th>die 수 n</th><th>남은 구간 순번</th><th>실제 신뢰도</th></tr></thead><tbody>
-<tr><td>30</td><td>11 ~ 20번째</td><td>90.13%</td></tr>
-<tr><td>45</td><td>17 ~ 29번째</td><td>92.75%</td></tr>
-<tr class="now"><td>60</td><td>24 ~ 37번째</td><td>90.75%</td></tr>
-<tr><td>90</td><td>37 ~ 54번째</td><td>92.75%</td></tr>
-</tbody></table></div></li>
-<li>같은 값의 d가 여럿일 때: 크기순 순번만 셈 → 구간 끝은 그 순번에 놓인 값 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
-</ul></details></section>
-
-<section id="small"><h2>작은 예시 먼저: die 10개</h2>
-<ol class="calc">
-<li>die 10개의 d를 크기순으로 세우고 양끝에서 1개씩 뗌(k = 1)<span class="cl">→ 남은 구간 = 2번째 ~ 9번째 값 <span class="from">k + 1 = 2, n − k = 10 − 1 = 9</span></span></li>
-<li>진짜 중앙값이 2번째 값보다 아래 = m보다 작은 die가 0개 또는 1개 = 동전 10번에서 앞면 0번 또는 1번</li>
-<li>앞면 0번 = C(10, 0) = 1가지<span class="cl">앞면 1번 = C(10, 1) = 10가지</span><span class="cl">전체 = 2<sup>10</sup> = 1024가지 </span><span class="from">동전 10번의 앞뒤 경우 수</span></li>
-<li>한쪽 바깥 확률 = P(B ≤ 1) = (1 + 10)/1024 = 11/1024 = 1.07% ≈ 1.1%</li>
-<li>반대쪽(뒷면 1번 이하)도 같은 1.1%</li>
-<li>실제 신뢰도 = 1 − 2 × 11/1024 = 1002/1024 = 97.85% ≈ 97.9%</li>
-</ol></section>
-
-<section id="formula"><h2>수식</h2>
-<div class="formula"><div>P(B = i) = C(60, i) / 2<sup>60</sup></div><div>P(B ≤ k) = Σ<sub>i=0..k</sub> C(60, i) / 2<sup>60</sup></div><div>90% CI = [d<sub>(k+1)</sub>, d<sub>(n−k)</sub>]</div><div>실제 신뢰도 = 1 − 2·P(B ≤ k)</div><div>k = P(B ≤ k) ≤ 5%인 가장 큰 수</div><div class="c">앞면이 i번 나오는 가짓수를 전체 가짓수로 나눔 → 0번부터 k번까지 더하면 한쪽 바깥 확률 → 양쪽을 빼면 실제 신뢰도</div></div>
-<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
-<tr><td>n</td><td>die 수</td><td>60</td></tr>
-<tr><td>d<sub>(i)</sub></td><td>d(die별 차이 = 비교 조건 − 기준 조건 3회 평균)를 작은 값부터 세웠을 때 i번째 값</td><td>d<sub>(24)</sub> = 0.610</td></tr>
-<tr><td>m</td><td>d의 진짜 중앙값. 알 수 없는 값이라 구간으로 잡음</td><td>모름 · 추정값 b = 0.786</td></tr>
-<tr><td>B</td><td>d가 m보다 작게 나온 die 수. 동전 n번 던졌을 때 앞면 수와 같은 꼴</td><td>0 ~ 60</td></tr>
-<tr><td>C(n, i)</td><td>n번 중 앞면이 i번 나오는 가짓수</td><td>C(10, 1) = 10</td></tr>
-<tr><td>k</td><td>양끝에서 떼는 개수</td><td>23</td></tr>
-<tr><td>P(B ≤ k)</td><td>한쪽 바깥 확률. 앞면이 k번 이하일 확률</td><td>P(B ≤ 23) = 4.62%</td></tr>
-</tbody></table></div>
-</section>
-
-<section id="example"><h2>예시 계산</h2>
-<p class="s">예시 데이터: <a href="step-1.html#ex-data">합성 예시 die 6개 표</a> · 전체 <a href="examples/example_wide.csv">examples/example_wide.csv</a></p>
-<p class="s">n = 60일 때 k 찾기 (정확한 이항 합)</p>
-<div class="tw"><table><thead><tr><th>떼는 개수 k</th><th>한쪽 바깥 확률 P(B ≤ k)</th><th>5% 이하?</th><th>남은 구간 순번</th><th>실제 신뢰도</th></tr></thead><tbody>
-<tr><td>21</td><td>0.01367 = 1.37%</td><td>예</td><td>22 ~ 39번째</td><td>97.27%</td></tr>
-<tr><td>22</td><td>0.02595 = 2.59%</td><td>예</td><td>23 ~ 38번째</td><td>94.81%</td></tr>
-<tr class="now"><td>23</td><td>0.04623 = 4.62%</td><td>예 · 5% 이하 중 가장 큼</td><td>24 ~ 37번째</td><td>90.75%</td></tr>
-<tr><td>24</td><td>0.07750 = 7.75%</td><td>아니오</td><td>25 ~ 36번째</td><td>84.50%</td></tr>
-</tbody></table></div>
-<ol class="calc">
-<li>P(B ≤ 23) = 0.04623 ≤ 0.05 &lt; P(B ≤ 24) = 0.07750<span class="cl">→ k = 23 <span class="from">위 표 · Σ C(60, i)/2<sup>60</sup></span></span></li>
-<li>아래 끝 = k + 1 = 24번째<span class="cl">위 끝 = n − k = 60 − 23 = 37번째</span></li>
-<li>실제 신뢰도 = 1 − 2 × 0.04623 = 0.90754 → 90.75% (≈ 90.8%)</li>
-<li>엑셀 확인: =BINOM.DIST(23,60,0.5,TRUE) = 0.0462<span class="cl">=BINOM.DIST(24,60,0.5,TRUE) = 0.0775 </span><span class="from">마지막 TRUE = k번 이하를 모두 더함</span></li>
-<li>예시 ITEM d 크기순: 24번째 = 0.610<span class="cl">37번째 = 1.10233 </span><span class="from">d 60개 전체, examples/example_wide.csv</span></li>
-<li>90% CI = [0.610, 1.10233] ≈ [0.610, 1.102]<span class="cl">폭 = 1.10233 − 0.610 = 0.492 </span><span class="from"><a href="step-4.html#C4-1">④ 차이(편향)와 90% 신뢰구간 구하기</a>와 같은 구간</span></li>
-<li>중앙값 b = (30번째 0.785 + 31번째 0.7867) / 2 = 0.78583 ≈ 0.786 → 구간 안</li>
-</ol></section>
-
-<section id="figure"><h2>그림</h2>
-<figure class="cfig" id="fig-mci" data-anim="steps" data-start="4">
-<svg viewBox="0 0 680 270" role="img" aria-labelledby="mci-t"><title id="mci-t">예시 ITEM의 d 60개를 크기순으로 세운 막대 · 양끝 회색은 떼어 낸 die · 남은 가운데 처음과 끝이 90% 신뢰구간</title>
-<line class="ax" x1="36" y1="140" x2="644" y2="140"/><text x="30" y="144" text-anchor="end">0</text>
-<text x="30" y="44" text-anchor="end">+4</text><line class="ax" x1="36" y1="40" x2="40" y2="40"/>
-<text x="30" y="219" text-anchor="end">−3</text><line class="ax" x1="36" y1="215" x2="40" y2="215"/>
-<g id="mci-bars"><rect class="hi" x="40" y="140.0" width="8" height="75.4"/><rect class="hi" x="50" y="140.0" width="8" height="37.5"/><rect class="hi" x="60" y="140.0" width="8" height="33.6"/><rect class="hi" x="70" y="140.0" width="8" height="26.2"/><rect class="hi" x="80" y="140.0" width="8" height="23.3"/><rect class="hi" x="90" y="140.0" width="8" height="18.6"/><rect class="hi" x="100" y="140.0" width="8" height="14.7"/><rect class="hi" x="110" y="140.0" width="8" height="8.8"/><rect class="hi" x="120" y="140.0" width="8" height="4.8"/><rect class="hi" x="130" y="140.0" width="8" height="0.5"/><rect class="hi" x="140" y="140.0" width="8" height="0.5"/><rect class="hi" x="150" y="139.4" width="8" height="0.6"/><rect class="hi" x="160" y="134.2" width="8" height="5.8"/><rect class="hi" x="170" y="132.8" width="8" height="7.2"/><rect class="hi" x="180" y="132.0" width="8" height="8.0"/><rect class="hi" x="190" y="129.6" width="8" height="10.4"/><rect class="hi" x="200" y="128.7" width="8" height="11.3"/><rect class="hi" x="210" y="127.7" width="8" height="12.3"/><rect class="hi" x="220" y="127.3" width="8" height="12.7"/><rect class="hi" x="230" y="127.2" width="8" height="12.8"/><rect class="hi" x="240" y="126.4" width="8" height="13.6"/><rect class="hi" x="250" y="126.2" width="8" height="13.8"/><rect class="hi" x="260" y="125.5" width="8" height="14.5"/><rect class="hi" x="270" y="124.8" width="8" height="15.2"/><rect class="hi" x="280" y="123.4" width="8" height="16.6"/><rect class="hi" x="290" y="122.1" width="8" height="17.9"/><rect class="hi" x="300" y="121.8" width="8" height="18.2"/><rect class="hi" x="310" y="121.6" width="8" height="18.4"/><rect class="hi" x="320" y="120.7" width="8" height="19.3"/><rect class="hi" x="330" y="120.4" width="8" height="19.6"/><rect class="hi" x="340" y="120.3" width="8" height="19.7"/><rect class="hi" x="350" y="119.0" width="8" height="21.0"/><rect class="hi" x="360" y="115.5" width="8" height="24.5"/><rect class="hi" x="370" y="114.8" width="8" height="25.2"/><rect class="hi" x="380" y="112.6" width="8" height="27.4"/><rect class="hi" x="390" y="112.5" width="8" height="27.5"/><rect class="hi" x="400" y="112.4" width="8" height="27.6"/><rect class="hi" x="410" y="109.7" width="8" height="30.3"/><rect class="hi" x="420" y="109.6" width="8" height="30.4"/><rect class="hi" x="430" y="109.3" width="8" height="30.7"/><rect class="hi" x="440" y="107.9" width="8" height="32.1"/><rect class="hi" x="450" y="107.5" width="8" height="32.5"/><rect class="hi" x="460" y="104.6" width="8" height="35.4"/><rect class="hi" x="470" y="103.3" width="8" height="36.7"/><rect class="hi" x="480" y="101.7" width="8" height="38.3"/><rect class="hi" x="490" y="100.2" width="8" height="39.8"/><rect class="hi" x="500" y="99.2" width="8" height="40.8"/><rect class="hi" x="510" y="97.5" width="8" height="42.5"/><rect class="hi" x="520" y="95.8" width="8" height="44.2"/><rect class="hi" x="530" y="95.6" width="8" height="44.4"/><rect class="hi" x="540" y="95.6" width="8" height="44.4"/><rect class="hi" x="550" y="82.0" width="8" height="58.0"/><rect class="hi" x="560" y="81.0" width="8" height="59.0"/><rect class="hi" x="570" y="80.7" width="8" height="59.3"/><rect class="hi" x="580" y="78.8" width="8" height="61.2"/><rect class="hi" x="590" y="75.0" width="8" height="65.0"/><rect class="hi" x="600" y="72.3" width="8" height="67.7"/><rect class="hi" x="610" y="68.7" width="8" height="71.3"/><rect class="hi" x="620" y="67.0" width="8" height="73.0"/><rect class="hi" x="630" y="40.9" width="8" height="99.1"/></g>
-<rect id="mci-ml" class="pb-bg" fill-opacity=".85" x="39" y="30" width="230" height="196"/>
-<rect id="mci-mr" class="pb-bg" fill-opacity=".85" x="409" y="30" width="231" height="196"/>
-<text x="40" y="22">작은 쪽</text><text x="640" y="22" text-anchor="end">큰 쪽</text>
-<line id="mci-bar" class="ring" x1="274" y1="238" x2="404" y2="238"/>
-<text id="mci-lo" x="274" y="258" text-anchor="middle">24번째 0.610</text>
-<text id="mci-hi" x="404" y="258" text-anchor="middle">37번째 1.102</text>
-</svg>
-<p class="s">떼는 개수 k <b id="mci-k">23</b> · 구간 폭 <b id="mci-w">0.492</b> · 한쪽 바깥 확률 P(B ≤ k) <b id="mci-p">4.62%</b> · 실제 신뢰도 1 − 2 × P(B ≤ k) <b id="mci-c">90.75%</b></p>
-<div class="ctl" hidden><label for="mci-ctl">떼는 개수</label><input id="mci-ctl" type="range" min="0" max="8" step="1" value="4"><output for="mci-ctl">양끝 23개씩 뗌</output><button type="button" class="play" aria-pressed="false">재생</button></div>
-<div class="tw"><table class="states"><thead><tr><th>양끝에서 떼는 개수 k</th><th>남은 구간 순번</th><th>구간</th><th>폭</th><th>한쪽 바깥 확률 P(B ≤ k)</th><th>실제 신뢰도</th></tr></thead><tbody><tr><td>19</td><td>20 ~ 41번째</td><td>[0.514, 1.286]</td><td>0.772</td><td>0.31%</td><td>99.38%</td></tr><tr><td>20</td><td>21 ~ 40번째</td><td>[0.545, 1.229]</td><td>0.684</td><td>0.67%</td><td>98.65%</td></tr><tr><td>21</td><td>22 ~ 39번째</td><td>[0.553, 1.214]</td><td>0.662</td><td>1.37%</td><td>97.27%</td></tr><tr><td>22</td><td>23 ~ 38번째</td><td>[0.579, 1.211]</td><td>0.632</td><td>2.59%</td><td>94.81%</td></tr><tr class="now"><td>23</td><td>24 ~ 37번째</td><td>[0.610, 1.102]</td><td>0.492</td><td>4.62%</td><td>90.75%</td></tr><tr><td>24</td><td>25 ~ 36번째</td><td>[0.663, 1.100]</td><td>0.437</td><td>7.75%</td><td>84.50%</td></tr><tr><td>25</td><td>26 ~ 35번째</td><td>[0.715, 1.098]</td><td>0.383</td><td>12.25%</td><td>75.49%</td></tr><tr><td>26</td><td>27 ~ 34번째</td><td>[0.727, 1.008]</td><td>0.282</td><td>18.31%</td><td>63.37%</td></tr><tr><td>27</td><td>28 ~ 33번째</td><td>[0.735, 0.979]</td><td>0.244</td><td>25.95%</td><td>48.10%</td></tr></tbody></table></div>
-<script type="application/json" class="states">[{"label": "양끝 19개씩 뗌", "set": {"mci-ml": {"width": "190"}, "mci-mr": {"x": "449", "width": "191"}, "mci-bar": {"x1": "234", "x2": "444"}, "mci-lo": {"x": "234", "text": "20번째 0.514"}, "mci-hi": {"x": "444", "text": "41번째 1.286"}, "mci-k": {"text": "19"}, "mci-w": {"text": "0.772"}, "mci-p": {"text": "0.31%"}, "mci-c": {"text": "99.38%"}}}, {"label": "양끝 20개씩 뗌", "set": {"mci-ml": {"width": "200"}, "mci-mr": {"x": "439", "width": "201"}, "mci-bar": {"x1": "244", "x2": "434"}, "mci-lo": {"x": "244", "text": "21번째 0.545"}, "mci-hi": {"x": "434", "text": "40번째 1.229"}, "mci-k": {"text": "20"}, "mci-w": {"text": "0.684"}, "mci-p": {"text": "0.67%"}, "mci-c": {"text": "98.65%"}}}, {"label": "양끝 21개씩 뗌", "set": {"mci-ml": {"width": "210"}, "mci-mr": {"x": "429", "width": "211"}, "mci-bar": {"x1": "254", "x2": "424"}, "mci-lo": {"x": "254", "text": "22번째 0.553"}, "mci-hi": {"x": "424", "text": "39번째 1.214"}, "mci-k": {"text": "21"}, "mci-w": {"text": "0.662"}, "mci-p": {"text": "1.37%"}, "mci-c": {"text": "97.27%"}}}, {"label": "양끝 22개씩 뗌", "set": {"mci-ml": {"width": "220"}, "mci-mr": {"x": "419", "width": "221"}, "mci-bar": {"x1": "264", "x2": "414"}, "mci-lo": {"x": "264", "text": "23번째 0.579"}, "mci-hi": {"x": "414", "text": "38번째 1.211"}, "mci-k": {"text": "22"}, "mci-w": {"text": "0.632"}, "mci-p": {"text": "2.59%"}, "mci-c": {"text": "94.81%"}}}, {"label": "양끝 23개씩 뗌", "set": {"mci-ml": {"width": "230"}, "mci-mr": {"x": "409", "width": "231"}, "mci-bar": {"x1": "274", "x2": "404"}, "mci-lo": {"x": "274", "text": "24번째 0.610"}, "mci-hi": {"x": "404", "text": "37번째 1.102"}, "mci-k": {"text": "23"}, "mci-w": {"text": "0.492"}, "mci-p": {"text": "4.62%"}, "mci-c": {"text": "90.75%"}}}, {"label": "양끝 24개씩 뗌", "set": {"mci-ml": {"width": "240"}, "mci-mr": {"x": "399", "width": "241"}, "mci-bar": {"x1": "284", "x2": "394"}, "mci-lo": {"x": "284", "text": "25번째 0.663"}, "mci-hi": {"x": "394", "text": "36번째 1.100"}, "mci-k": {"text": "24"}, "mci-w": {"text": "0.437"}, "mci-p": {"text": "7.75%"}, "mci-c": {"text": "84.50%"}}}, {"label": "양끝 25개씩 뗌", "set": {"mci-ml": {"width": "250"}, "mci-mr": {"x": "389", "width": "251"}, "mci-bar": {"x1": "294", "x2": "384"}, "mci-lo": {"x": "294", "text": "26번째 0.715"}, "mci-hi": {"x": "384", "text": "35번째 1.098"}, "mci-k": {"text": "25"}, "mci-w": {"text": "0.383"}, "mci-p": {"text": "12.25%"}, "mci-c": {"text": "75.49%"}}}, {"label": "양끝 26개씩 뗌", "set": {"mci-ml": {"width": "260"}, "mci-mr": {"x": "379", "width": "261"}, "mci-bar": {"x1": "304", "x2": "374"}, "mci-lo": {"x": "304", "text": "27번째 0.727"}, "mci-hi": {"x": "374", "text": "34번째 1.008"}, "mci-k": {"text": "26"}, "mci-w": {"text": "0.282"}, "mci-p": {"text": "18.31%"}, "mci-c": {"text": "63.37%"}}}, {"label": "양끝 27개씩 뗌", "set": {"mci-ml": {"width": "270"}, "mci-mr": {"x": "369", "width": "271"}, "mci-bar": {"x1": "314", "x2": "364"}, "mci-lo": {"x": "314", "text": "28번째 0.735"}, "mci-hi": {"x": "364", "text": "33번째 0.979"}, "mci-k": {"text": "27"}, "mci-w": {"text": "0.244"}, "mci-p": {"text": "25.95%"}, "mci-c": {"text": "48.10%"}}}]</script>
-<figcaption class="s">막대 = 예시 ITEM의 d 60개를 크기순으로 세움(examples/example_wide.csv) · 회색 = 양끝에서 뗀 die · 파란 선 = 남은 구간(90% 신뢰구간) · 슬라이더로 떼는 개수 k를 19 ~ 27로 바꾸면 구간 폭과 확률이 같이 바뀜 <span class="badge-int">내부 기준(문헌 근거 없음)</span></figcaption>
-</figure>
-<p class="look"><b>여기서 볼 것</b> · 실제 신뢰도 90% 이상 중 가장 좁은 구간은 k 23 · k 22 → 94.81% · 폭 0.632 / k 23 → 90.75% · 폭 0.492 / k 24 → 84.50%로 90% 미만</p>
-</section>
-
-<section id="normal"><h2>정규분포와 비교</h2>
-<ul>
-<li>데이터 90% 범위 = ±1.645σ: die 하나의 d가 들어갈 범위 · 중앙값의 범위가 아님 <span class="from">σ = d의 흔들림</span></li>
-<li>평균의 90% CI ≈ ±1.645 × σ/√60 = ±0.2124σ ≈ ±0.21σ <span class="from">√60 = 7.746</span></li>
-<li>중앙값의 90% CI ≈ ±1.645 × 1.2533 × σ/√60 = ±0.2662σ ≈ ±0.27σ <span class="from">1.2533 = √(π/2), <a href="c-power.html">중앙값 효율 1.25</a></span><sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li>
-<li>0.2662 / 0.2124 = 1.2533 → 정규분포일 때 중앙값 CI가 평균 CI보다 약 25% 넓음</li>
-<li>쉬운 말로: 데이터 범위는 die 하나가 어디 떨어질지, CI는 60개를 모아 낸 중앙값 하나가 어디 있을지<ul class="chain"><li>→ 모아 낸 값이라 범위가 훨씬 좁음(±1.645σ 대 ±0.27σ) <span class="badge-int">내부 기준(문헌 근거 없음)</span></li></ul></li>
-<li>이 쪽의 순번 방법은 정규분포를 가정하지 않음 → 위 식은 넓이를 견주는 데만 씀</li>
-</ul></section>
-
-<section id="use"><h2>왜 이 방법을 쓰나</h2>
-<ul>
-<li>분포 가정 없음: 'm보다 작을 확률 반반'만 씀 → d가 정규분포가 아니어도 같은 규칙<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li>
-<li>튀는 die의 크기에는 안 흔들림: 순번만 씀<ul class="chain"><li>→ 가장 큰 die의 d 3.9643이 100이 되어도 24번째·37번째 값은 그대로 <span class="from">3.9643 = 예시 ITEM d 60개 중 가장 큰 값</span></li></ul></li>
-<li>튀는 die의 개수는 영향 있음: 개수가 늘면 순번이 밀려 구간이 바뀜</li>
-<li>대신 정규분포일 때 평균 CI보다 약 25% 넓음 (±0.27σ 대 ±0.21σ)</li>
-<li>손해와 이득: 정규분포일 때 구간이 약 25% 넓어지는 손해 ↔ 분포 모양을 몰라도 되고 튀는 die 몇 개에 안 흔들리는 이득 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
-<li>도구도 같은 규칙으로 계산 → <a href="step-4.html#C4-1">④ 차이(편향)와 90% 신뢰구간 구하기</a>의 구간 [0.610, 1.102]</li>
-</ul></section>
-
-<section id="sources"><h2>출처</h2>
-<ol class="fn">
-<li id="fn1">Hollander &amp; Wolfe, Nonparametric Statistical Methods · 3장 예 3.6 (2차: U. Minnesota Geyer 강의 쪽) · <a href="https://www.stat.umn.edu/geyer/5601/examp/sign.html" rel="noopener" target="_blank">링크</a></li>
-<li id="fn2">NIST Dataplot Reference Manual · MEDIAN CONFIDENCE LIMITS · <a href="https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/mediancl.htm" rel="noopener" target="_blank">링크</a></li>
-<li id="fn3">중앙값 효율 1.2533 = √(π/2), 중앙값의 분산 (π/2)·σ²/n: Wikipedia "Efficiency (statistics)" · Efficiency of the median 절 · <a href="https://en.wikipedia.org/wiki/Efficiency_(statistics)" rel="noopener" target="_blank">링크</a> / Wikipedia "Median" · Sampling distribution 절 · <a href="https://en.wikipedia.org/wiki/Median" rel="noopener" target="_blank">링크</a></li>
-<li id="fn4"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 쉬운 말 설명(동전 비유)과 그림, 정규분포 비교의 쉬운 말 해석, '손해와 이득' 한 줄</li>
-<li id="fn5">신뢰 수준의 뜻(반복 표본에서 구간이 참값을 덮는 비율): NIST/SEMATECH e-Handbook of Statistical Methods · 7.1.4 What are confidence intervals? · Confidence levels · <a href="https://www.itl.nist.gov/div898/handbook/prc/section1/prc14.htm" rel="noopener" target="_blank">링크</a></li>
-<li id="fn6">TOST = 90% 신뢰구간이 ±Δ 안: Schuirmann (1987) J. Pharmacokinet. Biopharm. 15:657-680 · 초록 · <a href="https://link.springer.com/article/10.1007/BF01068419" rel="noopener" target="_blank">링크</a></li>
-</ol></section>
-
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-median-ci.html">부호검정과 중앙값 90% 신뢰구간</a></li><li><a href="c-power.html">중앙값 효율 1.25</a></li><li><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a></li></ul></nav>
+</div></details>
 <footer class="pager"><a href="c-loq.html" class="prev">← LoQ와 10배</a><a href="c-delta.html" class="next">허용폭 Δ →</a></footer>
 </article></main>
-<script src="assets/concepts.js"></script>
+<script src="assets/journeys.js"></script>
 <script src="assets/sop.js"></script>
 <script src="assets/scenes/steps-a.js"></script>
 <script src="assets/scenes/steps-b.js"></script>
