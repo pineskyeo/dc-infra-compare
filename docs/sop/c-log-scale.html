@@ -37,7 +37,7 @@ spread_robust &lt; 0.3 이거나 기울기를 못 구함     → 판별 불가
 noise_slope ≥ 0.7                            → log
 그 밖                                          → linear</div>
 <p>잡음이 값과 상관없이 일정하면 기울기는 0 근처, 값에 비례하면(값 10배 → 잡음 10배) 1 근처다. Theil–Sen은 점 두 개씩 이은 기울기들의 중앙값이라 튀는 die에 강하다. 값이 걸친 폭이 0.3 자릿수(약 2배)보다 좁으면 기울기를 믿을 수 없어 판별 불가로 둔다. 기울기는 평균·표준편차가 양수인 die만으로 구한다.</p>
-<div class="tw"><table><thead><tr><th>잡음 모양 (<code>noise_pattern</code>)</th><th>기울기 95% 구간</th></tr></thead><tbody>
+<div class="tw"><table><thead><tr><th>잡음 (<code>cls_noise</code> = <code>noise_pattern</code>)</th><th>기울기 95% 구간</th></tr></thead><tbody>
 <tr><td>판별 불가</td><td>0과 1을 둘 다 품음, 또는 폭·die 수 부족</td></tr>
 <tr><td>일정</td><td>0을 품음</td></tr>
 <tr><td>비례</td><td>1을 품음</td></tr>

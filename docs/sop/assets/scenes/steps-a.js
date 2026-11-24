@@ -254,6 +254,33 @@
   // ---------- ③ LoQ와 ITEM 유형: LoQ 선, POR 값만 보고 분류 → 판정 길 ----------
   const AXES = [['valid', '판정 가능'], ['sign', '부호'], ['level', '수준'], ['resolution', '분해능'],
     ['shape', '모양'], ['noise', '잡음'], ['scale', '척도'], ['run', '회차']];
+  // 분류 값마다 쉬운 풀이 한 줄. classify.py AXES 가 낼 수 있는 값 전부 (tests/test_sop_tables.py 가 맞춰 본다)
+  const GLOSS = {
+    valid: { '정상': '판정할 수 있다', 'die 부족': 'die가 10개보다 적어 판정하지 않는다' },
+    sign: { '부호 섞임': '+ 값과 − 값이 함께 있다', '0 포함': '0인 값이 있다', '양수만': '모든 값이 0보다 크다',
+      '음수만': '모든 값이 0보다 작다', '값 없음': 'Open 코드를 빼면 남는 값이 없다' },
+    level: { '0 중심': '+와 −가 섞여 0 둘레에 있다 (크기가 LoQ보다 작다)', '바닥 아래': 'POR 중앙값이 LoQ보다 작다',
+      '바닥 근처': 'LoQ의 1~2배. 숫자로 읽지만 바닥에 가깝다', '정량': 'LoQ의 2배 이상. 숫자로 믿고 견준다' },
+    resolution: { '계단': '값이 띄엄띄엄 찍히고, 한 칸이 Δ의 10% 이상이다', '연속': '값 간격이 Δ에 비해 아주 작다' },
+    shape: { '두 덩어리': 'die 값이 두 무리로 갈린다', '튀는 die': '몸통에서 멀리 떨어진 die가 있다',
+      '한계에 걸림': 'Open 코드가 있거나, 최댓값·최솟값에 붙은 값이 5% 이상이다', '한 덩어리': '특별한 모양 없이 한 무리다' },
+    noise: { '일정': '잡음 크기가 값과 상관없다', '비례': '값이 크면 잡음도 그만큼 크다',
+      '위로 갈수록 벌어짐': '값이 클수록 잡음이 비례보다 더 커진다', '아래로 갈수록 벌어짐': '값이 작을수록 잡음이 커진다',
+      '사이': '값이 크면 잡음이 조금 커진다 (일정과 비례 사이)',
+      '판별 불가': '값 폭이 좁거나 die가 적거나, 일정·비례 둘 다 맞아 못 정한다' },
+    scale: { 'log': '배율(몇 %)로 견주는 것이 맞다', 'linear': '차이(빼기)로 견주는 것이 맞다',
+      '판별 불가': '값 폭이 좁아 척도를 정하지 않는다' },
+    run: { '회차 밀림': '밀린 POR 회차를 따라 이 ITEM도 움직였다', '조건 불안정': 'POR 회차끼리 값이 옮겨 갔다',
+      '회차 흔들림': '같은 die를 다시 잰 값 차이가 보통 Δ 이상이다', '안정': 'POR 회차에 문제가 없다' }
+  };
+  const BEND = ' (꺾임)';
+  function glossOf(k, v) {
+    if (k === 'valid' && !GLOSS.valid[v]) return `POR 값만 봐도 판정 제외 원인이 있다 (${v})`;
+    const base = String(v).endsWith(BEND) ? String(v).slice(0, -BEND.length) : String(v);
+    const line = base.split(';').map(x => GLOSS[k][x]).filter(Boolean).join(' · ');
+    if (!line) throw new Error(`분류 값 풀이 없음: ${k} = ${v}`);
+    return base === v ? line : `${line}. 아래·위 절반의 모양이 다르다 (꺾임)`;
+  }
   // classify.ROUTES 순서. keys = 그 길을 고르게 한 분류 축
   const ROUTES = [
     ['제외', '판정 가능이 정상이 아님', () => ['valid']],
@@ -292,8 +319,8 @@
     const xa = scale(0, Math.max(m, st.LoQ) * 1.22, X0, X1);
     const above = m >= st.LoQ;
     nodes.push(s('g', { 'data-b': 1 }, [
-      s('text', { x: 0, y: ay - 14, class: 'sc-h' }, 'POR 값의 높이'),
-      s('text', { x: 0, y: ay + 4, class: 'sc-sub' }, `구간: ${st.zone}`),
+      s('text', { x: 0, y: ay - 14, class: 'sc-h' }, 'POR 값의 크기'),
+      s('text', { x: 0, y: ay + 4, class: 'sc-sub' }, `값 위치: ${st.zone}`),
       s('rect', { x: X0, y: ay - 22, width: xa(st.LoQ) - X0, height: 44, rx: 6, class: 'sc-below' }),
       xa(st.LoQ) - X0 > 46 ? s('text', { x: X0 + 6, y: ay + 16, class: 'sc-t muted' }, xa(st.LoQ) - X0 > 120 ? "'<LoQ'로 보고" : '<LoQ') : null,
       s('line', { x1: X0, x2: X1, y1: ay, y2: ay, class: 'sc-axis' }),
@@ -345,8 +372,12 @@
       'POR 값만 보고 여덟 가지로 나눈다',
       `위에서부터 처음 맞는 길 → ${st.route}`
     ];
+    const gloss = h('div', { class: 'sa-gloss', 'data-b': 2 }, [
+      h('p', { class: 'sa-gloss-h' }, '이 예제의 분류 값 풀이'),
+      h('dl', {}, AXES.flatMap(([k, lab]) => [h('dt', {}, [`${lab} `, h('b', {}, cls[k] || '–')]),
+        h('dd', {}, cls[k] ? glossOf(k, cls[k]) : '–')]))]);
     return { nodes: [s('svg', { viewBox: `0 0 ${W} ${by + 30 + ROUTES.length * RH}`, class: 'scene-svg', role: 'img',
-      'aria-label': `${t.name} 예제: LoQ와 ITEM 유형, 판정 길` }, nodes)], beats };
+      'aria-label': `${t.name} 예제: LoQ와 ITEM 유형, 판정 길` }, nodes), gloss], beats };
   });
 
   // ---------- 예제 카드 ----------
@@ -356,7 +387,7 @@
     const ratio = t.step3.por_median ? 100 * t.step2.sigma_run / Math.abs(t.step3.por_median) : null;
     return {
       ...c,
-      does: 'die가 10개 이상인지, 회차 흔들림에 J가 충분한지 본다.',
+      does: 'die가 10개 이상인지, 회차 이동(σ_run)에 J가 충분한지 본다.',
       output: [['판정', t.n_die >= 10 ? 'die 수 충분' : 'die 부족 → 미결'],
         ['σ_run ÷ |POR 중앙값|', ratio === null ? '–' : `${fmt(ratio, false, '')}%`],
         [`J ${t.J} 기준`, `${fmt(5 / t.step5.t_factor, false, '')}% 이하`]]

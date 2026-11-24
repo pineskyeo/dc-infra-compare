@@ -39,3 +39,10 @@
 .sa-mark-no{font-family:var(--sans);font-size:12.5px;fill:#8A94A0}
 .sa-mark-yes{font-family:var(--sans);font-size:13px;font-weight:700;fill:var(--eq)}
 .sa-halo{paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}
+.sa-gloss{margin:10px 0 4px;padding:12px 16px;background:var(--bg2);border-radius:12px;font-size:14px;line-height:1.55}
+.sa-gloss-h{margin:0 0 6px;font-size:12px;font-weight:700;color:var(--aux);letter-spacing:.04em}
+.sa-gloss dl{display:grid;grid-template-columns:max-content 1fr;gap:3px 14px;margin:0}
+.sa-gloss dt{color:var(--ink2);white-space:nowrap}
+.sa-gloss dt b{color:var(--ink)}
+.sa-gloss dd{margin:0}
+@media (max-width:600px){.sa-gloss dl{grid-template-columns:1fr}.sa-gloss dt{white-space:normal}.sa-gloss dd{margin-bottom:4px}}

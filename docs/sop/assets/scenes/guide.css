@@ -136,3 +136,4 @@ html[data-layer="expert"] .gl-more{display:block}
 .g-open-card .g-now{margin:8px 0 0;padding-top:8px;border-top:1px dashed var(--line);color:var(--ink);font-weight:700;font-size:13.5px}
 @media (max-width:900px){.g-open{grid-template-columns:1fr}}
 .g-tag{display:inline-block;font-size:12px;font-weight:700;border-radius:6px;padding:0 7px;color:var(--doe);background:#E4EDF8}
+.gm-split{stroke:var(--hold);stroke-width:1.2;stroke-dasharray:4 3}

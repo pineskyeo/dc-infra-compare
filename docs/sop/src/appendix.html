@@ -52,7 +52,6 @@
 <tr id="U6"><td>U6</td><td>표본 크기 식의 검정력 표기와 σ 선택 (D1, D2)</td><td>⓪ 쪽의 식 그대로</td><td><sup data-ref="14a"></sup></td></tr>
 <tr id="U7"><td>U7</td><td>LoQ 의 σ 에 σ<sub>run</sub> 을 넣을지 (D10)</td><td>σ<sub>die</sub>·분해능·blank 중 최대만</td><td><sup data-ref="5"></sup></td></tr>
 <tr id="U8"><td>U8</td><td>측정 순서. POR J회와 DOE 1회 중 무엇을 먼저 잴지</td><td>'J회 + 1회, 회차마다 재터치다운' 만 적음</td><td></td></tr>
-<tr id="U9"><td>U9</td><td>Open 코드 값 (예: 1E+97) 처리 방식</td><td>정하지 않음. 분포 모양 계산에서만 |x| ≥ 1E+90 을 뺌</td><td></td></tr>
 <tr id="U10"><td>U10</td><td>references.md 의 잘린 위치 칸 (#3, #5, #10b) 과 원문을 열지 못한 문헌 (4절)</td><td>원문 확인 전까지 상태 '부분'</td><td><sup data-ref="3"></sup></td></tr>
 </tbody></table></div>
 
@@ -60,11 +59,12 @@
 <div class="tw"><table class="nw"><thead><tr><th>옛 id</th><th>무엇</th><th>코드가 정한 것</th></tr></thead><tbody>
 <tr><td>N1</td><td>±Δ 경계를 포함하나</td><td>포함. −Δ ≤ L, U ≤ Δ 이면 동등 (계단 값은 상대 오차 1e-9 안을 같은 값으로)</td></tr>
 <tr><td>N2 · N5 · N14</td><td>LoQ 아래 판정의 표기와 갈래</td><td>2단계 LoQ 판정: |POR 중앙값| &lt; LoQ, ④ 구간과 ⑤ Δ 를 그대로 씀</td></tr>
-<tr><td>N3 · N18</td><td>구간 끝 순위 규칙</td><td>k = P(W ≤ k) ≤ 5% 인 가장 큰 수를 양끝에서 뗌 (die 60 → 24번째 · 37번째)</td></tr>
+<tr><td>N3 · N18</td><td>구간 끝 순위 규칙</td><td>[d<sub>(k)</sub>, d<sub>(n−k+1)</sub>], k = P(W ≤ k−1) ≤ 5% 인 가장 큰 정수 (1부터 센 순번, W ~ 이항(n, ½)). die 60 → k = 24, 24번째 · 37번째</td></tr>
 <tr><td>N10</td><td>σ<sub>run</sub> 식의 √ 안이 음수</td><td>0 으로 둠</td></tr>
 <tr><td>N12</td><td>장비 정확도 폭을 어디에 쓰나</td><td>선형 TOST 길이고 바닥 근처일 때만 Δ' = max(Δ, 장비 정확도 폭)</td></tr>
 <tr><td>N15</td><td>미결일 때 다음 행동</td><td>원인별: die 부족 · 측정 흔들림 · 기준 조건 흔들림 · 허용폭 경계 (장표 미결 원인 표)</td></tr>
-<tr><td>N19</td><td>판정 길이 판정 못 할 때 verdict_basis</td><td>LoQ 아래 구간이면 loq, 아니면 linear</td></tr>
+<tr><td>N19</td><td>판정 길이 판정 못 할 때 verdict_basis</td><td>값 위치(<code>zone</code>)가 LoQ 아래면 loq, 아니면 linear</td></tr>
+<tr id="U9"><td>U9</td><td>Open 코드 값 (|x| ≥ 1E+90, 예: 1E+97) 처리</td><td>1·2단계는 숫자 그대로 씀. POR 분류의 부호·분포 모양 열은 뺌. POR 에 있으면 모양 '한계에 걸림' → 판정 길 '한계 비교': 1·2단계가 동등이 아니면 POR·DOE 모두 한계 밖인 die 만으로 TOST (<code>verdict_limit</code>), 그런 die 10개 미만이면 미결 (<a href="glossary.html#open-code">용어집</a>)</td></tr>
 <tr><td>N4 · N8 · N11 · N13 · N17</td><td>옛 예시·용어·개념 쪽 표기</td><td>새 판에서 그 글을 없애거나 바꿈 (회차 몫, 예제는 합성 데이터만)</td></tr>
 </tbody></table></div>
 

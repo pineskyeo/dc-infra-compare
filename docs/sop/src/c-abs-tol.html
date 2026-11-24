@@ -4,7 +4,7 @@
 <li>허용폭의 5% 몫은 POR 중앙값에 비례한다.</li>
 <li>중앙값이 0에 가까우면 5% 몫도 0으로 줄어 Δ가 아주 좁아진다.</li>
 <li>그러면 같은 이동인데도 중앙값 때문에 미결·차이가 된다.</li>
-<li>0 근처·계단 ITEM은 값 크기와 상관없는 고정 폭(절대 허용폭)을 쓴다.</li>
+<li>0 근처는 고정 폭(LoQ), 계단은 값 간격 한 칸 이상을 쓴다. ⑥ 3단계에서만.</li>
 </ul>
 <div data-tracker="5"></div>
 <p class="c-use">쓰는 단계: <a href="step-5.html">⑤ 허용폭 Δ</a> · <a href="step-6.html">⑥ 판정 3단계</a></p>
@@ -23,7 +23,7 @@ m → 0  ⇒  Δ → 회차 몫만 (σ<sub>run</sub> = 0 이면 Δ → 0)</div>
 <tr><td>파일 없음 · 계단 (정량)</td><td>max(Δ, 값 간격)</td><td>기본값 max(Δ, 값 간격)</td></tr>
 <tr><td>파일 없음 · 계단 + 바닥 근처</td><td>max(Δ, 값 간격, 장비 정확도 폭)</td><td>기본값 max(Δ, 값 간격, 장비 정확도)</td></tr>
 </tbody></table></div>
-<p>계단은 POR 값 간격(<code>resolution_step</code>)이 0.1·Δ 이상인 ITEM이다. 한 칸보다 작은 이동은 볼 수 없으니 허용폭을 한 칸보다 좁게 두지 않는다. 장비 정확도 폭은 두 측정이 각자 사양 정확도 안에 있을 때 생길 수 있는 차이다<sup data-ref="11"></sup>. 기본값 규칙과 적용 대상은 내부 기준이다 <span class="st st-int">내부 기준</span>. --abs-tol 파일은 --groups 와 함께 줘야 한다.</p>
+<p>0 중심의 LoQ 와 그룹 abs_tol 은 값 크기와 상관없는 고정 폭이다. 계단의 기본값은 Δ 보다 좁아지지 않으니 Δ 와 함께 커진다. 계단은 POR 값 간격(<code>resolution_step</code>)이 0.1·Δ 이상인 ITEM이다. 한 칸보다 작은 이동은 볼 수 없으니 허용폭을 한 칸보다 좁게 두지 않는다. 장비 정확도 폭은 두 측정이 각자 사양 정확도 안에 있을 때 생길 수 있는 차이다<sup data-ref="11"></sup>. 기본값 규칙과 적용 대상은 내부 기준이다 <span class="st st-int">내부 기준</span>. --abs-tol 파일은 --groups 와 함께 줘야 한다.</p>
 
 <h2 id="judge">판정</h2>
 <div class="formula">같은 90% 구간 [L, U] ⊂ [−abs_delta, +abs_delta] → 동등

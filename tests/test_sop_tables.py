@@ -55,3 +55,30 @@ def test_step7_and_its_scene_follow_the_cause_order():
     assert journeys.DIFF_CAUSE[1] in page and journeys.NO_ACTION in page
     js = (ROOT / "docs" / "sop" / "assets" / "scenes" / "steps-b.js").read_text(encoding="utf-8").replace('"', "'")
     assert f"HOLD_CAUSES = {[c.name for c in slides.CAUSES]!r}".replace('"', "'") in js
+
+
+def test_pages_copying_journey_numbers_are_rechecked_when_journeys_change():
+    import hashlib
+    guard = ROOT / "docs" / "sop" / "examples" / "journeys.sha256"
+    lines = [ln.strip() for ln in guard.read_text(encoding="utf-8").splitlines() if ln.strip() and not ln.startswith("#")]
+    recorded = lines[0].split()[0]
+    pages = lines[1:]
+    missing = [p for p in pages if not (SRC / f"{p}.html").is_file()]
+    assert not missing, f"journeys.sha256 의 쪽이 없음: {missing}"
+    actual = hashlib.sha256((ROOT / "docs" / "sop" / "examples" / "journeys.json").read_bytes()).hexdigest()
+    assert actual == recorded, (
+        "journeys.json 이 바뀌었다. 다음 쪽 전문 영역에 옮겨 적은 예제 숫자를 새 값과 맞춘 뒤 "
+        f"docs/sop/examples/journeys.sha256 의 sha256 을 {actual} 로 바꾼다: "
+        + ", ".join(f"docs/sop/src/{p}.html" for p in pages))
+
+
+def test_step3_gloss_explains_every_class_value():
+    import classify
+    js = (ROOT / "docs" / "sop" / "assets" / "scenes" / "steps-a.js").read_text(encoding="utf-8")
+    block = re.search(r"const GLOSS = \{(.*?)\n  \};", js, re.S)[1]
+    gloss = {k: set(re.findall(r"'([^']+)':", body)) for k, body in re.findall(r"(\w+): \{(.*?)\}", block, re.S)}
+    values = {a.column.removeprefix("cls_"): set(a.known) for a in classify.AXES}
+    values["noise"] |= set(pdc.NOISE_PATTERNS)
+    values["scale"] |= {pdc.SCALE_LOG, pdc.SCALE_LINEAR}
+    for axis, want in values.items():
+        assert want <= gloss.get(axis, set()), (axis, sorted(want - gloss.get(axis, set())))

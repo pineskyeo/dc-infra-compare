@@ -239,7 +239,7 @@
         h('p', { class: 'res-why' }, usedWhy(t) + ghostNote)])]);
     return {
       nodes: [svg, result],
-      beats: ['첫째 몫: POR 중앙값의 5%', p.run_margin > 0 ? '둘째 몫: 회차가 밀리는 만큼' : '둘째 몫: 회차 흔들림 0이라 0',
+      beats: ['첫째 몫: POR 중앙값의 5%', p.run_margin > 0 ? '둘째 몫: 회차가 밀리는 만큼' : '둘째 몫: 회차 이동 0이라 0',
         `두 몫을 더하면 허용폭 Δ = ${fmt(p.delta)}`, `이 예제가 판정에 쓴 폭: ${isLog ? '배율' : u.name}`]
     };
   });
@@ -385,6 +385,23 @@
       [DIFF_CAUSE]: `구간 ${show(b.lo)} ~ ${show(b.hi)}가 ±${show(b.tol)} 밖`
     };
   }
+  // 계단 ITEM 은 값 간격이 Δ 보다 크면 회차 값이 한 칸만 달라도 회차 흔들림(die 회차 범위 중앙값 ≥ Δ)이 켜져
+  // 미결 원인이 '기준 조건 흔들림'으로 잡힌다. 그때 실제 까닭(구간 끝이 허용폭에 딱 걸림)을 함께 보인다
+  function stepJitter(t) {
+    const p = t.step5;
+    if (t.step7.cause !== '기준 조건 흔들림' || t.step3.cls.resolution !== '계단' || !(p.resolution_step >= p.delta)) return null;
+    const b = basisNumbers(t);
+    const same = v => Math.abs(Math.abs(v) - b.tol) <= 1e-9 * Math.max(b.tol, Math.abs(v));
+    const end = [b.lo, b.hi].find(same);
+    const show = b.log ? (v, sg) => fmt(v, sg, '') : (v, sg) => fmt(v, sg);
+    const head = `계단 값이고 값 간격 ${fmt(p.resolution_step)}이 Δ ${fmt(p.delta)}보다 커서, 회차 값이 한 칸만 달라도 회차 흔들림이 저절로 켜진다.`;
+    return {
+      long: `${head} ${end === undefined ? '먼저 구간 끝이 값 간격 한 칸에 걸쳤는지 본다.'
+        : `미결의 실제 까닭은 구간 끝 ${show(end, true)}이 허용폭 ±${show(b.tol)}에 딱 걸린 것이다.`}`,
+      short: end === undefined ? '계단 값이라 저절로 켜진 표시일 수 있다. 구간 끝이 값 간격에 걸쳤는지 먼저 본다.'
+        : `계단 값이라 저절로 켜진 표시다. 실제 까닭은 구간 끝 ${show(end, true)}이 허용폭에 딱 걸린 것.`
+    };
+  }
   defineScene('next', t => {
     const v = t.final.verdict, cause = t.step7.cause;
     if (v === '미결' && !HOLD_CAUSES.includes(cause)) throw new Error(`⑦ 장면이 모르는 미결 원인: ${cause}`);
@@ -425,11 +442,19 @@
       row += causes.length;
     });
     const svg = s('svg', { viewBox: `0 0 ${W} ${28 + row * RY}`, class: 'scene-svg', role: 'img', 'aria-label': `${t.name} 예제의 다음 행동` }, kids);
+    const caveat = stepJitter(t);
     const result = h('div', { class: 'scene-result', 'data-b': 2 }, [
       pill(v, 'big'),
-      h('div', {}, [h('p', { class: 'res-basis' }, cause ? `원인 · ${cause}` : '원인 없음'), h('p', { class: 'res-why b7-action' }, t.step7.action)])]);
+      h('div', {}, [h('p', { class: 'res-basis' }, cause ? `원인 · ${cause}` : '원인 없음'), h('p', { class: 'res-why b7-action' }, t.step7.action),
+        caveat ? h('p', { class: 'b7-caveat' }, [h('b', {}, '주의 '), caveat.long]) : null])]);
     const b1 = v === '동등' ? '동등이면 원인을 찾지 않는다'
       : v === '미결' ? `원인을 위에서부터 → ${hitIndex + 1}번 ${cause}` : `원인: ${cause}`;
-    return { nodes: [svg, result], beats: [`⑥ 최종 판정은 ${v}`, b1, v === '동등' ? '할 일 없음, 결과만 기록' : '원인에 맞는 할 일을 한다'] };
+    const b2 = v === '동등' ? '할 일 없음, 결과만 기록' : caveat ? '할 일 전에, 계단 값이 켠 표시인지 본다' : '원인에 맞는 할 일을 한다';
+    return { nodes: [svg, result], beats: [`⑥ 최종 판정은 ${v}`, b1, b2] };
   });
+  const base7 = TRACK[7];
+  TRACK[7] = t => {
+    const c = base7(t), caveat = stepJitter(t);
+    return caveat ? { ...c, does: `${c.does}. ${caveat.short}` } : c;
+  };
 })();

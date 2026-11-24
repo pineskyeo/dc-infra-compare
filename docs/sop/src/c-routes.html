@@ -24,14 +24,14 @@
 
 <h2 id="axes">분류 축 (ITEM 유형)</h2>
 <div class="tw"><table><thead><tr><th>축</th><th>열</th><th>값 (위에서부터 처음 맞는 것)</th><th>판정 길에 씀</th></tr></thead><tbody>
-<tr><td>판정할 수 있나</td><td><code>cls_valid</code></td><td>die 부족 (10개 미만)<sup data-ref="7"></sup> / POR만으로 본 판정 제외 원인 / 정상</td><td>제외</td></tr>
+<tr><td>판정 가능</td><td><code>cls_valid</code></td><td>die 부족 (10개 미만)<sup data-ref="7"></sup> / POR만으로 본 판정 제외 원인 / 정상</td><td>제외</td></tr>
 <tr><td>부호</td><td><code>cls_sign</code></td><td>부호 섞임 / 0 포함 / 양수만 / 음수만 (|x| ≥ 10⁹⁰ Open 코드는 뺌)</td><td>log TOST</td></tr>
-<tr><td>높이</td><td><code>cls_level</code></td><td>0 중심 (부호 섞임, |m| &lt; LoQ) / 바닥 아래 (|m| &lt; LoQ) / 바닥 근처 (LoQ ≤ |m| &lt; LoQ/(10r), r = 5%면 2·LoQ) / 정량</td><td>절대 허용폭 · LoQ 판정 · 선형 TOST</td></tr>
-<tr><td>계단</td><td><code>cls_resolution</code></td><td>계단 (POR 값 간격 ≥ 0.1·Δ) / 연속</td><td>절대 허용폭</td></tr>
+<tr><td>수준</td><td><code>cls_level</code></td><td>0 중심 (부호 섞임, |m| &lt; LoQ) / 바닥 아래 (|m| &lt; LoQ) / 바닥 근처 (LoQ ≤ |m| &lt; LoQ/(10r), r = 5%면 2·LoQ) / 정량</td><td>절대 허용폭 · LoQ 판정 · 선형 TOST</td></tr>
+<tr><td>분해능</td><td><code>cls_resolution</code></td><td>계단 (POR 값 간격 ≥ 0.1·Δ) / 연속</td><td>절대 허용폭</td></tr>
 <tr><td>모양</td><td><code>cls_shape</code></td><td>두 덩어리 · 튀는 die<sup data-ref="8"></sup> · 한계에 걸림 (맞는 것 모두 ';'로) / 한 덩어리</td><td>한계 비교</td></tr>
-<tr><td>잡음 모양</td><td><code>cls_noise</code></td><td>잡음이 값에 따라 바뀌는 모양 (<code>noise_pattern</code>)</td><td>안 씀 (참고)</td></tr>
+<tr><td>잡음</td><td><code>cls_noise</code></td><td>잡음이 값에 따라 바뀌는 모양 (<code>noise_pattern</code>)</td><td>안 씀 (참고)</td></tr>
 <tr><td>척도</td><td><code>cls_scale</code></td><td>scales 표의 log·linear / 판별 불가 / 잡음 기울기 ≥ 0.7 이면 log / linear</td><td>log TOST</td></tr>
-<tr><td>POR 회차</td><td><code>cls_run</code></td><td>회차 밀림 / 조건 불안정 / 회차 흔들림 / 안정</td><td>안 씀 (참고)</td></tr>
+<tr><td>회차</td><td><code>cls_run</code></td><td>회차 밀림 / 조건 불안정 / 회차 흔들림 / 안정</td><td>안 씀 (참고)</td></tr>
 </tbody></table></div>
 <p>분류는 POR 값과 판정 결과의 POR 쪽 값(σ<sub>die</sub>, σ<sub>run</sub>, POR 중앙값, Δ)만 쓴다. LoQ는 POR 값만으로 다시 구해, DOE 값까지 본 판정의 LoQ와 조금 다를 수 있다. 척도 판별은 '잡음이 값에 비례하면 log' 쪽에 있다.</p>
 

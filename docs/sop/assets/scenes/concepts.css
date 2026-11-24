@@ -82,7 +82,7 @@
 
 /* 검정력 */
 .sc-t.cx-rowh{font-size:14px;font-weight:700;fill:var(--ink)}
-.cx-z-eq{fill:var(--eq-bg)}.cx-z-hold{fill:var(--hold-bg)}.cx-z-diff{fill:var(--diff-bg)}
+.cx-z-eq{fill:var(--eq-bg)}.cx-z-hold{fill:var(--hold-bg)}.cx-z-bad{fill:var(--hold);fill-opacity:.3}
 
 /* 공부하기 쪽 공통 */
 .c-use{font-size:15px;color:var(--ink2);margin:4px 0 0}

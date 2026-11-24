@@ -200,6 +200,9 @@ marker path{fill:var(--aux)}
 .fc-brace{fill:none;stroke:#C6CDD6;stroke-width:1.2}
 .fc-out rect.v-eq{fill:var(--eq-bg)}
 .fc-out rect.v-hold{fill:var(--hold-bg)}
+.fc-out rect.v-excl{fill:var(--excl-bg);stroke:var(--excl);stroke-width:1}
+.fc-excl text{font-size:13px;fill:var(--ink2)}
+.fc-note{font-family:var(--sans);font-size:12.5px;fill:var(--ink2);text-anchor:end}
 .fc-out text{font-family:var(--sans);font-size:14px;font-weight:700;text-anchor:middle;fill:var(--ink)}
 .entry{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}
 .entry a{display:block;border:1px solid var(--line);border-radius:14px;padding:18px 20px;color:var(--ink);text-decoration:none}

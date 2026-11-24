@@ -258,7 +258,7 @@ def _arrow(x1: float, y1: float, x2: float, y2: float, cls: str = "") -> str:
 
 
 def flowchart() -> str:
-    """⓪~⑤ 한 줄 → ⑥ 판정 3단계 판 → 판 전체에서 최종 판정 하나 → 동등·기록 또는 미결·차이 → ⑦."""
+    """⓪~⑤ 한 줄 → ⑥ 판정 3단계 판 → 판 전체에서 최종 판정 하나 → 동등·기록, 미결·차이 → ⑦, 판정 제외 → 사유 확인."""
     w, gap, h = 116, 12.8, 64
     parts = []
     for k in range(6):
@@ -272,6 +272,7 @@ def flowchart() -> str:
     parts.append('<rect x="0" y="112" width="760" height="150" rx="14" class="fc-panel"/>')
     parts.append(f'<a href="{STEPS[6].file}" class="fc-link"><text x="20" y="140" class="fc-title">'
                  f'{html.escape(STEPS[6].title)}</text></a>')
+    parts.append('<text x="740" y="140" class="fc-note">die 10개 미만은 판정 없이 미결</text>')
     stages = (("1 TOST", "모든 ITEM"), ("2 LoQ 판정", "POR 값이 LoQ 아래일 때"), ("3 판정 길", "1·2단계가 동등이 아닐 때"))
     sw, sg = 210, 45
     for k, (a, b) in enumerate(stages):
@@ -292,8 +293,12 @@ def flowchart() -> str:
     parts.append(_arrow(614, 311, 636, 311, "dash"))
     p7 = STEPS[7]
     parts.append(_box(640, 283, 120, 56, p7.file, (STEP_MARKS[7] + " 다음 행동", "미결·차이일 때만"), "fc-opt"))
-    return ('<figure class="flowchart" id="flow"><svg viewBox="-2 -2 764 345" role="img" '
-            'aria-label="판정 흐름도: ⓪~⑤ 준비, ⑥ 판정 3단계에서 최종 판정 하나, 동등이면 기록, 미결·차이면 ⑦ 다음 행동">'
+    parts.append(_arrow(380, 330, 380, 350))
+    parts.append('<g class="fc-out fc-excl"><rect x="300" y="354" width="160" height="30" rx="15" class="v-excl"/>'
+                 '<text x="380" y="374">판정 제외 · 사유 확인</text></g>')
+    return ('<figure class="flowchart" id="flow"><svg viewBox="-2 -2 764 390" role="img" '
+            'aria-label="판정 흐름도: ⓪~⑤ 준비, ⑥ 판정 3단계에서 최종 판정 하나, 동등이면 기록, 미결·차이면 ⑦ 다음 행동, '
+            '판정 제외면 사유 확인">'
             '<defs><marker id="fc-head" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" '
             'orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z"/></marker></defs>'
             + "".join(parts) + "</svg><figcaption>상자를 누르면 그 단계 쪽으로 갑니다. 판정 3단계를 다 거친 뒤 최종 판정 하나가 나옵니다.</figcaption></figure>")

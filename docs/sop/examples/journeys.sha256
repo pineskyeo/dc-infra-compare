@@ -1,0 +1,12 @@
+# journeys.json 의 sha256 과, 그 예제 숫자를 전문 영역에 손으로 옮겨 적은 쪽 (docs/sop/src/<쪽>.html).
+# journeys.json 이 바뀌면 아래 쪽의 숫자를 새 journeys.json 에 맞게 고친 뒤 sha256 줄을 새 값으로 바꾼다.
+# 맞추는 법: shasum -a 256 docs/sop/examples/journeys.json
+b478ec38f58a24e4194126d441266976e7011ecea9de45a2dc4ef73d80aa469a  journeys.json
+c-sigma-split
+c-loq
+c-median-ci
+c-delta
+c-tost
+c-abs-tol
+c-log-scale
+c-power

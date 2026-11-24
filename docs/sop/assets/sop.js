@@ -170,7 +170,7 @@
     3: t => ({
       inputs: [['POR 중앙값', fmt(t.step3.por_median)], ['σ 출처', t.step3.limit_source]],
       does: 'LoQ = 10σ. POR 중앙값이 LoQ보다 작으면 LoQ 아래 ITEM. POR 값만 보고 판정 길을 고른다.',
-      output: [['LoQ', fmt(t.step3.LoQ)], ['구간', t.step3.zone], ['판정 길', t.step3.route]],
+      output: [['LoQ', fmt(t.step3.LoQ)], ['값 위치', t.step3.zone], ['판정 길', t.step3.route]],
       mini: miniLoq(t)
     }),
     4: t => ({

@@ -23,12 +23,12 @@ LoD = 3.29 · σ = (1.645 + 1.645) · σ</div>
 LoQ<sub>blank</sub> 가 더 크면 LoQ = LoQ<sub>blank</sub></div>
 <p>값이 계단(간격 Δx)으로만 찍히면 실제 값은 계단 한 칸 안 어디든 같은 확률로 있을 수 있다. 폭 Δx 균일분포의 분산은 Δx²/12 라 표준편차는 Δx/√12 = 0.29·Δx 이다. 반복 값이 모두 같게 찍혀 σ<sub>die</sub> = 0이어도 LoQ가 0이 되지 않게 아래를 받친다<sup data-ref="4"></sup>. 데이터 분해능은 POR·DOE 고유값의 이웃 차 최솟값으로 정한다 (내부 근사)<sup data-ref="4"></sup>. blank 시료로 구한 LoQ가 더 크면 그 값을 쓴다<sup data-ref="6"></sup>. 결과 표의 <code>limit_source</code> 가 어느 후보를 썼는지 적는다.</p>
 <p>예제 '계단 값': 값 간격 2 µV → 2 µV/√12 = 0.58 µV &lt; σ<sub>die</sub> 2.10 µV → σ<sub>die</sub>를 쓴다, LoQ = 21.0 µV. 예제 '정량 · 선형': 0.001 Ω/√12 = 0.00029 Ω &lt; σ<sub>die</sub> 0.98965 Ω → LoQ = 9.8965 Ω.</p>
-<p>LoQ의 σ에는 σ<sub>run</sub>을 넣지 않는다 (반복성만). 문헌의 정량한계는 결과 하나의 모든 분산 성분을 넣으라고 하므로, 회차 흔들림이 큰 ITEM은 LoQ가 작게 잡힌다. 이 문서의 설계 선택이다 <span class="st st-int">내부 기준</span>.</p>
+<p>LoQ의 σ에는 σ<sub>run</sub>을 넣지 않는다 (반복성만). 문헌의 정량한계는 결과 하나의 모든 분산 성분을 넣으라고 하므로, 회차 이동(σ<sub>run</sub>)이 큰 ITEM은 LoQ가 작게 잡힌다. 이 문서의 설계 선택이다 <span class="st st-int">내부 기준</span>.</p>
 <div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>items.csv 열</th></tr></thead><tbody>
 <tr><td>LoQ, LoD</td><td>정량한계 10σ, 검출한계 3.29σ</td><td><code>LoQ</code>, <code>LoD</code></td></tr>
 <tr><td>σ 출처</td><td>POR 반복 / 데이터 분해능 / 장비 분해능 / blank</td><td><code>limit_source</code></td></tr>
 <tr><td>|m| ÷ LoQ</td><td>POR 중앙값이 LoQ의 몇 배인가</td><td><code>loq_ratio</code></td></tr>
-<tr><td>구간</td><td>|m| ≥ LoQ 정량 · LoD ≤ |m| &lt; LoQ 검출~정량 · |m| &lt; LoD 검출한계 이하</td><td><code>zone</code></td></tr>
+<tr><td>값 위치</td><td>|m| ≥ LoQ 정량 · LoD ≤ |m| &lt; LoQ 검출~정량 · |m| &lt; LoD 검출한계 이하</td><td><code>zone</code></td></tr>
 </tbody></table></div>
 
 <h2 id="judge">2단계 LoQ 판정 (|m| &lt; LoQ)</h2>

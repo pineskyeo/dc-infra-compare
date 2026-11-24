@@ -3,8 +3,8 @@
 <ul class="points">
 <li>1단계: 90% 구간이 ±Δ 안이면 동등, 통째로 밖이면 차이, 걸치면 미결.</li>
 <li>2단계: LoQ 아래 ITEM만. DOE 구간이 LoQ 위로 통째로 넘지 않으면 동등.</li>
-<li>3단계: 앞 단계가 동등이 아니면 유형에 맞는 판정 길로 다시 본다.</li>
-<li>die가 10개보다 적으면 판정하지 않고 미결.</li>
+<li>3단계: 앞이 동등이 아니면 판정 길로 다시 본다. 차이·미결이 다른 판정(예: 동등)으로 바뀔 수 있다.</li>
+<li>die 10개 미만은 미결. die 몇 개만 바뀐 변화는 여기서 안 잡혀 튀는 die 수로 본다.</li>
 </ul>
 <div data-tracker="6"></div>
 </section>
@@ -33,7 +33,7 @@ k = P(W ≤ k−1) ≤ 0.05 인 가장 큰 정수, W ~ 이항(n, ½)
 ② DOE 구간이 통째로 |x| ≥ LoQ 가 아님            → 동등  <span class="c">LoQ 아래이거나 LoQ 선에 걸침</span>
 ③ DOE 구간이 통째로 |x| ≥ LoQ, 이동이 ±Δ 밖     → 차이
 ④ DOE 구간이 통째로 |x| ≥ LoQ, 이동이 ±Δ 에 걸침 → 미결</div>
-<p>위에서부터 처음 맞는 줄을 쓴다. '&lt;LoQ' 보고로 같다고 보는 규칙은 내부 기준이다<sup data-ref="15"></sup>.</p>
+<p>위에서부터 처음 맞는 줄을 쓴다. '&lt;LoQ' 보고로 같다고 보는 규칙은 내부 기준이다<sup data-ref="15"></sup>. 이동은 LoQ 아래에서도 ±Δ 와 견줄 수 있다. LoQ 는 1회 측정값 하나의 한계이고, die 여러 개 d 의 중앙값은 die 하나보다 훨씬 정밀하기 때문이다 (⓪ 의 1/√n). 그래서 ① 처럼 이동이 ±Δ 안이면 보고 단위와 상관없이 동등이다.</p>
 
 <h2 id="typed">3단계 · 판정 길 (1·2단계가 동등이 아닐 때)</h2>
 <p>판정 길은 POR 값만 보고 ③에서 정한다. 표의 위에서부터 처음 맞는 길을 쓴다.</p>
@@ -53,7 +53,7 @@ k = P(W ≤ k−1) ≤ 0.05 인 가장 큰 정수, W ~ 이항(n, ½)
 <p>쉽게 영역 그림의 log TOST 행은 log 구간(<code>ci_low_log</code>, <code>ci_high_log</code>)과 ±Δ<sub>log</sub>(<code>delta_log</code>)를 배율 변화(%)로 바꿔 보인다. 판정은 log 값 그대로 한다. 이 영역을 펼치면 그림 아래에 log 값이 함께 나온다.</p>
 
 <h2 id="final">최종 판정</h2>
-<p>1·2단계가 동등이면 그대로 확정. 아니면 판정 길의 판정이 동등 · 미결 · 차이 중 하나일 때 그것을 쓰고, 길이 판정하지 못하면 1·2단계 판정을 둔다. 판정을 정한 곳은 <code>verdict_basis</code> (linear, loq, log, accuracy, abs, limit) 에 적힌다.</p>
+<p>1·2단계가 동등이면 그대로 확정. 아니면 판정 길의 판정이 동등 · 미결 · 차이 중 하나일 때 그것을 쓰고 (그래서 1·2단계의 차이·미결이 동등·미결·차이 어느 것으로도 바뀔 수 있다), 길이 판정하지 못하면 1·2단계 판정을 둔다. 판정을 정한 곳은 <code>verdict_basis</code> (linear, loq, log, accuracy, abs, limit) 에 적힌다.</p>
 
 <h2 id="rules">판정 기준표</h2>
 <div class="tw"><table class="rules"><thead><tr><th>단계</th><th><span class="v v-eq">동등</span></th><th><span class="v v-hold">미결</span></th><th><span class="v v-diff">차이</span></th></tr></thead><tbody>

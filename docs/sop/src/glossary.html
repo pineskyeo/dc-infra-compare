@@ -14,17 +14,17 @@
 <dt id="ci">90% 구간</dt><dd><span class="gl-plain">이동이 있을 만한 범위. 판정은 이 구간 전체로 본다.</span><span class="gl-more">부호검정 구간 [d<sub>(k)</sub>, d<sub>(n−k+1)</sub>], k = P(W ≤ k−1) ≤ 0.05 인 가장 큰 정수, W ~ 이항(n, ½)<sup data-ref="9"></sup>. 열 <code>ci_low</code>, <code>ci_high</code>. 옛 판 이름 신뢰구간(CI).</span></dd>
 <dt id="delta">허용폭 Δ</dt><dd><span class="gl-plain">이동이 이 안이면 같다고 보는 폭.</span><span class="gl-more">Δ = r·|POR 중앙값| + t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub>, r = 0.05. 앞은 5% 몫(내부 기준)<sup data-ref="10a"></sup>, 뒤는 회차 몫<sup data-ref="10b"></sup>. 열 <code>delta</code> = <code>policy_margin</code> + <code>run_margin</code>.</span></dd>
 <dt id="tost">TOST</dt><dd><span class="gl-plain">같음을 직접 보이는 검정. 90% 구간이 ±Δ 안이면 동등.</span><span class="gl-more">두 번의 한쪽 검정(Two One-Sided Tests). −Δ ≤ L, U ≤ Δ → 동등, L &gt; Δ 또는 U &lt; −Δ → 차이, 걸침 → 미결<sup data-ref="12"></sup><sup data-ref="13"></sup>.</span></dd>
-<dt id="loq">LoQ (정량한계)</dt><dd><span class="gl-plain">숫자로 믿고 비교할 수 있는 가장 작은 크기.</span><span class="gl-more">LoQ = 10σ, σ = max(σ<sub>die</sub>, 데이터 분해능/√12, 장비 분해능/√12), blank LoQ 가 더 크면 그것<sup data-ref="5"></sup>. 열 <code>LoQ</code>, <code>limit_source</code>.</span></dd>
+<dt id="loq">LoQ (정량한계)</dt><dd><span class="gl-plain">숫자로 믿고 비교할 수 있는 가장 작은 크기.</span><span class="gl-more">LoQ = 10σ<sup data-ref="5"></sup>. σ = max(σ<sub>die</sub>, 데이터 분해능/√12, 장비 분해능/√12), blank LoQ 가 더 크면 그것. 후보를 max 로 묶는 구성은 <span class="st st-int">내부 기준</span>. 열 <code>LoQ</code>, <code>limit_source</code>.</span></dd>
 <dt id="sigma-die">σ<sub>die</sub> (반복성)</dt><dd><span class="gl-plain">같은 die를 다시 잴 때의 흔들림.</span><span class="gl-more">1.4826 × MAD(이웃 회차 차이) / √2<sup data-ref="2"></sup>. 열 <code>sigma_die</code>.</span></dd>
 <dt id="sigma-run">σ<sub>run</sub> (회차 이동)</dt><dd><span class="gl-plain">회차마다 모든 die가 다 같이 밀리는 크기.</span><span class="gl-more">√(회차 중앙값들의 분산 − (π/2)·σ<sub>die</sub>²/n), 안이 0보다 작으면 0<sup data-ref="3"></sup>. 열 <code>sigma_run</code>.</span></dd>
 <dt id="meas-precision">측정 정밀도</dt><dd><span class="gl-plain">측정 흔들림을 값 크기 대비 %로. 낮을수록 좋다.</span><span class="gl-more">100 × √(σ<sub>die</sub>² + σ<sub>run</sub>²) / |POR 중앙값|<sup data-ref="17"></sup>. 열 <code>meas_precision_pct</code>, <code>sigma_meas</code>. compare 의 요약 지표.</span></dd>
-<dt id="item-type">ITEM 유형</dt><dd><span class="gl-plain">POR 값만 보고 정한 ITEM의 종류. DOE는 안 본다.</span><span class="gl-more">8축 <code>cls_valid</code> · <code>cls_sign</code> · <code>cls_level</code> (0 중심 · 바닥 아래 · 바닥 근처 · 정량) · <code>cls_resolution</code> (계단 · 연속) · <code>cls_shape</code> · <code>cls_noise</code> · <code>cls_scale</code> (log · linear · 판별 불가) · <code>cls_run</code>.</span></dd>
+<dt id="item-type">ITEM 유형</dt><dd><span class="gl-plain">POR 값만 보고 정한 ITEM의 종류. DOE는 안 본다.</span><span class="gl-more">8축: 판정 가능 <code>cls_valid</code> · 부호 <code>cls_sign</code> · 수준 <code>cls_level</code> (0 중심 · 바닥 아래 · 바닥 근처 · 정량) · 분해능 <code>cls_resolution</code> (계단 · 연속) · 모양 <code>cls_shape</code> · 잡음 <code>cls_noise</code> · 척도 <code>cls_scale</code> (log · linear · 판별 불가) · 회차 <code>cls_run</code>.</span></dd>
 <dt id="route">판정 길 (route)</dt><dd><span class="gl-plain">ITEM 유형에 맞춰 3단계에서 다시 보는 방법.</span><span class="gl-more">위에서부터 처음 맞는 길: 제외 → 한계 비교 → 절대 허용폭 → LoQ 판정 → log TOST → 선형 TOST. 열 <code>route</code>, <code>route_note</code>.</span></dd>
 <dt id="verdict-final">최종 판정 (verdict_final)</dt><dd><span class="gl-plain">ITEM의 판정 하나. 동등 · 미결 · 차이 · 판정 제외.</span><span class="gl-more">1·2단계 판정(<code>verdict</code>)이 동등이면 그대로. 아니면 판정 길의 판정이 동등·차이·미결일 때 그것, 아니면 1·2단계 판정. 집계와 차이·미결 목록은 이 열 기준.</span></dd>
 <dt id="verdict-basis">판정을 정한 곳 (verdict_basis)</dt><dd><span class="gl-plain">최종 판정이 어느 단계·방법에서 나왔나.</span><span class="gl-more">linear (1단계 TOST) · loq (2단계 LoQ 판정) · log (log TOST) · abs (절대 허용폭) · accuracy (장비 정확도 폭) · limit (한계 비교).</span></dd>
-<dt id="abs-tol">절대 허용폭 (abs_delta)</dt><dd><span class="gl-plain">값 크기와 상관없는 고정 허용폭. 0 근처·계단 값에 쓴다.</span><span class="gl-more">같은 90% 구간을 ±abs_delta 로 TOST (<code>verdict_abs</code>). 그룹 abs_tol 파일(group,abs_delta) 값, 없으면 0 중심은 LoQ, 계단은 max(Δ, 값 간격), 계단이고 바닥 근처면 장비 정확도 폭까지.</span></dd>
-<dt id="loq-report">'&lt;LoQ 보고 일치'</dt><dd><span class="gl-plain">POR도 DOE도 LoQ 아래라 둘 다 '&lt;LoQ'로 적히니 같다고 본다.</span><span class="gl-more">2단계 LoQ 판정. DOE 구간 = POR 중앙값 + [L, U] 이 통째로 LoQ 이상이 아니면 (아래이거나 LoQ 선에 걸침) 동등. reason 에 '&lt;LoQ 보고 일치'. 내부 기준<sup data-ref="15"></sup>.</span></dd>
-<dt id="excluded">판정 제외</dt><dd><span class="gl-plain">판정할 것이 없는 ITEM. 예: 값이 모두 같음.</span><span class="gl-more">원인 (1) 중심·구간 NaN·inf (2) 회차 0값 (3) 모든 값 같음 (4) die 산포 0 (정량 구간, 값 간격 ≥ 0.1·Δ 일 때만) (5) POR 중앙값 0 이고 σ<sub>run</sub> 0 (정량 구간만). 맞는 원인을 모두 이 순서로 reason 에. die 수 부족은 판정 제외가 아니라 미결.</span></dd>
+<dt id="abs-tol">절대 허용폭 (abs_delta)</dt><dd><span class="gl-plain">0 근처는 고정 폭(LoQ), 계단은 값 간격 한 칸 이상. ⑥ 3단계에서만 쓴다.</span><span class="gl-more">판정 길 '절대 허용폭' ITEM이 1·2단계에서 동등이 아닐 때만, 같은 90% 구간을 ±abs_delta 로 TOST (<code>verdict_abs</code>). 0 중심의 LoQ 는 값 크기와 상관없는 고정 폭이지만, 계단의 기본값은 Δ 와 함께 커진다. 그룹 abs_tol 파일(group,abs_delta) 값, 없으면 0 중심은 LoQ, 계단은 max(Δ, 값 간격), 계단이고 바닥 근처면 장비 정확도 폭까지.</span></dd>
+<dt id="loq-report">'&lt;LoQ 보고 일치'</dt><dd><span class="gl-plain">POR가 LoQ 아래이고 DOE도 숫자로 보고될 만큼 올라오지 않아 같다고 본다.</span><span class="gl-more">2단계 LoQ 판정의 동등 셋 (reason 괄호 속): (1) 이동 구간이 ±Δ 안 '이동이 ±Δ 안' (2) DOE 구간 = POR 중앙값 + [L, U] 이 통째로 LoQ 아래 'DOE 구간도 LoQ 미만' (3) DOE 구간이 LoQ 선에 걸침 'DOE 구간이 LoQ에 걸침'. 내부 기준<sup data-ref="15"></sup>.</span></dd>
+<dt id="excluded">판정 제외</dt><dd><span class="gl-plain">판정할 것이 없는 ITEM. 예: 값이 모두 같음.</span><span class="gl-more">원인 (1) 중심·구간 NaN·inf (2) 회차 0값 (3) 모든 값 같음 (4) die 산포 0 (값 위치 정량, 값 간격 ≥ 0.1·Δ 일 때만) (5) POR 중앙값 0 이고 σ<sub>run</sub> 0 (값 위치 정량만). 맞는 원인을 모두 이 순서로 reason 에. die 수 부족은 판정 제외가 아니라 미결.</span></dd>
 <dt id="compare-rule">compare 판단 기준</dt><dd><span class="gl-plain">예전보다 10% 넘게 줄면 좋아짐, 10% 넘게 늘면 나빠짐.</span><span class="gl-more">ITEM마다 개선 ÷ 기존 비, 그 중앙값이 0.9 미만 좋아짐, 1.1 초과 나빠짐, 사이 비슷 (TREND_BAND = 0.10). 지표: 측정 정밀도 %, σ<sub>die</sub> %, σ<sub>run</sub> %, 90% 구간 폭 %, 동등 아닌 ITEM 수.</span></dd>
 </dl>
 </section>
@@ -54,7 +54,7 @@
 <dt id="calcval">CALCVAL</dt><dd><span class="gl-plain">파일 값 = 원측정값 × CALCVAL 인 환산 배율 (ITEM 정보 표 열).</span></dd>
 <dt id="dcnormal">DCNORMAL</dt><dd><span class="gl-plain">측정 결과 파일 형식. POR 회차마다, DOE 마다 한 벌.</span></dd>
 <dt id="min-die">최소 die 수 (MIN_DIE)</dt><dd><span class="gl-plain">10. 유효 die가 이보다 적으면 미결 (내부 기준)<sup data-ref="7"></sup>.</span></dd>
-<dt id="open-code">Open 코드 값</dt><dd><span class="gl-plain">측정 대신 찍힌 큰 숫자 (예: 1E+97). 처리 방식은 정해지지 않음. 판정 값 '미결' 과는 다른 뜻.</span></dd>
+<dt id="open-code">Open 코드 값</dt><dd><span class="gl-plain">측정 대신 찍힌 큰 숫자 (|x| ≥ 1E+90, 예: 1E+97). 판정 값 '미결' 과는 다른 뜻. 처리: 1·2단계는 빼지 않고 숫자 그대로 쓴다 (DOE 에만 있으면 그 die 의 d 가 아주 큰 값이 되어 순번으로만 영향). POR 분류에서 부호(<code>cls_sign</code>)와 분포 모양 열은 이 값을 빼고, POR 에 하나라도 있으면 모양이 '한계에 걸림' → 판정 길 '한계 비교'. 1·2단계가 동등이 아니면 POR·DOE 모두 한계(Open 코드, 최댓값·최솟값에 몰린 값) 밖인 die 만으로 TOST (<code>verdict_limit</code>), 그런 die 가 10개 미만이면 미결.</span></dd>
 </dl>
 
 <h2 id="g-detail">판정 세부</h2>
@@ -76,7 +76,7 @@
 
 <h2 id="g-status">데이터 상태 (status, 판정과 별개)</h2>
 <dl class="gl">
-<dt id="flat">산포 0</dt><dd><span class="gl-plain">σ<sub>die</sub> = 0 이거나 같은 값 die 가 50% 넘음 (<code>fixed_share</code>). 정량 구간이고 값 간격이 Δ 에 비해 거칠 때만 판정 제외.</span></dd>
+<dt id="flat">산포 0</dt><dd><span class="gl-plain">σ<sub>die</sub> = 0 이거나 같은 값 die 가 50% 넘음 (<code>fixed_share</code>). 값 위치가 정량이고 값 간격이 Δ 에 비해 거칠 때만 판정 제외.</span></dd>
 <dt id="run-jitter">회차 흔들림</dt><dd><span class="gl-plain">die별 POR 회차 범위의 중앙값 ≥ Δ (<code>run_jitter_over_delta</code> ≥ 1).</span></dd>
 <dt id="cond-unstable">조건 불안정</dt><dd><span class="gl-plain">POR 회차끼리 값이 옮겨 감: 회차 차 gap ≥ Δ 이고 ≥ 3 × 표준오차 (<code>por_gap_over_delta</code>, <code>por_gap_over_noise</code>). die 잡음만으로는 붙지 않음.</span></dd>
 <dt id="size-jitter">작을수록 흔들림</dt><dd><span class="gl-plain">값이 작은 die 일수록 회차 흔들림(log 범위)이 큼: ρ ≤ −0.5, 유효 die ≥ 10 (<code>spearman_size_jitter</code>).</span></dd>

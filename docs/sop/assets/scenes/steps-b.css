@@ -42,3 +42,4 @@ html[data-layer="expert"] .b-raw{display:block}
 /* 전문 영역 표 */
 .b-num td{font-variant-numeric:tabular-nums}
 .b-causes td:nth-child(2){white-space:nowrap}
+.b7-caveat{margin:8px 0 0;padding:8px 12px;border-left:3px solid var(--hold);background:var(--paper);border-radius:6px;font-size:14px;line-height:1.55;color:var(--ink)}

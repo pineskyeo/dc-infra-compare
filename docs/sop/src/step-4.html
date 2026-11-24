@@ -43,6 +43,7 @@ k = P(W ≤ k−1) ≤ 0.05 인 가장 큰 정수, W ~ 이항(n, ½)
 <h2 id="why-median">평균이 아니라 중앙값을 쓰는 이유</h2>
 <ul>
 <li>튀는 die 하나가 평균은 끌고 가지만, 중앙값과 순번 구간은 튀는 die의 개수만 영향을 받고 크기는 영향이 없다. 튀는 die(|d − b| &gt; 5·robust σ)는 세기만 하고 빼지 않는다 (<code>n_outlier_die</code>)<sup data-ref="8"></sup>.</li>
+<li>같은 까닭으로, die 몇 개만 바뀐 변화(예: 몇 die만 누설이 늘어남)는 중앙값과 부호검정 구간을 거의 움직이지 못해 ⑥에서 차이가 나오지 않는다. 그런 변화는 판정과 따로 <code>n_outlier_die</code>(튀는 die 수)와 outlier_dies.csv 로 본다<sup data-ref="8"></sup>.</li>
 <li>대가: 값이 정규분포라면 중앙값은 평균보다 √(π/2) ≈ 1.25배 더 흔들린다 (효율 2/π ≈ 0.64)<sup data-ref="14b"></sup>. ⓪ die 수 식의 1.25가 이것이다.</li>
 <li>TOST와 90% 구간이 같은 결론이라는 원문은 정규이론(t) 구간 기준이다. 부호검정 구간에 쓰면 포함 확률이 90%보다 커서 (n = 61 이면 92.78%) 동등을 조금 덜 내는 쪽, 곧 보수적이다<sup data-ref="12"></sup>.</li>
 <li>판정 길이 log TOST인 ITEM(③)은 같은 구간을 L = log10|값| 에서 다시 구해 ⑥ 3단계에서 쓴다. 이때 d<sub>i</sub> = log10|DOE<sub>i</sub>| − (L<sub>i1</sub> + … + L<sub>iJ</sub>) / J.</li>

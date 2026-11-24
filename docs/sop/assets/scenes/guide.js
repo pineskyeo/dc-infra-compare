@@ -14,6 +14,9 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   // 1·2단계 판정 (items.csv verdict, reason): LoQ 아래 ITEM 은 2단계가 곧 1·2단계 결과
   const stage12 = t => t.step6.stage2 || t.step6.stage1;
+  // plot_verdicts.LOQ_ZONES: 이 값 위치의 ITEM 은 판정 지도가 아니라 summary_loq.png 에 그린다
+  const LOQ_ZONES = ['검출한계 이하', '검출~정량'];
+  const loqZone = t => LOQ_ZONES.includes(t.step3.zone);
 
   // 최종 판정을 정한 방법의 구간과 허용폭. LoQ 판정·한계 비교는 구간 대 허용폭 그림이 아니라 null
   function judgedBy(t) {
@@ -224,7 +227,7 @@
       const c = t.step3.cls;
       return {
         say: `POR 값만 보고 ITEM 유형을 정한다. 이 ITEM의 판정 길은 '${t.step3.route}'.`,
-        rows: [['|POR 중앙값|', fmt(Math.abs(t.step3.por_median))], ['LoQ', fmt(t.step3.LoQ)], ['구간', t.step3.zone],
+        rows: [['|POR 중앙값|', fmt(Math.abs(t.step3.por_median))], ['LoQ', fmt(t.step3.LoQ)], ['값 위치', t.step3.zone],
           ['유형', `${c.level} · ${c.resolution} · ${c.sign}`], ['판정 길', t.step3.route]],
         vis: drawLoq(t)
       };
@@ -355,6 +358,7 @@
   // ---------- 결과 읽기: 판정 지도 (plots/summary.png) ----------
   // 점 = ITEM. 가로 = 구간 가운데 ÷ 허용폭, 세로 = 구간 반폭 ÷ 허용폭 (최종 판정을 정한 방법의 것)
   function mapPoint(t) {
+    if (loqZone(t)) return null;
     const r = judgedBy(t);
     if (!r || !(r.tol > 0)) return null;
     return { x: (r.lo + r.hi) / 2 / r.tol, y: (r.hi - r.lo) / 2 / r.tol };
@@ -379,23 +383,26 @@
         s('line', { x1: X(-XM), x2: X(XM), y1: Y(0), y2: Y(0), class: 'gm-axis' }),
         s('line', { x1: X(0), x2: X(0), y1: Y(0), y2: Y(YM), class: 'gm-axis' }),
         ...[-2, -1, 0, 1, 2].map(k => txt(X(k), Y(0) + 18, 'mid muted', String(k).replace('-', '−'))),
-        txt(X(0) - 8, Y(1) + 4, 'end muted', '1'),
+        txt(X(0) - 8, Y(1) + 14, 'end muted gm-lab', '1'),
         txt(X(XM), Y(0) + 34, 'end', '이동 ÷ 허용폭 →'),
         txt(X(-XM), Y(YM) - 8, '', '↑ 흔들림(구간 반폭) ÷ 허용폭')]),
       txt(X(0), Y(0.3), 'mid gm-l eq', '동등', 1),
       txt(X(1.95), Y(0.28), 'mid gm-l diff', '차이', 2), txt(X(-1.95), Y(0.28), 'mid gm-l diff', '차이', 2),
-      txt(X(0), Y(1.2), 'mid gm-l hold', '미결 (흔들려서 판단 불가)', 3), txt(X(-1.25), Y(0.95), 'mid gm-l hold', '미결', 3)
+      s('line', { x1: X(-2), x2: X(2), y1: Y(1), y2: Y(1), class: 'gm-split', 'data-b': 3 }),
+      txt(X(0), Y(1.2), 'mid gm-l hold gm-lab', '미결 · 해상도 부족 (세로 ≥ 1)', 3),
+      txt(X(-1.05), Y(0.55), 'mid gm-l hold gm-lab', '미결 · 경계', 3), txt(X(1.05), Y(0.55), 'mid gm-l hold gm-lab', '미결 · 경계', 3)
     ];
     kids.push(s('g', { 'data-b': 4 }, [
       ...others.filter(o => Math.abs(o.x) <= XM && o.y <= YM).map(o => s('circle', { cx: X(o.x), cy: Y(o.y), r: 4, class: 'gm-other' })),
       inMap ? s('circle', { cx: X(p.x), cy: Y(p.y), r: 8, class: `gm-pt ${VCLASS[v]}` }) : null,
       inMap ? txt(clamp(X(p.x), 110, MW - 110), Y(p.y) - 16, 'mid strong gm-lab', `${t.item} · ${v}`) : null]));
-    const last = inMap ? `${t.item}는 ${v} 칸에 놓인다 (최종 판정 색과 같다)`
-      : p ? `${t.item}는 지도 범위 밖 (${v})` : `LoQ 아래 ITEM은 이 지도 대신 summary_loq.png 에`;
+    const last = loqZone(t) ? `${t.item}는 LoQ 아래 ITEM이라 이 지도 대신 plots/summary_loq.png 에`
+      : inMap ? `${t.item}는 ${v} 칸에 놓인다 (최종 판정 색과 같다)`
+      : p ? `${t.item}는 지도 범위 밖 (${v})` : `${t.item}는 이 지도에 점이 없다`;
     return {
       nodes: [s('svg', { viewBox: `0 0 ${MW} ${MH}`, class: 'scene-svg', role: 'img', 'aria-label': '판정 지도' }, kids)],
       beats: ['점 하나 = ITEM 하나. 가로는 이동, 세로는 흔들림', '|가로| + 세로 ≤ 1 이면 동등 (초록 삼각형)',
-        '|가로| − 세로 > 1 이면 차이 (양옆)', '그 사이는 모두 미결', last]
+        '|가로| − 세로 > 1 이면 차이 (양옆)', '그 사이는 미결: 세로 < 1 경계, ≥ 1 해상도 부족', last]
     };
   });
 })();

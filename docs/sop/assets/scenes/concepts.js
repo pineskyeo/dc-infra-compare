@@ -366,8 +366,9 @@
   });
 
   // ---------- ITEM 유형과 판정 길 ----------
-  const AXES = [['cls_valid', '판정할 수 있나'], ['cls_sign', '부호'], ['cls_level', '높이 (LoQ 대비)'], ['cls_resolution', '값이 계단인가'],
-    ['cls_shape', '분포 모양'], ['cls_noise', '잡음 모양'], ['cls_scale', '척도'], ['cls_run', 'POR 회차']];
+  // 축 이름은 ③ 장면(steps-a.js AXES)과 같다
+  const AXES = [['cls_valid', '판정 가능'], ['cls_sign', '부호'], ['cls_level', '수준'], ['cls_resolution', '분해능'],
+    ['cls_shape', '모양'], ['cls_noise', '잡음'], ['cls_scale', '척도'], ['cls_run', '회차']];
   // classify.py ROUTES 와 같은 순서와 조건
   const ROUTES = [
     ['제외', '판정할 수 없는 ITEM인가?', ['cls_valid'], c => c.cls_valid !== '정상'],
@@ -464,7 +465,7 @@
       T(RX + 250, 282, '모든 die에서 같다', 'cx-small cx-end')]));
     const c = clsOf(t);
     kids.push(B(3, [s('rect', { x: 0, y: 298, width: W, height: 34, rx: 10, class: 'cx-card' }),
-      T(14, 320, `이 예제 (${t.name}): 잡음 모양 '${c.cls_noise}' · 척도 '${c.cls_scale}' → 판정 길 '${t.step3.route}'`, 'cx-small', { 'text-anchor': 'start' })]));
+      T(14, 320, `이 예제 (${t.name}): 잡음 '${c.cls_noise}' · 척도 '${c.cls_scale}' → 판정 길 '${t.step3.route}'`, 'cx-small', { 'text-anchor': 'start' })]));
     const beats = [
       '선형 눈금: 큰 die일수록 흔들림 막대가 길다',
       'log 눈금: 모든 die의 막대 길이가 같다',
@@ -577,7 +578,7 @@
     const name = ratio <= 0.5 ? '안정' : ratio <= 0.8 ? '주의' : '불안정';
     kids.push(B(3, [s('text', { x: 0, y: gy - 2, class: 'sc-h' }, '이 예제'),
       s('text', { x: 0, y: gy + 17, class: 'sc-sub' }, `die ${t.n_die}개 · 반폭 ÷ Δ`),
-      zone(0, 0.5, 'cx-z-eq', '안정'), zone(0.5, 0.8, 'cx-z-hold', '주의'), zone(0.8, gmax, 'cx-z-diff', '불안정'),
+      zone(0, 0.5, 'cx-z-eq', '안정'), zone(0.5, 0.8, 'cx-z-hold', '주의'), zone(0.8, gmax, 'cx-z-bad', '불안정'),
       line(g(1), gy - 18, g(1), gy + 16, 'cx-guide'), T(g(1), gy - 22, '1', 'muted mid'),
       s('rect', { x: g(0), y: gy - 5, width: Math.max(3, g(Math.min(ratio, gmax)) - g(0)), height: 10, rx: 5, class: 'sc-ci' }),
       T(clamp(g(Math.min(ratio, gmax)) + 8, 180, 650), gy - 16, `${ratio.toFixed(2)}${ratio > gmax ? ' →' : ''}`, 'doe')]));

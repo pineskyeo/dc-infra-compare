@@ -50,7 +50,7 @@ m = median<sub>i</sub>( (POR<sub>i1</sub> + … + POR<sub>iJ</sub>) / J )       
 <tr><td>log TOST</td><td>Δ<sub>log</sub> = log10(1 + r) + σ<sub>rep,log</sub>. t·√(1+1/J) 배수는 없다</td><td><code>delta_log</code>, <code>sigma_rep_log</code></td></tr>
 </tbody></table></div>
 <div class="formula" id="C5-3">장비 정확도 폭 = 1.645·√((U<sub>POR</sub>² + U<sub>DOE</sub>²) / 3)    <span class="c">U = a·|값| + b·range + c (장비 사양)</span>
-σ<sub>rep,log</sub> = median<sub>i</sub>( SD(L<sub>i1</sub> … L<sub>iJ</sub>) ),  L = log10|POR|    <span class="c">die별 log 회차 흔들림의 중앙값</span>
+σ<sub>rep,log</sub> = median<sub>i</sub>( SD(L<sub>i1</sub> … L<sub>iJ</sub>) ),  L = log10|POR|    <span class="c">die별 log 반복 SD의 중앙값</span>
 배율로 본 허용폭 = 10<sup>−Δ<sub>log</sub></sup> − 1  ~  10<sup>+Δ<sub>log</sub></sup> − 1   <span class="c">쉽게 영역의 '배율 변화'</span></div>
 <p>장비 정확도 폭은 두 측정이 각자 사양 정확도 ±U 안에 고르게 있다고 보고 (표준불확도 U/√3) 합친 값이며, 1.645 는 그 차이를 정규분포로 근사한 것이다<sup data-ref="11"></sup>. log 판정의 참고 열 <code>verdict_log_run</code> 은 회차 항을 선형처럼 t·√(1+1/J)·σ<sub>run,log</sub> 로 둔 것이다.</p>
 

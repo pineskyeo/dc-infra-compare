@@ -36,7 +36,7 @@
 <h3>verdict_basis 코드</h3>
 <div class="tw"><table class="nw"><thead><tr><th>코드</th><th>정한 곳</th><th>쓴 허용폭</th></tr></thead><tbody>
 <tr><td><code>linear</code></td><td>1단계 TOST (판정 길이 판정 못 하면 1단계 그대로)</td><td>Δ</td></tr>
-<tr><td><code>loq</code></td><td>2단계 LoQ 판정 (LoQ 아래 구간에서 그대로)</td><td>Δ 와 LoQ</td></tr>
+<tr><td><code>loq</code></td><td>2단계 LoQ 판정 (값 위치가 LoQ 아래일 때 그대로)</td><td>Δ 와 LoQ</td></tr>
 <tr><td><code>log</code></td><td>3단계 log TOST</td><td>Δ<sub>log</sub> = log10(1 + r) + sigma_rep_log</td></tr>
 <tr><td><code>abs</code></td><td>3단계 절대 허용폭</td><td>abs_delta</td></tr>
 <tr><td><code>accuracy</code></td><td>3단계 장비 정확도 폭 (선형 TOST 길, 바닥 근처)</td><td>Δ' = max(Δ, accuracy_margin)</td></tr>
@@ -49,7 +49,7 @@
 <li>미결 사유 '해상도 부족': 구간 반폭 ≥ 허용폭. 가운데가 0이어도 동등이 될 수 없음.</li>
 <li>미결 사유 '경계': 구간이 허용폭 선에 걸침. 정밀도는 충분.</li>
 <li>die가 10개보다 적으면 판정하지 않고 미결<sup data-ref="7"></sup>.</li>
-<li>판정 제외 (판정할 것이 없음). 맞는 원인을 모두 이 순서로 reason 에 적음: ① 중심·구간이 NaN·inf ② 회차 0값 (POR 회차 하나나 DOE가 die 절반 넘게 0) ③ 모든 값 같음 ④ die 산포 0 (정량 구간이고 값 간격 ≥ 0.1·Δ 일 때만) ⑤ POR 중앙값 0 이고 σ_run 0 (정량 구간만). 정량 구간에서 Δ ≤ 0 이어도 판정 제외.</li>
+<li>판정 제외 (판정할 것이 없음). 맞는 원인을 모두 이 순서로 reason 에 적음: ① 중심·구간이 NaN·inf ② 회차 0값 (POR 회차 하나나 DOE가 die 절반 넘게 0) ③ 모든 값 같음 ④ die 산포 0 (값 위치가 정량이고 값 간격 ≥ 0.1·Δ 일 때만) ⑤ POR 중앙값 0 이고 σ_run 0 (값 위치 정량만). 값 위치가 정량이고 Δ ≤ 0 이어도 판정 제외.</li>
 </ul>
 
 <h2 id="status">데이터 상태 (status, 판정과 별개)</h2>

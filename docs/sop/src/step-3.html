@@ -18,26 +18,26 @@ LoQ<sub>blank</sub> = |blank 평균| + 10 · blank SD     <span class="c">ITEM �
 LoD ≤ |POR 중앙값| &lt; LoQ    → 검출~정량
 |POR 중앙값| &lt; LoD          → 검출한계 이하</div>
 <div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>items.csv 열</th></tr></thead><tbody>
-<tr><td>σ</td><td>LoQ 를 정한 흔들림. 후보 중 가장 큰 것</td><td><code>limit_source</code> (그 출처)</td></tr>
+<tr><td>σ</td><td>LoQ 를 정한 흔들림. 후보 중 가장 큰 것 (후보를 max 로 묶는 구성은 <span class="st st-int">내부 기준</span>)</td><td><code>limit_source</code> (그 출처)</td></tr>
 <tr><td>Δx<sub>데이터</sub></td><td>POR · DOE 값 사이 가장 작은 간격<sup data-ref="4"></sup></td><td><code>resolution_step</code></td></tr>
 <tr><td>Δx<sub>장비</sub></td><td>ITEM 정보(측정 범위, CALCVAL)가 있을 때 장비 분해능</td><td><code>spec_resolution</code></td></tr>
-<tr><td>LoQ, LoD</td><td>정량한계, 검출한계<sup data-ref="5"></sup></td><td><code>LoQ</code>, <code>LoD</code></td></tr>
+<tr><td>LoQ, LoD</td><td>정량한계 10σ, 검출한계 3.29σ<sup data-ref="5"></sup></td><td><code>LoQ</code>, <code>LoD</code></td></tr>
 <tr><td>LoQ<sub>blank</sub></td><td>blank 측정으로 구한 LoQ. CALCVAL 이 있는 ITEM 만<sup data-ref="6"></sup></td><td><code>blank_LoQ_item</code></td></tr>
-<tr><td>구간</td><td>정량 / 검출~정량 / 검출한계 이하</td><td><code>zone</code></td></tr>
+<tr><td>값 위치</td><td>정량 / 검출~정량 / 검출한계 이하</td><td><code>zone</code></td></tr>
 </tbody></table></div>
 <p id="C3-2">분해능 항은 값이 계단이라 반복값이 모두 같을 때 σ<sub>die</sub> = 0 이 되어 LoQ 도 0 이 되는 것을 막는다. LoQ 아래 값은 '&lt;LoQ' 로 보고하는 것이 이 SOP 의 내부 규칙이다<sup data-ref="15"></sup>. LoQ 의 σ 에는 σ<sub>run</sub> 이 들어가지 않는다 (대조표 D10, <a href="appendix.html">부록</a> 미해결 항목).</p>
 
 <h2 id="classify">ITEM 유형 분류 (POR 값만)</h2>
 <p>축마다 위에서부터 처음 맞는 값을 쓴다 (모양만 맞는 값을 모두 ';' 로 잇는다). 수준 축의 LoQ<sub>POR</sub> 는 같은 식을 POR 값만으로 다시 구한 것이라 판정의 LoQ 와 조금 다를 수 있다. r = 0.05.</p>
-<div class="tw"><table><thead><tr><th>열</th><th>값</th><th>조건 (코드 문턱)</th></tr></thead><tbody>
-<tr><td><code>cls_valid</code></td><td>die 부족 · 제외 원인 · 정상</td><td>n &lt; 10 → die 부족. POR 만으로 본 판정 제외 원인이 있으면 그 이름</td></tr>
-<tr><td><code>cls_sign</code></td><td>부호 섞임 · 0 포함 · 양수만 · 음수만</td><td>양수와 음수가 모두 → 부호 섞임. |x| ≥ 1E+90 (Open 코드) 는 뺌</td></tr>
-<tr><td><code>cls_level</code></td><td>0 중심 · 바닥 아래 · 바닥 근처 · 정량</td><td>부호 섞임이고 |m| &lt; LoQ<sub>POR</sub> → 0 중심. |m| &lt; LoQ<sub>POR</sub> → 바닥 아래. LoQ<sub>POR</sub> ≤ |m| &lt; LoQ<sub>POR</sub> / (10r) = 2·LoQ<sub>POR</sub> → 바닥 근처</td></tr>
-<tr><td><code>cls_resolution</code></td><td>계단 · 연속</td><td>POR 값 간격 ≥ 0.1 · Δ → 계단</td></tr>
-<tr><td><code>cls_shape</code></td><td>두 덩어리 · 튀는 die · 한계에 걸림 · 한 덩어리</td><td>bimodality(log) &gt; 5/9 이고 die ≥ 10 → 두 덩어리. die 평균이 중앙값에서 5 · robust σ 넘게 (부호가 하나면 log10 값에서) → 튀는 die. POR 최솟값·최댓값에 붙은 값 ≥ 5% 또는 Open 코드 → 한계에 걸림</td></tr>
-<tr><td><code>cls_noise</code></td><td>일정 · 비례 · 위로 갈수록 벌어짐 · 아래로 갈수록 벌어짐 · 사이 · 판별 불가</td><td>log(die SD) 를 log(die 평균) 에 맞춘 기울기 95% 구간이 0 을 품으면 일정, 1 을 품으면 비례. spread (= 3.45 · IQR(log10|x|)) ≥ 0.3 이고 die ≥ 10 이어야 읽음. 두 쪽 기울기 차 &gt; 0.7 이면 '(꺾임)'</td></tr>
-<tr><td><code>cls_scale</code></td><td>log · linear · 판별 불가</td><td>scales 표 값이 먼저. 없으면 spread &lt; 0.3 이거나 기울기 없음 → 판별 불가, 기울기 ≥ 0.7 → log, 그 밖 linear</td></tr>
-<tr><td><code>cls_run</code></td><td>회차 밀림 · 조건 불안정 · 회차 흔들림 · 안정</td><td>밀린 POR 회차를 따라 움직임 (|점수| ≥ 0.25) → 회차 밀림. 회차 중앙값 차 ≥ Δ 이고 ≥ 3 · 표준오차 → 조건 불안정. die 회차 범위 중앙값 ≥ Δ → 회차 흔들림</td></tr>
+<div class="tw"><table><thead><tr><th>축 (열)</th><th>값</th><th>조건 (코드 문턱)</th></tr></thead><tbody>
+<tr><td>판정 가능 <code>cls_valid</code></td><td>die 부족 · 제외 원인 · 정상</td><td>n &lt; 10 → die 부족. POR 만으로 본 판정 제외 원인이 있으면 그 이름</td></tr>
+<tr><td>부호 <code>cls_sign</code></td><td>부호 섞임 · 0 포함 · 양수만 · 음수만 · 값 없음</td><td>양수와 음수가 모두 → 부호 섞임. |x| ≥ 1E+90 (Open 코드) 는 뺌, 빼고 남는 값이 없으면 값 없음</td></tr>
+<tr><td>수준 <code>cls_level</code></td><td>0 중심 · 바닥 아래 · 바닥 근처 · 정량</td><td>부호 섞임이고 |m| &lt; LoQ<sub>POR</sub> → 0 중심. |m| &lt; LoQ<sub>POR</sub> → 바닥 아래. LoQ<sub>POR</sub> ≤ |m| &lt; LoQ<sub>POR</sub> / (10r) = 2·LoQ<sub>POR</sub> → 바닥 근처</td></tr>
+<tr><td>분해능 <code>cls_resolution</code></td><td>계단 · 연속</td><td>POR 값 간격 ≥ 0.1 · Δ → 계단</td></tr>
+<tr><td>모양 <code>cls_shape</code></td><td>두 덩어리 · 튀는 die · 한계에 걸림 · 한 덩어리</td><td>bimodality(log) &gt; 5/9 이고 die ≥ 10 → 두 덩어리. die 평균이 중앙값에서 5 · robust σ 넘게 (부호가 하나면 log10 값에서) → 튀는 die. POR 최솟값·최댓값에 붙은 값 ≥ 5% 또는 Open 코드 → 한계에 걸림</td></tr>
+<tr><td>잡음 <code>cls_noise</code></td><td>일정 · 비례 · 위로 갈수록 벌어짐 · 아래로 갈수록 벌어짐 · 사이 · 판별 불가</td><td>log(die SD) 를 log(die 평균) 에 맞춘 기울기 95% 구간이 0 과 1 을 둘 다 품으면 판별 불가, 0 만 품으면 일정, 1 만 품으면 비례, 1 보다 크면 위로 갈수록 벌어짐, 0 보다 작으면 아래로 갈수록 벌어짐, 그 밖 사이. spread (= 3.45 · IQR(log10|x|)) ≥ 0.3 이고 die ≥ 10 이어야 읽음. 두 쪽 기울기 차 &gt; 0.7 이면 '(꺾임)'</td></tr>
+<tr><td>척도 <code>cls_scale</code></td><td>log · linear · 판별 불가</td><td>scales 표 값이 먼저. 없으면 spread &lt; 0.3 이거나 기울기 없음 → 판별 불가, 기울기 ≥ 0.7 → log, 그 밖 linear</td></tr>
+<tr><td>회차 <code>cls_run</code></td><td>회차 밀림 · 조건 불안정 · 회차 흔들림 · 안정</td><td>밀린 POR 회차를 따라 움직임 (|점수| ≥ 0.25) → 회차 밀림. 회차 중앙값 차 ≥ Δ 이고 ≥ 3 · 표준오차 → 조건 불안정. die 회차 범위 중앙값 ≥ Δ → 회차 흔들림</td></tr>
 </tbody></table></div>
 
 <h2 id="C3-3">판정 길</h2>
@@ -59,7 +59,7 @@ LoD ≤ |POR 중앙값| &lt; LoQ    → 검출~정량
 
 <h2>코드 위치</h2>
 <ul>
-<li>LoQ 의 σ: <code data-code="por_doe_compare.py:limit_sigma"></code>, 배수: <code data-code="por_doe_compare.py:K_LOD"></code>, 구간: <code data-code="por_doe_compare.py:judge"></code></li>
+<li>LoQ 의 σ: <code data-code="por_doe_compare.py:limit_sigma"></code>, 배수: <code data-code="por_doe_compare.py:K_LOD"></code>, 값 위치: <code data-code="por_doe_compare.py:judge"></code></li>
 <li>POR 만의 LoQ: <code data-code="classify.py:por_loq"></code>, 바닥 근처: <code data-code="por_doe_compare.py:near_loq"></code></li>
 <li>분류 축: <code data-code="classify.py:AXES"></code>, 문턱: <code data-code="classify.py:RESOLUTION_STEP_MIN"></code>, <code data-code="classify.py:SCALE_SLOPE_LOG"></code>, <code data-code="classify.py:LIMIT_SHARE_MIN"></code></li>
 <li>판정 길: <code data-code="classify.py:ROUTES"></code>, 절대 허용폭: <code data-code="classify.py:abs_delta_for"></code></li>
