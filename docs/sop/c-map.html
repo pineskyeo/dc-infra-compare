@@ -1,0 +1,253 @@
+<!doctype html><html lang="ko" data-d41><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>판정 지도는 왜 삼각형인가 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"><script src="assets/concepts.js" defer></script></head><body>
+<details class="fp-fold"><summary>흐름도 ⓪~⑦</summary>
+<nav aria-label="흐름도">
+<div class="fp">
+<ol class="fp-top">
+<li><a href="step-0.html" data-step="0">⓪ 표본 크기 정하기</a></li>
+<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
+<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
+<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
+</ol>
+<div class="fp-fork">
+<div class="fp-col"><span class="fp-lab">정량</span><ol>
+<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
+<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
+</ol></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+</div>
+<ol class="fp-join"><li><a href="step-6.html" data-step="6" class="rel">⑥ 판정</a></li></ol>
+<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
+<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
+</div>
+</nav>
+</details><nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 구하기</a><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a><a href="step-6.html">⑥ 판정</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="true">개념 익히기</a><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></nav>
+<nav class="fp-wide" aria-label="흐름도">
+<div class="fp">
+<p class="fp-h">흐름도 ⓪~⑦</p>
+<ol class="fp-top">
+<li><a href="step-0.html" data-step="0">⓪ 표본 크기 정하기</a></li>
+<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
+<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
+<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
+</ol>
+<div class="fp-fork">
+<div class="fp-col"><span class="fp-lab">정량</span><ol>
+<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
+<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
+</ol></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+</div>
+<ol class="fp-join"><li><a href="step-6.html" data-step="6" class="rel">⑥ 판정</a></li></ol>
+<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
+<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
+</div>
+</nav><main><div class="wrap">
+<p class="loc"><a href="concepts.html">개념 익히기</a> › 판정 지도는 왜 삼각형인가 (개념 11 / 15) · 쓰는 단계 <a href="step-6.html">⑥</a></p>
+<h1>판정 지도는 왜 삼각형인가</h1>
+
+<section id="q"><h2>이 쪽이 답하는 질문</h2>
+<p class="q">판정 지도(<code>plots/summary.png</code>)에서 동등 칸은 왜 삼각형이고, 차이 칸은 왜 위로 갈수록 벌어지나</p></section>
+
+<section id="plain"><h2>쉬운 말로</h2>
+<ul>
+<li>점 하나 = ITEM 하나의 90% 신뢰구간(막대) 하나 <span class="from"><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a></span></li>
+<li>가로 = 막대 가운데 ÷ Δ (정규화 변화량) · 세로 = 막대 반쪽 길이 ÷ Δ (정규화 불확실성)</li>
+<li>점에서 45°로 내린 두 선이 바닥에 닿는 곳 = 막대 양 끝 (가로 − 세로, 가로 + 세로)</li>
+<li><span class="pill ok">동등</span> 막대 두 끝이 모두 ±1 안 → 삼각형</li>
+<li><span class="pill bad">차이</span> 0에 가까운 끝도 ±1 밖 → 위로 갈수록 바깥으로 벌어짐</li>
+<li><span class="pill hold">미결</span> 막대가 ±1에 걸침. 세로 ≥ 1이면 막대가 ±1 폭보다 길어 동등이 될 수 없음(해상도 부족)</li>
+</ul></section>
+
+<section id="figure"><h2>그림</h2>
+<figure class="mapfig" id="fig-map">
+<svg id="mapfig-svg" viewBox="0 0 680 560" role="img" aria-label="위 수직선의 막대와 아래 판정 지도의 점이 함께 움직이며 동등 삼각형과 차이 경계가 그려짐"></svg>
+<figcaption class="s">위 = 막대(90% 신뢰구간 ÷ Δ) · 아래 = 판정 지도 · 두 그림의 가로축이 같음 · 점선 45° 두 줄의 발 = 막대 양 끝</figcaption>
+</figure>
+<div class="mapfig-ctl"><button id="mapfig-play" type="button">▶ 재생</button><span class="s">재생 뒤나 멈춘 동안 점을 끌어 볼 수 있음</span></div>
+<p class="look"><b>여기서 볼 것</b> · ① 점이 위로 가면 막대가 길어지고 세로 1에서 양 끝이 ±1에 닿음 ② 막대 한쪽 끝을 +1에 붙인 채 움직인 자취가 삼각형 변(가로 + 세로 = 1) ③ 막대 반대쪽 끝을 +1에 붙인 자취가 차이 경계(가로 − 세로 = 1)</p>
+</section>
+
+<section id="formula"><h2>수식</h2>
+<div class="formula"><div>x = (L + U)/2 ÷ Δ, y = (U − L)/2 ÷ Δ → 막대 = [x − y, x + y]</div><div>동등: |x| + y ≤ 1 · 차이: |x| − y &gt; 1 · 미결: 그 사이</div><div class="c">L, U = 90% CI 아래 끝, 위 끝. 막대 끝이 ±1에 닿는 조건을 (x, y) 평면에 그리면 기울기 ±1인 선 네 개</div></div>
+</section>
+
+<style>
+.mapfig{--eq:#1A8754;--df:#D93A3A;--und:#C27C0E;--fg:var(--tx);--muted:var(--tx2);--grid:var(--ln);--axis:#9CA3AF;--pt:#FFFFFF;--panel:#FFFFFF;margin:0 0 8px}
+.mapfig svg{display:block;width:100%;max-width:680px;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+.mapfig .mf-t{font-family:var(--font-sans);fill:var(--fg)}
+.mapfig .mf-n{font-family:var(--font-mono);fill:var(--muted)}
+.mapfig-ctl{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+.mapfig-ctl button{font:600 13px var(--font-sans);color:var(--tx);background:#FFFFFF;border:1px solid var(--bd);border-radius:999px;padding:6px 14px;cursor:pointer}
+.mapfig-ctl button:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+</style>
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("mapfig-svg");
+  const X0 = 70, X1 = 630, NL_Y = 78, M_TOP = 170, M_BOT = 500, XMAX = 3, YMAX = 2;
+  const sx = v => X0 + (v + XMAX) / (2 * XMAX) * (X1 - X0);
+  const sy = v => M_BOT - v / YMAX * (M_BOT - M_TOP);
+  const ix = px => (px - X0) / (X1 - X0) * 2 * XMAX - XMAX;
+  const iy = py => (M_BOT - py) / (M_BOT - M_TOP) * YMAX;
+  function el(tag, attrs = {}, parent = svg) {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    parent.appendChild(e);
+    return e;
+  }
+  const fmt = v => (v > 0.004 ? "+" : v < -0.004 ? "−" : "") + Math.abs(v).toFixed(1);
+  const tick = v => v === 0 ? "0" : fmt(v).replace(".0", "");
+
+  el("rect", { x: sx(-1), y: NL_Y - 20, width: sx(1) - sx(-1), height: 40, rx: 6, style: "fill: var(--eq); fill-opacity: .12" });
+  el("line", { x1: sx(-XMAX), x2: sx(XMAX), y1: NL_Y, y2: NL_Y, style: "stroke: var(--axis); stroke-width: 2" });
+  for (let v = -3; v <= 3; v++) {
+    el("line", { x1: sx(v), x2: sx(v), y1: NL_Y - 6, y2: NL_Y + 6, style: "stroke: var(--axis); stroke-width: 2" });
+    el("text", { x: sx(v), y: NL_Y + 32, "text-anchor": "middle", class: "mf-n", "font-size": 18 }).textContent = tick(v);
+  }
+  for (let v = 0.5; v <= YMAX; v += 0.5) el("line", { x1: sx(-XMAX), x2: sx(XMAX), y1: sy(v), y2: sy(v), style: "stroke: var(--grid)" });
+  for (let v = -3; v <= 3; v++) el("line", { x1: sx(v), x2: sx(v), y1: sy(0), y2: sy(YMAX), style: "stroke: var(--grid)" });
+  const poly = (pts, c) => el("polygon", { points: pts.map(p => sx(p[0]) + "," + sy(p[1])).join(" "), style: `fill: var(${c})`, "fill-opacity": 0 });
+  const regEq = poly([[-1, 0], [1, 0], [0, 1]], "--eq");
+  const regDf = [poly([[1, 0], [3, 0], [3, 2]], "--df"), poly([[-1, 0], [-3, 0], [-3, 2]], "--df")];
+  el("line", { x1: sx(-XMAX), x2: sx(XMAX), y1: sy(0), y2: sy(0), style: "stroke: var(--axis); stroke-width: 2" });
+  el("line", { x1: sx(-XMAX), x2: sx(-XMAX), y1: sy(0), y2: sy(YMAX), style: "stroke: var(--axis)" });
+  for (let v = -3; v <= 3; v++) el("text", { x: sx(v), y: sy(0) + 26, "text-anchor": "middle", class: "mf-n", "font-size": 18 }).textContent = tick(v);
+  for (let v = 0.5; v <= YMAX; v += 0.5) el("text", { x: X0 - 10, y: sy(v) + 6, "text-anchor": "end", class: "mf-n", "font-size": 17 }).textContent = v.toFixed(1);
+  el("text", { x: (X0 + X1) / 2, y: sy(0) + 54, "text-anchor": "middle", class: "mf-t", "font-size": 19, "font-weight": 600 }).textContent = "가로 = 막대 가운데";
+  el("text", { x: 20, y: (M_TOP + M_BOT) / 2, "text-anchor": "middle", class: "mf-t", "font-size": 19, "font-weight": 600,
+               transform: `rotate(-90 20 ${(M_TOP + M_BOT) / 2})` }).textContent = "세로 = 막대 반쪽 길이";
+  for (const v of [-1, 1]) el("line", { x1: sx(v), x2: sx(v), y1: NL_Y - 26, y2: sy(0), style: "stroke: var(--eq); stroke-width: 1.5; stroke-dasharray: 5 5; opacity: .55" });
+
+  const LINES = { eqR: [[0, 1], [1, 0], "--eq"], eqL: [[0, 1], [-1, 0], "--eq"], dfR: [[1, 0], [3, 2], "--df"], dfL: [[-1, 0], [-3, 2], "--df"] };
+  const lineEls = {};
+  for (const [k, [a, , c]] of Object.entries(LINES))
+    lineEls[k] = el("line", { x1: sx(a[0]), y1: sy(a[1]), x2: sx(a[0]), y2: sy(a[1]), style: `stroke: var(${c}); stroke-width: 4; stroke-linecap: round` });
+
+  const labels = el("g", { opacity: 0 });
+  const lab = (x, y, s, c, size = 24) => { el("text", { x: sx(x), y: sy(y), "text-anchor": "middle", class: "mf-t", "font-size": size, "font-weight": 700, style: `fill: var(${c})` }, labels).textContent = s; };
+  lab(0, 0.3, "동등", "--eq"); lab(2.25, 0.35, "차이", "--df"); lab(-2.25, 0.35, "차이", "--df");
+  lab(1.05, 0.55, "미결", "--und", 20); lab(-1.05, 0.55, "미결", "--und", 20); lab(0, 1.55, "미결", "--und");
+
+  const drops = [0, 1].map(() => el("line", { style: "stroke: var(--muted); stroke-width: 1; stroke-dasharray: 2 5; opacity: .7" }));
+  const tents = [0, 1].map(() => el("line", { style: "stroke-width: 2.5; stroke-dasharray: 7 5" }));
+  const feet = [0, 1].map(() => el("circle", { r: 5 }));
+  const bar = el("rect", { y: NL_Y - 9, height: 18, rx: 9 });
+  const mid = el("line", { y1: NL_Y - 14, y2: NL_Y + 14, style: "stroke: var(--fg); stroke-width: 3" });
+  const ends = [el("text", { class: "mf-n", "font-size": 18, "text-anchor": "end" }), el("text", { class: "mf-n", "font-size": 18, "text-anchor": "start" })];
+  const rings = [0, 1, 2, 3].map(() => el("circle", { r: 13, style: "fill: none; stroke-width: 3", opacity: 0 }));
+  const point = el("circle", { r: 11, style: "stroke: var(--pt); stroke-width: 3; cursor: grab" });
+  const readout = el("text", { class: "mf-n", "font-size": 17 });
+  const verdict = el("text", { x: X1, y: 30, "text-anchor": "end", class: "mf-t", "font-size": 24, "font-weight": 700 });
+  const chipBg = el("rect", { rx: 8, height: 38, style: "fill: var(--panel); stroke: var(--axis)", opacity: 0 });
+  const chip = el("text", { x: (X0 + X1) / 2, y: M_TOP - 2, "text-anchor": "middle", class: "mf-n", "font-size": 22, style: "fill: var(--fg)", opacity: 0 });
+
+  const S0 = () => ({ x: 0, y: 0, draw: { eqR: 0, eqL: 0, dfR: 0, dfL: 0 }, fill: { eq: 0, df: 0 }, labels: 0, chip: "", chipA: 0 });
+  let st = S0();
+  const judge = (lo, hi) => (hi <= 1 + 1e-9 && lo >= -1 - 1e-9) ? ["동등", "--eq"] : (lo > 1 + 1e-9 || hi < -1 - 1e-9) ? ["차이", "--df"] : ["미결", "--und"];
+  const clipX = v => Math.max(-XMAX, Math.min(XMAX, v));
+
+  function render() {
+    const { x, y } = st, lo = x - y, hi = x + y;
+    const [vName, vCol] = judge(lo, hi), col = `var(${vCol})`;
+    bar.setAttribute("x", sx(clipX(lo))); bar.setAttribute("width", Math.max(4, sx(clipX(hi)) - sx(clipX(lo)))); bar.style.fill = col;
+    mid.setAttribute("x1", sx(x)); mid.setAttribute("x2", sx(x));
+    ends[0].setAttribute("x", sx(clipX(lo)) - 10); ends[0].setAttribute("y", NL_Y - 16); ends[0].textContent = fmt(lo);
+    ends[1].setAttribute("x", sx(clipX(hi)) + 10); ends[1].setAttribute("y", NL_Y - 16); ends[1].textContent = fmt(hi);
+    point.setAttribute("cx", sx(x)); point.setAttribute("cy", sy(y)); point.style.fill = col;
+    readout.setAttribute("x", sx(x) + (x > 1.8 ? -18 : 18)); readout.setAttribute("y", sy(y) - 16);
+    readout.setAttribute("text-anchor", x > 1.8 ? "end" : "start");
+    readout.textContent = `(${fmt(x)}, ${y.toFixed(1)})`;
+    verdict.textContent = vName; verdict.style.fill = col;
+    [lo, hi].forEach((f, i) => {
+      const dir = i === 0 ? -1 : 1, inside = Math.abs(f) <= XMAX;
+      const t = Math.min(y, inside ? y : XMAX - dir * x);
+      tents[i].setAttribute("x1", sx(x)); tents[i].setAttribute("y1", sy(y));
+      tents[i].setAttribute("x2", sx(x + dir * t)); tents[i].setAttribute("y2", sy(y - t)); tents[i].style.stroke = col;
+      feet[i].setAttribute("cx", sx(clipX(f))); feet[i].setAttribute("cy", sy(0)); feet[i].style.fill = col; feet[i].setAttribute("opacity", inside ? 1 : 0);
+      drops[i].setAttribute("x1", sx(clipX(f))); drops[i].setAttribute("x2", sx(clipX(f)));
+      drops[i].setAttribute("y1", NL_Y + 10); drops[i].setAttribute("y2", sy(0)); drops[i].setAttribute("opacity", inside ? .7 : 0);
+      const on = [-1, 1].some(b => Math.abs(f - b) < 0.025);
+      for (const [r, cy] of [[rings[i * 2], NL_Y], [rings[i * 2 + 1], sy(0)]]) {
+        r.setAttribute("cx", sx(f)); r.setAttribute("cy", cy); r.setAttribute("opacity", on ? 1 : 0); r.style.stroke = col;
+      }
+    });
+    for (const [k, [a, b]] of Object.entries(LINES)) {
+      const p = st.draw[k];
+      lineEls[k].setAttribute("x2", sx(a[0] + (b[0] - a[0]) * p)); lineEls[k].setAttribute("y2", sy(a[1] + (b[1] - a[1]) * p));
+      lineEls[k].setAttribute("opacity", p > 0 ? 1 : 0);
+    }
+    regEq.setAttribute("fill-opacity", 0.2 * st.fill.eq);
+    regDf.forEach(r => r.setAttribute("fill-opacity", 0.14 * st.fill.df));
+    labels.setAttribute("opacity", st.labels);
+    chip.textContent = st.chip; chip.setAttribute("opacity", st.chipA); chipBg.setAttribute("opacity", st.chipA);
+    if (st.chip) {
+      const w = st.chip.length * 15 + 36;
+      chipBg.setAttribute("x", (X0 + X1) / 2 - w / 2); chipBg.setAttribute("y", M_TOP - 30); chipBg.setAttribute("width", w);
+    }
+  }
+
+  const STEPS = [
+    { d: 700 }, { d: 2400, to: [0, 1] }, { d: 700 },
+    { d: 2600, to: [1, 0], draw: "eqR", chip: "가로 + 세로 = 1" }, { d: 500, chip: "가로 + 세로 = 1" },
+    { d: 900, to: [0, 1] }, { d: 2200, to: [-1, 0], draw: "eqL", chip: "가로 − 세로 = −1" }, { d: 900, fill: "eq" },
+    { d: 900, to: [1, 0] }, { d: 2800, to: [3, 2], draw: "dfR", chip: "가로 − 세로 = 1" }, { d: 500, chip: "가로 − 세로 = 1" },
+    { d: 1300, to: [-1, 0] }, { d: 2400, to: [-3, 2], draw: "dfL", chip: "가로 + 세로 = −1" }, { d: 900, fill: "df" },
+    { d: 800, labels: true },
+    { d: 1100, to: [0.3, 0.3] }, { d: 900 }, { d: 1200, to: [1.2, 0.5] }, { d: 1100 },
+    { d: 1200, to: [2.3, 0.5] }, { d: 1100 }, { d: 1400, to: [0, 1.5] }, { d: 1100 },
+    { d: 1400, to: [-1.8, 0.4] }, { d: 1100 }, { d: 1200, to: [0.35, 0.15] },
+  ];
+  const ease = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+  let si = STEPS.length, t0 = null, from = null, playing = false, raf = 0;
+  const btn = document.getElementById("mapfig-play");
+  const setBtn = () => { btn.textContent = playing ? "❚❚ 멈춤" : si < STEPS.length ? "▶ 이어 재생" : "▶ 재생"; };
+
+  function frame(ts) {
+    if (!playing) return;
+    const s = STEPS[si];
+    if (t0 === null) { t0 = ts; from = { x: st.x, y: st.y }; }
+    const p = Math.min(1, (ts - t0) / s.d), e = ease(p);
+    if (s.to) { st.x = from.x + (s.to[0] - from.x) * e; st.y = from.y + (s.to[1] - from.y) * e; }
+    if (s.draw) st.draw[s.draw] = Math.max(st.draw[s.draw], e);
+    if (s.fill) st.fill[s.fill] = Math.max(st.fill[s.fill], e);
+    if (s.labels) st.labels = Math.max(st.labels, e);
+    if (s.chip) { st.chip = s.chip; st.chipA = Math.min(1, st.chipA + 0.08); } else st.chipA = Math.max(0, st.chipA - 0.08);
+    render();
+    if (p >= 1) { si++; t0 = null; if (si >= STEPS.length) { playing = false; st.chipA = 0; render(); setBtn(); return; } }
+    raf = requestAnimationFrame(frame);
+  }
+  function showAll() { for (const k in st.draw) st.draw[k] = 1; st.fill.eq = st.fill.df = 1; st.labels = 1; st.chipA = 0; }
+  btn.addEventListener("click", () => {
+    if (playing) { playing = false; cancelAnimationFrame(raf); setBtn(); return; }
+    if (si >= STEPS.length) { st = S0(); si = 0; }
+    playing = true; t0 = null; setBtn(); raf = requestAnimationFrame(frame);
+  });
+
+  let dragging = false;
+  function moveTo(evt) {
+    const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    st.x = Math.round(Math.max(-XMAX, Math.min(XMAX, ix(p.x))) * 20) / 20;
+    st.y = Math.round(Math.max(0, Math.min(YMAX, iy(p.y))) * 20) / 20;
+    render();
+  }
+  svg.addEventListener("pointerdown", evt => {
+    if (playing) { playing = false; cancelAnimationFrame(raf); }
+    si = STEPS.length; setBtn(); showAll(); dragging = true; svg.setPointerCapture(evt.pointerId); moveTo(evt);
+  });
+  svg.addEventListener("pointermove", evt => { if (dragging) moveTo(evt); });
+  svg.addEventListener("pointerup", () => { dragging = false; });
+  svg.addEventListener("pointercancel", () => { dragging = false; });
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) btn.hidden = true;
+  showAll(); st.x = 0.35; st.y = 0.15; render(); setBtn();
+})();
+</script>
+
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a></li><li><a href="c-median-ci.html">중앙값의 90% 신뢰구간 구하는 법</a></li><li><a href="c-delta.html">허용 범위 Δ</a></li><li><a href="step-6.html">⑥ 판정</a></li><li><a href="reading.html#map">결과 읽는 법 · 판정 지도</a></li></ul></nav>
+<footer class="pager"><a href="c-tost.html">← 이전 · TOST와 동등 · 차이 · 미결</a><a href="c-efficiency.html">다음 · 중앙값 효율 1.25 →</a></footer>
+</div></main></body></html>
