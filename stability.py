@@ -59,9 +59,10 @@ def summary_row(items: pd.DataFrame) -> dict:
     pattern = items["noise_pattern"].fillna("")
     kinds = pattern.str.removesuffix(NOISE_BEND).value_counts()
     flags = items["status"].fillna("").str.split(";").explode().value_counts()
-    rsd, ratio = (pd.to_numeric(items[c], errors="coerce") for c in ("rsd_pct", "ci_half_over_delta"))
+    rsd, ratio, meas = (pd.to_numeric(items[c], errors="coerce") for c in ("rsd_pct", "ci_half_over_delta", PRECISION))
     return {"n_items": len(items), **{col: float((band == name).mean()) for name, col in BAND_COLS.items()},
             "rsd_pct_median": rsd.median(), "rsd_pct_p90": rsd.quantile(0.9),
+            f"{PRECISION}_median": meas.median(), f"{PRECISION}_p90": meas.quantile(0.9),
             "ci_half_over_delta_median": ratio.median(), "ci_half_over_delta_p90": ratio.quantile(0.9),
             **{col: int(flags.get(name, 0)) for name, col in FLAG_COLS.items()},
             **{col: int(kinds.get(name, 0)) for name, col in NOISE_COUNT_COLS.items()},

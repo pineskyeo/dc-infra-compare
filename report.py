@@ -633,7 +633,7 @@ def stability_section(page: Page, folder: Path) -> None:
         cards(page, [("안정", share(o.get("share_stable")), "판정력 0.5 이하"),
                      ("주의", share(o.get("share_caution")), "0.5~0.8"),
                      ("불안정", share(o.get("share_unstable")), "0.8 초과"),
-                     ("정밀도 중앙값", precision_pct(o.get("rsd_pct_median")), "다시 재면 흔들리는 %")])
+                     ("측정 정밀도 중앙값", precision_pct(o.get("meas_precision_pct_median")), "값 대비 측정 흔들림 %")])
     level_section(page, folder)
     page.figure(Figure(d / "stability.png", "die·회차 안정도", names=False, how=STABILITY_HOW_TO_READ))
     dies = d / "dies.csv"
@@ -804,7 +804,7 @@ def group_table_cols() -> list[Col]:
     kind = "stability/groups.csv"
     return [Col(kind, "group", lambda r: r["group"]), Col(kind, "n_items"),
             *(Col("", v, lambda r, v=v: f"{r[f'n_{v}']:,}") for v in VERDICT_ORDER),
-            Col(kind, "rsd_pct_median", lambda r: precision_pct(r["rsd_pct_median"])),
+            Col(kind, "meas_precision_pct_median", lambda r: precision_pct(r["meas_precision_pct_median"])),
             Col("", "가장 나쁜 ITEM", lambda r: r["worst"],
                 head_tip="차이·미결 중 신뢰구간 끝이 허용폭을 많이 넘는 순으로 셋")]
 
@@ -859,7 +859,7 @@ def group_report(folder: Path, items: pd.DataFrame, namer: Namer, groups: Path |
         return None
     page = Page(f"그룹 리포트 · {folder.name}", namer, group_dir / namer.report_file,
                 subtitle=f"ITEM {len(items):,}개")
-    with page.section("groups", "그룹별 표", "그룹마다 판정 개수, 정밀도 중앙값, 가장 나쁜 ITEM.", open=True):
+    with page.section("groups", "그룹별 표", "그룹마다 판정 개수, 측정 정밀도 중앙값, 가장 나쁜 ITEM.", open=True):
         if groups is not None and groups.is_file():
             from infra_compare import read_groups
             g = read_groups(groups)
@@ -867,7 +867,7 @@ def group_report(folder: Path, items: pd.DataFrame, namer: Namer, groups: Path |
         elif (folder / "stability" / "groups.csv").is_file():
             t = read_csv(folder / "stability" / "groups.csv")
             page.p("그룹 파일(--groups)을 주지 않아 그룹별 판정 개수는 없다. 판정할 때 만든 그룹별 정밀도만 싣는다.", "note")
-            page.table(csv_cols("stability/groups.csv", ("group", "n_items", "rsd_pct_median"), STABILITY_FORMATS),
+            page.table(csv_cols("stability/groups.csv", ("group", "n_items", "meas_precision_pct_median"), STABILITY_FORMATS),
                        t.to_dict("records"))
         else:
             page.p("그룹별 표는 그룹 파일이 있어야 만든다: python report.py <폴더> --groups ITEM,그룹 파일.", "note")

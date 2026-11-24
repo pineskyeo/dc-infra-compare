@@ -89,12 +89,14 @@ def test_too_few_items_gives_a_note_not_a_flag(tmp_path):
 def test_overall_and_groups_count_bands_and_status_flags(tmp_path):
     items = pd.DataFrame({"ITEM": ["A", "B", "C", "D"], "judgeability": ["안정", "안정", "불안정", ""],
                           "rsd_pct": [1.0, 2.0, 3.0, np.nan], "ci_half_over_delta": [0.1, 0.2, 0.9, np.nan],
+                          "meas_precision_pct": [4.0, 0.5, np.nan, 8.0],
                           "status": ["정상", "회차 흔들림;LoQ 근처", "회차 흔들림", "산포 0"],
                           "noise_pattern": ["비례", "사이 (꺾임)", "비례 (꺾임)", "판별 불가"]})
     row = stability.overall(items).iloc[0]
     assert (row["n_items"], row["share_stable"], row["share_caution"], row["share_unstable"],
             row["share_no_band"]) == (4, 0.5, 0.0, 0.25, 0.25)
     assert row["rsd_pct_median"] == 2.0 and row["ci_half_over_delta_median"] == 0.2
+    assert row["meas_precision_pct_median"] == 4.0
     assert (row["n_run_jitter"], row["n_near_loq"], row["n_flat"], row["n_low_resolution"]) == (2, 1, 1, 0)
     assert (row["n_noise_proportional"], row["n_noise_between"], row["n_noise_unknown"], row["n_noise_constant"],
             row["n_noise_bend"]) == (2, 1, 1, 0, 2)

@@ -228,7 +228,7 @@
 <section id="stability-overall-csv"><h2>stability/overall.csv</h2>
 <p>측정 안정도 전체 요약 한 행. 판정력 구간별 ITEM 비율, 정밀도와 판정력의 중앙값·상위 10%, 상태별·잡음 모양별 ITEM 수.</p>
 <p class="s">만드는 명령 stability.py (por_doe_compare) · 위치 <code>stability/overall.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
-<p class="s">열 21개</p>
+<p class="s">열 23개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>n_items</code></td><td>ITEM 수</td><td>이 표에 든 ITEM 수</td><td></td><td></td></tr>
 <tr><td><code>share_stable</code></td><td>안정 비율</td><td>judgeability가 안정인 ITEM 비율 (0~1)</td><td>ci_half_over_delta ≤ 0.5 인 ITEM 수 / n_items</td><td>높을수록 측정이 판정에 충분히 안정. 같은 ITEM이 동등으로 나올 확률 약 98%</td></tr>
@@ -237,6 +237,8 @@
 <tr><td><code>share_no_band</code></td><td>판정력 없음 비율</td><td>ci_half_over_delta가 빈 칸인 ITEM 비율 (판정 제외 등)</td><td>judgeability 빈 칸 ITEM 수 / n_items</td><td>네 비율의 합은 1</td></tr>
 <tr><td><code>rsd_pct_median</code></td><td>정밀도 중앙값 (%)</td><td>ITEM rsd_pct의 중앙값 (빈 칸 ITEM 제외)</td><td>median(rsd_pct)</td><td>허용폭 r(기본 5%)의 절반을 넘으면 많은 ITEM이 동등 증명이 어려움</td></tr>
 <tr><td><code>rsd_pct_p90</code></td><td>정밀도 상위 10% (%)</td><td>ITEM rsd_pct의 90번째 백분위</td><td>P90(rsd_pct)</td><td>값이 LoQ 근처·0 근처인 ITEM이 있으면 크게 나옴</td></tr>
+<tr><td><code>meas_precision_pct_median</code></td><td>측정 정밀도 중앙값 (%)</td><td>ITEM meas_precision_pct의 중앙값 (빈 칸 ITEM 제외)</td><td>median(meas_precision_pct)</td><td>그룹 × LEVEL 열지도와 같은 측정 정밀도. 허용폭 r(기본 5%)과 견준다</td></tr>
+<tr><td><code>meas_precision_pct_p90</code></td><td>측정 정밀도 상위 10% (%)</td><td>ITEM meas_precision_pct의 90번째 백분위</td><td>P90(meas_precision_pct)</td><td>값이 0 근처인 ITEM이 있으면 크게 나온다</td></tr>
 <tr><td><code>ci_half_over_delta_median</code></td><td>판정력 비 중앙값</td><td>ITEM ci_half_over_delta의 중앙값</td><td>median(ci_half_over_delta)</td><td>0.5 이하면 대부분 안정</td></tr>
 <tr><td><code>ci_half_over_delta_p90</code></td><td>판정력 비 상위 10%</td><td>ITEM ci_half_over_delta의 90번째 백분위</td><td>P90(ci_half_over_delta)</td><td>0.8을 넘으면 열 개 중 하나 이상이 불안정</td></tr>
 <tr><td><code>n_run_jitter</code></td><td>회차 흔들림 ITEM 수</td><td>status에 회차 흔들림이 있는 ITEM 수</td><td></td><td>많으면 POR 회차 사이 프로빙·온도를 의심</td></tr>
@@ -256,7 +258,7 @@
 <section id="stability-groups-csv"><h2>stability/groups.csv</h2>
 <p>측정 안정도를 그룹마다 한 행으로 요약한다. --groups를 줄 때만 생긴다.</p>
 <p class="s">만드는 명령 stability.py (por_doe_compare --groups) · 위치 <code>stability/groups.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
-<p class="s">열 22개</p>
+<p class="s">열 24개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>group</code></td><td>그룹</td><td>--groups 파일의 그룹. 파일에 없는 ITEM은 미지정 (맨 끝 행)</td><td></td><td></td></tr>
 <tr><td><code>n_items</code></td><td>ITEM 수</td><td>이 표에 든 ITEM 수</td><td></td><td></td></tr>
@@ -266,6 +268,8 @@
 <tr><td><code>share_no_band</code></td><td>판정력 없음 비율</td><td>ci_half_over_delta가 빈 칸인 ITEM 비율 (판정 제외 등)</td><td>judgeability 빈 칸 ITEM 수 / n_items</td><td>네 비율의 합은 1</td></tr>
 <tr><td><code>rsd_pct_median</code></td><td>정밀도 중앙값 (%)</td><td>ITEM rsd_pct의 중앙값 (빈 칸 ITEM 제외)</td><td>median(rsd_pct)</td><td>허용폭 r(기본 5%)의 절반을 넘으면 많은 ITEM이 동등 증명이 어려움</td></tr>
 <tr><td><code>rsd_pct_p90</code></td><td>정밀도 상위 10% (%)</td><td>ITEM rsd_pct의 90번째 백분위</td><td>P90(rsd_pct)</td><td>값이 LoQ 근처·0 근처인 ITEM이 있으면 크게 나옴</td></tr>
+<tr><td><code>meas_precision_pct_median</code></td><td>측정 정밀도 중앙값 (%)</td><td>ITEM meas_precision_pct의 중앙값 (빈 칸 ITEM 제외)</td><td>median(meas_precision_pct)</td><td>그룹 × LEVEL 열지도와 같은 측정 정밀도. 허용폭 r(기본 5%)과 견준다</td></tr>
+<tr><td><code>meas_precision_pct_p90</code></td><td>측정 정밀도 상위 10% (%)</td><td>ITEM meas_precision_pct의 90번째 백분위</td><td>P90(meas_precision_pct)</td><td>값이 0 근처인 ITEM이 있으면 크게 나온다</td></tr>
 <tr><td><code>ci_half_over_delta_median</code></td><td>판정력 비 중앙값</td><td>ITEM ci_half_over_delta의 중앙값</td><td>median(ci_half_over_delta)</td><td>0.5 이하면 대부분 안정</td></tr>
 <tr><td><code>ci_half_over_delta_p90</code></td><td>판정력 비 상위 10%</td><td>ITEM ci_half_over_delta의 90번째 백분위</td><td>P90(ci_half_over_delta)</td><td>0.8을 넘으면 열 개 중 하나 이상이 불안정</td></tr>
 <tr><td><code>n_run_jitter</code></td><td>회차 흔들림 ITEM 수</td><td>status에 회차 흔들림이 있는 ITEM 수</td><td></td><td>많으면 POR 회차 사이 프로빙·온도를 의심</td></tr>
