@@ -17,6 +17,9 @@ sys.path.insert(0, str(ROOT / "tests"))
 import columns_doc  # noqa: E402
 import golden_cases as gc  # noqa: E402
 import report  # noqa: E402
+from explain import fmt  # noqa: E402
+from plot_verdicts import MAP_HOW_TO_READ  # noqa: E402
+from stability import LEVEL_HOW_TO_READ  # noqa: E402
 
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 DATA_URI = re.compile(r"data:image/png;base64,([A-Za-z0-9+/=]+)")
@@ -32,21 +35,36 @@ class Tags(HTMLParser):
         super().__init__()
         self.attrs: list[tuple[str, str, str]] = []
         self.th: list[str] = []
-        self._in_th = False
+        self.sections: list[dict] = []      # 주제 칸: open, title (h2), tips (제목 옆 풍선)
+        self.tips: list[str] = []            # 모든 풍선 글 (data-tip)
+        self._in_th = self._in_h2 = False
 
     def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
         self.attrs += [(tag, k, v or "") for k, v in attrs]
         self._in_th = tag == "th"
         if self._in_th:
             self.th.append("")
+        if tag == "details" and a.get("class") == "sec":
+            self.sections.append({"open": "open" in a, "title": "", "id": None})
+        if tag == "h2":
+            self._in_h2 = True
+        if tag == "div" and a.get("class") == "body" and self.sections:
+            self.sections[-1]["id"] = a.get("id")
+        if "data-tip" in a:
+            self.tips.append(a["data-tip"])
 
     def handle_endtag(self, tag):
         if tag == "th":
             self._in_th = False
+        if tag == "h2":
+            self._in_h2 = False
 
     def handle_data(self, data):
         if self._in_th:
             self.th[-1] += data
+        if self._in_h2 and self.sections:
+            self.sections[-1]["title"] += data
 
 
 def parse(path: Path) -> Tags:
@@ -134,6 +152,45 @@ def test_judge_report_figures_and_sections(plain):
     for heading in ("한눈에", "판정 지도", "차이·미결", "판정 제외", "LoQ 확인 필요", "log 확인 필요", "측정 안정도", "읽는 법"):
         assert f">{heading}</h2>" in html, heading
     assert 'href="' in html and "docs/sop/columns.html" in html
+    assert "유형별 판정" not in html
+
+
+@pytest.mark.parametrize("rel", REPORTS)
+def test_every_topic_is_a_collapsible_section_and_only_the_first_screen_is_open(plain, rel):
+    tags = parse(plain / rel)
+    titles = [s["title"] for s in tags.sections]
+    assert titles and len(titles) == len(set(titles)), titles
+    opened = {s["title"] for s in tags.sections if s["open"]}
+    first = {"report.html": {"한눈에", "판정 지도", "차이·미결"},
+             "item/report.html": {"ITEM 별 변화량", "ITEM 카드"},
+             "group/report.html": {"그룹별 표", "그룹 × LEVEL 측정 정밀도"}}[rel]
+    assert opened == first
+    links = [v.removeprefix("#") for t, k, v in tags.attrs if t == "a" and k == "href" and v.startswith("#")]
+    assert links == [s["id"] for s in tags.sections], "목차는 칸마다 하나, 칸 내용을 가리킨다 (가리키면 브라우저가 펼친다)"
+
+
+def test_explanations_are_hover_tips_not_page_text(plain):
+    tags = parse(plain / "report.html")
+    assert MAP_HOW_TO_READ in tags.tips and LEVEL_HOW_TO_READ in tags.tips
+    text = re.sub(r"<[^>]+>", "", visible_text(plain / "report.html"))
+    assert MAP_HOW_TO_READ not in text and LEVEL_HOW_TO_READ not in text
+    assert ('<span class="tip" tabindex="0"' in (plain / "report.html").read_text(encoding="utf-8")), "키보드로도 연다"
+
+
+def test_problem_table_shows_normalized_numbers_with_raw_values_on_hover(plain):
+    items = pd.read_csv(plain / "items.csv").set_index("ITEM")
+    r = items.loc["VT_SHIFT"]
+    assert r["verdict_final"] == "차이" and r["verdict_basis"] == "linear"
+    x = (r["ci_low"] + r["ci_high"]) / 2 / r["delta"]
+    y = (r["ci_high"] - r["ci_low"]) / 2 / r["delta"]
+    section = visible_text(plain / "report.html").split('id="problems"')[1].split('id="excluded"')[0]
+    row = re.search(r"<tr><td>F\w+</td><td>VT_SHIFT</td>(.*?)</tr>", section)[1]
+    cells = re.findall(r'<td(?: title="([^"]*)")?>(.*?)</td>', row)
+    assert any(c == "기본 판정" for _, c in cells)
+    shift = next(t for t, c in cells if c == f"{x:+.2f}")
+    assert f"변화량 {fmt(r['center'], r['UNIT'], signed=True)}" in shift and f"허용폭 ±{fmt(r['delta'], r['UNIT'])}" in shift
+    assert any(c == f"{y:.2f}" and "신뢰구간 반폭" in t for t, c in cells)
+    assert any(c == "차이" and "허용폭 밖" in t for t, c in cells), "판정 칸 풍선은 판정 이유"
 
 
 def test_problem_table_is_severity_ordered_with_both_names(plain):
@@ -151,7 +208,8 @@ def test_problem_table_is_severity_ordered_with_both_names(plain):
 
 def test_headers_are_easy_names(plain):
     easy = {d.easy_name for docs in columns_doc.load().values() for d in docs if d.easy_name}
-    fixed = {"항목", "값", "뜻", "열", "볼 것", "차이", "미결", "동등", "판정 제외", "가장 나쁜 ITEM"}
+    fixed = {"항목", "값", "뜻", "열", "볼 것", "차이", "미결", "동등", "판정 제외", "가장 나쁜 ITEM", "판정 방법",
+             "정규화 변화량", "정규화 불확실성", "변화 %", "확인 근거", "방향"}
     for rel in REPORTS:
         for th in parse(plain / rel).th:
             assert th in easy or th in fixed or "→" in th, (rel, th)
@@ -160,11 +218,11 @@ def test_headers_are_easy_names(plain):
 def test_item_report_has_a_card_per_item_folder(plain):
     html = visible_text(plain / "item" / "report.html")
     index = pd.read_csv(plain / "item" / "items_index.csv")
-    assert html.count('<section class="item"') == len(index)
+    assert html.count('<details class="item"') == len(index)
     for d in index["폴더"]:
         assert (plain / "item" / d / "item_view.png").read_bytes() in \
             [base64.b64decode(b) for b in DATA_URI.findall((plain / "item" / "report.html").read_text())]
-    assert "근거 숫자 (evidence.csv)" in html and "같다고 보는 범위는" in html
+    assert "<summary>근거 숫자</summary>" in html and "같다고 보는 범위는" in html
 
 
 def test_group_table_counts_match_items(plain):
@@ -261,11 +319,4 @@ def test_review_section_caps_item_figures_and_says_where_the_rest_are(built, tmp
     report.write_reports(folder, groups=built["groups"])
     section = (folder / "report.html").read_text(encoding="utf-8").split('id="loq"')[1].split('id="log"')[0]
     assert "확인 필요 상세" not in section
-    assert f"확인 필요 {len(flagged):,}개 중 근거가 센 0개의 상세 그림만 싣는다" in section
-
-
-def test_typed_section_counts_items_whose_final_verdict_would_change(built):
-    items = pd.read_csv(built["full"] / "items.csv")
-    n = int((items["verdict_final"] != items["verdict_typed"]).sum())
-    section = (built["full"] / "report.html").read_text(encoding="utf-8").split('id="typed"')[1].split('id="stability"')[0]
-    assert (f"최종 판정이 바뀌는 ITEM {n:,}개" in section) if n else ("바뀌는 ITEM 이 없다" in section)
+    assert f"상세 그림은 근거가 센 0개만 싣는다 (확인 필요 {len(flagged):,}개" in section
