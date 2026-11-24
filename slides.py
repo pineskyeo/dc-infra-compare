@@ -2,7 +2,8 @@
 """판정 기준 장표 2쪽 (pptx). 판정 결과 폴더를 읽어 만든다. ITEM 은 익명 ID 로만 쓴다.
 
   1쪽  01 기존 문제 · 02 새 판정 3단계 (전체 TOST → LoQ 판정 → ITEM 유형별 판정 길)
-  2쪽  03 판정 결과 · 04 그룹 × 측정 LEVEL 측정 정밀도 · 05 미결 원인과 조치
+  2쪽  03 판정 길별 결과 · 04 믿을 근거 (같은 조건 t-test, 차이 확인, 허용폭 ±20%)
+       05 그룹 × 측정 LEVEL 측정 정밀도 · 06 미결 원인과 조치
 
     python slides.py <결과 폴더> [--before 이전/items.csv] [--out 장표.pptx] [--font 맑은 고딕]
 
@@ -28,6 +29,8 @@ from xml.sax.saxutils import escape
 import numpy as np
 import pandas as pd
 
+from por_doe_compare import (JUDGED, R_ABS, R_EXCLUDED, R_LIMIT, R_LINEAR, R_LOG, R_LOQ, rescaled_verdicts)
+
 ROOT = Path(__file__).resolve().parent
 TEMPLATE = ROOT / "assets" / "pptx"
 FONT = "맑은 고딕"
@@ -38,7 +41,10 @@ NAVY, TINT, TEXT, MUTED, RULE = "3D4C61", "EEF1F5", "1F2933", "6B7785", "D5DBE3"
 OK, HOLD, BAD, EXCL = "1A8754", "C27C0E", "B5523B", "9AA3AE"
 VERDICTS = ("동등", "미결", "차이", "판정 제외")
 VERDICT_COLOR = dict(zip(VERDICTS, (OK, HOLD, BAD, EXCL)))
-MAX_GROUPS, MAX_LEVELS, MAX_FOREST = 10, 10, 10
+JUDGED_ORDER = VERDICTS[:3]
+FIRM = ("동등", "차이")
+SCALES = (0.8, 1.2)                     # 허용폭 ±20%
+MAX_GROUPS, MAX_LEVELS = 6, 10
 BOTTOM = 6.35                           # 2쪽 본문 아래 끝 (그 밑은 다음 조치 띠)
 
 
@@ -372,27 +378,29 @@ def heatmap_png(table: pd.DataFrame, w: float, h: float) -> bytes:
     return _png(fig)
 
 
-def forest_png(rows: pd.DataFrame, w: float, h: float) -> bytes:
-    """미결 ITEM 의 정규화 변화량 구간 (가운데 점, ±1 = 허용폭). 색 = 원인."""
-    fig, ax = _axes(w, h)
-    lim = 3.5
-    ax.axvspan(-1, 1, color="#E3F1EA", zorder=0)
-    for v in (-1, 1):
-        ax.axvline(v, color=_hex(OK), lw=0.8, ls="--")
-    ax.axvline(0, color="#C9CFD7", lw=0.6)
-    for y, r in enumerate(rows.itertuples()):
-        lo, hi, x = (float(np.clip(v, -lim, lim)) for v in (r.lo, r.hi, r.x))
-        color = _hex(r.color)
-        ax.plot([lo, hi], [y, y], color=color, lw=2.6, solid_capstyle="round")
-        ax.plot([x], [y], "o", color="white", mec=color, mew=1.3, ms=3.8)
-        for edge, raw in ((lo, r.lo), (hi, r.hi)):
-            if abs(raw) > lim:
-                ax.text(edge, y, "▶" if raw > 0 else "◀", color=color, fontsize=6, ha="center", va="center")
-    ax.set_yticks(range(len(rows)), rows["ID"], fontsize=7)
+def tolerance_png(bars: Sequence[tuple[str, pd.Series]], w: float, h: float) -> bytes:
+    """허용폭 배율마다 판정 비율의 100% 가로 막대 (판정 색). 칸이 넓으면 개수를 쓴다."""
+    import matplotlib.pyplot as plt
+    from compare_metrics import set_font
+    set_font()
+    fig, ax = plt.subplots(figsize=(w, h), layout="constrained")
+    for y, (_, v) in enumerate(bars):
+        counts, left = v.value_counts(), 0
+        for name in JUDGED_ORDER:
+            k = int(counts.get(name, 0))
+            share = k / len(v)
+            ax.barh(y, share, left=left, height=0.74, color=_hex(VERDICT_COLOR[name]), edgecolor="white", linewidth=0.8)
+            if share >= 0.1:
+                ax.text(left + share / 2, y, f"{k:,}", ha="center", va="center", fontsize=6.5, color="white",
+                        fontweight="bold")
+            left += share
+    ax.set_yticks(range(len(bars)), [label for label, _ in bars], fontsize=7, color=_hex(TEXT))
     ax.invert_yaxis()
-    ax.set_xlim(-lim - 0.2, lim + 0.2)
-    ax.set_xticks([-3, -2, -1, 0, 1, 2, 3], ["-3", "-2", "-Δ", "0", "+Δ", "2", "3"])
-    ax.set_xlabel("정규화 변화량 (90% 구간 ÷ 허용폭)", fontsize=7, color=_hex(MUTED))
+    ax.set_xlim(0, 1)
+    ax.set_xticks([])
+    ax.tick_params(length=0)
+    for side in ax.spines.values():
+        side.set_visible(False)
     return _png(fig)
 
 
@@ -424,25 +432,17 @@ def final_col(items: pd.DataFrame) -> pd.Series:
     return (items["verdict_final"] if "verdict_final" in items else items["verdict"]).astype(str)
 
 
-def undecided(items: pd.DataFrame) -> pd.DataFrame:
-    """미결 ITEM 한 행씩: ID, cause (CAUSES 이름), color, x (정규화 변화량 가운데), y (정규화 불확실성), lo, hi.
-    원인 순서 (CAUSES), 그 안은 |x| 큰 순."""
+def undecided_causes(items: pd.DataFrame) -> pd.Series:
+    """미결 ITEM 마다 원인 이름 (CAUSES 에서 처음 맞는 것)."""
     from plot_verdicts import map_points
-    pts = map_points(items)
-    mine = items.assign(_x=pts["x"].to_numpy(), _y=pts["y"].to_numpy())[final_col(items) == "미결"]
-    rows = []
-    for r in mine.to_dict("records"):
+    mine = final_col(items) == "미결"
+    y = map_points(items)["y"][mine]
+    def cause(r: Mapping, v: float) -> str:
         facts = {"zone": str(r.get("zone", "")), "basis": str(r.get("verdict_basis", "") or ""),
                  "reason": str(r.get("reason", "") or ""), "status": str(r.get("status", "") or ""),
-                 "y": float(r["_y"]) if pd.notna(r["_y"]) else -math.inf}
-        cause = next(c for c in CAUSES if c.hit(facts))
-        x, y = float(r["_x"]), float(r["_y"])
-        rows.append({"ID": str(r.get("ID") or r["ITEM"]), "cause": cause.name, "color": cause.color,
-                     "x": x, "y": y, "lo": x - y, "hi": x + y})
-    t = pd.DataFrame(rows, columns=["ID", "cause", "color", "x", "y", "lo", "hi"])
-    rank = {c.name: i for i, c in enumerate(CAUSES)}
-    return t.assign(_r=t["cause"].map(rank), _a=-t["x"].abs()).sort_values(["_r", "_a"], kind="stable").drop(
-        columns=["_r", "_a"]).reset_index(drop=True)
+                 "y": float(v) if pd.notna(v) else -math.inf}
+        return next(c.name for c in CAUSES if c.hit(facts))
+    return pd.Series([cause(r, v) for r, v in zip(items[mine].to_dict("records"), y)], dtype=object)
 
 
 def precision_table(folder: Path) -> tuple[pd.DataFrame | None, str]:
@@ -471,14 +471,101 @@ def verdict_counts(items: pd.DataFrame) -> dict[str, int]:
     return {k: int(v.get(k, 0)) for k in VERDICTS}
 
 
-def basis_counts(items: pd.DataFrame) -> list[tuple[str, int]]:
-    from explain import BASIS_NAMES
-    if "verdict_basis" not in items:
-        return []
-    v = items["verdict_basis"].astype(str).value_counts()
-    order = list(BASIS_NAMES)
-    return [(BASIS_NAMES.get(b, b), int(v[b])) for b in sorted(v.index, key=lambda b: order.index(b)
-                                                                if b in order else len(order))]
+def route_table(items: pd.DataFrame) -> pd.DataFrame | None:
+    """판정 길(줄, ROUTES 순서) × 최종 판정(VERDICTS) ITEM 수. route 열이 없는 옛 결과면 None."""
+    if "route" not in items:
+        return None
+    t = pd.crosstab(items["route"].astype(str), final_col(items)).reindex(columns=VERDICTS, fill_value=0)
+    order = [r for r, _ in ROUTES]
+    return t.loc[sorted(t.index, key=lambda r: order.index(r) if r in order else len(order))]
+
+
+def stage3_line(items: pd.DataFrame) -> str:
+    """3단계(판정 길)가 정한 ITEM 수와 1·2단계 판정에서 바뀐 판정."""
+    if not {"verdict", "verdict_basis"} <= set(items):
+        return ""
+    n3 = int((~items["verdict_basis"].astype(str).isin(("linear", "loq"))).sum())
+    before, after = items["verdict"].astype(str), final_col(items)
+    moved = pd.DataFrame({"before": before, "after": after})[before != after].value_counts()
+    if moved.empty:
+        return "3단계에서 바뀐 판정 없음 (모두 1·2단계 판정)"
+    return f"3단계 판정 길이 정한 ITEM {n3:,} · 바뀐 판정 " + " · ".join(
+        f"{a}→{b} {k:,}" for (a, b), k in moved.head(3).items())
+
+
+@dataclass(frozen=True)
+class Proof:
+    """믿을 근거 한 줄: 큰 숫자, 주장, 풀이 한 줄, 있으면 작은 그림."""
+    big: str
+    claim: str
+    detail: str
+    chart: bytes | None = None
+
+
+def judged_items(items: pd.DataFrame) -> pd.DataFrame:
+    return items[final_col(items).isin(JUDGED)]
+
+
+def ttest_proof(items: pd.DataFrame) -> Proof | None:
+    """같은 조건(POR 회차끼리)에서도 t-test 가 유의차를 내는 비율 (회차 짝 기준)."""
+    judged = judged_items(items)
+    if "por_ttest_sig" not in judged:
+        return None
+    pairs = judged["por_ttest_sig"].astype(str).str.extract(r"^(\d+)/(\d+)$").astype(float).dropna()
+    pairs = pairs[pairs[1] >= 1]
+    if pairs.empty:
+        return None
+    k, n = int(pairs[0].sum()), int(pairs[1].sum())
+    detail = f"POR 회차 짝 {k:,} / {n:,} 유의차 (우연이면 약 5%)"
+    if "ttest" in judged:
+        sig = judged["ttest"].astype(str) == "유의차"
+        eq = int((sig & (final_col(judged) == "동등")).sum())
+        detail += f" · DOE t-test 유의차 {int(sig.sum()):,}개 중 {eq:,}개는 변화가 허용폭 안 → 동등"
+    return Proof(f"{100 * k / n:.0f}%", "같은 조건끼리도 t-test는 '다름'", detail)
+
+
+def difference_proof(items: pd.DataFrame) -> Proof | None:
+    """차이 ITEM 중 t-test 도 유의차인 수, DOE 이동이 POR 회차끼리 차의 몇 배인지 (중앙값)."""
+    diff = items[final_col(items) == "차이"]
+    if diff.empty or "ttest" not in diff:
+        return None
+    agree = int((diff["ttest"].astype(str) == "유의차").sum())
+    detail, cols = "", ("center", "por_gap_over_delta", "delta")
+    if set(cols) <= set(diff):
+        center, gap_over_delta, delta = (pd.to_numeric(diff[k], errors="coerce") for k in cols)
+        gap = gap_over_delta * delta
+        ratio = (center.abs() / gap)[np.isfinite(gap) & (gap > 0)].dropna()
+        if not ratio.empty:
+            r = float(ratio.median())
+            detail = f"DOE 이동 = POR 회차끼리 차의 {f'{r:.0f}' if r >= 10 else f'{r:.1f}'}배 (중앙값)"
+    return Proof(f"{agree:,}/{len(diff):,}", "차이는 t-test로도 확인", detail)
+
+
+PROOF_CHART = (2.1, 0.66)               # 허용폭 막대 그림 (인치)
+
+
+def tolerance_proof(items: pd.DataFrame) -> Proof | None:
+    """허용폭을 ×0.8, ×1.2 로 바꿔도 최종 판정이 그대로인 ITEM 비율. 바뀐 ITEM 은 동등↔차이와 미결 경계로 나눈다."""
+    judged = judged_items(items)
+    if judged.empty:
+        return None
+    now = final_col(judged)
+    lo, hi = (rescaled_verdicts(judged, s) for s in SCALES)
+    flip = pd.Series(False, index=judged.index)
+    for v in (lo, hi):
+        flip |= now.isin(FIRM) & v.isin(FIRM) & (v != now)
+    changed = (lo != now) | (hi != now)
+    n_changed, n_flip = int(changed.sum()), int(flip.sum())
+    if not n_changed:
+        detail = "±20%에서 바뀌는 ITEM 없음"
+    else:
+        detail = f"바뀌는 {n_changed:,}개 · 미결 경계 {n_changed - n_flip:,}" + (
+            f" · 동등↔차이 {n_flip:,}" if n_flip else " · 동등↔차이로 뒤집히는 ITEM 없음")
+    chart = tolerance_png((("×0.8", lo), ("×1", now), ("×1.2", hi)), *PROOF_CHART)
+    return Proof(f"{100 * (1 - n_changed / len(judged)):.0f}%", "허용폭을 ±20% 바꿔도 같은 판정", detail, chart)
+
+
+PROOFS: tuple[Callable[[pd.DataFrame], Proof | None], ...] = (ttest_proof, difference_proof, tolerance_proof)
 
 
 # ---------------------------------------------------------------- 쪽 구성
@@ -516,12 +603,12 @@ STAGES = (
 CHANGES = (("변화 판단", "한 점", "90% 구간"), ("LoQ 아래", "DOE 중심 한 점", "DOE 구간"),
            ("허용폭", "모두 같은 %", "ITEM 유형별"))
 ROUTES = (
-    ("한계 비교", "측정 한계에 걸린 die가 많음 → 한계 밖 die만으로 TOST"),
-    ("절대 허용폭", "값이 0 근처 · 계단처럼 찍힘 → ±고정 허용폭 (기본 LoQ)"),
-    ("LoQ 판정", "POR이 LoQ 아래 → 2단계 판정 그대로"),
-    ("log TOST", "잡음이 값에 비례 → 배율(log)로 TOST"),
-    ("선형 TOST", "나머지 → 1단계 그대로 · 바닥 근처는 장비 정확도까지"),
-    ("제외", "판정할 수 없는 데이터 → 1·2단계 그대로"),
+    (R_LIMIT, "측정 한계에 걸린 die가 많음 → 한계 밖 die만으로 TOST"),
+    (R_ABS, "값이 0 근처 · 계단처럼 찍힘 → ±고정 허용폭 (기본 LoQ)"),
+    (R_LOQ, "POR이 LoQ 아래 → 2단계 판정 그대로"),
+    (R_LOG, "잡음이 값에 비례 → 배율(log)로 TOST"),
+    (R_LINEAR, "나머지 → 1단계 그대로 · 바닥 근처는 장비 정확도까지"),
+    (R_EXCLUDED, "판정할 수 없는 데이터 → 1·2단계 그대로"),
 )
 AXES = (("부호", "섞임·양수·음수"), ("수준", "0 중심·바닥·정량"), ("분해능", "연속·계단"), ("모양", "한계에 걸림 등"),
         ("척도", "잡음 ∝ 값 → log"))
@@ -587,92 +674,124 @@ def page_method(before: tuple[int, int] | None, note: str) -> Slide:
     return s
 
 
+TOP, MID = 1.25, 4.1                   # 2쪽 위·아래 칸의 제목 높이
+LEFT, LEFT_W, RIGHT, RIGHT_W = 0.5, 6.15, 6.95, 5.88
+
+
+def verdict_table(s: Slide, items: pd.DataFrame, before_counts: dict[str, int] | None) -> None:
+    """03: 머리 줄 = 판정별 전체 개수, 그 아래 판정 길마다 판정별 개수, 맨 아래 3단계 한 줄."""
+    counts, n = verdict_counts(items), len(items)
+    y, cols_x = TOP + 0.47, LEFT + 1.8
+    cw = (LEFT + LEFT_W - cols_x) / len(VERDICTS)
+    head_h = 0.8
+    s.add(Box(LEFT, y, LEFT_W, head_h, fill=TINT, geom="roundRect"),
+          text(LEFT + 0.14, y, 1.6, head_h, para(Run("전체", 9, MUTED)), para(Run(f"ITEM {n:,}", 14, TEXT, True)),
+               anchor="ctr"))
+    for i, v in enumerate(VERDICTS):
+        x = cols_x + i * cw
+        share = [Run(f"{100 * counts[v] / n:.0f}%" if n else "-", 8, MUTED)]
+        if before_counts is not None:
+            share.append(Run(f"  기존 {before_counts.get(v, 0):,}", 7.5, MUTED))
+        s.add(Box(x + 0.1, y, cw - 0.2, 0.04, fill=VERDICT_COLOR[v]),
+              text(x, y + 0.06, cw, head_h - 0.08, para(Run(v, 8.5, MUTED), align="ctr"),
+                   para(Run(f"{counts[v]:,}", 17, VERDICT_COLOR[v], True), align="ctr"), para(*share, align="ctr"),
+                   anchor="ctr", inset=0.01))
+    table = route_table(items)
+    y += head_h + 0.04
+    if table is None:
+        s.add(text(LEFT, y, LEFT_W, 0.3, para(Run("옛 결과라 판정 길(route) 열이 없어 판정 길별 개수는 생략", 8.5, MUTED))))
+        return
+    row_h = 0.2
+    for j, (route, row) in enumerate(table.iterrows()):
+        ry = y + j * row_h
+        s.add(text(LEFT + 0.14, ry, 1.15, row_h, para(Run(route, 9, TEXT, True)), anchor="ctr", inset=0.01),
+              text(LEFT + 1.2, ry, 0.5, row_h, para(Run(f"{int(row.sum()):,}", 9, MUTED), align="r"), anchor="ctr",
+                   inset=0.01))
+        for i, v in enumerate(VERDICTS):
+            k = int(row[v])
+            cell = Run(f"{k:,}", 9.5, VERDICT_COLOR[v], True) if k else Run("·", 9.5, RULE, True)
+            s.add(text(cols_x + i * cw, ry, cw, row_h, para(cell, align="ctr"), anchor="ctr", inset=0.01))
+        s.add(Line(LEFT, ry + row_h, LEFT + LEFT_W, ry + row_h, RULE, 0.5))
+    line = stage3_line(items)
+    if line:
+        s.add(text(LEFT, y + len(table) * row_h + 0.03, LEFT_W, 0.24, para(Run(line, 8.5, NAVY)), anchor="ctr"))
+
+
+def proof_rows(s: Slide, items: pd.DataFrame) -> None:
+    """04: PROOFS 중 숫자를 낼 수 있는 것만 한 줄씩 (큰 숫자 · 주장 · 풀이 · 그림)."""
+    proofs = [p for p in (f(items) for f in PROOFS) if p is not None]
+    if not proofs:
+        s.add(text(RIGHT, TOP + 0.5, RIGHT_W, 0.4, para(Run("근거를 낼 판정 ITEM이 없다.", 9.5, MUTED))))
+        return
+    row_h = (MID - TOP - 0.55) / len(PROOFS)
+    for j, p in enumerate(proofs):
+        y = TOP + 0.5 + j * row_h
+        text_w = RIGHT_W - 1.35 - (PROOF_CHART[0] + 0.1 if p.chart else 0)
+        s.add(text(RIGHT, y, 1.3, row_h, para(Run(p.big, 21, NAVY, True), align="ctr"), anchor="ctr", inset=0.01),
+              text(RIGHT + 1.35, y, text_w, row_h, para(Run(p.claim, 10.5, TEXT, True), after=2),
+                   para(Run(p.detail, 8.3, MUTED)), anchor="ctr"))
+        if p.chart:
+            cw, ch = PROOF_CHART
+            s.add(Pic(RIGHT + RIGHT_W - cw, y + (row_h - ch) / 2, cw, ch, p.chart))
+        if j:
+            s.add(Line(RIGHT, y, RIGHT + RIGHT_W, y, RULE, 0.5))
+
+
+def precision_block(s: Slide, folder: Path) -> None:
+    """05: 그룹 × LEVEL 측정 정밀도 열지도와 풀이 한 줄."""
+    table, cut = precision_table(folder)
+    y = MID + 0.48
+    if table is None or table.empty:
+        s.add(text(LEFT, y, LEFT_W, 0.6, para(Run(cut or "측정 정밀도 표가 없다.", 9.5, MUTED))))
+        return
+    rows, cols = table.shape
+    h = min(BOTTOM - y - 0.38, 0.32 + 0.2 * rows)
+    w = min(LEFT_W, 1.1 + 0.62 * cols)
+    s.add(Pic(LEFT, y, w, h, heatmap_png(table, w, h)),
+          text(LEFT, y + h + 0.02, LEFT_W, 0.36, para(Run("칸 = 그룹·LEVEL의 측정 정밀도 중앙값 · 진할수록 흔들림이 큼 · "
+                                                        "허용폭 5%와 견줌" + (f" · {cut}" if cut else ""), 8, MUTED))))
+
+
+def cause_rows(s: Slide, causes: pd.Series) -> None:
+    """06: 미결 원인마다 이름 · 개수 · 막대 · 다음 조치."""
+    y0 = MID + 0.48
+    if causes.empty:
+        s.add(text(RIGHT, y0, RIGHT_W, 0.5, para(Run("미결 없음", 12, OK, True))))
+        return
+    by = causes.value_counts()
+    top = int(by.max())
+    for j, c in enumerate(c for c in CAUSES if by.get(c.name, 0)):
+        y, k = y0 + j * 0.42, int(by[c.name])
+        s.add(Box(RIGHT, y + 0.07, 0.09, 0.28, fill=c.color),
+              text(RIGHT + 0.15, y, 1.65, 0.42, para(Run(c.name, 10, TEXT, True)), anchor="ctr"),
+              text(RIGHT + 1.8, y, 0.5, 0.42, para(Run(f"{k:,}", 13, c.color, True), align="r"), anchor="ctr"),
+              Box(RIGHT + 2.4, y + 0.13, 1.1 * k / top, 0.16, fill=c.color),
+              text(RIGHT + 3.6, y, RIGHT_W - 3.6, 0.42, para(Run(c.action, 8, MUTED)), anchor="ctr"))
+
+
 def page_results(label: str, items: pd.DataFrame, folder: Path, before_counts: dict[str, int] | None,
                  note: str) -> Slide:
     s = Slide()
-    counts, n = verdict_counts(items), len(items)
-    chrome(s, 2, 2, "동일 조건 반복 검증 결과", f"· 미결 분석   ({label}, ITEM {n:,}개)", note)
-    heading(s, 0.5, 1.3, 6.15, "03", "판정 결과")
-    for i, v in enumerate(VERDICTS):
-        x = 0.5 + i * 1.56
-        lines = [para(Run(v, 10, MUTED)), para(Run(f"{counts[v]:,}", 26, VERDICT_COLOR[v], True)),
-                 para(Run(f"{100 * counts[v] / n:.0f}%" if n else "-", 9, MUTED))]
-        if before_counts is not None:
-            lines[-1] = para(Run(f"{100 * counts[v] / n:.0f}%" if n else "-", 9, MUTED),
-                             Run(f"   기존 {before_counts.get(v, 0):,}", 8.5, MUTED))
-        s.add(Box(x, 1.85, 1.46, 1.12, fill=TINT, geom="roundRect"), Box(x, 1.85, 1.46, 0.05, fill=VERDICT_COLOR[v]),
-              text(x + 0.12, 1.92, 1.3, 1.02, *lines))
-    bases = basis_counts(items)
-    if bases:
-        s.add(text(0.5, 3.03, 6.15, 0.3, para(Run("판정 방법   ", 9, MUTED, True),
-                                               Run(" · ".join(f"{name} {k:,}" for name, k in bases), 9, TEXT))))
-    heading(s, 0.5, 3.35, 6.15, "04", "그룹별 측정 정밀도", "흔들림 σ ÷ |POR| · 그룹 × 측정 LEVEL")
-    table, cut = precision_table(folder)
-    if table is None or table.empty:
-        s.add(text(0.5, 3.9, 6.15, 0.6, para(Run(cut or "측정 정밀도 표가 없다.", 9.5, MUTED))))
-    else:
-        rows, cols = table.shape
-        h = min(BOTTOM - 3.88 - 0.3, 0.42 + 0.27 * rows)
-        w = min(6.15, 1.1 + 0.62 * cols)
-        s.add(Pic(0.5, 3.88, w, h, heatmap_png(table, w, h)),
-              text(0.5, 3.9 + h, 6.15, 0.3, para(Run("칸 = 그룹·LEVEL의 측정 정밀도 중앙값 · 진할수록 흔들림이 큼 · "
-                                                    "허용폭 5%와 견줌" + (f" · {cut}" if cut else ""), 8, MUTED))))
-
-    rows = undecided(items)
-    heading(s, 6.95, 1.3, 5.88, "05", "미결 분석", f"미결 {len(rows):,}개 · 원인과 다음 조치")
+    chrome(s, 2, 2, "동일 조건 반복 검증 결과", f"· 결과와 근거   ({label}, ITEM {len(items):,}개)", note)
+    causes = undecided_causes(items)
+    heading(s, LEFT, TOP, LEFT_W, "03", "판정 결과", "ITEM 유형(판정 길)별")
+    verdict_table(s, items, before_counts)
+    heading(s, RIGHT, TOP, RIGHT_W, "04", "믿을 근거", "판정을 믿어도 되는 이유")
+    proof_rows(s, items)
+    heading(s, LEFT, MID, LEFT_W, "05", "그룹별 측정 정밀도", "흔들림 σ ÷ |POR| · 그룹 × 측정 LEVEL")
+    precision_block(s, folder)
+    heading(s, RIGHT, MID, RIGHT_W, "06", "미결 분석", f"미결 {len(causes):,}개 · 원인과 다음 조치")
+    cause_rows(s, causes)
     s.add(Box(0.5, 6.45, 12.33, 0.48, fill=TINT, geom="roundRect"),
-          text(0.68, 6.45, 12.0, 0.48, para(Run("다음 조치  ", 10, NAVY, True), *next_steps(rows, counts)),
-               anchor="ctr"))
-    if rows.empty:
-        s.add(text(6.95, 1.9, 5.88, 0.5, para(Run("미결 없음", 12, OK, True))))
-        return s
-    by = rows["cause"].value_counts()
-    shown = [c for c in CAUSES if by.get(c.name, 0)]
-    top = max(by.values)
-    for j, c in enumerate(shown):
-        y = 1.88 + j * 0.47
-        k = int(by[c.name])
-        s.add(Box(6.95, y + 0.08, 0.09, 0.3, fill=c.color),
-              text(7.1, y, 1.65, 0.46, para(Run(c.name, 10, TEXT, True)), anchor="ctr"),
-              text(8.75, y, 0.5, 0.46, para(Run(f"{k:,}", 13, c.color, True), align="r"), anchor="ctr"),
-              Box(9.35, y + 0.15, 1.1 * k / top, 0.16, fill=c.color),
-              text(10.55, y, 2.28, 0.46, para(Run(c.action, 8, MUTED)), anchor="ctr"))
-    y0 = 1.95 + len(shown) * 0.47
-    room = BOTTOM - y0 - 0.3
-    fit = max(0, min(MAX_FOREST, int((room - 0.45) / 0.2)))
-    forest = forest_rows(rows, fit)
-    if not forest.empty:
-        h = min(room, 0.45 + 0.2 * len(forest))
-        s.add(text(6.95, y0, 5.88, 0.25, para(Run("미결 ITEM 구간 (익명 번호, 같은 구간은 한 줄)", 9, MUTED, True))),
-              Pic(6.95, y0 + 0.27, 5.88, h, forest_png(forest, 5.88, h)))
+          text(0.68, 6.45, 12.0, 0.48, para(Run("다음 조치  ", 10, NAVY, True),
+                                            *next_steps(causes, verdict_counts(items))), anchor="ctr"))
     return s
 
 
-def forest_rows(rows: pd.DataFrame, limit: int) -> pd.DataFrame:
-    """그림에 넣을 미결 줄: 구간이 같은 ITEM 은 한 줄로 묶어 이름에 '외 n개'를 붙이고, 원인마다 돌아가며 limit 줄까지."""
-    ok = rows[np.isfinite(rows["x"]) & np.isfinite(rows["y"])]
-    if ok.empty or limit <= 0:
-        return ok.head(0)
-    key = ok["lo"].round(2).astype(str) + "|" + ok["hi"].round(2).astype(str)
-    grouped = ok.assign(_k=key).groupby(["cause", "_k"], sort=False)
-    merged = grouped.head(1).assign(_n=grouped["ID"].transform("size").loc[grouped.head(1).index])
-    merged["ID"] = [i if n == 1 else f"{i} 외 {n - 1}개" for i, n in zip(merged["ID"], merged["_n"])]
-    queues = [g for _, g in merged.groupby("cause", sort=False)]
-    picked = []
-    while len(picked) < limit and any(len(q) for q in queues):
-        for k, q in enumerate(queues):
-            if len(q) and len(picked) < limit:
-                picked.append(q.iloc[0])
-                queues[k] = q.iloc[1:]
-    rank = {c.name: i for i, c in enumerate(CAUSES)}
-    out = pd.DataFrame(picked).drop(columns=["_k", "_n"])
-    return out.assign(_r=out["cause"].map(rank)).sort_values("_r", kind="stable").drop(columns="_r")
-
-
-def next_steps(rows: pd.DataFrame, counts: dict[str, int]) -> list[Run]:
+def next_steps(causes: pd.Series, counts: dict[str, int]) -> list[Run]:
     """다음 조치 띠: 미결이 많은 원인 셋의 조치, 차이가 있으면 원데이터 확인."""
     runs = []
-    by = rows["cause"].value_counts() if not rows.empty else pd.Series(dtype=int)
+    by = causes.value_counts()
     action = {c.name: c.action.split(" · ")[-1] for c in CAUSES}
     for k, (cause, n) in enumerate(by.head(3).items(), start=1):
         runs += [Run(f"{k}  ", 10, NAVY, True), Run(f"{cause} {n:,}개", 10, TEXT, True),

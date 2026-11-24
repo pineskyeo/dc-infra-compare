@@ -40,6 +40,8 @@
    verdict_with_accuracy (Δ' = max(Δ, accuracy_margin)). 그 판정이 동등·차이·미결이 아니면 (판정 제외·빈 칸, 제외·LoQ 판정
    길) 1·2단계 판정. verdict_basis = 정한 방법 (linear, loq, log, accuracy, abs, limit).
    verdict_final_log_run (참고): log TOST 길에 verdict_log_run (Δ_log_run = log10(1 + r) + t·√(1+1/J)·sigma_run_log).
+   허용폭 민감도 (rescaled_verdicts, 장표의 믿을 근거): 허용폭을 모두 s 배로 바꿔 1·2단계·판정 길 열을 다시 판정한
+   최종 판정. 한계 비교 verdict_limit 은 die 가 있어야 해 그대로
    scale (--groups ITEM,group 과 --scales group,scale): 표의 log·linear 는 그대로, 표에 없거나 auto 인 그룹은 이번 실행의
    그 그룹 ITEM 으로 정한다 (auto→log·auto→linear, scales_auto.csv). classify 의 cls_scale 이 표의 log·linear 를 따른다
 """
@@ -956,6 +958,45 @@ def add_final_verdict(res: pd.DataFrame) -> pd.DataFrame:
     if "verdict_log_run" in res:
         res.insert(at + 2, "verdict_final_log_run", [final_verdict(row, "verdict_log_run")[0] for row in rows])
     return res
+
+
+CI_COLS, LOG_CI_COLS = ("center", "ci_low", "ci_high"), ("center_log", "ci_low_log", "ci_high_log")
+
+
+def _scaled_tost(row: Mapping, cols: tuple[str, str, str], delta: float, scale: float) -> str | None:
+    c, lo, hi = (_num(row, k) for k in cols)
+    return tost(c, lo, hi, delta * scale)[0] if np.isfinite([c, lo, hi, delta]).all() and delta > 0 else None
+
+
+def _scaled_stage12(row: Mapping, scale: float) -> str | None:
+    zone, delta = _text(row.get("zone")), _num(row, "delta")
+    if zone == "정량":
+        return _scaled_tost(row, CI_COLS, delta, scale)
+    nums = [_num(row, k) for k in (*CI_COLS, "por_median", "LoQ")]
+    if zone in LOQ_ZONE_NAMES and np.isfinite([*nums, delta]).all() and delta > 0:
+        c, lo, hi, base, loq = nums
+        return loq_verdict(c, lo, hi, delta * scale, base, loq)[0]
+    return None
+
+
+# 허용폭을 바꿔 다시 판정하는 열. verdict_limit 은 한계 밖 die 로 구간을 다시 내야 해 items.csv 만으로는 못 한다
+RESCALED: dict[str, Callable[[Mapping, float], str | None]] = {
+    "verdict": _scaled_stage12,
+    "verdict_log": lambda r, s: _scaled_tost(r, LOG_CI_COLS, _num(r, "delta_log"), s),
+    "verdict_abs": lambda r, s: _scaled_tost(r, CI_COLS, _num(r, "abs_delta"), s),
+    "verdict_with_accuracy": lambda r, s: _scaled_tost(
+        r, CI_COLS, float(np.fmax(_num(r, "delta"), _num(r, "accuracy_margin"))), s),
+}
+
+
+def rescaled_verdicts(items: pd.DataFrame, scale: float) -> pd.Series:
+    """허용폭을 모두 scale 배로 바꿨을 때의 최종 판정 (행마다, final_verdict). RESCALED 의 열을 원래 판정이
+    동등·차이·미결이고 숫자가 유한할 때만 다시 판정한다. 열이 없거나 숫자가 NaN 이면 그 열은 원래 판정."""
+    def rejudge(row: dict) -> str:
+        new = {col: fn(row, scale) for col, fn in RESCALED.items() if _text(row.get(col)) in JUDGED}
+        return final_verdict({**row, **{k: v for k, v in new.items() if v}})[0]
+    return pd.Series([rejudge(r) for r in items.to_dict("records")], index=items.index, name="verdict_final",
+                     dtype=object)
 
 
 AUTO_COLS = ["group", "decision", "n_items", "n_decades_ge_1", "median_log_fit"]
