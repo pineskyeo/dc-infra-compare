@@ -289,3 +289,15 @@ def run_py(*args) -> subprocess.CompletedProcess:
                           encoding="utf-8")
     assert proc.returncode == 0, proc.stdout[-3000:] + proc.stderr[-3000:]
     return proc
+
+
+def test_no_loq_items_still_writes_empty_outputs(tmp_path):
+    folder = tmp_path / "A1"
+    folder.mkdir()
+    items = add_final_verdict(pd.DataFrame([{**hand_row("Q1", -1, 1), "zone": "정량"}]))
+    items.to_csv(folder / "items.csv", index=False, encoding="utf-8-sig")
+    loq_check.build(folder, pd.read_csv(folder / "items.csv", dtype=str, keep_default_na=False), {})
+    book = loq_check.load(folder)
+    assert book.summary.ledger.n_zone == 0 and book.check.n_items == 0
+    assert "시험할 수 있는 LoQ 아래 ITEM 이 없다." in book.headline_lines()
+    assert folder / "loq" / "report.html" in report.write_reports(folder)

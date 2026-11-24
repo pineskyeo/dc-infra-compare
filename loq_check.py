@@ -77,9 +77,10 @@ TRIAL_COLS = ["ITEM", "run", "level", "shift", "center", "ci_low", "ci_high", "v
 
 CURVE_HOW_TO_READ = (
     "가로는 POR 회차 하나로 만든 DOE 의 참 수준 (LoQ 의 몇 배), 세로는 그 비교를 판정이 차이·미결로 잡은 비율이다. "
-    "ITEM 마다 회차 비교를 모두 해 ITEM 별 비율을 내고 ITEM 끼리 평균했다. 진한 선이 실제 판정 (최종), 회색 점선이 "
-    "LoQ 규칙 없는 보통 TOST, 주황 점이 LoQ 재확인 (방향)이다. 왼쪽 회색 칸은 DOE 도 LoQ 아래라 판정 규칙상 동등인 "
-    "곳이다. 맨 왼쪽 '변화 없음' 은 변화를 넣지 않은 비교라 여기서 잡힌 것은 오경보다. 띠는 ITEM 을 다시 뽑아 본 90% 범위다.")
+    "ITEM 마다 회차 비교를 모두 해 ITEM 별 비율을 내고 ITEM 끼리 평균했다. 진한 선이 실제 판정 (최종), 하늘색 점선이 "
+    "3단계 판정 길 없이 2단계 LoQ 판정만, 회색 파선이 LoQ 규칙 없는 보통 TOST, 주황 점이 LoQ 재확인 (방향)이다. 왼쪽 "
+    "회색 칸은 DOE 도 LoQ 아래라 판정 규칙상 동등인 곳이다. 맨 왼쪽 '변화 없음' 은 변화를 넣지 않은 비교라 여기서 잡힌 "
+    "것은 오경보다. 띠는 ITEM 을 다시 뽑아 본 90% 범위다.")
 REASONS_HOW_TO_READ = (
     "막대 하나가 구간 하나의 LoQ 아래 ITEM 전부다. 칸은 최종 판정과 동등이 된 이유다. 초록은 이동이 허용폭 안이라 LoQ "
     "규칙 없이도 동등, 파랑 두 칸은 LoQ 규칙 (DOE 구간이 LoQ 아래이거나 걸침) 으로 동등, 보라는 판정 길 (절대 허용폭 등) "
@@ -164,8 +165,10 @@ def ledger_frame(items: pd.DataFrame, rev: pd.DataFrame | None) -> pd.DataFrame:
         out.append({**r, "pass_kind": pass_kind(r), "verdict_tost": plain_tost(r), "por_loq": base / loq,
                     "doe_lo_loq": lo / loq, "doe_hi_loq": hi / loq,
                     "review_flag": _flag(rv["flag"]) if "flag" in rv else math.nan,
-                    "review_ratio": _f(rv.get("ratio"))})
-    return pd.DataFrame(out, columns=list(dict.fromkeys([*ITEM_COLS[:12], *items.columns])))
+                    "review_ratio": _f(rv.get("ratio")),
+                    "review_rule": "·".join(name for col, name in (("flag_direction", "방향"), ("flag_tail", "꼬리"))
+                                            if _flag(rv.get(col)))})
+    return pd.DataFrame(out, columns=list(dict.fromkeys([*ITEM_COLS[:12], "review_rule", *items.columns])))
 
 
 def _flag(v) -> bool:
@@ -240,7 +243,6 @@ def item_trials(row: Mapping, Y: np.ndarray, z: np.ndarray) -> tuple[pd.DataFram
         c0, lo0, hi0 = ci_median(d0)
         for u, sh in zip(LEVELS, s):
             recs.append((k + 1, u, sh, c0 + sh, lo0 + sh, hi0 + sh))
-        for u, sh in zip(LEVELS, s):
             if u in REVIEW_LEVELS:
                 zk = x + sh
                 rev.append({"ITEM": row["ITEM"], "run": k + 1, "level": u, **review.sign_test(zk - rest.mean(axis=1)),
@@ -258,7 +260,7 @@ def item_trials(row: Mapping, Y: np.ndarray, z: np.ndarray) -> tuple[pd.DataFram
                          zip(t["center"], t["ci_low"], t["ci_high"])]
     t["verdict_tost"] = [tost(c, lo, hi, delta)[0] for c, lo, hi in zip(t["center"], t["ci_low"], t["ci_high"])]
     d = z - Y.mean(axis=1)
-    noise = robust_sigma(np.concatenate(d0s))      # 회차마다 중앙값을 빼 die 흔들림만 견준다 (회차 이동은 실제 d 에서도 빠짐)
+    noise = robust_sigma(np.concatenate(d0s))      # 회차마다 중앙값을 뺀다: 실제 d 의 MAD 에도 회차 이동은 빠져 있다
     extra = {"n_runs": J, "doe_noise_ratio": robust_sigma(d) / noise if noise > 0 else math.nan, "review": rev}
     return t, extra, ""
 
@@ -282,13 +284,9 @@ def catch_level(caught_all: Mapping[float, bool]) -> float:
 
 # ---------------------------------------------------------------- 표
 
-def _caught(v: pd.Series) -> pd.Series:
-    return v.isin(CAUGHT)
-
-
 def per_item_shares(trials: pd.DataFrame) -> dict[str, pd.DataFrame]:
     """측정마다 ITEM × 수준 의 잡힌 비율 (그 ITEM 의 회차 비교 중). 재확인은 REVIEW_LEVELS 밖이 NaN."""
-    t = trials.assign(**{f"_{m}": _caught(trials[c]) for m, c in MEASURES.items() if m != "review"},
+    t = trials.assign(**{f"_{m}": trials[c].isin(CAUGHT) for m, c in MEASURES.items() if m != "review"},
                       _review=trials["review_flag"].map(lambda v: np.nan if pd.isna(v) else float(v)),
                       _diff=trials["verdict_final"].eq("차이"))
     g = t.groupby(["ITEM", "level"], sort=False)
@@ -298,21 +296,19 @@ def per_item_shares(trials: pd.DataFrame) -> dict[str, pd.DataFrame]:
 def levels_table(trials: pd.DataFrame, seed: int = SEED, n_boot: int = N_BOOT) -> pd.DataFrame:
     """loq_levels.csv. 수준 한 줄: ITEM 평균 잡힌 비율과 ITEM 을 다시 뽑은 90% 범위."""
     rows = {"level": list(LEVELS), "level_name": [level_name(u) for u in LEVELS]}
-    shares = per_item_shares(trials) if len(trials) else {}
-    n = len(next(iter(shares.values()))) if shares else 0
-    rows["n_items"] = [n] * len(LEVELS)
-    rows["n_comparisons"] = [int(trials["level"].eq(u).sum()) for u in LEVELS] if len(trials) else [0] * len(LEVELS)
-    weights = np.zeros((n_boot, n))
-    if n:
-        idx = np.random.default_rng(seed).integers(0, n, size=(n_boot, n))
-        weights = np.stack([np.bincount(i, minlength=n) for i in idx]) / n
+    if trials.empty:
+        return pd.DataFrame(rows | {"n_items": 0, "n_comparisons": 0}).reindex(columns=LEVEL_COLS)
+    shares = per_item_shares(trials)
+    n = len(shares["final"])
+    rows["n_items"] = n
+    rows["n_comparisons"] = [int(trials["level"].eq(u).sum()) for u in LEVELS]
+    idx = np.random.default_rng(seed).integers(0, n, size=(n_boot, n))
+    weights = np.stack([np.bincount(i, minlength=n) for i in idx]) / n
     for m in (*MEASURES, "diff"):
         name = "diff_final" if m == "diff" else f"caught_{m}"
-        S = shares[m].reindex(columns=list(LEVELS)).to_numpy(float) if n else np.full((0, len(LEVELS)), np.nan)
-        rows[name] = S.mean(axis=0) if n else [np.nan] * len(LEVELS)
-        boot = weights @ S if n else np.full((1, len(LEVELS)), np.nan)
-        rows[f"{name}_lo"], rows[f"{name}_hi"] = (np.percentile(boot, BOOT_PCT, axis=0) if n
-                                                  else ([np.nan] * len(LEVELS),) * 2)
+        S = shares[m].reindex(columns=list(LEVELS)).to_numpy(float)
+        rows[name] = S.mean(axis=0)
+        rows[f"{name}_lo"], rows[f"{name}_hi"] = np.percentile(weights @ S, BOOT_PCT, axis=0)
     return pd.DataFrame(rows)[LEVEL_COLS]
 
 
@@ -339,11 +335,11 @@ def item_table(ledger: pd.DataFrame, trials: pd.DataFrame, extras: Mapping[str, 
                        catch_ratio=level * loq / abs(base) if abs(base) >= lod else math.nan,
                        doe_noise_ratio=ex["doe_noise_ratio"])
         rows.append(out)
-    t = pd.DataFrame(rows).reindex(columns=[*ITEM_COLS, "verdict", "delta", "LoQ"])
+    t = pd.DataFrame(rows).reindex(columns=[*ITEM_COLS, "verdict", "delta", "LoQ", "review_rule"])
     t["why"] = [why(r) for r in t.to_dict("records")]
-    rule = t["pass_kind"].isin(RULE_PASSES)
-    flagged = t["review_flag"].map(_yes)
-    order = np.lexsort((-t["catch_ratio"].astype(float).fillna(-1).to_numpy(), ~flagged.to_numpy(), ~rule.to_numpy()))
+    rule = t["pass_kind"].isin(RULE_PASSES).to_numpy(bool)
+    flagged = t["review_flag"].map(_yes).to_numpy(bool)
+    order = np.lexsort((-t["catch_ratio"].astype(float).fillna(-1).to_numpy(), ~flagged, ~rule))
     return t.iloc[order][ITEM_COLS].reset_index(drop=True)
 
 
@@ -379,7 +375,9 @@ def why(r: Mapping) -> str:
             parts.append(f"변화 없는 비교 {J}번 중 {caught}번이 잡힘")
     if _yes(r.get("review_flag")):
         ratio = _f(r.get("review_ratio"))
-        parts.append("재확인 확인 필요" + (f" (DOE ÷ POR 약 {_x(ratio)}배)" if math.isfinite(ratio) else ""))
+        rule = _text(r.get("review_rule"))
+        size = f"DOE ÷ POR 약 {_x(ratio)}배" if math.isfinite(ratio) and "방향" in rule else ""
+        parts.append(f"재확인 확인 필요 ({', '.join(x for x in (rule, size) if x) or '-'})")
     return ". ".join(parts) + "."
 
 
@@ -566,6 +564,10 @@ class LoqBook:
                   f"{c.at('final', 2.0).text()} 를 판정이 잡았다. DOE 가 LoQ 아래에 머문 변화 (0.8×LoQ) 는 판정이 "
                   f"{c.at('final', 0.8).text()}, 재확인이 {c.at('review', 0.8).text()} 를 잡았다. LoQ 아래 변화는 판정 "
                   "규칙상 동등이고 재확인이 보는 곳이다.")
+            rule, final = c.at("rule", 1.2), c.at("final", 1.2)
+            if rule.rate - final.rate >= 0.05:
+                q2 += (f" 1.2×LoQ 에서 2단계 LoQ 판정만 보면 {rule.text()} 다. 그 차이는 3단계 판정 길 (절대 허용폭 등) 이 "
+                       "동등으로 둔 비교다.")
             q3 = (f"변화를 넣지 않은 비교에서 판정이 {c.at('final', NO_CHANGE).text()} 를 차이·미결로 걸었다. LoQ 규칙 "
                   f"없는 보통 TOST 였다면 {c.at('tost', NO_CHANGE).text()}, 재확인은 {c.at('review', NO_CHANGE).text()}. "
                   "실제 DOE 는 lot·조건 차이가 더해져 오경보가 이보다 많을 수 있다.")
@@ -722,6 +724,7 @@ def plot_curve(levels: pd.DataFrame, book: LoqBook, path: Path) -> Path:
     ax.fill_between(grid["level"], 100 * grid["caught_final_lo"], 100 * grid["caught_final_hi"], color="#0072B2",
                     alpha=0.15, lw=0)
     ax.plot(grid["level"], 100 * grid["caught_final"], color="#0072B2", lw=2.2, label="판정 (최종)")
+    ax.plot(grid["level"], 100 * grid["caught_rule"], color="#56B4E9", lw=1.4, ls=":", label="2단계 LoQ 판정만")
     ax.plot(grid["level"], 100 * grid["caught_tost"], color="#777777", lw=1.6, ls="--", label="보통 TOST (LoQ 규칙 없음)")
     rv = grid[grid["level"].isin(HEADLINE)]
     ax.plot(rv["level"], 100 * rv["caught_review"], "o", color="#E69F00", ms=8, label="재확인 (방향)")
