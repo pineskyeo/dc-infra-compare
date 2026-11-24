@@ -1,120 +1,60 @@
-<!-- legacy -->
-<p class="loc"><a href="index.html">개요</a> › 단계 ④ (⓪~⑦ 중) · 앞 단계 <a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a></p>
-<h1>④ 차이(편향)와 90% 신뢰구간 구하기</h1>
-
-<section id="q"><h2>이 쪽이 답하는 질문</h2>
-<p class="q"><a class="g" href="glossary.html#cand"><abbr title="비교 조건 · 바꾸려는 조건">비교 조건(Candidate)</abbr></a>이 <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a>과 얼마나 다른가(편향 b) · 그 차이가 있을 만한 범위(90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a>)는 어디서 어디까지인가</p></section>
-
-<section id="plain"><h2>쉬운 말로</h2>
-<ul>
-<li><a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a>마다 d = 비교 조건 − 기준 조건 J회 평균 (①에서 만든 값)<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li>
-<li>편향 b = d의 중앙값. 이상치 die 하나에 끌려가지 않음</li>
-<li>90% CI: d를 크기순으로 세워 두고 양끝에서 k개씩 뗀 뒤 남은 (k+1)번째 ~ (n−k)번째 값 사이. 떼는 개수 k는 <a class="g" href="glossary.html#sign-test"><abbr title="부호검정 · 차이가 +인 die와 −인 die 수만 세어 중앙값을 따지는 방법">부호검정</abbr></a>으로 정함<sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li>
-<li>이유: 진짜 중앙값보다 작은 die 수는 동전을 n번 던져 앞면이 나온 수와 같음. 양쪽 끝이 각각 5%를 넘지 않게 자르면, 두 순위 값 사이에 진짜 중앙값이 있을 확률이 90% 이상</li>
-<li>값의 크기가 아니라 순서만 씀 → 이상치 die가 아무리 커도 구간이 움직이지 않음</li>
-<li>die 수 n이 바뀌면 떼는 개수 k도 바뀜 (아래 순위 표)</li>
-
+<section class="easy">
+<div data-scene="interval"></div>
+<ul class="points">
+<li>die마다 차이 d = DOE − POR 평균. 바뀐 양이다.</li>
+<li>d를 크기 순으로 세운 가운데 값이 중앙값이다.</li>
+<li>양끝에서 같은 순번의 두 값 사이가 90% 구간. 순번은 die 수로 정한다.</li>
+<li>튀는 die가 있어도 순서만 보니 구간이 거의 안 움직인다.</li>
 </ul>
-<p class="s">더 자세한 쉬운 말은 아래 <a href="#plain-more">쉬운 말 더 보기</a></p>
-
-<details><summary>보충</summary><ul>
-<li>포함 확률이 정확히 90%가 아닌 이유: 순위는 정수라 90% 이상인 값 중 가장 가까운 것을 고름 (die 60개 → 90.75%)</li>
-<li>계산은 <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>마다 따로</li>
-<li>그림으로 보기: <a href="c-median-ci.html">중앙값</a> · <a href="c-median-ci.html">부호검정 신뢰구간</a> · <a href="c-median-ci.html">중앙값의 90% 신뢰구간 구하는 법</a></li>
-</ul></details></section>
-
-<section id="formula"><h2>수식</h2>
-<div class="formula"><div>d<sub>i</sub> = y<sub>i</sub> − x̄<sub>i</sub></div><div>b = median(d)</div><div>B ~ Binomial(n, 0.5) · k = P(B ≤ k) ≤ 5%를 만족하는 가장 큰 수(양끝에서 떼는 개수)</div><div>90% CI = [ d<sub>(k+1)</sub> , d<sub>(n−k)</sub> ]</div><div class="c">크기순 (k+1)번째 ~ (n−k)번째. 실제 포함 확률 = 1 − 2·P(B ≤ k) ≥ 90%</div></div>
-<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
-<tr><td>y<sub>i</sub></td><td>die i를 비교 조건으로 잰 값</td><td>97.258 (die 1)</td></tr>
-<tr><td>x̄<sub>i</sub></td><td>die i의 기준 조건 J회 평균</td><td>96.4863 (die 1)</td></tr>
-<tr><td>d<sub>i</sub></td><td>die별 차이 = 비교 조건 − 기준 조건 J회 평균</td><td>0.7717 (die 1)</td></tr>
-<tr><td>b</td><td>편향. d의 중앙값</td><td>0.78583 ≈ 0.786</td></tr>
-<tr><td>n</td><td>die 수</td><td>60</td></tr>
-<tr><td>B</td><td>진짜 중앙값보다 작은 d의 개수. 동전 n번 던지기와 같음</td><td>Binomial(60, 0.5)</td></tr>
-<tr><td>k</td><td>양끝에서 떼는 개수</td><td>23 (아래 끝 24번째, 위 끝 37번째)</td></tr>
-<tr><td>d<sub>(i)</sub></td><td>크기순 i번째 d</td><td>0.61 (24번째) · 1.10233 (37번째)</td></tr>
-</tbody></table></div>
-<div class="crit" id="C4-1"><!-- EDIT C4-1 --><h3>이 단계의 기준</h3>
-<p>판정 없음 · 계산 단계</p>
-<p>90% CI = 크기순 (k+1)번째 ~ (n−k)번째 d, k(양끝에서 떼는 개수)는 위 수식</p></div>
-<div class="crit" id="C4-2"><!-- EDIT C4-2 --><h3>다음 단계로 넘기는 것</h3>
-<ul><li>90% CI → <a href="step-6.html">⑥ 판정</a>: 90% CI ⊂ (−Δ, +Δ) · CI가 통째로 ±Δ 밖 (정량 · LoQ 미만 두 갈래 모두)</li><li>90% CI → <a href="step-6.html#loq">⑥ LoQ 판정</a>: DOE 수준 구간 = 기준 조건 중앙값 + CI (LoQ 미만 갈래)</li><li>상대 이동 = b / |기준 조건 중앙값| → <a href="reading.html">결과 읽는 법</a></li></ul></div>
+<div data-tracker="4"></div>
 </section>
 
-<section id="figure"><h2>그림</h2>
-<figure class="cfig" id="f4" data-anim="steps" data-start="4">
-<svg viewBox="0 0 640 100" role="img" aria-labelledby="f4-t"><title id="f4-t">die 수 n에 따라 바뀌는 CI 폭 중앙값과 미결 비율 (모의실험)</title>
-<text x="0" y="18">die 수 n</text><text id="f4-n" class="val" x="96" y="18">60</text>
-<text x="0" y="52">CI 폭</text><svg x="90" y="40" width="410" height="16" viewBox="0 0 2.5 16" preserveAspectRatio="none"><rect class="pb-bg" width="2.5" height="16"/><rect id="f4-w" fill="currentColor" opacity="0.55" width="0.613" height="16"/></svg><text id="f4-wt" class="val" x="512" y="52">0.613</text>
-<text x="0" y="84">미결</text><svg x="90" y="72" width="410" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="f4-hold" class="pb-hold" width="17.4" height="16"/></svg><text id="f4-holdt" class="val" x="512" y="84">17.4%</text>
-</svg>
-<div class="ctl" hidden><label for="f4-ctl">die 수 n</label><input id="f4-ctl" type="range" min="0" max="6" step="1" value="4"><output for="f4-ctl">n 60</output><button type="button" class="play" aria-pressed="false">재생</button></div>
-<div class="tw"><table class="states"><thead><tr><th>n</th><th>CI 폭 중앙값</th><th>미결</th><th>동등</th><th>차이</th></tr></thead><tbody>
-<tr><td>10</td><td>2.233</td><td>53.2%</td><td>39.1%</td><td>7.8%</td></tr>
-<tr><td>20</td><td>1.32</td><td>35.7%</td><td>53.1%</td><td>11.2%</td></tr>
-<tr><td>30</td><td>0.854</td><td>23.5%</td><td>64.5%</td><td>12.0%</td></tr>
-<tr><td>45</td><td>0.756</td><td>21.0%</td><td>66.0%</td><td>13.1%</td></tr>
-<tr class="now"><td>60</td><td>0.613</td><td>17.4%</td><td>70.0%</td><td>12.6%</td></tr>
-<tr><td>90</td><td>0.536</td><td>14.3%</td><td>74.5%</td><td>11.2%</td></tr>
-<tr><td>120</td><td>0.447</td><td>11.9%</td><td>75.6%</td><td>12.5%</td></tr>
+<section class="expert">
+<h2 id="formula">식</h2>
+<div class="formula" id="C4-1">d<sub>i</sub> = DOE<sub>i</sub> − (POR<sub>i1</sub> + … + POR<sub>iJ</sub>) / J      <span class="c">die i 의 차이 (같은 die 끼리 짝)</span>
+b = median(d<sub>1</sub> … d<sub>n</sub>)                       <span class="c">가운데 값</span>
+[L, U] = [d<sub>(k)</sub>, d<sub>(n−k+1)</sub>]                  <span class="c">d 를 작은 것부터 세운 k번째, n−k+1번째</span>
+k = P(W ≤ k−1) ≤ 0.05 인 가장 큰 정수, W ~ 이항(n, ½)
+포함 확률 = 1 − 2·P(W ≤ k−1) ≥ 90%</div>
+<p>같은 die를 POR J회와 DOE 1회로 재어 짝을 짓는다<sup data-ref="1"></sup>. 진짜 중앙값보다 작은 d의 개수 W는 동전을 n번 던져 앞면이 나온 수와 같은 꼴이라, 값의 크기를 몰라도 순번만으로 구간을 정한다 (부호검정 구간)<sup data-ref="9"></sup>. 양쪽 꼬리를 각각 5% 넘지 않게 자르므로 한쪽 5% 검정 두 번과 같은 뜻이고, ⑥ TOST가 이 구간을 ±Δ와 견준다<sup data-ref="12"></sup>.</p>
+<div class="tw" id="C4-2"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>items.csv 열</th></tr></thead><tbody>
+<tr><td>n</td><td>판정에 쓴 die 수 (10개 미만이면 미결<sup data-ref="7"></sup>)</td><td><code>n_die</code></td></tr>
+<tr><td>J</td><td>POR 반복 회차 수</td><td><code>POR1_mean</code> … 열의 개수</td></tr>
+<tr><td>d<sub>i</sub></td><td>die i 의 차이 (DOE − POR 평균)</td><td>die별 값은 열이 아님</td></tr>
+<tr><td>b</td><td>d 의 중앙값 (이동량)</td><td><code>center</code></td></tr>
+<tr><td>L, U</td><td>90% 구간의 아래 끝, 위 끝</td><td><code>ci_low</code>, <code>ci_high</code></td></tr>
+<tr><td>k</td><td>구간 끝 순번 (아래에서 k번째, 위에서 k번째)</td><td>n 으로 정해짐 (아래 표)</td></tr>
+<tr><td>b<sub>log</sub>, L<sub>log</sub>, U<sub>log</sub></td><td>같은 계산을 log10|값| 에서 한 것</td><td><code>center_log</code>, <code>ci_low_log</code>, <code>ci_high_log</code></td></tr>
 </tbody></table></div>
-<script type="application/json" class="states">[
-{"label":"n 10","set":{"f4-n":{"text":"10"},"f4-w":{"width":"2.233"},"f4-wt":{"text":"2.233"},"f4-hold":{"width":"53.2"},"f4-holdt":{"text":"53.2%"}}},
-{"label":"n 20","set":{"f4-n":{"text":"20"},"f4-w":{"width":"1.32"},"f4-wt":{"text":"1.32"},"f4-hold":{"width":"35.7"},"f4-holdt":{"text":"35.7%"}}},
-{"label":"n 30","set":{"f4-n":{"text":"30"},"f4-w":{"width":"0.854"},"f4-wt":{"text":"0.854"},"f4-hold":{"width":"23.5"},"f4-holdt":{"text":"23.5%"}}},
-{"label":"n 45","set":{"f4-n":{"text":"45"},"f4-w":{"width":"0.756"},"f4-wt":{"text":"0.756"},"f4-hold":{"width":"21.0"},"f4-holdt":{"text":"21.0%"}}},
-{"label":"n 60","set":{"f4-n":{"text":"60"},"f4-w":{"width":"0.613"},"f4-wt":{"text":"0.613"},"f4-hold":{"width":"17.4"},"f4-holdt":{"text":"17.4%"}}},
-{"label":"n 90","set":{"f4-n":{"text":"90"},"f4-w":{"width":"0.536"},"f4-wt":{"text":"0.536"},"f4-hold":{"width":"14.3"},"f4-holdt":{"text":"14.3%"}}},
-{"label":"n 120","set":{"f4-n":{"text":"120"},"f4-w":{"width":"0.447"},"f4-wt":{"text":"0.447"},"f4-hold":{"width":"11.9"},"f4-holdt":{"text":"11.9%"}}}
-]</script>
-<figcaption>모의실험(합성 예시 모형) · 비교 조건 이동 b 5.5(Δ 가까이), J 3, σ<sub>run</sub> 0.50389, σ<sub>die</sub> 0.98965(예시 ITEM의 도구 추정값), 값마다 판정 2000회 · CI 막대 눈금 0~2.5</figcaption>
-</figure>
-<p class="look"><b>여기서 볼 것</b> · die 수를 늘리면 CI 폭 중앙값이 2.233(n 10) → 0.613(n 60) → 0.447(n 120)로 좁아지고 미결이 53.2% → 17.4% → 11.9%로 줄어듦 · n 60을 넘으면 조금씩만 줄어듦 · b 5.5처럼 차이가 Δ에 가까울 때 die 수가 미결 비율을 크게 좌우 <span class="badge-int">내부 기준(문헌 근거 없음)</span></p>
-</section>
 
-<section id="plain-more"><h2>쉬운 말 더 보기</h2>
-<ul>
-<li>90%를 쓰는 이유: ⑥ <a class="g" href="glossary.html#tost"><abbr title="두 번의 한쪽 검정 · '차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등">두 번의 한쪽 검정(TOST, Two One-Sided Tests)</abbr></a>의 한쪽 5% 검정 두 번과 같은 뜻<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li>
-</ul></section>
-
-<section id="example"><h2>예시 계산</h2>
-<div class="exdata" id="ex-data">
-<p class="s">합성 예시 · ITEM 하나, 단위 Ω · 기준 조건 3회(J = 3) + 비교 조건 1회 · die 60개(n = 60) 중 6개</p>
-<div class="tw"><table class="ex"><thead><tr><th>die</th><th>기준 1회</th><th>기준 2회</th><th>기준 3회</th><th>기준 평균</th><th>비교</th><th>d = 비교 − 기준 평균</th></tr></thead><tbody>
-<tr><td>1</td><td>96.104</td><td>96.890</td><td>96.465</td><td>96.4863</td><td>97.258</td><td>0.7717</td></tr>
-<tr><td>2</td><td>99.194</td><td>98.516</td><td>100.005</td><td>99.2383</td><td>101.005</td><td>1.7667</td></tr>
-<tr><td>3</td><td>94.828</td><td>95.894</td><td>95.134</td><td>95.2853</td><td>96.819</td><td>1.5337</td></tr>
-<tr><td>4</td><td>102.294</td><td>101.657</td><td>102.060</td><td>102.0037</td><td>101.415</td><td>−0.5887</td></tr>
-<tr><td>5</td><td>106.554</td><td>105.866</td><td>108.424</td><td>106.9480</td><td>107.455</td><td>0.5070</td></tr>
-<tr><td>6</td><td>95.385</td><td>95.404</td><td>97.106</td><td>95.9650</td><td>94.915</td><td>−1.0500</td></tr>
-</tbody></table></div>
-<p class="s"><a href="examples/example_wide.csv">합성 예시 · 전체 데이터 examples/example_wide.csv</a></p>
-</div>
-<ol class="calc">
-<li>die 6개 d = 0.7717<span class="cl">1.7667</span><span class="cl">1.5337</span><span class="cl">−0.5887</span><span class="cl">0.5070</span><span class="cl">−1.0500 </span><span class="from">예시 표 마지막 칸 (① 반복 측정)</span></li>
-<li>b = d 60개의 중앙값 = 0.78583 ≈ 0.786 <span class="from">die 60개 전체 d</span></li>
-<li>부호검정: Binomial(60, 0.5)에서 아래 5% 경계 → 크기순 24번째와 37번째 <span class="from">n = 60, 순위 규칙은 위 수식</span></li>
-<li>24번째 주변(22~26번째) = 0.5527 · 0.5787 · 0.61 · 0.663 · 0.7147<span class="cl">→ 24번째 = 0.61 <span class="from">die 60개 d를 크기순으로</span></span></li>
-<li>37번째 주변(35~39번째) = 1.0977 · 1.1 · 1.1023 · 1.2107 · 1.2143<span class="cl">→ 37번째 = 1.10233 <span class="from">같은 크기순, 1.1023은 자리를 줄여 적은 값</span></span></li>
-<li>90% CI = [0.61, 1.10233] ≈ [0.610, 1.102], 포함 확률 90.75%</li>
-<li>→ ⑥: CI [0.610, 1.102]를 ⑤의 ±Δ와 비교</li>
-</ol>
-<p class="s">die 수별 순위 (같은 규칙)</p>
-<div class="tw"><table class="ex"><thead><tr><th>die 수 n</th><th>아래 끝 순위</th><th>위 끝 순위</th><th>포함 확률</th></tr></thead><tbody>
+<h2 id="ranks">die 수마다 구간 끝 순번과 포함 확률</h2>
+<p>순번은 정수라 포함 확률이 딱 90%가 아니라 90% 이상인 가장 가까운 값이 된다.</p>
+<div class="tw"><table class="b-num"><thead><tr><th>die 수 n</th><th>아래 끝</th><th>위 끝</th><th>포함 확률</th></tr></thead><tbody>
+<tr><td>10</td><td>2번째</td><td>9번째</td><td>97.85%</td></tr>
+<tr><td>20</td><td>6번째</td><td>15번째</td><td>95.86%</td></tr>
 <tr><td>30</td><td>11번째</td><td>20번째</td><td>90.13%</td></tr>
 <tr><td>45</td><td>17번째</td><td>29번째</td><td>92.75%</td></tr>
 <tr><td>60</td><td>24번째</td><td>37번째</td><td>90.75%</td></tr>
+<tr><td>61</td><td>24번째</td><td>38번째</td><td>92.78%</td></tr>
 <tr><td>90</td><td>37번째</td><td>54번째</td><td>92.75%</td></tr>
+<tr><td>120</td><td>51번째</td><td>70번째</td><td>91.76%</td></tr>
 </tbody></table></div>
+
+<h2 id="why-median">평균이 아니라 중앙값을 쓰는 이유</h2>
+<ul>
+<li>튀는 die 하나가 평균은 끌고 가지만, 중앙값과 순번 구간은 튀는 die의 개수만 영향을 받고 크기는 영향이 없다. 튀는 die(|d − b| &gt; 5·robust σ)는 세기만 하고 빼지 않는다 (<code>n_outlier_die</code>)<sup data-ref="8"></sup>.</li>
+<li>대가: 값이 정규분포라면 중앙값은 평균보다 √(π/2) ≈ 1.25배 더 흔들린다 (효율 2/π ≈ 0.64)<sup data-ref="14b"></sup>. ⓪ die 수 식의 1.25가 이것이다.</li>
+<li>TOST와 90% 구간이 같은 결론이라는 원문은 정규이론(t) 구간 기준이다. 부호검정 구간에 쓰면 포함 확률이 90%보다 커서 (n = 61 이면 92.78%) 동등을 조금 덜 내는 쪽, 곧 보수적이다<sup data-ref="12"></sup>.</li>
+<li>판정 길이 log TOST인 ITEM(③)은 같은 구간을 L = log10|값| 에서 다시 구해 ⑥ 3단계에서 쓴다. 이때 d<sub>i</sub> = log10|DOE<sub>i</sub>| − (L<sub>i1</sub> + … + L<sub>iJ</sub>) / J.</li>
+</ul>
+
+<h2>근거와 문헌</h2>
+<div data-refs></div>
+
+<h2>코드 위치</h2>
+<ul>
+<li>d 와 구간: <code data-code="por_doe_compare.py:judge"></code> (d = z − R), <code data-code="por_doe_compare.py:ci_median"></code></li>
+<li>구간 끝 순번: <code data-code="por_doe_compare.py:ci_rank"></code> (0부터 센 k−1 을 돌려준다)</li>
+<li>log 값의 구간: <code data-code="por_doe_compare.py:judge_log"></code></li>
+</ul>
 </section>
-
-<section id="sources"><h2>출처</h2>
-<ol class="fn">
-<li id="fn1">d = 비교 조건 − 기준 조건 J회 평균(같은 die끼리 짝지은 설계): NIST/SEMATECH e-Handbook · 7.3.1.1 Analysis of paired observations · <a href="https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm" rel="noopener" target="_blank">링크</a> / ASTM E2935-21 · 4.2.1, 4.2.1.1 · <a href="https://store.astm.org/e2935-21.html" rel="noopener" target="_blank">링크</a></li>
-<li id="fn2">b = median(d)와 부호검정 신뢰구간: NIST Dataplot Reference Manual · MEDIAN CONFIDENCE LIMITS (Method 1) · <a href="https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/mediancl.htm" rel="noopener" target="_blank">링크</a> / SIGN TEST · <a href="https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/signtest.htm" rel="noopener" target="_blank">링크</a> / Hollander &amp; Wolfe, Nonparametric Statistical Methods · 3장 예 3.5, 3.6 (2차: U. Minnesota Geyer 강의 페이지) · <a href="https://www.stat.umn.edu/geyer/5601/examp/sign.html" rel="noopener" target="_blank">링크</a></li>
-<li id="fn3">90% 신뢰구간과 TOST: Schuirmann (1987) J. Pharmacokinet. Biopharm. 15:657-680 · 초록 · <a href="https://link.springer.com/article/10.1007/BF01068419" rel="noopener" target="_blank">링크</a></li>
-<li id="fn4"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 쉬운 말 설명과 그림(모의실험)</li>
-</ol></section>
-
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-median-ci.html">중앙값</a></li><li><a href="c-median-ci.html">부호검정 신뢰구간</a></li><li><a href="c-median-ci.html">중앙값의 90% 신뢰구간 구하는 법</a></li><li><a href="c-tost.html">TOST</a></li></ul></nav>

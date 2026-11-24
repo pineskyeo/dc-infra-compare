@@ -1,137 +1,67 @@
-<!-- legacy -->
-<p class="loc"><a href="index.html">개요</a> › 단계 ⑤ (⓪~⑦ 중) · 앞 단계 <a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a></p>
-<h1>⑤ 허용 범위 Δ 정하기</h1>
-
-<section id="q"><h2>이 쪽이 답하는 질문</h2>
-<p class="q"><a class="g" href="glossary.html#cand"><abbr title="비교 조건 · 바꾸려는 조건">비교 조건(Candidate)</abbr></a>과 <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a>의 차이가 얼마 안이면 '같다'고 볼까 (허용 범위 Δ)</p></section>
-
-<section id="plain"><h2>쉬운 말로</h2>
-<ul>
-<li>Δ = 실용 한계 + 회차 예측 한계. 차이가 ±Δ 안이면 같다고 봄</li>
-<li>실용 한계 = 5% × |기준 조건 중앙값|(<a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a>별 J회 평균의 중앙값). 5%라는 값 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
-<li>회차 예측 한계: 기준 조건을 다시 재도 1회 측정값이 기준 조건 J회 평균에서 벗어날 수 있는 폭(90% 예측구간 한쪽). <a class="g" href="glossary.html#run"><abbr title="회차 · 같은 die들을 한 차례 모두 재는 것">회차(run)</abbr></a> 변동 σ<sub>run</sub>(②)으로 구함<sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li>
-<li>σ<sub>run</sub>을 회차 J개로만 추정하므로 1.645 대신 t를 씀. t의 <a class="g" href="glossary.html#df"><abbr title="자유도 · t 값을 고를 때 쓰는 수">자유도(df, degrees of freedom)</abbr></a> = J − 1</li>
-<li>회차를 늘리면 계수가 1.645·√(1+1/J)에 가까워지고 Δ가 줄어듦 (아래 J별 계수 표)</li>
-<li data-e="1">Δ의 두 조각(실용 한계 5% × |기준 조건 중앙값|, 회차 예측 한계 계수 × σ<sub>run</sub>)은 Δ를 만드는 재료일 뿐. 허용 범위는 0을 가운데 둔 −Δ ~ +Δ <span class="from">예시: 0.05 × 100 = 5.0, 3.3717 × 0.50389 = 1.69896 → Δ = 6.699 → 허용 범위 −6.699 ~ +6.699</span></li>
-
+<section class="easy">
+<div data-scene="delta"></div>
+<ul class="points">
+<li>첫째 몫: POR 중앙값의 5%. 이만큼은 같다고 보기로 한 폭이다.</li>
+<li>둘째 몫: POR만 다시 재도 회차마다 밀리는 만큼 (σ_run에서).</li>
+<li>둘을 더한 Δ가 ⑥ 1·2단계의 허용폭이다.</li>
+<li>0 근처 · 계단 값 · 배율(log) 유형은 ⑥ 3단계에서 그 유형의 폭을 쓴다.</li>
 </ul>
-<p class="s">더 자세한 쉬운 말은 아래 <a href="#plain-more">쉬운 말 더 보기</a></p>
-
-<details><summary>보충</summary><ul>
-<li>두 한계를 더하는 구성: '실무 허용 + 기준 조건 재측정 차이' 설계 원칙 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
-<li>장비 정확도 한계의 U = a·|값| + b·range + c: a·b·c는 장비 사양 계수(④의 편향 b와 다름)</li>
-<li>그림으로 보기: <a href="c-delta.html">허용 범위 Δ</a> · <a href="c-delta.html">회차 예측 한계 계수</a></li>
-</ul></details></section>
-
-<section id="formula"><h2>수식</h2>
-<div class="formula"><div>Δ = r·|기준 조건 중앙값| + t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub></div><div class="c">실용 한계 (r = 5%) + 회차 예측 한계</div><div>⑥ 3단계에서만: 판정 길 선형 TOST이고 수준 바닥 근처(LoQ ≤ |기준 조건 중앙값| &lt; LoQ/(10r))인 A·V ITEM → Δ' = max(Δ, 장비 정확도 한계)</div><div>장비 정확도 한계 = 1.645·√((U<sub>Ref</sub><sup>2</sup> + U<sub>Cand</sub><sup>2</sup>)/3),  U = a·|값| + b·range + c</div></div>
-<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
-<tr><td>Δ</td><td>허용 범위. 차이가 ±Δ 안이면 같다고 봄</td><td>6.699</td></tr>
-<tr><td>r</td><td>실용 한계 비율<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></td><td>5%</td></tr>
-<tr><td>|기준 조건 중앙값|</td><td>die별 기준 조건 J회 평균의 중앙값 크기</td><td>100</td></tr>
-<tr><td>t<sub>0.95, J−1</sub></td><td>자유도 J − 1인 t 분포의 95% 값</td><td>2.919986 (J 3)</td></tr>
-<tr><td>√(1 + 1/J)</td><td>1회 측정과 J회 평균의 차이를 반영하는 배수</td><td>1.154701 (J 3)</td></tr>
-<tr><td>J</td><td>기준 조건 반복 회차 수</td><td>3</td></tr>
-<tr><td>σ<sub>run</sub></td><td>회차 이동. 회차마다 모든 die가 함께 움직이는 크기 (②)</td><td>0.50389</td></tr>
-<tr><td>U<sub>Ref</sub>, U<sub>Cand</sub></td><td>기준 조건·비교 조건 값의 장비 정확도 폭</td><td>합성 예시에 없음</td></tr>
-<tr><td>a, b, c, range</td><td>장비 사양 계수와 측정 범위 (편향 b와 다름)</td><td>합성 예시에 없음</td></tr>
-</tbody></table></div>
-<div class="crit" id="C5-1"><!-- EDIT C5-1 --><h3>이 단계의 기준</h3>
-<p>판정 없음 · 계산 단계</p>
-<p>실용 한계 5%<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span></p>
-<p>1·2단계 판정의 Δ는 위 두 한계의 합. 장비 정확도 한계는 ⑥ 3단계의 바닥 근처 A·V ITEM에서만 큰 쪽으로 씀</p></div>
-<div class="crit" id="C5-4"><!-- EDIT C5-4 --><h3>⑥ 3단계에서 쓰는 다른 허용폭</h3>
-<div class="tw"><table><thead><tr><th>판정 길</th><th>허용폭</th></tr></thead><tbody>
-<tr><td>선형 TOST (바닥 근처)</td><td>Δ' = max(Δ, 장비 정확도 한계)</td></tr>
-<tr><td>절대 허용폭</td><td>abs_delta = abs_tol 파일의 그룹 값 · 없으면 0 중심은 그 ITEM의 LoQ, 계단은 max(Δ, 값 간격 한 칸), 계단 + 바닥 근처는 max(Δ, 값 간격 한 칸, 장비 정확도 한계) · <a href="c-abs-tol.html">절대 허용폭</a></td></tr>
-<tr><td>log TOST</td><td>Δ<sub>log</sub> = log10(1 + r) + sigma_rep_log · <a href="c-log-scale.html">잡음이 값에 비례하면 log</a></td></tr>
-</tbody></table></div>
-<p class="s">어느 ITEM이 어느 길로 가는지 → <a href="step-6.html#typed">⑥ 3단계 · 유형별 판정</a> <span class="badge-int">내부 기준(문헌 근거 없음)</span></p></div>
-<div class="crit" id="C5-2"><!-- EDIT C5-2 --><h3>다음 단계로 넘기는 것</h3>
-<ul><li>±Δ → <a href="step-6.html">⑥ 판정</a>: 90% CI ⊂ (−Δ, +Δ) · CI가 통째로 ±Δ 밖 (정량 · LoQ 미만 두 갈래 모두)</li><li>Δ와 그 구성(실용 한계 + 회차 예측 한계) → <a href="reading.html">결과 읽는 법</a></li></ul></div>
-<div class="crit" id="C5-3"><!-- EDIT C5-3 --><h3>A·V ITEM 관련 값</h3>
-<p>장비 사양 확인 상태 · 측정 범위 확인 · 기준 조건·비교 조건 측정 범위 · 장비 분해능 · 장비 정확도 한계 · 장비 정확도 한계를 큰 쪽으로 썼을 때의 판정(verdict_with_accuracy) → <a href="reading.html">결과 읽는 법</a> (③과 같은 값)</p></div>
+<div data-tracker="5"></div>
 </section>
 
-<section id="figure"><h2>그림</h2>
-<figure class="cfig" id="f5" data-anim="steps" data-start="1">
-<svg viewBox="0 0 640 100" role="img" aria-labelledby="f5-t"><title id="f5-t">기준 조건 회차 수 J에 따라 바뀌는 Δ (예시 ITEM 계산값과 모의실험 중앙값)</title>
-<text x="0" y="18">회차 수 J</text><text id="f5-j" class="val" x="96" y="18">3</text>
-<text x="0" y="52">예시 Δ</text><svg x="90" y="40" width="410" height="16" viewBox="0 0 10 16" preserveAspectRatio="none"><rect class="pb-bg" width="10" height="16"/><rect id="f5-e" fill="currentColor" opacity="0.55" width="6.6990" height="16"/></svg><text id="f5-et" class="val" x="512" y="52">6.6990</text>
-<text x="0" y="84">Δ 중앙값</text><svg x="90" y="72" width="410" height="16" viewBox="0 0 10 16" preserveAspectRatio="none"><rect class="pb-bg" width="10" height="16"/><rect id="f5-d" fill="currentColor" opacity="0.35" width="6.409" height="16"/></svg><text id="f5-dt" class="val" x="512" y="84">6.409</text>
-</svg>
-<div class="ctl" hidden><label for="f5-ctl">회차 수 J</label><input id="f5-ctl" type="range" min="0" max="6" step="1" value="1"><output for="f5-ctl">J 3</output><button type="button" class="play" aria-pressed="false">재생</button></div>
-<div class="tw"><table class="states"><thead><tr><th>J</th><th>계수</th><th>예시 ITEM Δ</th><th>Δ 중앙값(모의실험)</th></tr></thead><tbody>
-<tr><td>2</td><td>7.7327</td><td>8.8964</td><td>7.553</td></tr>
-<tr class="now"><td>3</td><td>3.3717</td><td>6.6990</td><td>6.409</td></tr>
-<tr><td>4</td><td>2.6311</td><td>6.3258</td><td>6.14</td></tr>
-<tr><td>5</td><td>2.3353</td><td>6.1767</td><td>6.057</td></tr>
-<tr><td>6</td><td>2.1765</td><td>6.0967</td><td>6.012</td></tr>
-<tr><td>8</td><td>2.0095</td><td>6.0126</td><td>5.959</td></tr>
-<tr><td>10</td><td>1.9226</td><td>5.9688</td><td>5.925</td></tr>
+<section class="expert">
+<h2 id="formula">식</h2>
+<div class="formula" id="C5-1">Δ = r·|m| + t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub>       <span class="c">r = 0.05 (5% 몫 + 회차 몫)</span>
+m = median<sub>i</sub>( (POR<sub>i1</sub> + … + POR<sub>iJ</sub>) / J )        <span class="c">POR 중앙값</span></div>
+<p>5% 몫은 '이 정도 차이는 같다고 본다'는 실용 한계다. 5%라는 값은 내부 기준이고, 한계를 시험 전에 전문가 합의로 정한다는 절차만 문헌이 뒷받침한다<sup data-ref="10a"></sup>. 회차 몫은 POR J회 평균과 다음 회차 하나가 어긋날 수 있는 폭의 위쪽 끝, 곧 양쪽 90% 예측구간의 반폭이다<sup data-ref="10b"></sup>. 둘을 더하는 구성은 내부 설계다.</p>
+<div class="tw" id="C5-2"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>items.csv 열</th></tr></thead><tbody>
+<tr><td>Δ</td><td>허용폭 (1·2단계)</td><td><code>delta</code></td></tr>
+<tr><td>r·|m|</td><td>5% 몫. r 은 실행 인자 <code>--r</code> (기본 0.05)</td><td><code>policy_margin</code></td></tr>
+<tr><td>m</td><td>POR 중앙값 (die별 POR 평균의 중앙값)</td><td><code>por_median</code></td></tr>
+<tr><td>t·√(1+1/J)·σ<sub>run</sub></td><td>회차 몫</td><td><code>run_margin</code></td></tr>
+<tr><td>σ<sub>run</sub></td><td>회차마다 모든 die가 함께 밀리는 크기 (②)</td><td><code>sigma_run</code></td></tr>
+<tr><td>J</td><td>POR 반복 회차 수</td><td><code>POR1_mean</code> … 열의 개수</td></tr>
 </tbody></table></div>
-<script type="application/json" class="states">[
-{"label":"J 2","set":{"f5-j":{"text":"2"},"f5-e":{"width":"8.8964"},"f5-et":{"text":"8.8964"},"f5-d":{"width":"7.553"},"f5-dt":{"text":"7.553"}}},
-{"label":"J 3","set":{"f5-j":{"text":"3"},"f5-e":{"width":"6.6990"},"f5-et":{"text":"6.6990"},"f5-d":{"width":"6.409"},"f5-dt":{"text":"6.409"}}},
-{"label":"J 4","set":{"f5-j":{"text":"4"},"f5-e":{"width":"6.3258"},"f5-et":{"text":"6.3258"},"f5-d":{"width":"6.14"},"f5-dt":{"text":"6.14"}}},
-{"label":"J 5","set":{"f5-j":{"text":"5"},"f5-e":{"width":"6.1767"},"f5-et":{"text":"6.1767"},"f5-d":{"width":"6.057"},"f5-dt":{"text":"6.057"}}},
-{"label":"J 6","set":{"f5-j":{"text":"6"},"f5-e":{"width":"6.0967"},"f5-et":{"text":"6.0967"},"f5-d":{"width":"6.012"},"f5-dt":{"text":"6.012"}}},
-{"label":"J 8","set":{"f5-j":{"text":"8"},"f5-e":{"width":"6.0126"},"f5-et":{"text":"6.0126"},"f5-d":{"width":"5.959"},"f5-dt":{"text":"5.959"}}},
-{"label":"J 10","set":{"f5-j":{"text":"10"},"f5-e":{"width":"5.9688"},"f5-et":{"text":"5.9688"},"f5-d":{"width":"5.925"},"f5-dt":{"text":"5.925"}}}
-]</script>
-<figcaption>모의실험(합성 예시 모형) · 비교 조건 이동 b 0.8, σ<sub>run</sub> 0.50389, σ<sub>die</sub> 0.98965(예시 ITEM의 도구 추정값), die 60개, 값마다 판정 2000회(동등 J 2~10 모두 100.0%) · '예시 ITEM Δ' = σ<sub>run</sub> 0.50389 고정 계산값 · 막대 눈금 0~10</figcaption>
-</figure>
-<p class="look"><b>여기서 볼 것</b> · J 2 → 3에서 Δ가 가장 크게 줄어듦(예시 ITEM 8.8964 → 6.6990) · J 10이면 5.9688로 실용 한계 5.0에 다가감 · 모의실험 Δ 중앙값(J 3: 6.409)이 예시 ITEM 6.6990보다 작은 것은 회차 3번으로 추정한 σ<sub>run</sub>이 매번 달라서 <span class="badge-int">내부 기준(문헌 근거 없음)</span></p>
-</section>
 
-<section id="plain-more"><h2>쉬운 말 더 보기</h2>
+<h2 id="tfactor">회차 몫의 계수 t·√(1+1/J)</h2>
 <ul>
-<li>A·V <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>(ITEM 정보에 장비 사양이 있을 때): 바닥 근처(LoQ ≤ |기준 조건 중앙값| &lt; LoQ/(10r))이고 ⑥ 3단계 판정 길이 선형 TOST면 장비 정확도 한계와 비교해 큰 쪽을 Δ'로 씀(verdict_basis accuracy). 1·2단계의 Δ는 그대로 · 예전 옵션 판정(log 후보 → 장비 정확도 → log_physics)은 없어지고 ⑥ 3단계가 대신함<sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup></li>
-<li>Δ는 ⑥에서 ④의 90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a>과 비교</li>
-</ul></section>
+<li>√(1+1/J): 새 회차 하나의 흔들림(1)과 J회 평균의 흔들림(1/J)을 합친 배율.</li>
+<li>t<sub>0.95, J−1</sub>: σ<sub>run</sub>을 회차 J개로만 추정해 불확실하므로 정규분포 값 1.645 대신 자유도 J−1 인 t 를 쓴다. σ<sub>run</sub>은 회차 중앙값 분산에서 반복성 몫을 빼고 0에서 자른 추정이라 자유도 J−1 은 근사다<sup data-ref="10b"></sup>.</li>
+<li>J 2 → 3 에서 계수가 절반 아래로 줄고, 그 뒤로는 조금씩만 준다. ⓪은 회차 몫이 5% 몫을 넘지 않게 σ<sub>run</sub>/|m| ≤ 5% / 계수 로 J 를 고른다<sup data-ref="14c"></sup>.</li>
+</ul>
+<div class="tw"><table class="b-num"><thead><tr><th>J</th><th>t<sub>0.95, J−1</sub></th><th>√(1+1/J)</th><th>계수</th><th>⓪ 허용 σ<sub>run</sub>/|m|</th></tr></thead><tbody>
+<tr><td>2</td><td>6.3138</td><td>1.2247</td><td>7.7327</td><td>0.647%</td></tr>
+<tr><td>3</td><td>2.9200</td><td>1.1547</td><td>3.3717</td><td>1.483%</td></tr>
+<tr><td>4</td><td>2.3534</td><td>1.1180</td><td>2.6311</td><td>1.900%</td></tr>
+<tr><td>5</td><td>2.1318</td><td>1.0954</td><td>2.3353</td><td>2.141%</td></tr>
+<tr><td>6</td><td>2.0150</td><td>1.0801</td><td>2.1765</td><td>2.297%</td></tr>
+<tr><td>7</td><td>1.9432</td><td>1.0690</td><td>2.0773</td><td>2.407%</td></tr>
+<tr><td>8</td><td>1.8946</td><td>1.0607</td><td>2.0095</td><td>2.488%</td></tr>
+<tr><td>9</td><td>1.8595</td><td>1.0541</td><td>1.9601</td><td>2.551%</td></tr>
+<tr><td>10</td><td>1.8331</td><td>1.0488</td><td>1.9226</td><td>2.601%</td></tr>
+</tbody></table></div>
+<p>J 를 늘리면 계수가 줄어 Δ 가 좁아진다. 그래서 경계 근처 ITEM은 회차를 늘려도 미결이 줄지 않을 수 있다 (⑦).</p>
 
-<section id="example"><h2>예시 계산</h2>
-<div class="exdata" id="ex-data">
-<p class="s">합성 예시 · ITEM 하나, 단위 Ω · 기준 조건 3회(J = 3) + 비교 조건 1회 · die 60개(n = 60) 중 6개</p>
-<div class="tw"><table class="ex"><thead><tr><th>die</th><th>기준 1회</th><th>기준 2회</th><th>기준 3회</th><th>기준 평균</th><th>비교</th><th>d = 비교 − 기준 평균</th></tr></thead><tbody>
-<tr><td>1</td><td>96.104</td><td>96.890</td><td>96.465</td><td>96.4863</td><td>97.258</td><td>0.7717</td></tr>
-<tr><td>2</td><td>99.194</td><td>98.516</td><td>100.005</td><td>99.2383</td><td>101.005</td><td>1.7667</td></tr>
-<tr><td>3</td><td>94.828</td><td>95.894</td><td>95.134</td><td>95.2853</td><td>96.819</td><td>1.5337</td></tr>
-<tr><td>4</td><td>102.294</td><td>101.657</td><td>102.060</td><td>102.0037</td><td>101.415</td><td>−0.5887</td></tr>
-<tr><td>5</td><td>106.554</td><td>105.866</td><td>108.424</td><td>106.9480</td><td>107.455</td><td>0.5070</td></tr>
-<tr><td>6</td><td>95.385</td><td>95.404</td><td>97.106</td><td>95.9650</td><td>94.915</td><td>−1.0500</td></tr>
+<h2 id="routes">⑥ 3단계 판정 길마다 쓰는 폭</h2>
+<p id="C5-4">1·2단계는 언제나 Δ 를 쓴다. 3단계는 ③에서 POR 값만 보고 정한 판정 길의 폭을 쓴다.</p>
+<div class="tw"><table><thead><tr><th>판정 길</th><th>폭</th><th>items.csv 열</th></tr></thead><tbody>
+<tr><td>선형 TOST, 바닥 근처</td><td>Δ' = max(Δ, 장비 정확도 폭). 바닥 근처 = LoQ ≤ |m| &lt; LoQ / (10r), 장비 사양이 있는 A·V ITEM</td><td><code>accuracy_margin</code>, <code>verdict_with_accuracy</code></td></tr>
+<tr><td>절대 허용폭</td><td>abs_delta: <code>--abs-tol</code> 파일에 그룹이 있으면 그 값, 없으면 0 중심은 LoQ, 계단은 max(Δ, 값 간격), 계단이고 바닥 근처면 max(Δ, 값 간격, 장비 정확도 폭)</td><td><code>abs_delta</code>, <code>resolution_step</code></td></tr>
+<tr><td>log TOST</td><td>Δ<sub>log</sub> = log10(1 + r) + σ<sub>rep,log</sub>. t·√(1+1/J) 배수는 없다</td><td><code>delta_log</code>, <code>sigma_rep_log</code></td></tr>
 </tbody></table></div>
-<p class="s"><a href="examples/example_wide.csv">합성 예시 · 전체 데이터 examples/example_wide.csv</a></p>
-</div>
-<ol class="calc">
-<li>실용 한계 = 5% × |100| = 5.0 <span class="from">100 = die 60개 전체 기준 평균의 중앙값</span></li>
-<li>3.3717 = t(0.95, 2) 2.919986 × √(1+1/3) 1.154701 <span class="from">J = 3이라 t의 자유도 J−1 = 2</span></li>
-<li>회차 예측 한계 = 3.3717 × σ<sub>run</sub> 0.50389 = 1.69896 <span class="from">0.50389 = ② 흔들림 구하기의 σ<sub>run</sub></span></li>
-<li>Δ = 5.0 + 1.69896 = 6.69896 ≈ 6.699</li>
-<li>장비 정확도 한계: 합성 예시에는 장비 사양 정보가 없어 비교하지 않음 → Δ = 6.699 <span class="from">큰 쪽 비교는 ⑥ 3단계의 바닥 근처 A·V ITEM일 때만</span></li>
-<li>→ ⑥: ±6.699를 ④의 CI [0.610, 1.102]와 비교</li>
-</ol>
-<p class="s">J별 계수와 Δ (σ<sub>run</sub> 0.50389 고정, Δ = 5.0 + 계수 × 0.50389)</p>
-<div class="tw"><table class="ex"><thead><tr><th>J</th><th>t(0.95, J−1)</th><th>√(1+1/J)</th><th>계수</th><th>Δ</th></tr></thead><tbody>
-<tr><td>2</td><td>6.3138</td><td>1.2247</td><td>7.7327</td><td>8.8964</td></tr>
-<tr><td>3</td><td>2.9200</td><td>1.1547</td><td>3.3717</td><td>6.6990</td></tr>
-<tr><td>4</td><td>2.3534</td><td>1.1180</td><td>2.6311</td><td>6.3258</td></tr>
-<tr><td>5</td><td>2.1318</td><td>1.0954</td><td>2.3353</td><td>6.1767</td></tr>
-<tr><td>6</td><td>2.0150</td><td>1.0801</td><td>2.1765</td><td>6.0967</td></tr>
-<tr><td>7</td><td>1.9432</td><td>1.0690</td><td>2.0773</td><td>6.0468</td></tr>
-<tr><td>8</td><td>1.8946</td><td>1.0607</td><td>2.0095</td><td>6.0126</td></tr>
-<tr><td>9</td><td>1.8595</td><td>1.0541</td><td>1.9601</td><td>5.9877</td></tr>
-<tr><td>10</td><td>1.8331</td><td>1.0488</td><td>1.9226</td><td>5.9688</td></tr>
-</tbody></table></div>
+<div class="formula" id="C5-3">장비 정확도 폭 = 1.645·√((U<sub>POR</sub>² + U<sub>DOE</sub>²) / 3)    <span class="c">U = a·|값| + b·range + c (장비 사양)</span>
+σ<sub>rep,log</sub> = median<sub>i</sub>( SD(L<sub>i1</sub> … L<sub>iJ</sub>) ),  L = log10|POR|    <span class="c">die별 log 회차 흔들림의 중앙값</span>
+배율로 본 허용폭 = 10<sup>−Δ<sub>log</sub></sup> − 1  ~  10<sup>+Δ<sub>log</sub></sup> − 1   <span class="c">쉽게 영역의 '배율 변화'</span></div>
+<p>장비 정확도 폭은 두 측정이 각자 사양 정확도 ±U 안에 고르게 있다고 보고 (표준불확도 U/√3) 합친 값이며, 1.645 는 그 차이를 정규분포로 근사한 것이다<sup data-ref="11"></sup>. log 판정의 참고 열 <code>verdict_log_run</code> 은 회차 항을 선형처럼 t·√(1+1/J)·σ<sub>run,log</sub> 로 둔 것이다.</p>
+
+<h2>근거와 문헌</h2>
+<div data-refs></div>
+
+<h2>코드 위치</h2>
+<ul>
+<li>Δ: <code data-code="por_doe_compare.py:judge"></code> (policy = r·level, run_term = run_factor(J)·σ<sub>run</sub>), 계수: <code data-code="por_doe_compare.py:run_factor"></code></li>
+<li>장비 정확도 폭: <code data-code="por_doe_compare.py:spec_terms"></code>, 바닥 근처: <code data-code="por_doe_compare.py:near_loq"></code></li>
+<li>절대 허용폭: <code data-code="classify.py:abs_delta_for"></code></li>
+<li>log 허용폭: <code data-code="por_doe_compare.py:judge_log"></code>, <code data-code="por_doe_compare.py:sigma_rep_log"></code></li>
+</ul>
 </section>
-
-<section id="sources"><h2>출처</h2>
-<ol class="fn">
-<li id="fn1">5%라는 값 <span class="badge-int">내부 기준(문헌 근거 없음)</span> · 실용 한계를 시험 전에 정하는 절차: ASTM E2935-21 · 4.1.1 · <a href="https://store.astm.org/e2935-21.html" rel="noopener" target="_blank">링크</a></li>
-<li id="fn2">회차 예측 한계 t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub>: NIST Dataplot Reference Manual · PREDICTION LIMITS (mean) · <a href="https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/predlimi.htm" rel="noopener" target="_blank">링크</a> / NIST/SEMATECH e-Handbook · 4.5.1.2 · <a href="https://www.itl.nist.gov/div898/handbook/pmd/section5/pmd512.htm" rel="noopener" target="_blank">링크</a> / Meeker, Hahn, Escobar, Statistical Intervals 2판 (Wiley 2017) · 4.7 · <a href="https://www.oreilly.com/library/view/statistical-intervals-2nd/9780471687177/c04.xhtml" rel="noopener" target="_blank">링크</a> · 개념 근거, 세부 방식은 내부 기준(문헌 근거 없음)</li>
-<li id="fn3">두 한계를 더하는 구성 · '실무 허용 + 기준 조건 재측정 차이' 설계 원칙 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
-<li id="fn4">장비 정확도 한계: JCGM 100:2008 (GUM) · 4.3.7 (식 7: u² = a²/3), 5.1.2 · <a href="https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf" rel="noopener" target="_blank">링크</a> / NIST/SEMATECH e-Handbook · 2.5.4.1 Standard deviations from assumed distributions · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section5/mpc541.htm" rel="noopener" target="_blank">링크</a> / Keysight P9001A 제품 페이지 · 제품 사양 요약 · <a href="https://www.keysight.com/us/en/product/P9001A/massively-parallel-parametric-test-system.html" rel="noopener" target="_blank">링크</a> · 개념 근거, 세부 방식은 내부 기준(문헌 근거 없음)</li>
-<li id="fn5"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 쉬운 말 설명과 그림(모의실험)</li>
-</ol></section>
-
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-delta.html">허용 범위 Δ</a></li><li><a href="c-delta.html">회차 예측 한계 계수</a></li><li><a href="c-sigma-split.html">σ<sub>die</sub>와 σ<sub>run</sub> 나누기</a></li></ul></nav>
