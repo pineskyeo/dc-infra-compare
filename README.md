@@ -36,7 +36,7 @@ doe = data/A/DOE
 - 키는 `por`(한 줄에 회차 하나, 2회 이상), `doe`, 그리고 선택으로 `level`, `blank`(한 줄에 하나), `blank_map`, `key`, `encoding`, `r`, `groups`, `scales`, `abs_tol`, `before`, `out`입니다. 뜻은 아래 옵션 표와 같습니다.
 - `groups`를 적으면 판정 단계(`por_doe_compare.py`)에 `--groups`를 넘겨 그룹별 측정 안정도(`stability/groups.csv`, `group_levels.csv`)를 씁니다. 판정은 바뀌지 않습니다. `scales`를 적으면 `--scales`도 넘겨 그룹마다 log·linear를 정하므로 `scales`에는 `groups`가 필요합니다.
 - `abs_tol`(group,abs_delta 파일, ITEM 단위)을 적으면 판정 단계에 `--abs-tol`도 넘깁니다. 판정 길이 절대 허용폭인 ITEM의 참고 판정 `verdict_abs`에만 쓰고 판정은 바꾸지 않습니다. `groups`가 필요합니다.
-- 유형별 판정(참고): `items.csv`의 `verdict_typed`는 1·2단계(선형 TOST, LoQ 아래는 '<LoQ 보고 일치')에서 동등인 ITEM은 그대로 두고, 아닌 ITEM만 판정 길(`route`)의 방법(한계 비교, 절대 허용폭, log TOST, 바닥 근처는 장비 정확도로 넓힌 허용폭)으로 다시 본 판정입니다. 판정 길이 판정을 못 하면(절대 허용폭 값이 없는 등) `verdict_final`을 그대로 둡니다. `typed_basis`는 정한 방법, `verdict_typed_log_run`은 log TOST 길에 고친 log 허용폭을 쓴 것입니다. 판정 화면 끝, `classes/typed_compare.csv`, 리포트 "유형별 판정 (참고)" 칸에서 `verdict_final`과 다른 ITEM을 봅니다. `verdict_final`은 바꾸지 않습니다.
+- 유형별 판정: 최종 판정(`verdict_final`)의 3단계는 ITEM 유형에 맞는 판정 길(`route`)로 정합니다([최종 판정](#최종-판정-verdict_final)). 판정 화면 끝에 판정 길 × 근거 × 최종 판정 표가 나옵니다.
 - 상대 경로는 현재 폴더가 아니라 설정 파일이 있는 폴더 기준입니다.
 - 모르는 이름·키, POR 1회, 없는 경로는 아무것도 실행하기 전에 알려 주고 끝납니다(rc=2).
 
@@ -67,7 +67,7 @@ python dcc.py classes A1                    # ITEM 분류와 판정 길 (참고,
 | `item/` | 고른 ITEM의 Fail 근거(`fail_evidence.py --only`), `item/plots/`는 `--plots` 상세 그림 | `item`, `judge --detail` |
 | `group/plots/` | 그룹별 판정 지도 | `group` |
 | `group/compare/`, `group/summary/` | 기존·개선 비교, 그룹별 비교 요약 | `group --before`(또는 조합의 `before` 키) |
-| `classes/` | ITEM 분류 개수(`counts.csv`), 판정 길별 목록(`items_by_route.csv`), 유형별 판정 비교(`typed_compare.csv`), `classes.png`, `examples/<판정 길>/` | `classes` |
+| `classes/` | ITEM 분류 개수(`counts.csv`), 판정 길별 목록(`items_by_route.csv`), `classes.png`, `examples/<판정 길>/` | `classes` |
 
 `item`과 `group`은 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize)과 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
 
@@ -137,7 +137,7 @@ python summarize.py 결과/items.csv
 | `--blank`, `--blank-map` | blank 데이터와 연결표 (선택, 아래). LoQ 하한으로만 씀 |
 | `--key` | 짝짓기 키. 기본 `WAFERID,COORD_X_Y,ITEM` |
 | `--encoding` | 기본 `auto` (UTF-8, 안 되면 CP949) |
-| `--groups`, `--scales` | ITEM,group 파일과 group,scale 파일 (선택, 같이 씀). 그룹마다 log 옵션 대상을 정함 ([최종 판정](#최종-판정-verdict_final)). `--scales`가 없으면 그룹을 보지 않음 |
+| `--groups`, `--scales` | ITEM,group 파일과 group,scale 파일 (선택, 같이 씀). `--scales`의 log·linear는 ITEM 척도 `cls_scale`이 되어 판정 길(log TOST·선형 TOST)을 정함 ([최종 판정](#최종-판정-verdict_final)). `--groups`만 주면 그룹별 측정 안정도에만 씀 |
 
 UNIT, SPECLOW, SPECHIGH 열은 판정에 쓰지 않습니다(값이 잘못 들어간 경우가 많음). 판정은 모두 비율 기준이라 단위나 정규화 계수가 무엇이든 결과가 같습니다.
 
@@ -161,7 +161,7 @@ UNIT, SPECLOW, SPECHIGH 열은 판정에 쓰지 않습니다(값이 잘못 들�
 허용폭 Δ = r × |POR 중앙값| + t(0.95, J−1) × √(1 + 1/J) × `sigma_run`
 
 - 뒤쪽은 DOE 1회가 POR J회 평균에서 **같은 프로그램 안에서도** 벗어날 수 있는 폭입니다(90% 예측구간 한쪽). `sigma_run`을 회차 J개로 추정하므로 t를 씁니다(J = 3이면 2.92, 5면 2.13).
-- `--level`의 A, V ITEM에서 구한 장비 정확도 폭(`accuracy_margin`)은 기본 판정에 쓰지 않습니다. Δ' = max(Δ, `accuracy_margin`)으로 낸 정량 TOST 판정을 `verdict_with_accuracy`에 적고(`accuracy_margin`이 없으면 빈 칸), LoQ 근처 ITEM에서만 최종 판정의 accuracy 옵션이 씁니다([최종 판정](#최종-판정-verdict_final)). 그 밖의 ITEM에서는 참고입니다. `delta`, `delta_source`는 기본 판정에 쓴 Δ입니다.
+- `--level`의 A, V ITEM에서 구한 장비 정확도 폭(`accuracy_margin`)은 기본 판정에 쓰지 않습니다. Δ' = max(Δ, `accuracy_margin`)으로 낸 정량 TOST 판정을 `verdict_with_accuracy`에 적고(`accuracy_margin`이 없으면 빈 칸), 판정 길이 선형 TOST이고 바닥 근처(LoQ 근처)인 ITEM의 최종 판정 3단계에서만 씁니다([최종 판정](#최종-판정-verdict_final)). 그 밖의 ITEM에서는 참고입니다. `delta`, `delta_source`는 기본 판정에 쓴 Δ입니다.
 - log 판정(`verdict_log`, 아래 [log 판정](#log-판정-verdict_log))의 허용폭은 Δ_log = log10(1 + r) + `sigma_rep_log`입니다. t(0.95, J−1) × √(1 + 1/J) 배수는 없습니다.
   - `sigma_rep_log` = die마다 L(= log10\|값\|) 회차값의 표준편차(ddof=1)를 구하고, 그 die 중앙값. 유효한 회차값이 2개 미만인 die는 뺍니다.
   - `sigma_run_log`(L에서 구한 회차 이동)는 분석용이며 판정에 쓰지 않습니다.
@@ -170,7 +170,7 @@ UNIT, SPECLOW, SPECHIGH 열은 판정에 쓰지 않습니다(값이 잘못 들�
 | 구간 (\|POR 중앙값\|) | 판정 |
 |---|---|
 | 정량 (≥ LoQ) | 신뢰구간이 ±Δ 안 → **동등**, 통째로 밖 → **차이**, 걸침 → **미결** (반폭 ≥ Δ면 해상도 부족, 아니면 경계) |
-| LoQ 미만 | LoQ 미만 값은 "<LoQ"로 보고합니다(IUPAC). 신뢰구간이 통째로 ±Δ 밖이고 **DOE 중심(POR 중앙값 + shift)이 LoQ 이상**이라 보고가 달라질 때만 **차이**, 그 밖은 **동등**("<LoQ 보고 일치") |
+| LoQ 미만 | LoQ 미만 값은 "<LoQ"로 보고합니다(IUPAC). **DOE 수준 구간** = POR 수준 중앙값 + [`ci_low`, `ci_high`]. 신뢰구간이 ±Δ 안이거나 DOE 구간이 통째로 LoQ 미만이면 **동등**("<LoQ 보고 일치"), DOE 구간이 통째로 LoQ 이상이고 신뢰구간이 통째로 ±Δ 밖이면 **차이**(보고가 숫자로 바뀜), 그 밖(DOE 구간이 LoQ에 걸침 등)은 **미결** |
 
 **판정 제외**는 판정할 것이 없는 ITEM입니다. 아래 원인 표(`EXCLUSION_CAUSES`)를 모두 보고, 맞는 원인을 모두 이 순서대로 `; `로 이어 `reason`에 적습니다. `판정 제외: `는 첫 원인 앞에만 붙습니다. 예: `판정 제외: 모든 값 같음; die 산포 0 (σ_die=0)`.
 
@@ -186,18 +186,21 @@ LoQ 미만이면 4, 5는 보지 않고 LoQ 판정으로 갑니다. 그 밖은 zo
 
 ### 최종 판정 (`verdict_final`)
 
-기본 판정(`verdict`, 위 1~3)이 먼저입니다. 동등이나 판정 제외면 그대로 최종 판정입니다. 차이·미결인 ITEM만 +@ 옵션(`OPTIONS`)이 다시 판정합니다. 옵션은 모두 TOST만 하고 LoQ 판정은 하지 않습니다.
+1·2단계 판정(`verdict`, 위 1~3: 전체 선형 TOST, LoQ 아래는 LoQ 판정)이 먼저입니다. 동등이면 그대로 최종 판정입니다. 동등이 아닌 ITEM만 3단계로 ITEM 유형에 맞는 방법(판정 길 `route`)으로 다시 판정합니다. 판정 길은 `classify.py`가 POR 값만 보고 정합니다([ITEM 분류](#item-분류와-판정-길-classes)).
 
-| 순서 | 옵션 (`verdict_basis`) | 대상 | 규칙 (판정 열) |
-|---|---|---|---|
-| 1 | `log` | `scale`이 `item`이면 `status` `log 후보`(`decades` ≥ 1, `log_fit` > 0.1). `auto→log`면 `decades` ≥ 1, `log_fit` > 0 | log10 값에서 TOST (`verdict_log`, [log 판정](#log-판정-verdict_log)) |
-| 2 | `accuracy` | `status` `LoQ 근처`이고 `accuracy_margin`이 있음 | Δ' = max(Δ, `accuracy_margin`)의 TOST (`verdict_with_accuracy`) |
-| 3 | `log_physics` | `scale`이 `log`이고 `decades` ≥ 1, `log_fit` > 0 (`LOG_FIT_MIN_SCALE`) | 1과 같은 log10 TOST (`verdict_log`) |
+| 판정 길 (`route`) | 어떤 ITEM | 3단계 판정 (`verdict_basis`, 판정 열) |
+|---|---|---|
+| 제외 | `cls_valid`가 정상이 아님 | 1·2단계 그대로 |
+| 한계 비교 | `cls_shape`에 한계에 걸림 | 한계 밖 die만으로 TOST (`limit`, `verdict_limit`) |
+| 절대 허용폭 | `cls_level` 0 중심, 또는 `cls_resolution` 계단이고 `cls_level` 정량·바닥 근처 | 같은 신뢰구간을 ±`abs_delta`로 TOST (`abs`, `verdict_abs`) |
+| LoQ 판정 | `cls_level` 바닥 아래 | 2단계 그대로 |
+| log TOST | `cls_scale` log이고 부호가 하나 | log10 값에서 TOST (`log`, `verdict_log`, [log 판정](#log-판정-verdict_log)) |
+| 선형 TOST | 나머지 | 1단계 그대로. `cls_level` 바닥 근처면 Δ' = max(Δ, `accuracy_margin`)로 TOST (`accuracy`, `verdict_with_accuracy`) |
 
-- 표 순서로 대상인 옵션을 보고, **동등을 주는 첫 옵션**이 최종 판정을 정합니다(동등, 그 옵션).
-- 동등을 주는 옵션이 없으면, 대상이고 판정(동등·차이·미결)이 나온 log 옵션(`log`나 `log_physics`)의 판정이 최종입니다. 그것도 없으면 기본 판정(`linear`)입니다.
-- accuracy 옵션은 동등일 때만 판정을 바꿉니다.
-- `scale`이 `linear`, `auto→linear`인 ITEM은 어느 log 옵션의 대상도 아닙니다. 한 ITEM은 두 log 옵션 중 많아야 하나의 대상입니다.
+- 3단계 판정이 동등·차이·미결이 아니면(판정 제외·빈 칸) 1·2단계 판정을 둡니다. 근거는 LoQ 아래 zone이면 `loq`, 아니면 `linear`입니다.
+- `abs_delta`는 `abs_tol` 파일(group,abs_delta, ITEM 단위)의 그룹 값입니다. 없으면 기본값을 씁니다. 0 중심은 그 ITEM의 LoQ, 계단은 max(Δ, 값 간격 `resolution_step`)이고, 계단이면서 바닥 근처면 장비 정확도 폭까지 넣습니다. 출처는 `route_note`에 적힙니다.
+- `verdict_final_log_run`(참고): log TOST 길에 고친 log 허용폭(`verdict_log_run`)을 쓴 최종 판정입니다. log 허용폭을 정하기 전까지 나란히 둡니다.
+- 예전의 옵션 순서(log 후보 → 장비 정확도 → log_physics)는 없어졌고 이 3단계가 대신합니다.
 
 `LoQ 근처`는 LoQ ≤ \|POR 중앙값\| < LoQ / (10 r)인 구간입니다(r = 0.05면 LoQ의 1~2배). LoQ = 10σ라서 이 구간에서는 1회 측정 잡음(σ = LoQ / 10)이 허용폭의 정책 몫 r × \|POR\|보다 큽니다. 그래서 이 구간에서만 장비 정확도 폭을 허용폭으로 씁니다. 그 밖의 ITEM에서 `verdict_with_accuracy`는 참고입니다.
 
@@ -274,8 +277,8 @@ VT_N1,SHORT_V
 | 묶음 | 열 | 내용 |
 |---|---|---|
 | 식별 | `ID`, `ITEM`, `UNIT` | `ID`는 익명 번호(항목군 + ITEM 이름 순서 번호, `summarize.py`와 같은 값). 맨 앞 열 |
-| 판정 | `verdict_final`, `verdict_basis`, `scale` | 최종 판정, 그 근거(`linear`, `log`, `accuracy`, `log_physics`), log 옵션 대상을 정한 scale. 규칙은 [최종 판정](#최종-판정-verdict_final). 판정 집계와 차이/미결 선택(`summarize`, `plot_verdicts`, `fail_evidence`, `group_summary`)은 `verdict_final` 기준 |
-| | `verdict`, `verdict_log`, `verdict_with_accuracy`, `verdict_no_blank` | 기본(선형) 판정, log 판정(아래), Δ' = max(Δ, 장비 정확도 폭)의 정량 판정(`--level`, LoQ 근처에서만 옵션), blank 없이 낸 판정(`--blank`) |
+| 판정 | `verdict_final`, `verdict_basis`, `verdict_final_log_run`, `scale` | 최종 판정, 그 근거(`linear`, `loq`, `log`, `accuracy`, `abs`, `limit`), 고친 log 허용폭의 최종 판정(참고), 척도 표의 scale. 규칙은 [최종 판정](#최종-판정-verdict_final). 판정 집계와 차이/미결 선택(`summarize`, `plot_verdicts`, `fail_evidence`, `group_summary`)은 `verdict_final` 기준 |
+| | `verdict`, `verdict_log`, `verdict_with_accuracy`, `verdict_no_blank` | 1·2단계 판정, log 판정(아래, log TOST 길의 3단계), Δ' = max(Δ, 장비 정확도 폭)의 정량 판정(`--level`, 바닥 근처 선형 TOST 길의 3단계), blank 없이 낸 판정(`--blank`) |
 | | `zone`, `reason`, `log_reason`, `status` | 구간, 사유, log 판정 사유, 데이터 상태(아래) |
 | TOST | `n_die`, `center`, `ci_low`, `ci_high` | die 수, shift와 90% 신뢰구간 |
 | | `delta`, `policy_margin`, `run_margin`, `delta_source`, `ci_half_over_delta` | 허용폭과 그 구성, 신뢰구간 반폭 / 허용폭 (아래) |
@@ -326,9 +329,9 @@ log 진단 대상(`is_log_target`: `fail_evidence.py`의 log 진단 그림)은 �
 | `클수록 흔들림` | `spearman_size_jitter` ≥ +0.5이고 유효 die ≥ 10. 값이 큰 die일수록 log 범위가 큼 | `SIZE_JITTER_RHO_POS` = 0.5, `SIZE_JITTER_MIN_DIE` = 10 |
 | `분해능 부족` | `resolution_step` ≥ 0.1·Δ. 값이 1개뿐이거나 Δ ≤ 0·NaN이면 건너뜀 | |
 | `산포 0` | sigma_die = 0, 또는 `fixed_share` > 50%. 정량 zone이고 `분해능 부족`이면 판정 제외 | |
-| `log 후보` | `decades` ≥ 1.0이고 `log_fit` > 0.1(LOG_FIT_MIN). `scale` `item`인 ITEM의 log 옵션 대상 | `LOG_DECADES_MIN` = 1.0, `LOG_FIT_MIN` = 0.1 |
+| `log 후보` | `decades` ≥ 1.0이고 `log_fit` > 0.1(LOG_FIT_MIN). 분포 모양 표시(판정 길은 `cls_scale`이 정함) | `LOG_DECADES_MIN` = 1.0, `LOG_FIT_MIN` = 0.1 |
 | `두 덩어리` | `bimodality_log` > 5/9(≈ 0.556)이고 R이 유한한 die ≥ 10 (\|R\| ≥ 1E+90 die는 세지 않음) | `BIMODAL_BC_MIN` = 5/9, `BIMODAL_MIN_DIE` = 10 |
-| `LoQ 근처` | LoQ ≤ \|POR 중앙값\| < LoQ / (10 r). accuracy 옵션 대상 (`accuracy_margin`이 있을 때) | |
+| `LoQ 근처` | LoQ ≤ \|POR 중앙값\| < LoQ / (10 r). 분류의 `cls_level` 바닥 근처와 같고, 선형 TOST 길이면 장비 정확도로 넓힌 허용폭을 씀 | |
 | `조건 설정 오류` | 예약 값. 판정할 입력이 없어 지금은 판정하지 않음 | |
 
 상태 지표 열 8개(`METRIC_COLS`)는 `por_gap_over_delta`, `por_gap_over_noise`, `run_jitter_pct`, `run_jitter_over_delta`, `spearman_size_jitter`, `resolution_step`, `resolution_over_delta`, `fixed_share`입니다. 상태와 상관없이 계산할 수 있으면 채우고, 못 하면 빈 칸입니다.
@@ -450,7 +453,7 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 - 점 하나가 ITEM 하나입니다. 가로는 **정규화 변화량**(DOE − POR 변화 ÷ 허용폭)입니다. 0이면 그대로, ±1이면 허용폭만큼 변했습니다. 세로는 **정규화 불확실성**(90% 신뢰구간 반폭 ÷ 허용폭)입니다. 그 변화량이 얼마나 흔들릴 수 있는지이고, 0에 가까울수록 확실합니다.
 - 가운데 아래 초록 삼각형(|x| + y ≤ 1)은 "같다 (동등)", 좌우 주황 칸(|x| − y > 1)은 "달라졌다 (차이)", 그 사이는 "경계에 걸침 (미결)", 위쪽은 "흔들려서 판단 불가 (미결)"입니다. 가로는 신뢰구간 가운데라서 점 색(최종 판정)과 칸이 늘 같습니다. die가 모자라 미결인 ITEM은 지도에 그리지 않습니다.
-- 점 색은 최종 판정(`verdict_final`)입니다. log·장비 정확도 옵션이 판정을 정한 ITEM은 검은 테두리이고, 그 옵션의 이동·신뢰구간·허용폭 자리에 놓입니다.
+- 점 색은 최종 판정(`verdict_final`)입니다. 3단계 판정 길(log TOST, 장비 정확도, 절대 허용폭)이 판정을 정한 ITEM은 그 방법의 이동·신뢰구간·허용폭 자리에 놓입니다. 한계 비교로 정한 ITEM은 한계 밖 die만 본 숫자라 지도에 그리지 않습니다.
 - 맨 위 두 줄은 최종 판정별 개수와 판정 근거별 개수입니다. 오른쪽 위 막대는 차이·미결 ITEM이 + 방향(DOE가 높음)과 − 방향 중 어느 쪽으로 움직였는지 셉니다. 한쪽으로 몰리면 "이번 결과"에 공정 변화일 수 있다고 적습니다.
 - LoQ 아래 ITEM은 이 지도에 없고 `summary_loq.png`에 있습니다.
 

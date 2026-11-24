@@ -97,7 +97,8 @@ REGION_EQUAL = "같다 (동등)"
 REGION_DIFF = ("DOE가 낮아졌다 (차이)", "DOE가 높아졌다 (차이)")
 REGION_EDGE = "경계에 걸침 (미결)"
 REGION_NOISY = "흔들려서 판단 불가 (미결)"
-OPTION_EDGE_LABEL = "검은 테두리: 옵션(log·장비 정확도)이 정한 판정"
+OPTION_EDGE_LABEL = "검은 테두리: 3단계(유형별) 방법이 정한 판정"
+BASE_BASES = ("linear", "loq")         # 1·2단계 판정 그대로인 근거
 CLIP_LABEL = "삼각형: 축 밖 값을 축 끝에 붙임"
 MAP_LOQ_NOTE = "LoQ 아래 ITEM {n:,}개는 summary_loq.png"
 MAP_OFF_NOTE = "좌표가 없어 못 그린 ITEM {n:,}개 (die 부족 등)"
@@ -108,7 +109,7 @@ MAP_HOW_TO_READ = (
     "점 하나가 ITEM 하나다. 가로는 정규화 변화량(DOE − POR 변화 ÷ 허용폭)이고, 세로는 정규화 불확실성(90% "
     "신뢰구간 반폭 ÷ 허용폭, 그 변화량이 얼마나 흔들릴 수 있나)이다. 점이 가운데 아래 초록 삼각형에 모일수록 DOE가 POR과 같고, 좌우 주황 칸은 "
     "달라졌다, 그 사이와 위쪽은 미결이다. 위쪽 점은 측정이 흔들려 판단을 못 한 ITEM이다. 점 색은 최종 판정이고 칸과 "
-    "늘 같다 (가로는 신뢰구간 가운데). log·장비 정확도 옵션이 정한 "
+    "늘 같다 (가로는 신뢰구간 가운데). 3단계(log, 장비 정확도, 절대 허용폭)가 정한 "
     "ITEM은 그 판정의 이동·신뢰구간·허용폭으로 놓았다.")
 SKEW_P = 0.05            # 차이·미결의 +/− 개수 부호검정 p 가 이보다 작으면 "한쪽으로 몰림"
 LOQ_REVIEW_CSV = Path("review") / "loq_review.csv"   # review.py 결과, items.csv 폴더 기준
@@ -593,9 +594,9 @@ def map_this_run(points: pd.DataFrame) -> str:
     noisy = points["verdict"].eq("미결") & ~points["loq_zone"] & (points["y"] >= 1)
     if noisy.any():
         parts.append(f"미결 중 {int(noisy.sum()):,}개는 신뢰구간 반폭이 허용폭 이상이라 측정이 흔들려 판단하지 못했다.")
-    n_option = int((points["basis"] != "linear").sum())
+    n_option = int((~points["basis"].isin(BASE_BASES) & points["x"].notna()).sum())
     if n_option:
-        parts.append(f"옵션이 판정을 정한 ITEM {n_option:,}개는 검은 테두리다.")
+        parts.append(f"3단계 방법이 판정을 정한 ITEM {n_option:,}개는 검은 테두리다.")
     return " ".join(parts)
 
 
@@ -626,7 +627,7 @@ def _draw_map(ax, points: pd.DataFrame, xlim: float) -> int:
     ylim = float(np.clip(1.25 * on["y"].quantile(0.99), MAP_YLIM_MIN, MAP_YLIM_MAX)) if len(on) else MAP_YLIM_MIN
     x, y = on["x"].clip(-xlim, xlim), on["y"].clip(0, ylim)
     marker = np.where(on["x"] < -xlim, "<", np.where(on["x"] > xlim, ">", np.where(on["y"] > ylim, "^", "o")))
-    option = (on["basis"] != "linear").to_numpy()
+    option = (~on["basis"].isin(BASE_BASES)).to_numpy()
     size = 26 if len(on) < 500 else 12
     for verdict in MAP_DRAW_ORDER:
         for m in ("o", "<", ">", "^"):
