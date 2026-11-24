@@ -1,4 +1,31 @@
 <section class="easy">
-<p>유형을 하나 고르고 단계를 누르면, 그 쪽의 예제 카드와 그림이 이 유형의 값으로 바뀝니다. 고른 유형은 다른 쪽으로 가도 이어집니다.</p>
-<div data-journeys="list"></div>
+<p class="lead">ITEM 하나가 측정에서 판정까지 가는 길입니다. 유형을 고르고 ◀ ▶ 로 넘기면 같은 ITEM의 숫자가 ⓪부터 ⑦까지 이어집니다.</p>
+<div data-scene="journey"></div>
+<ul class="points">
+<li>숫자는 합성 데이터를 실제 판정 도구로 돌린 결과입니다.</li>
+<li>고른 유형은 다른 쪽으로 가도 이어집니다. 단계 쪽의 그림도 이 ITEM으로 바뀝니다.</li>
+</ul>
+</section>
+
+<section class="expert" data-title="예제 자료 · 만드는 법 · 코드">
+<h2>예제 여섯 개는 어디서 오나</h2>
+<p>각 예제는 합성 POR·DOE 값을 판정 도구에 그대로 넣어 나온 items.csv 한 줄입니다. 쪽의 숫자와 그림은 모두 <code>docs/sop/assets/journeys.js</code> (<code>window.SOP_JOURNEYS</code>) 에서 읽고, 손으로 친 숫자는 없습니다.</p>
+<div class="cmdblock">python docs/sop/examples/journeys.py           # 예제를 다시 만들어 journeys.js · journeys.json 을 씀
+python docs/sop/examples/journeys.py --check   # 판정 도구 결과와 다르면 실패</div>
+<h2>단계마다 읽는 값</h2>
+<div class="tw"><table class="sym"><thead><tr><th>단계</th><th>예제 자료 열</th><th>items.csv 열</th></tr></thead><tbody>
+<tr><td>⓪</td><td><code>n_die</code>, <code>J</code></td><td><code>n_die</code>, <code>POR1_mean</code> …</td></tr>
+<tr><td>①</td><td><code>raw.por</code>, <code>raw.doe</code>, <code>raw.d</code></td><td><code>outlier_dies.csv</code> (튀는 die만)</td></tr>
+<tr><td>②</td><td><code>step2.sigma_die</code>, <code>sigma_run</code>, <code>meas_precision_pct</code></td><td><code>sigma_die</code>, <code>sigma_run</code>, <code>meas_precision_pct</code></td></tr>
+<tr><td>③</td><td><code>step3.por_median</code>, <code>LoQ</code>, <code>zone</code>, <code>cls</code>, <code>route</code></td><td><code>por_median</code>, <code>LoQ</code>, <code>zone</code>, <code>cls_*</code>, <code>route</code></td></tr>
+<tr><td>④</td><td><code>step4.center</code>, <code>ci_low</code>, <code>ci_high</code>, <code>ci_rank_k</code></td><td><code>center</code>, <code>ci_low</code>, <code>ci_high</code></td></tr>
+<tr><td>⑤</td><td><code>step5.policy_margin</code>, <code>run_margin</code>, <code>delta</code>, <code>used</code></td><td><code>policy_margin</code>, <code>run_margin</code>, <code>delta</code>, <code>abs_delta</code>, <code>delta_log</code></td></tr>
+<tr><td>⑥</td><td><code>step6.stage1</code> · <code>stage2</code> · <code>stage3</code>, <code>final</code></td><td><code>verdict</code>, <code>reason</code>, <code>verdict_final</code>, <code>verdict_basis</code></td></tr>
+<tr><td>⑦</td><td><code>step7.cause</code>, <code>action</code></td><td>미결은 장표의 미결 원인 표(<code data-code="slides.py:CAUSES"></code>), 차이는 측정 쪽 점검 순서</td></tr>
+</tbody></table></div>
+<h2>코드 위치</h2>
+<ul>
+<li>판정 한 ITEM: <code data-code="por_doe_compare.py:judge_item"></code>, 최종 판정: <code data-code="por_doe_compare.py:final_verdict"></code></li>
+<li>쉬운 말 사유: <code data-code="explain.py:reason_plain"></code></li>
+</ul>
 </section>
