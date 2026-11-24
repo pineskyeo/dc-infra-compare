@@ -66,6 +66,7 @@ Z90 = 1.645
 Z95 = -float(stats.norm.ppf(0.025))     # scipy theilslopes 와 같은 값
 K_LOD, K_LOQ = 3.29, 10.0
 MIN_DIE = 10
+SAME_VALUE_TOL = 1e-9          # 구간 끝과 허용폭이 이 상대 오차 안이면 같은 값 (계단 값의 부동소수 오차)
 OUTLIER_K = 5.0
 RUN_JITTER_OVER_DELTA = 1.0     # 회차 흔들림: die별 회차 범위 중앙값 ≥ 이 배수 × Δ
 SIZE_JITTER_RHO = -0.5          # 작을수록 흔들림: Spearman ρ(크기, log 범위) ≤ 이 값
@@ -598,9 +599,11 @@ def ci_median(d: np.ndarray) -> tuple[float, float, float]:
 
 
 def tost(center: float, lo: float, hi: float, delta: float) -> tuple[str, str]:
-    if -delta <= lo and hi <= delta:
+    # 계단 ITEM 은 구간 끝과 허용폭(값 간격)이 같은 격자 값이라, 부동소수 오차가 아니라 값으로 비교한다
+    tol = SAME_VALUE_TOL * max(abs(delta), abs(lo), abs(hi))
+    if -delta - tol <= lo and hi <= delta + tol:
         return "동등", "90% 신뢰구간이 ±Δ 안"
-    if lo > delta or hi < -delta:
+    if lo > delta + tol or hi < -delta - tol:
         return "차이", f"shift {center:+.4g}가 ±Δ({abs(delta):.4g}) 밖"
     if (hi - lo) / 2 >= delta:
         return "미결", "해상도 부족 (신뢰구간 반폭 ≥ Δ)"
