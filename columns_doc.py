@@ -5,8 +5,8 @@
   {k}        숫자 하나 이상    POR{k}_mean → POR1_mean, POR12_mean
   {verdict}  판정 이름         {verdict}→{verdict} → 동등→미결
 
-OUTPUTS 는 결과 파일 종류마다 출력 폴더 기준 glob 과 설명 문서를 적는다. 같은 파일이 dcc.py(item/, group/)와
-run_all.py(fail_evidence/, compare/, groups/)에서 다른 폴더에 생기므로 glob 이 여러 개다.
+OUTPUTS 는 결과 파일 종류마다 출력 폴더 기준 glob 과 설명 문서를 적는다. 같은 파일이 dcc.py(item/)와
+run_all.py(fail_evidence/)에서 다른 폴더에 생기면 glob 이 여러 개다. 기존·개선 비교는 둘 다 compare/ 에 쓴다.
 
   python columns_doc.py OUT_DIR ...          OUT_DIR 아래 결과 CSV 중 열 사전에 없는 열을 출력 (없으면 rc 0)
   python columns_doc.py --add OUT_DIR ...    없는 열을 설명 칸이 빈 행으로 문서 끝에 더함 (설명은 사람이 채움)
@@ -76,20 +76,21 @@ OUTPUTS: tuple[Output, ...] = (
            "fail_evidence.py (원데이터 인자를 줄 때)"),
     Output("item_evidence", ("item/items/*/evidence.csv", "fail_evidence/items/*/evidence.csv"), "item_evidence",
            "fail_evidence.py (원데이터 인자를 줄 때)"),
-    Output("compare.csv", ("group/compare/compare.csv", "compare/compare.csv"), "compare",
-           "compare_before_after.py compare (dcc group --before, run_all --before)"),
-    Output("stability_overall.csv", ("group/compare/stability_overall.csv", "compare/stability_overall.csv"),
-           "stability_overall", "compare_before_after.py compare"),
-    Output("worst_items.csv", ("group/compare/worst_items.csv", "compare/worst_items.csv"), "worst_items",
+    Output("compare.csv", ("compare/compare.csv",), "compare",
+           "compare_before_after.py compare (dcc compare, dcc group --before, run_all --before)"),
+    Output("compare/scope.csv", ("compare/scope.csv",), "compare_scope", "compare_before_after.py compare"),
+    Output("compare/overview.csv", ("compare/overview.csv",), "compare_overview", "compare_before_after.py compare"),
+    Output("compare/group_levels.csv", ("compare/group_levels.csv",), "compare_group_levels",
+           "compare_before_after.py compare --groups (두 결과 폴더에 stability/group_levels.csv 가 있을 때)"),
+    Output("stability_overall.csv", ("compare/stability_overall.csv",), "stability_overall",
            "compare_before_after.py compare"),
-    Output("group_summary.csv", ("group/summary/group_summary.csv", "groups/group_summary.csv"), "group_summary",
-           "group_summary.py (dcc group --before, run_all --before --groups)"),
-    Output("verdict_by_group.csv", ("group/summary/verdict_by_group.csv", "groups/verdict_by_group.csv"),
-           "verdict_by_group", "group_summary.py"),
-    Output("stability_by_group.csv", ("group/summary/stability_by_group.csv", "groups/stability_by_group.csv"),
-           "stability_by_group", "group_summary.py"),
-    Output("group_dirs.csv", ("group/summary/group_dirs.csv", "groups/group_dirs.csv"), "group_dirs",
+    Output("worst_items.csv", ("compare/worst_items.csv",), "worst_items", "compare_before_after.py compare"),
+    Output("group_summary.csv", ("compare/groups/group_summary.csv",), "group_summary",
+           "group_summary.py (dcc compare·group --before, run_all --before --groups)"),
+    Output("verdict_by_group.csv", ("compare/groups/verdict_by_group.csv",), "verdict_by_group", "group_summary.py"),
+    Output("stability_by_group.csv", ("compare/groups/stability_by_group.csv",), "stability_by_group",
            "group_summary.py"),
+    Output("group_dirs.csv", ("compare/groups/group_dirs.csv",), "group_dirs", "group_summary.py"),
     Output("loq_review.csv", ("review/loq_review.csv",), "loq_review", "review.py (참고용 LoQ 재확인)"),
     Output("log_review.csv", ("review/log_review.csv",), "log_review", "review.py (참고용 log 재확인)"),
     Output("classes/counts.csv", ("classes/counts.csv",), "classes_counts", "classes.py (dcc classes)"),

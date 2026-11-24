@@ -234,15 +234,28 @@ def test_group_table_counts_match_items(plain):
     cells = re.findall(r"<td>(.*?)</td>", row)
     assert cells[:5] == [str(int(in_vt.sum())), str(vt.get("차이", 0)), str(vt.get("미결", 0)), str(vt.get("동등", 0)),
                          str(vt.get("판정 제외", 0))]
-    assert "판정이 바뀐 ITEM" in html
+    assert '<a href="../compare/report.html">기존·개선 비교는 compare 리포트에 있다</a>' in html
+    assert "판정이 바뀐 ITEM" not in html and "기존·개선 비교</h2>" not in html
+
+
+def test_compare_report_written_next_to_its_workbook(plain):
+    html = (plain / "compare" / "report.html").read_text(encoding="utf-8")
+    for heading in ("요약", "그룹별", "판정 변화", "그룹 × LEVEL", "나빠진 ITEM", "그림", "열 뜻"):
+        assert f">{heading}</h2>" in html, heading
+    assert (plain / "compare" / "비교.xlsx").is_file()
+    assert not (plain / "group" / "compare").exists() and not (plain / "group" / "summary").exists()
 
 
 def test_anon_has_no_item_name_anywhere(anon):
     items = pd.read_csv(anon / "items.csv")
     names = set(items["ITEM"]) | set(items["blank_item"].dropna())
-    for rel in ANON_REPORTS:
+    for rel in (*ANON_REPORTS, "compare/report_anon.html"):
         text = visible_text(anon / rel)
         assert not [n for n in names if n in text], rel
+    import zipfile
+    with zipfile.ZipFile(anon / "compare" / "비교_anon.xlsx") as z:
+        xml = "".join(z.read(n).decode("utf-8") for n in z.namelist())
+    assert not [n for n in names if n in xml]
     judge = visible_text(anon / "report_anon.html")
     assert all(i in judge for i in items.loc[items["verdict_final"].isin(["차이", "미결"]), "ID"])
     assert "익명 리포트라" in judge

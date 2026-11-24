@@ -45,13 +45,10 @@ def test_compare_presence_misalign_both_lower_and_counts(tmp_path):
     out = tmp_path / "out"
     assert _run_compare(out) == 0
 
-    # compare_tables가 쓰는 열: presence(matched/only_before/only_after), misaligned(bool)
+    # compare.csv 는 두 결과 모두에 있는 ITEM 만. 한쪽에만 있는 ITEM 은 scope.csv 에 개수로
     df = pd.read_csv(out / "compare.csv", encoding="utf-8-sig")
     by_id = df.set_index("ITEM")
-
-    # 존재 여부
-    assert by_id.loc["SYNTH_B1", "presence"] == "only_before"
-    assert by_id.loc["SYNTH_C1", "presence"] == "only_after"
+    assert "SYNTH_B1" not in by_id.index and "SYNTH_C1" not in by_id.index
 
     # 정렬 의심: por_median 상대차 |100-160|/160 = 0.375 → misaligned 열이 True
     assert bool(by_id.loc["SYNTH_A4", "misaligned"]) is True
@@ -62,10 +59,10 @@ def test_compare_presence_misalign_both_lower_and_counts(tmp_path):
     assert by_id.loc["SYNTH_A1", "both_lower"] == "yes"
 
     # 개수: 공통 5(A1~A5), 기존에만 1(B1), 개선에만 1(C1)
-    counts = df["presence"].value_counts().to_dict()
-    assert counts.get("matched") == 5
-    assert counts.get("only_before") == 1
-    assert counts.get("only_after") == 1
+    scope = pd.read_csv(out / "scope.csv").iloc[0]
+    assert (scope["n_matched"], scope["n_only_before"], scope["n_only_after"]) == (5, 1, 1)
+    assert (scope["n_before"], scope["n_after"], scope["n_compared"]) == (6, 6, 5)
+    assert len(df) == 5
 
     # summary.txt: '정렬 의심' 줄이 있고 SYNTH_A4가 언급됨
     summary = (out / "summary.txt").read_text(encoding="utf-8")
@@ -163,7 +160,7 @@ def test_compare_meas_precision_fallback_without_column(tmp_path):
     assert df2.loc["SYNTH_A1", "meas_precision_pct_before"] == pytest.approx(math.hypot(8.0, 2.0))
     assert df2.loc["SYNTH_A1", "meas_precision_pct_after"] == pytest.approx(math.hypot(3.0, 0.5))
     assert df2.loc["SYNTH_A1", "meas_precision_status"] == "lower"
-    assert pd.isna(df2.loc["SYNTH_B1", "meas_precision_pct_after"])  # 기존에만 있는 ITEM
+    assert "SYNTH_B1" not in df2.index  # 기존에만 있는 ITEM 은 비교하지 않는다
     # 기존 판정 열은 그대로
     assert df2.loc["SYNTH_A1", "both_lower"] == "yes"
 
@@ -202,7 +199,7 @@ def test_cli_plot_top(tmp_path, monkeypatch):
 
     seen = {}
     monkeypatch.setattr(cba, "run_compare",
-                        lambda b, a, o, plot_top=10: seen.setdefault("top", plot_top))
+                        lambda b, a, o, plot_top=10, groups_path=None: seen.setdefault("top", plot_top))
     assert cba.main(["compare", "b.tsv", "a.tsv", "-o", str(tmp_path), "--plot-top", "7"]) == 0
     assert seen["top"] == 7
     seen.clear()

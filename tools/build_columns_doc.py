@@ -41,8 +41,14 @@ PURPOSE = {
                            "붙는다.",
     "items/*/raw.csv": "ITEM 하나의 die별 원데이터. 원데이터 인자(--por, --doe)를 줄 때만 생긴다. 다른 파일 수식의 "
                        "die별 열(`POR{k}`, `DOE`, `d`)은 이 파일의 열이다.",
-    "compare.csv": "기존 결과(--before)와 이번 결과를 ITEM 이름으로 맞춰 흔들림과 판정을 견준다.",
-    "stability_overall.csv": "compare.csv에서 짝이 있는 ITEM 전체의 흔들림 분포를 한 행으로 요약한다.",
+    "compare.csv": "기존 결과(--before)와 이번 결과를 ITEM 이름으로 맞춰 흔들림과 판정을 견준다. 두 결과 모두에 있는 "
+                   "ITEM만, 그룹 파일을 주면 그 파일에 있는 ITEM만 행이 된다.",
+    "compare/scope.csv": "비교 범위 한 행. 결과마다 ITEM 수, 한쪽에만 있는 수, 그룹 파일에 없어 뺀 수, 판정 제외 수.",
+    "compare/overview.csv": "요약 지표(측정 정밀도, 반복성, 회차 이동, 90% 구간 폭, 동등 아닌 ITEM 수)마다 기존·개선·비 "
+                            "중앙값·판단 한 행. compare/report.html 요약 표와 비교.xlsx 요약 시트가 이 파일이다.",
+    "compare/group_levels.csv": "그룹 × LEVEL마다 기존·개선 측정 정밀도 중앙값과 비. 두 결과 폴더의 "
+                                "stability/group_levels.csv를 맞춘다.",
+    "stability_overall.csv": "compare.csv에서 판정 제외를 뺀 ITEM 전체의 흔들림 분포를 한 행으로 요약한다.",
     "worst_items.csv": "비율 지표(반복성, 회차 이동, 측정 정밀도)마다 가장 나빠진 ITEM을 적는다.",
     "group_summary.csv": "compare.csv를 ITEM 그룹별로 요약한다. 맨 위는 전체 행이다.",
     "verdict_by_group.csv": "그룹마다 판정 변화(기존→개선)별 ITEM 수를 센다.",
@@ -65,7 +71,8 @@ PURPOSE = {
 INPUTS = {
     "items": (), "outlier_dies": (), "item_raw": (),
     "scales_auto": ("items",), "item_map": ("items",), "fail_evidence": ("items",), "items_index": ("items",),
-    "compare": ("items",),
+    "compare": ("items",), "compare_scope": ("compare",), "compare_overview": ("compare",),
+    "compare_group_levels": ("measure_stability_group_levels",),
     "stability_overall": ("compare",), "worst_items": ("compare",), "group_summary": ("compare",),
     "verdict_by_group": ("compare",), "stability_by_group": ("compare",), "group_dirs": ("group_summary",),
     "loq_review": ("items",), "log_review": ("items",), "measure_stability_overall": ("items",), "measure_stability_groups": ("items",),

@@ -1,0 +1,13 @@
+﻿column,쉬운이름,뜻,수식,볼것
+n_before,기존 ITEM 수,기존 결과(items.csv)의 ITEM 수.,,
+n_after,개선 ITEM 수,개선 결과의 ITEM 수.,,
+n_matched,둘 다 있는 ITEM,두 결과 모두에 있는 ITEM 수 (ITEM 이름으로 맞춤).,,
+n_only_before,기존에만,기존에만 있어 비교에서 뺀 ITEM 수.,,많으면 ITEM 이름이 바뀌었거나 측정 목록이 다르다.
+n_only_after,개선에만,개선에만 있어 비교에서 뺀 ITEM 수.,,
+grouped,그룹 파일로 비교,--groups를 줬는지. True면 그룹 파일에 있는 ITEM만 비교한다.,,
+n_ungrouped,그룹 파일에 없어 뺀 ITEM,둘 다 있지만 그룹 파일에 없어 비교에서 뺀 ITEM 수. --groups가 없으면 0.,,리포트 요약의 범위 줄에 '그룹 파일에 없는 ITEM n개는 비교에서 뺌'으로 나온다.
+n_compared,비교한 ITEM,compare.csv 행 수.,`n_matched` − `n_ungrouped`,
+n_misaligned,정렬 의심,비교한 ITEM 중 정렬 의심 수.,compare.csv `misaligned` True인 수,
+misaligned_included,정렬 의심 포함,정렬 의심을 지표에 넣었는지 (--exclude-misaligned면 False).,,
+n_verdict_excluded,판정 제외,기존 또는 개선이 판정 제외라 흔들림 지표에서 뺀 ITEM 수. 판정 변화 표에는 남는다.,,
+n_used,지표에 쓴 ITEM,overview.csv 지표를 계산한 ITEM 수.,`n_compared` − `n_verdict_excluded` (정렬 의심을 빼면 그것도 뺌),

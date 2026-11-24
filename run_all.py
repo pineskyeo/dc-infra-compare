@@ -50,21 +50,24 @@ DESCRIPTIONS = [
     ("review/loq_review.png", "LoQ 재확인 그림"),
     ("review/log_review.png", "log 재확인 그림 (선형과 log 나란히)"),
     ("review/items/*.png", "재확인 '확인 필요' ITEM 그림"),
+    # compare/groups/ (--before + --groups): group_summary.py
+    ("compare/groups/group_summary.csv", "그룹별 요약 (맨 위 '전체' 행)"),
+    ("compare/groups/verdict_by_group.csv", "그룹별 판정 변화"),
+    ("compare/groups/stability_by_group.csv", "그룹별 안정성"),
+    ("compare/groups/group_dirs.csv", "그룹 이름 → 폴더 이름"),
+    ("compare/groups/*/*.png", "그룹 하나의 지표 그림"),
+    ("compare/groups/*.png", "그룹 비교 지표 그림"),
+    ("compare/groups/*", "그룹별 요약"),
     # compare/ (--before): compare_before_after.py compare
-    ("compare/compare.csv", "ITEM별 기존·개선 비교"),
+    ("compare/compare.csv", "ITEM별 기존·개선 비교 (--groups 면 그룹 파일에 있는 ITEM 만)"),
+    ("compare/scope.csv", "비교 범위 (ITEM 수, 한쪽에만 있는 수, 그룹 파일에 없어 뺀 수)"),
+    ("compare/overview.csv", "요약 지표마다 기존·개선·비·판단"),
+    ("compare/group_levels.csv", "그룹 × LEVEL 측정 정밀도 기존·개선"),
     ("compare/summary.txt", "기존·개선 비교 요약"),
     ("compare/stability_overall.csv", "전체 안정성 (group_summary '전체' 행과 같은 값)"),
     ("compare/worst_items.csv", "비율 지표별 악화 상위 ITEM"),
     ("compare/*.png", "기존·개선 지표 그림"),
     ("compare/*", "기존·개선 비교"),
-    # groups/ (--before + --groups): group_summary.py
-    ("groups/group_summary.csv", "그룹별 요약 (맨 위 '전체' 행)"),
-    ("groups/verdict_by_group.csv", "그룹별 판정 변화"),
-    ("groups/stability_by_group.csv", "그룹별 안정성"),
-    ("groups/group_dirs.csv", "그룹 이름 → 폴더 이름"),
-    ("groups/*/*.png", "그룹 하나의 지표 그림"),
-    ("groups/*.png", "그룹 비교 지표 그림"),
-    ("groups/*", "그룹별 요약"),
 ]
 
 
@@ -145,14 +148,15 @@ def plan_steps(ap: argparse.ArgumentParser, a: argparse.Namespace, out: Path) ->
         ("plot_verdicts", plot_args, None),
     ]
     if a.before:
-        cmp_args = ["compare_before_after.py", "compare", _abs(a.before), items, "-o", str(out / "compare")]
+        groups = ["--groups", _abs(a.groups)] if a.groups else []
+        cmp_args = ["compare_before_after.py", "compare", _abs(a.before), items, *groups, "-o", str(out / "compare")]
         if a.plot_top is not None:
             cmp_args += ["--plot-top", str(a.plot_top)]
         steps.append(("compare_before_after", cmp_args, None))
     if a.before and a.groups:
         steps.append(("group_summary",
                       ["group_summary.py", "--compare", str(out / "compare" / "compare.csv"),
-                       "--groups", _abs(a.groups), "--out", str(out / "groups")], None))
+                       "--out", str(out / "compare" / "groups")], None))
     return steps
 
 

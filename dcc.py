@@ -6,15 +6,18 @@
   python dcc.py judge A1 --detail                 판정 뒤 차이·미결 ITEM 전부 item 분석까지
   python dcc.py item A1 VT_SAME,VT_SHIFT [--plots]  그 ITEM 만 Fail 근거 (+ 상세 그림)
   python dcc.py item A1 --items-file 볼항목.txt    ITEM 목록 파일 (한 줄에 하나, 또는 ITEM·ID 열 CSV)
-  python dcc.py group A1 [--before 이전/items.csv]  그룹별 요약 그림 (+ 기존·개선 비교, 그룹 요약)
+  python dcc.py group A1 [--before 이전/items.csv]  그룹별 요약 그림 (+ --before 면 compare 와 같은 비교)
+  python dcc.py compare A1 [--before 이전/items.csv]  기존 결과와 비교: 요약·그룹별 리포트와 엑셀 (compare/)
   python dcc.py report A1 [--anon]                리포트만 다시 (--anon: 익명 ID 만, report_anon.html)
   python dcc.py classes A1                        ITEM 분류와 판정 길 (참고, 판정 불변): 개수, 목록, 그림, 길마다 예시 ITEM
   python dcc.py slides A1 [--before 이전/items.csv]  판정 기준 장표 2쪽 (<out>/<이름>/slides.pptx, ITEM 은 익명 번호)
 
 설정 파일은 기본으로 현재 폴더의 combos.ini (--config 로 바꿈). 형식은 combos.example.ini.
-조합 하나의 산출물은 <out>/<이름>/ 에 둔다: items.csv, stability/, review/, plots/, item/, group/, classes/.
-judge, item, group 이 끝나면 report.html (+ item/report.html, group/report.html) 을 다시 쓴다.
-item, group, classes 는 <out>/<이름>/items.csv 를 다시 쓰고, 없을 때만 judge 단계를 먼저 실행한다.
+조합 하나의 산출물은 <out>/<이름>/ 에 둔다: items.csv, stability/, review/, plots/, item/, group/, compare/, classes/.
+judge, item, group, compare 가 끝나면 report.html (+ item/, group/, compare/ 의 report.html) 을 다시 쓴다.
+compare 의 기존 결과는 --before 나 조합의 before 키. 두 결과 모두에 있는 ITEM 만, groups 가 있으면 그룹 파일에 있는
+ITEM 만 비교한다. 결과는 모두 compare/ 에 둔다 (compare.csv, overview.csv, groups/, report.html, 비교.xlsx).
+item, group, compare, classes 는 <out>/<이름>/items.csv 를 다시 쓰고, 없을 때만 judge 단계를 먼저 실행한다.
 """
 from __future__ import annotations
 
@@ -244,23 +247,40 @@ def evidence_steps(c: Combo, names: list[str], plots: bool) -> list[Step]:
     return steps
 
 
+def before_of(c: Combo, a: argparse.Namespace) -> Path | None:
+    """기존 결과 items.csv: --before 가 조합의 before 키보다 우선. 있다고 했는데 파일이 없으면 오류."""
+    before = Path(a.before).resolve() if getattr(a, "before", None) else c.before
+    if before is not None and not before.is_file():
+        raise ConfigError(f"[{c.name}] 기존 결과 파일이 없습니다: {before}")
+    return before
+
+
+def compare_steps(c: Combo, before: Path) -> list[Step]:
+    """기존·개선 비교 단계. 결과는 모두 <조합>/compare/ (그룹 요약은 compare/groups/)."""
+    out = c.out / "compare"
+    groups = [] if c.groups is None else ["--groups", str(c.groups)]
+    steps = [("compare_before_after", ["compare_before_after.py", "compare", str(before), str(c.items_csv),
+                                       *groups, "-o", str(out)])]
+    if c.groups is not None:
+        steps.append(("group_summary", ["group_summary.py", "--compare", str(out / "compare.csv"),
+                                        "--out", str(out / "groups")]))
+    return steps
+
+
+def compare_mode_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
+    before = before_of(c, a)
+    if before is None:
+        raise ConfigError(f"[{c.name}] 기존 결과가 없습니다: --before 이전/items.csv 를 주거나 조합에 before = 키를 적으세요")
+    return compare_steps(c, before)
+
+
 def group_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
     if c.groups is None:
         raise ConfigError(f"[{c.name}] groups 파일이 없습니다 (조합이나 [defaults] 에 groups = ITEM,그룹 파일)")
-    out = c.out / "group"
-    before = Path(a.before).resolve() if a.before else c.before
-    steps = [("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(c.items_csv), "--summary",
-                                "--groups", str(c.groups), "--out", str(out / "plots")])]
-    if before is not None:
-        if not before.is_file():
-            raise ConfigError(f"[{c.name}] --before 파일이 없습니다: {before}")
-        steps += [
-            ("compare_before_after", ["compare_before_after.py", "compare", str(before), str(c.items_csv),
-                                      "-o", str(out / "compare")]),
-            ("group_summary", ["group_summary.py", "--compare", str(out / "compare" / "compare.csv"),
-                               "--groups", str(c.groups), "--out", str(out / "summary")]),
-        ]
-    return steps
+    before = before_of(c, a)
+    return [("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(c.items_csv), "--summary",
+                               "--groups", str(c.groups), "--out", str(c.out / "group" / "plots")]),
+            *(compare_steps(c, before) if before is not None else [])]
 
 
 def classes_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
@@ -284,12 +304,12 @@ def slides_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
                         *(["--before", str(before)] if before is not None else [])])]
 
 
-MODES = {"judge": judge_steps, "item": item_steps, "group": group_steps, "report": report_steps,
-         "classes": classes_steps, "slides": slides_steps}
+MODES = {"judge": judge_steps, "item": item_steps, "group": group_steps, "compare": compare_mode_steps,
+         "report": report_steps, "classes": classes_steps, "slides": slides_steps}
 
 
 def plan(mode: str, c: Combo, a: argparse.Namespace) -> list[Step]:
-    """모드의 단계 목록. item·group·report 는 items.csv 가 없으면 judge 단계를 앞에 붙인다."""
+    """모드의 단계 목록. judge 밖의 모드는 items.csv 가 없으면 judge 단계를 앞에 붙인다."""
     steps = MODES[mode](c, a)
     if mode != "judge" and not c.items_csv.is_file():
         steps = judge_steps(c, a) + steps
@@ -355,9 +375,13 @@ def build_parser() -> argparse.ArgumentParser:
                    help="ITEM 상세 그림도 그림 (item/plots/). 원데이터 전체를 읽으므로 느림")
     p = sub.add_parser("group", parents=[common], help="그룹별 요약 (<out>/<이름>/group/)")
     p.add_argument("name", help="조합 이름")
-    p.add_argument("--before", help="기존(이전) 결과 items.csv. 주면 기존·개선 비교와 그룹 요약 추가 "
-                                    "(조합의 before 키보다 우선)")
-    p = sub.add_parser("report", parents=[common], help="리포트만 다시 쓰기 (report.html, item/, group/)")
+    p.add_argument("--before", help="기존(이전) 결과 items.csv. 주면 compare 와 같은 기존·개선 비교도 "
+                                    "(<out>/<이름>/compare/, 조합의 before 키보다 우선)")
+    p = sub.add_parser("compare", parents=[common],
+                       help="기존 결과와 비교: 요약·그룹별 리포트와 엑셀 (<out>/<이름>/compare/)")
+    p.add_argument("name", help="조합 이름")
+    p.add_argument("--before", help="기존(이전) 결과 items.csv (조합의 before 키보다 우선). 둘 다 없으면 오류")
+    p = sub.add_parser("report", parents=[common], help="리포트만 다시 쓰기 (report.html, item/, group/, compare/)")
     p.add_argument("name", help="조합 이름")
     p.add_argument("--anon", action="store_true", help="ITEM 이름 대신 익명 ID 만 (report_anon.html, 밖으로 공유할 때)")
     p = sub.add_parser("classes", parents=[common], help="ITEM 분류와 판정 길, 참고 (<out>/<이름>/classes/)")

@@ -126,7 +126,7 @@ def test_run_all_before_and_groups(por3_data: Path, tmp_path: Path):
     assert proc.returncode == 0, _detail(proc)
     assert "[단계 7/7] group_summary" in proc.stdout
     assert (out / "compare" / "compare.csv").is_file()
-    assert [p for p in (out / "groups").rglob("*") if p.is_file()]
+    assert [p for p in (out / "compare" / "groups").rglob("*") if p.is_file()]
     assert sorted(p.name for p in (out / "plots").glob("summary_group_*.png")) == [
         "summary_group_A.png", "summary_group_B.png",
     ]
