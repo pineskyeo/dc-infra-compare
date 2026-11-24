@@ -331,7 +331,7 @@ def stage2_png() -> bytes:
     ax.axvspan(0, 1, color="#ECEFF3", zorder=0)
     ax.axvline(1, color=_hex(NAVY), lw=1.1)
     ax.text(0.5, 2.55, "'<LoQ' 보고", ha="center", fontsize=7, color=_hex(MUTED))
-    _bars(ax, ((0.15, 0.7, "동등"), (0.72, 1.35, "미결"), (1.2, 1.8, "차이")), 1.95)
+    _bars(ax, ((0.15, 0.7, "동등"), (0.72, 1.35, "동등"), (1.2, 1.8, "차이")), 1.95)
     ax.set_ylim(-0.7, 2.9)
     ax.set_xlim(0, 2.45)
     ax.set_xticks([0, 1], ["0", "LoQ"])
@@ -407,11 +407,8 @@ class Cause:
     hit: Callable[[Mapping], bool]
 
 
-LOQ_CROSS = re.compile(r"LoQ\([^)]*\)에 걸침")
 CAUSES = (
     Cause("die 부족", "die 10개 미만 · die를 늘려 다시 판정", "6B7785", lambda r: r["zone"] == "die 부족"),
-    Cause("LoQ 선에 걸침", "DOE가 LoQ 근처 · 재측정으로 위·아래 확정", "8E6CB0",
-          lambda r: r["basis"] == "loq" and bool(LOQ_CROSS.search(r["reason"]))),
     Cause("측정 흔들림", "구간이 허용폭보다 넓음 · die 추가·재측정", "C27C0E", lambda r: r["y"] >= 1),
     Cause("기준 조건 흔들림", "POR 회차끼리 어긋남 · POR 재측정, 프로빙·온도 확인", "3F7CAC",
           lambda r: any(s in r["status"] for s in ("회차 흔들림", "조건 불안정"))),
@@ -512,8 +509,8 @@ PROBLEMS = (
 STAGES = (
     ("1", "전체 TOST", "모든 ITEM", ("90% 신뢰구간이 ±Δ 안 → 동등", "통째로 밖 → 차이 · 걸침 → 미결",
                                     "Δ = 5% × |POR 중앙값| + 회차 흔들림 몫")),
-    ("2", "LoQ 판정", "POR 중앙값이 LoQ 아래인 ITEM", ("DOE 구간이 통째로 LoQ 아래 → 동등",
-                                                     "통째로 위 → 차이 · LoQ 선에 걸침 → 미결",
+    ("2", "LoQ 판정", "POR 중앙값이 LoQ 아래인 ITEM", ("DOE 구간이 LoQ 아래·걸침 → 동등",
+                                                     "통째로 위 + 이동 밖 → 차이 · ±Δ 걸침 → 미결",
                                                      "LoQ = 10σ (반복 흔들림·분해능·blank 중 큰 값)")),
 )
 CHANGES = (("변화 판단", "한 점", "90% 구간"), ("LoQ 아래", "DOE 중심 한 점", "DOE 구간"),

@@ -84,9 +84,9 @@
 <h3>LoQ 미만 구간 (2단계 LoQ 판정)</h3>
 <div class="tw"><table><thead><tr><th>판정</th><th>조건 (위에서부터 처음 맞는 것)</th><th>뜻</th></tr></thead><tbody>
 <tr><td><span class="pill ok">동등</span></td><td>CI ⊂ ±Δ</td><td>이동이 허용 범위 안 · <a href="step-6.html#C6-11">⑥</a></td></tr>
-<tr><td><span class="pill ok">동등</span></td><td>DOE 수준 구간(중앙값 + CI)이 통째로 LoQ 아래</td><td>둘 다 &lt;LoQ 보고라 보고가 같음 · <a href="step-6.html#C6-8">⑥</a></td></tr>
+<tr><td><span class="pill ok">동등</span></td><td>DOE 수준 구간(중앙값 + CI)이 통째로 LoQ 위가 아님 (아래이거나 LoQ에 걸침)</td><td>&lt;LoQ 보고와 같다고 봄 · <a href="step-6.html#C6-8">⑥</a></td></tr>
 <tr><td><span class="pill bad">차이</span></td><td>DOE 수준 구간이 통째로 LoQ 이상 + CI 통째로 ±Δ 밖</td><td>보고가 숫자로 바뀜 · <a href="step-6.html#C6-7">⑥</a></td></tr>
-<tr><td><span class="pill hold">미결</span></td><td>그 밖 (대개 DOE 수준 구간이 LoQ에 걸침)</td><td>&lt;LoQ일지 숫자일지 모름 · <a href="step-6.html#C6-10">⑥</a></td></tr>
+<tr><td><span class="pill hold">미결</span></td><td>DOE 수준 구간이 통째로 LoQ 이상 + CI가 ±Δ에 걸침</td><td>숫자로 보고되나 변화가 허용폭 경계 · <a href="step-6.html#C6-10">⑥</a></td></tr>
 </tbody></table></div>
 <p class="s">예전 규칙(DOE 중심 한 점만 LoQ와 비교, 차이 아니면 모두 동등)은 구간 규칙으로 바뀜 · 그림 <a href="c-loq-judge.html">LoQ 아래 판정</a><sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span></p>
 </section>
@@ -109,8 +109,8 @@
 <thead><tr><th>편향의 90% CI</th><th>정량<br>|기준 조건 중앙값| ≥ LoQ</th><th>LoQ 미만<br>DOE 수준 구간 통째로 LoQ 아래</th><th>LoQ 미만<br>DOE 수준 구간 LoQ에 걸침</th><th>LoQ 미만<br>DOE 수준 구간 통째로 LoQ 이상</th></tr></thead>
 <tbody>
 <tr><th>±Δ 안</th><td><span class="pill ok">동등</span></td><td><span class="pill ok">동등</span></td><td><span class="pill ok">동등</span></td><td><span class="pill ok">동등</span></td></tr>
-<tr><th>±Δ에 걸침</th><td><span class="pill hold">미결</span></td><td><span class="pill ok">동등</span></td><td><span class="pill hold">미결</span></td><td><span class="pill hold">미결</span></td></tr>
-<tr><th>통째로 ±Δ 밖</th><td><span class="pill bad">차이</span></td><td><span class="pill ok">동등</span></td><td><span class="pill hold">미결</span></td><td><span class="pill bad">차이</span></td></tr>
+<tr><th>±Δ에 걸침</th><td><span class="pill hold">미결</span></td><td><span class="pill ok">동등</span></td><td><span class="pill ok">동등</span></td><td><span class="pill hold">미결</span></td></tr>
+<tr><th>통째로 ±Δ 밖</th><td><span class="pill bad">차이</span></td><td><span class="pill ok">동등</span></td><td><span class="pill ok">동등</span></td><td><span class="pill bad">차이</span></td></tr>
 </tbody></table></div>
 <p class="s">정량 구간의 미결은 CI 반폭 ≥ Δ면 해상도 부족, 아니면 경계 · 이 표의 동등은 확정, 나머지는 3단계에서 다시 봄</p>
 <h3>판정 지도 그림 (plots/summary.png)</h3>

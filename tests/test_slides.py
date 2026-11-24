@@ -77,7 +77,6 @@ def test_undecided_causes_take_the_first_matching_rule():
         base = {"zone": "정량", "basis": "linear", "reason": "", "status": "", "y": 0.3}
         return next(c.name for c in slides.CAUSES if c.hit({**base, **facts}))
     assert cause(zone="die 부족", y=-np.inf) == "die 부족"
-    assert cause(basis="loq", reason="DOE 구간 9~12가 LoQ(10)에 걸침") == "LoQ 선에 걸침"
     assert cause(basis="loq", reason="DOE 구간 11~12가 LoQ(10) 이상이지만 이동 구간이 ±Δ(1)에 걸침") == "허용폭 경계"
     assert cause(y=1.4, status="회차 흔들림") == "측정 흔들림"
     assert cause(status="정상;회차 흔들림") == "기준 조건 흔들림"

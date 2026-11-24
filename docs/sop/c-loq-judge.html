@@ -56,15 +56,15 @@
 <ul>
 <li>LoQ 아래 값은 숫자 대신 '&lt;LoQ'로 보고 → 두 조건의 <b>보고가 같은지</b>를 봄</li>
 <li><a class="g" href="glossary.html#doe-level"><abbr title="DOE 수준 구간 · 비교 조건 값이 있을 만한 범위 = 기준 조건 중앙값 + 이동의 90% 신뢰구간">DOE 수준 구간</abbr></a> = 기준 조건 중앙값 + 이동의 90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간</abbr></a> · 비교 조건 값이 있을 만한 범위</li>
-<li><span class="pill ok">동등</span> 이동이 ±Δ 안 · 또는 DOE 수준 구간이 통째로 LoQ 아래 (둘 다 '&lt;LoQ' 보고)</li>
+<li><span class="pill ok">동등</span> 이동이 ±Δ 안 · 또는 DOE 수준 구간이 통째로 LoQ 위가 아님 (아래이거나 LoQ 선에 걸침 → '&lt;LoQ' 보고와 같다고 봄)</li>
 <li><span class="pill bad">차이</span> DOE 수준 구간이 통째로 LoQ 위 + 이동이 통째로 ±Δ 밖 (보고가 숫자로 바뀜)</li>
-<li><span class="pill hold">미결</span> 그 밖 · 대개 DOE 수준 구간이 LoQ 선에 걸칠 때</li>
+<li><span class="pill hold">미결</span> DOE 수준 구간이 통째로 LoQ 위인데 이동이 ±Δ에 걸칠 때</li>
 <li>예전 규칙은 DOE 중심 <b>한 점</b>만 LoQ와 비교 → 이제 <b>구간 전체</b>로 봄</li>
 </ul></section>
 
 <section id="figure"><h2>그림</h2>
 <figure class="lqj" id="fig-lqj">
-<svg id="lqj-svg" viewBox="0 0 680 470" role="img" aria-label="위 수직선의 이동 구간을 아래 값 수직선으로 옮긴 DOE 수준 구간이 LoQ 선 아래, 걸침, 위로 움직이며 판정이 동등, 미결, 차이로 바뀜"></svg>
+<svg id="lqj-svg" viewBox="0 0 680 470" role="img" aria-label="위 수직선의 이동 구간을 아래 값 수직선으로 옮긴 DOE 수준 구간이 LoQ 선 아래, 걸침, 위로 움직이며 판정이 동등, 동등, 차이로 바뀜"></svg>
 <figcaption class="s">합성 예시 · 기준 조건 중앙값 3 · LoQ 10 · Δ 2 · 이동 구간 폭 3 · 위아래 두 선은 같은 눈금(이동 0 = 중앙값 3)</figcaption>
 </figure>
 <div class="lqj-ctl"><button id="lqj-play" type="button">▶ 재생</button>
@@ -73,11 +73,11 @@
 <div class="tw"><table class="states"><thead><tr><th>이동 구간</th><th>DOE 수준 구간</th><th>LoQ 10과 비교</th><th>지금 규칙</th><th>예전 규칙 (중심 한 점)</th></tr></thead><tbody>
 <tr><td>[−1.5, 1.5]</td><td>[1.5, 4.5]</td><td>이동이 ±Δ 안</td><td><span class="pill ok">동등</span></td><td>동등</td></tr>
 <tr><td>[2.5, 5.5]</td><td>[5.5, 8.5]</td><td>통째로 아래</td><td><span class="pill ok">동등</span></td><td>동등 (중심 7)</td></tr>
-<tr><td>[5, 8]</td><td>[8, 11]</td><td>걸침</td><td><span class="pill hold">미결</span></td><td>동등 (중심 9.5)</td></tr>
-<tr><td>[6, 9]</td><td>[9, 12]</td><td>걸침</td><td><span class="pill hold">미결</span></td><td>차이 (중심 10.5)</td></tr>
+<tr><td>[5, 8]</td><td>[8, 11]</td><td>걸침</td><td><span class="pill ok">동등</span></td><td>동등 (중심 9.5)</td></tr>
+<tr><td>[6, 9]</td><td>[9, 12]</td><td>걸침</td><td><span class="pill ok">동등</span></td><td>차이 (중심 10.5)</td></tr>
 <tr><td>[9, 12]</td><td>[12, 15]</td><td>통째로 위</td><td><span class="pill bad">차이</span></td><td>차이</td></tr>
 </tbody></table></div>
-<p class="look"><b>여기서 볼 것</b> · ① 이동 구간과 DOE 수준 구간은 같은 막대를 중앙값만큼 옮긴 것 ② 막대가 LoQ 선 왼쪽에 다 있으면 보고가 둘 다 '&lt;LoQ'라 동등 ③ 막대가 LoQ 선에 걸치면 '&lt;LoQ'일지 숫자일지 모름 → 미결 ④ 예전 규칙은 걸친 막대도 중심 점 하나로 동등이나 차이를 정했음</p>
+<p class="look"><b>여기서 볼 것</b> · ① 이동 구간과 DOE 수준 구간은 같은 막대를 중앙값만큼 옮긴 것 ② 막대가 LoQ 선 왼쪽에 다 있으면 보고가 둘 다 '&lt;LoQ'라 동등 ③ 막대가 LoQ 선에 걸쳐도 동등 · 막대 전체가 LoQ 선을 넘어야 차이 ④ 예전 규칙은 중심 점 하나가 LoQ를 넘으면 차이였음</p>
 </section>
 
 <section id="formula"><h2>수식</h2>
@@ -89,7 +89,7 @@
 <li>기준 조건 중앙값 30 · LoQ 100 · Δ 20 · 이동 CI [47, 63] <span class="from">LoQ 아래를 보이려 만든 합성 예시 · 실행 결과 아님</span></li>
 <li>① CI [47, 63]은 ±20 밖으로 나감 → 다음 줄</li>
 <li>② DOE 수준 구간 = 30 + [47, 63] = [77, 93] · 모두 &lt; 100<span class="cl">→ <span class="pill ok">동등</span> &lt;LoQ 보고 일치</span></li>
-<li>같은 ITEM에서 CI가 [60, 80]이면 DOE 수준 구간 [90, 110] → LoQ 100에 걸침<span class="cl">→ <span class="pill hold">미결</span> (예전 규칙은 중심 100 ≥ LoQ라 차이)</span></li>
+<li>같은 ITEM에서 CI가 [60, 80]이면 DOE 수준 구간 [90, 110] → LoQ 100에 걸침<span class="cl">→ <span class="pill ok">동등</span> (예전 규칙은 중심 100 ≥ LoQ라 차이)</span></li>
 </ol></section>
 
 <style>
@@ -154,9 +154,9 @@
 
   const RULES = [
     ["① 이동 구간이 ±Δ 안", "동등", "--eq"],
-    ["② DOE 수준 구간이 통째로 LoQ 아래", "동등 · <LoQ 보고 일치", "--eq"],
+    ["② DOE 수준 구간이 통째로 LoQ 위가 아님 (아래·걸침)", "동등 · <LoQ 보고 일치", "--eq"],
     ["③ 통째로 LoQ 위 + 이동이 통째로 ±Δ 밖", "차이", "--df"],
-    ["④ 그 밖 (LoQ 선에 걸침 등)", "미결", "--und"],
+    ["④ 그 밖 (LoQ 위 + 이동이 ±Δ에 걸침)", "미결", "--und"],
   ];
   const rows = RULES.map(([q], i) => {
     const y = LAD + i * ROW;
@@ -172,9 +172,8 @@
     const lo = c - H, hi = c + H, vlo = M + lo, vhi = M + hi;
     const inside = lo >= -D && hi <= D;
     const outside = lo > D || hi < -D;
-    const below = Math.max(Math.abs(vlo), Math.abs(vhi)) < LOQ;
     const above = vlo >= LOQ || vhi <= -LOQ;
-    const hits = [inside, below, above && outside, true];
+    const hits = [inside, !above, above && outside, true];
     const vc = M + c;
     return { lo, hi, vlo, vhi, hits, rule: hits.indexOf(true), old: Math.abs(vc) >= LOQ && outside ? "차이" : "동등", vc };
   }

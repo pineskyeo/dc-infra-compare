@@ -17,8 +17,9 @@
        LoQ 근처 ITEM 에서만 accuracy 옵션(5)이 쓴다. 그 밖은 참고
    정량 (|POR| ≥ LoQ): 신뢰구간이 ±Δ 안 → 동등, 통째로 밖 → 차이, 걸침 → 미결
    LoQ 미만: 값은 "<LoQ"로 보고한다 (IUPAC). DOE 수준 구간 = POR 수준 중앙값 + [ci_low, ci_high] (loq_verdict).
-     신뢰구간이 ±Δ 안 → 동등. DOE 구간이 통째로 LoQ 미만 → 동등 ("<LoQ 보고 일치"). DOE 구간이 통째로 LoQ 이상이고
-     신뢰구간이 통째로 ±Δ 밖 → 차이 (보고가 숫자로 바뀜). 그 밖 (DOE 구간이 LoQ 에 걸침 등) → 미결
+     신뢰구간이 ±Δ 안 → 동등. DOE 구간이 통째로 LoQ 이상이 아니면 (LoQ 미만이거나 LoQ 에 걸침) → 동등
+     ("<LoQ 보고 일치"). DOE 구간이 통째로 LoQ 이상이고 신뢰구간이 통째로 ±Δ 밖 → 차이 (보고가 숫자로 바뀜),
+     ±Δ 에 걸침 → 미결
    판정 제외: 판정할 것이 없는 ITEM. 맞는 원인 모두를 아래 순서로 '; ' 구분해 reason에 적는다 (EXCLUSION_CAUSES)
      (1) 중심·신뢰구간 NaN/inf
      (2) 회차 0값: POR 회차나 DOE 하나가 die 절반 넘게 정확히 0인데 다른 쪽 하나라도 절반 넘게 0이 아님 (이름을 적음)
@@ -624,11 +625,11 @@ def loq_verdict(center: float, lo: float, hi: float, delta: float, base: float, 
         return "동등", "<LoQ 보고 일치 (이동이 ±Δ 안)"
     if side == LOQ_BELOW:
         return "동등", "<LoQ 보고 일치 (DOE 구간도 LoQ 미만)"
-    if side == LOQ_ABOVE and shift == "차이":
+    if side == LOQ_CROSS:
+        return "동등", "<LoQ 보고 일치 (DOE 구간이 LoQ에 걸침)"
+    if shift == "차이":
         return "차이", f"{span}가 LoQ({loq:.4g}) 이상이고 이동 {center:+.4g}가 ±Δ({delta:.4g}) 밖"
-    if side == LOQ_ABOVE:
-        return "미결", f"{span}가 LoQ({loq:.4g}) 이상이지만 이동 구간이 ±Δ({delta:.4g})에 걸침"
-    return "미결", f"{span}가 LoQ({loq:.4g})에 걸침"
+    return "미결", f"{span}가 LoQ({loq:.4g}) 이상이지만 이동 구간이 ±Δ({delta:.4g})에 걸침"
 
 
 def reason_group(reason: pd.Series) -> pd.Series:
@@ -636,7 +637,6 @@ def reason_group(reason: pd.Series) -> pd.Series:
     s = (reason.astype(str)
          .str.replace(r"^shift .*밖$", "shift가 ±Δ 밖", regex=True)
          .str.replace(r"^DOE 구간 .*밖$", "LoQ 미만: DOE 구간 ≥ LoQ이고 이동이 ±Δ 밖", regex=True)
-         .str.replace(r"^DOE 구간 .*LoQ\([^)]*\)에 걸침$", "LoQ 미만: DOE 구간이 LoQ에 걸침", regex=True)
          .str.replace(r"^DOE 구간 .*±Δ\([^)]*\)에 걸침$", "LoQ 미만: DOE 구간 ≥ LoQ, 이동이 ±Δ에 걸침", regex=True))
     return s.where(~s.str.startswith(V_EXCLUDED), s.str.replace(r" \([^)]*\)", "", regex=True))
 
