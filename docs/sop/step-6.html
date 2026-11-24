@@ -13,11 +13,11 @@
 <li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
 <li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
 </ol></div>
-<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)"><span>④·⑤ 그대로 씀*</span></span></div>
 </div>
 <ol class="fp-join"><li><a href="step-6.html" data-step="6" aria-current="step">⑥ 판정</a></li></ol>
 <ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
-<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)</p>
 <p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
 <p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
 </div>
@@ -37,11 +37,11 @@
 <li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
 <li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
 </ol></div>
-<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)"><span>④·⑤ 그대로 씀*</span></span></div>
 </div>
 <ol class="fp-join"><li><a href="step-6.html" data-step="6" aria-current="step">⑥ 판정</a></li></ol>
 <ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
-<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)</p>
 <p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
 <p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
 </div>
@@ -127,7 +127,7 @@
 <li>판정 길 6개를 위에서부터 보고 처음 맞는 길의 방법으로 판정 · 그 방법이 판정을 못 내면(판정 제외) 1·2단계 판정을 둠</li>
 </ul>
 <div class="tw"><table><thead><tr><th>#</th><th>판정 길</th><th>맞는 ITEM</th><th>3단계 판정 방법</th><th>verdict_basis</th></tr></thead><tbody>
-<tr><td>1</td><td>제외</td><td>판정할 수 있나(cls_valid) ≠ 정상</td><td>1·2단계 판정 그대로</td><td>—</td></tr>
+<tr><td>1</td><td>제외</td><td>판정할 수 있나(cls_valid) ≠ 정상</td><td>1·2단계 판정 그대로</td><td>linear · loq</td></tr>
 <tr><td>2</td><td>한계 비교</td><td>모양(cls_shape)에 '한계에 걸림'</td><td>한계(Open 코드, 최댓값·최솟값) 밖 die로 TOST (verdict_limit)</td><td>limit</td></tr>
 <tr><td>3</td><td>절대 허용폭</td><td>수준 0 중심 · 또는 분해능 계단이고 수준 정량·바닥 근처</td><td>같은 CI를 ±abs_delta로 TOST · abs_delta = abs_tol 파일의 그룹 값, 없으면 0 중심은 그 ITEM의 LoQ, 계단은 max(Δ, 값 간격 한 칸), 계단 + 바닥 근처는 max(Δ, 값 간격 한 칸, 장비 정확도 폭) · <a href="c-abs-tol.html">절대 허용폭</a></td><td>abs</td></tr>
 <tr><td>4</td><td>LoQ 판정</td><td>수준 바닥 아래</td><td>2단계 판정 그대로</td><td>loq</td></tr>
@@ -135,7 +135,8 @@
 <tr><td>6</td><td>선형 TOST</td><td>나머지</td><td>1단계 판정 그대로 · 수준 바닥 근처면 Δ' = max(Δ, 장비 정확도 폭)로 TOST</td><td>linear · accuracy</td></tr>
 </tbody></table></div>
 <div class="crit" id="C6-12"><!-- EDIT C6-12 --><h3>최종 판정 (verdict_final)</h3>
-<p>1·2단계 동등 → 동등(확정) · 아니면 판정 길의 판정 · 그 판정이 판정 제외 → 1·2단계 판정 <span class="badge-int">내부 기준(문헌 근거 없음)</span></p></div>
+<p>1·2단계 동등 → 동등(확정) · 아니면 판정 길의 판정 · 그 판정이 판정 제외 → 1·2단계 판정 <span class="badge-int">내부 기준(문헌 근거 없음)</span></p>
+<p class="s">1·2단계 판정을 그대로 둘 때 verdict_basis = LoQ 아래 구간(검출한계 이하 · 검출~정량)이면 loq, 아니면 linear</p></div>
 <div class="crit" id="C6-13"><!-- EDIT C6-13 --><h3>참고 열 (판정에 안 씀)</h3>
 <p>verdict_final_log_run: log TOST 길에 고친 log 허용폭 Δ<sub>log_run</sub> = log10(1 + r) + t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run_log</sub>을 쓴 최종 판정 · log 허용폭 결정 대기</p></div>
 <p class="s">분류 축 값과 순서 전체: <a href="c-routes.html#axes">ITEM 유형과 판정 길 · 분류 축</a></p>

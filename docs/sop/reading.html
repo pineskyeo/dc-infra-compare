@@ -13,11 +13,11 @@
 <li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
 <li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
 </ol></div>
-<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)"><span>④·⑤ 그대로 씀*</span></span></div>
 </div>
 <ol class="fp-join"><li><a href="step-6.html" data-step="6" class="rel">⑥ 판정</a></li></ol>
 <ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
-<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)</p>
 <p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
 <p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
 </div>
@@ -37,11 +37,11 @@
 <li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
 <li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
 </ol></div>
-<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)"><span>④·⑤ 그대로 씀*</span></span></div>
 </div>
 <ol class="fp-join"><li><a href="step-6.html" data-step="6" class="rel">⑥ 판정</a></li></ol>
 <ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
-<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)</p>
 <p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
 <p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
 </div>
@@ -133,8 +133,8 @@
 </tbody></table></div>
 <h3>verdict_basis 코드</h3>
 <div class="tw"><table><thead><tr><th>코드</th><th>방법</th><th>허용폭</th></tr></thead><tbody>
-<tr><td>linear</td><td>선형 TOST</td><td>Δ</td></tr>
-<tr><td>loq</td><td>LoQ 판정</td><td>Δ와 LoQ</td></tr>
+<tr><td>linear</td><td>선형 TOST (1단계 그대로 · 정량 구간)</td><td>Δ</td></tr>
+<tr><td>loq</td><td>LoQ 판정 (2단계 그대로 · LoQ 아래 구간)</td><td>Δ와 LoQ</td></tr>
 <tr><td>log</td><td>log TOST</td><td>Δ<sub>log</sub> = log10(1 + r) + sigma_rep_log</td></tr>
 <tr><td>accuracy</td><td>장비 정확도로 넓힌 허용폭 (선형 TOST 길 · 바닥 근처)</td><td>Δ' = max(Δ, 장비 정확도 폭)</td></tr>
 <tr><td>abs</td><td>절대 허용폭</td><td>abs_delta</td></tr>
