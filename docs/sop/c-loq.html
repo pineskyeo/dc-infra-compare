@@ -46,7 +46,7 @@
 <p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
 </div>
 </nav><main><div class="wrap">
-<p class="loc"><a href="concepts.html">개념 익히기</a> › LoQ와 10배 (개념 5 / 15) · 쓰는 단계 <a href="step-3.html">③</a></p>
+<p class="loc"><a href="concepts.html">개념 익히기</a> › LoQ와 10배 (개념 5 / 19) · 쓰는 단계 <a href="step-3.html">③</a></p>
 <h1>LoQ와 10배</h1>
 
 <section id="q"><h2>이 쪽이 답하는 질문</h2>
@@ -59,14 +59,14 @@
 <li><a class="g" href="glossary.html#lod"><abbr title="검출한계 · 0이 아니라고 말할 수 있는 가장 작은 크기">검출한계(LoD, Limit of Detection)</abbr></a> = 3.29 × σ: 0이 아니라고 말할 수 있는 가장 작은 크기<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup>. 구간을 나누는 기준은 LoQ</li>
 <li>σ = 세 후보 중 가장 큰 값: 반복성 σ<sub>die</sub> · 데이터 분해능 몫 Δx/√12 · 장비 분해능 ÷ √12. blank로 구한 LoQ가 더 크면 blank LoQ로 바꿈<ul class="chain"><li>→ <a href="c-resolution.html">분해능과 √12</a>. 예시 σ = 0.98965 <span class="from">σ<sub>die</sub> 0.98965 &gt; 분해능 몫 0.000289</span></li></ul></li>
 <li data-e="1">LoQ의 근거 항목(<a href="reading.html#columns">결과 표의 'LoQ를 정한 쪽'</a>)은 허용 범위 Δ의 출처가 아니라 LoQ를 정한 σ의 출처: 반복성 σ<sub>die</sub> · 데이터 분해능 ÷ √12 · 장비 분해능 ÷ √12 중 가장 큰 값, blank를 넣고 blank로 구한 LoQ가 더 크면 blank <span class="from">예시: σ<sub>die</sub> 0.98965 &gt; 데이터 분해능 0.001 ÷ √12 = 0.000289 → 기준 조건 반복</span></li>
-<li>갈래: |<a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> 중앙값| ≥ LoQ<ul class="chain"><li>→ 정량</li><li>→ ④ ⑤ ⑥ <a class="g" href="glossary.html#tost"><abbr title="두 번의 한쪽 검정 · '차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등">두 번의 한쪽 검정(TOST, Two One-Sided Tests)</abbr></a>. 미만</li><li>→ ⑥ '&lt;LoQ 보고 일치' <span class="badge-int">내부 기준(문헌 근거 없음)</span><sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li></ul></li>
+<li>갈래: |<a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> 중앙값| ≥ LoQ<ul class="chain"><li>→ 정량</li><li>→ ④ ⑤ ⑥ <a class="g" href="glossary.html#tost"><abbr title="두 번의 한쪽 검정 · '차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등">두 번의 한쪽 검정(TOST, Two One-Sided Tests)</abbr></a>. 미만</li><li>→ ⑥ LoQ 판정 (<a href="c-loq-judge.html">LoQ 아래 판정</a>) <span class="badge-int">내부 기준(문헌 근거 없음)</span><sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li></ul></li>
 
 </ul>
 <p class="s">더 자세한 쉬운 말은 아래 <a href="#plain-more">쉬운 말 더 보기</a></p>
 
 <details><summary>보충</summary><ul>
 <li>3.29 = z<sub>0.95</sub> 1.6449의 두 배: 없는데 '있다'고 할 확률 5%와 있는데 '없다'고 할 확률 5%를 함께 묶은 값<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li>
-<li>LoQ 미만 갈래도 ④의 신뢰구간과 ⑤의 Δ를 씀 → <a href="step-6.html">⑥ 판정</a></li>
+<li>LoQ 미만 갈래도 ④의 신뢰구간과 ⑤의 Δ를 씀 · DOE 수준 구간(중앙값 + 신뢰구간)이 LoQ 아래 · 걸침 · 위인지로 동등 · 미결 · 차이 → <a href="c-loq-judge.html">LoQ 아래 판정</a> · <a href="step-6.html#loq">⑥ 판정</a></li>
 <li>LoQ 미만 값을 '&lt;LoQ'로 보고하는 방식 <span class="badge-int">내부 기준(문헌 근거 없음)</span>. 실제 값을 그대로 보고하라는 반대 방향 권고도 있음<sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li>
 </ul></details></section>
 
@@ -104,7 +104,7 @@
 <text x="188" y="20" text-anchor="middle">LoQ 미만</text><text x="468" y="20" text-anchor="middle">정량 구간</text>
 <rect class="bandhold" x="40" y="30" width="296.9" height="50"/><rect class="band" x="336.9" y="30" width="263.1" height="50"/>
 <line class="tx" x1="137.7" y1="30" x2="137.7" y2="96" stroke-dasharray="4 4"/><line class="tx" x1="336.9" y1="30" x2="336.9" y2="96"/>
-<text x="238" y="60" text-anchor="middle">⑥ '&lt;LoQ 보고 일치'</text><text x="430" y="60" text-anchor="middle">④ ⑤ ⑥ TOST</text>
+<text x="238" y="60" text-anchor="middle">⑥ LoQ 판정</text><text x="430" y="60" text-anchor="middle">④ ⑤ ⑥ TOST</text>
 <circle class="hi" cx="540" cy="60" r="6"/><text x="540" y="46" text-anchor="middle">중앙값 100</text>
 <line class="ax" x1="40" y1="96" x2="600" y2="96"/>
 <g class="ax"><line x1="40" y1="96" x2="40" y2="100"/><line x1="137.7" y1="96" x2="137.7" y2="100"/><line x1="336.9" y1="96" x2="336.9" y2="100"/><line x1="540" y1="96" x2="540" y2="100"/></g>
@@ -139,6 +139,6 @@
 <li id="fn4">LoQ = k<sub>Q</sub>σ<sub>Q</sub>, k<sub>Q</sub> = 1 ÷ RSD, IUPAC 기본값 k<sub>Q</sub> = 10: Currie, L. A. "Nomenclature in evaluation of analytical methods including detection and quantification capabilities (IUPAC Recommendations 1995)", Pure and Applied Chemistry 67(10), 1699–1723 · 3.7.7 Minimum Quantifiable Value · <a href="https://old.iupac.org/publications/pac/1995/pdf/6710x1699.pdf" rel="noopener" target="_blank">링크</a> / RSD 10%와 배수 5 · 6: Eurachem Guide 2판 (2014) · 6.2.4 · <a href="https://www.eurachem.org/images/stories/Guides/pdf/MV_guide_2nd_ed_EN.pdf" rel="noopener" target="_blank">링크</a> / 배수 5 · 6 · 10을 명시하라는 권고: IUPAC Gold Book · limit of quantification (08022), Note 4 · <a href="https://goldbook.iupac.org/terms/view/08022" rel="noopener" target="_blank">링크</a></li>
 </ol></section>
 
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-resolution.html">분해능과 √12</a></li><li><a href="c-mad.html">표준편차 σ와 MAD</a></li><li><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a></li><li><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a></li><li><a href="step-6.html">⑥ 판정</a></li></ul></nav>
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-resolution.html">분해능과 √12</a></li><li><a href="c-mad.html">표준편차 σ와 MAD</a></li><li><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a></li><li><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a></li><li><a href="step-6.html">⑥ 판정</a></li><li><a href="c-loq-judge.html">LoQ 아래 판정</a></li></ul></nav>
 <footer class="pager"><a href="c-resolution.html">← 이전 · 분해능과 √12</a><a href="c-signci.html">다음 · 부호검정과 중앙값 90% 신뢰구간 →</a></footer>
 </div></main></body></html>
