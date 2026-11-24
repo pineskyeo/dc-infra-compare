@@ -611,6 +611,10 @@ def tost(center: float, lo: float, hi: float, delta: float) -> tuple[str, str]:
 
 
 LOQ_BELOW, LOQ_ABOVE, LOQ_CROSS = "LoQ 미만", "LoQ 이상", "LoQ 에 걸침"
+# 2단계 LoQ 판정이 동등을 주는 세 가지 사유 (loq_check 가 이 상수로 동등이 된 이유를 센다)
+LOQ_PASS_SHIFT = "<LoQ 보고 일치 (이동이 ±Δ 안)"
+LOQ_PASS_BELOW = "<LoQ 보고 일치 (DOE 구간도 LoQ 미만)"
+LOQ_PASS_CROSS = "<LoQ 보고 일치 (DOE 구간이 LoQ에 걸침)"
 
 
 def loq_side(lo: float, hi: float, loq: float) -> str:
@@ -627,11 +631,11 @@ def loq_verdict(center: float, lo: float, hi: float, delta: float, base: float, 
     side = loq_side(a, b, loq)
     span = f"DOE 구간 {a:.4g}~{b:.4g}"
     if shift == "동등":
-        return "동등", "<LoQ 보고 일치 (이동이 ±Δ 안)"
+        return "동등", LOQ_PASS_SHIFT
     if side == LOQ_BELOW:
-        return "동등", "<LoQ 보고 일치 (DOE 구간도 LoQ 미만)"
+        return "동등", LOQ_PASS_BELOW
     if side == LOQ_CROSS:
-        return "동등", "<LoQ 보고 일치 (DOE 구간이 LoQ에 걸침)"
+        return "동등", LOQ_PASS_CROSS
     if shift == "차이":
         return "차이", f"{span}가 LoQ({loq:.4g}) 이상이고 이동 {center:+.4g}가 ±Δ({delta:.4g}) 밖"
     return "미결", f"{span}가 LoQ({loq:.4g}) 이상이지만 이동 구간이 ±Δ({delta:.4g})에 걸침"
