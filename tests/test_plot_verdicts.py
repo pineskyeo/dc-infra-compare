@@ -291,7 +291,7 @@ def test_map_this_run_counts_directions_and_flags_one_sided_moves():
     even = map_points(rows.assign(center=[1.0, -1.0] * 5))
     assert "몰리지 않았다" in map_this_run(even)
     assert "개수가 적어" in map_this_run(map_points(rows.head(4)))
-    assert "옵션이 판정을 정한 ITEM 2개" in map_this_run(map_points(map_frame()))
+    assert "3단계 방법이 판정을 정한 ITEM 2개" in map_this_run(map_points(map_frame()))
 
 
 def test_main_writes_summary_pages_only_with_full(tmp_path: Path):
