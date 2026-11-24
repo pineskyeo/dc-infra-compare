@@ -8,7 +8,7 @@ DOE는 한 번만 재므로 반복 안정도는 POR 회차로만 본다. por_doe
   dies.csv        die 위치마다: 점수 = ITEM 마다 (그 die 의 POR 회차 범위 ÷ 그 ITEM 의 중앙 범위) 의 ITEM 중앙값,
                   그 비가 3을 넘는 ITEM 비율, 흔들리는 die 표시, outlier_dies.csv 에 나온 횟수 (DOE 쪽 튐)
   group_levels.csv  그룹 × LEVEL 마다 (--level 을 줄 때만, 아니면 지난 실행 것을 지운다): 판정력 구간 비율,
-                  측정 정밀도 % 중앙값·P90. group_levels.png 는 같은 줄로 판정력 막대와 ITEM 별 측정 정밀도 점
+                  측정 정밀도 % 중앙값·P90. group_levels.png 는 측정 정밀도 중앙값 열지도 (행 = 그룹, 열 = LEVEL)
   runs.csv        POR 회차마다: 점수 = ITEM 마다 median_die(회차 − 다른 회차 평균) ÷ sigma_die 의 ITEM 중앙값.
                   가장 큰 |점수| 회차 하나만, 0.25 이상이고 POR 3회 이상, ITEM 100개 이상일 때 밀린 회차로 본다
   stability.png   판정력 막대, 그룹 막대, 웨이퍼별 die 점수 지도, 회차 점수 막대
@@ -269,9 +269,10 @@ def takeaway(tables: dict[str, pd.DataFrame], die_cols: list[str]) -> str:
     return text
 
 
-HOW_TO_READ = ("막대는 ITEM 판정력 (신뢰구간 반폭 ÷ 허용폭: 0.5 이하 안정, 0.8 이하 주의, 그 위 불안정). 지도 색은 die 점수 "
-               "(POR 회차 범위가 보통의 몇 배, 1이 보통), 빨간 테두리는 흔들리는 die (프로빙 의심), 숫자는 DOE에서 튄 "
-               "ITEM 수. 회차 막대는 다른 회차 평균과의 차이 (σ_die), ±0.25 밖의 가장 큰 회차 하나만 밀린 회차로 본다.")
+HOW_TO_READ = ("막대는 ITEM 판정력 (신뢰구간 반폭 ÷ 허용폭: 0.5 이하 안정, 0.8 이하 주의, 그 위 불안정). 지도 색은 die "
+               "흔들림 배수 (그 die 의 POR 회차 범위가 ITEM 보통 범위의 몇 배, 1이 보통), 빨간 테두리는 흔들리는 die "
+               "(프로빙 의심), 숫자는 DOE에서 튄 ITEM 수. 회차 막대는 정규화 회차 이동 (다른 회차 평균과의 차이 ÷ σ_die), "
+               "±0.25 밖의 가장 큰 회차 하나만 밀린 회차로 본다.")
 BAND_COLORS = ("#4c9a5f", "#e0a33a", "#c8463d", "#b8b8b8")
 
 
@@ -334,7 +335,7 @@ def plot(path: Path, tables: dict[str, pd.DataFrame], die_cols: list[str], point
     o = tables["overall"]
     _band_bars(ax, o, [f"전체 ({int(o['n_items'].iloc[0]):,})"])
     ax.legend(ncols=4, loc="lower center", bbox_to_anchor=(0.5, 1.0), fontsize=8, frameon=False)
-    ax.set_title("ITEM 판정력 (측정이 같다/다르다를 가를 만큼 안정한가)", fontsize=10, pad=22)
+    ax.set_title("ITEM 판정력 (신뢰구간 반폭 ÷ 허용폭)", fontsize=10, pad=22)
 
     ax = fig.add_subplot(grid[0, 4:])
     runs = tables["runs"]
@@ -344,8 +345,8 @@ def plot(path: Path, tables: dict[str, pd.DataFrame], die_cols: list[str], point
         ax.axhline(s, color="#888888", lw=0.8, ls="--")
     ax.axhline(0, color="black", lw=0.6)
     ax.set_ylim(-lim, lim)
-    ax.set_ylabel("다른 회차 대비 (σ_die)", fontsize=8)
-    ax.set_title(f"POR 회차 점수 (ITEM {int(runs['n_items'].iloc[0]):,}개)", fontsize=10)
+    ax.set_ylabel("정규화 회차 이동\n(다른 회차 대비, σ_die 단위)", fontsize=8)
+    ax.set_title(f"POR 회차 이동 (ITEM {int(runs['n_items'].iloc[0]):,}개)", fontsize=10)
 
     row = 1
     if n_groups:
@@ -364,7 +365,7 @@ def plot(path: Path, tables: dict[str, pd.DataFrame], die_cols: list[str], point
     more = f" (웨이퍼 {len(order)}장 중 흔들리는 die가 많은 {len(wafers)}장)" if len(order) > len(wafers) else ""
     if wafers:
         fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=fig.axes[-len(wafers):], shrink=0.6,
-                     label=f"die 점수 (1 = 보통){more}")
+                     label=f"die 흔들림 배수\n(회차 범위 ÷ ITEM 보통 범위, 1 = 보통){more}")
     add_figure_note(fig, HOW_TO_READ, takeaway(tables, die_cols), dpi=DPI)
     fig.savefig(path, dpi=DPI)
     plt.close(fig)
@@ -373,15 +374,12 @@ def plot(path: Path, tables: dict[str, pd.DataFrame], die_cols: list[str], point
 
 
 LEVEL_HOW_TO_READ = (
-    "한 줄이 그룹 하나의 LEVEL(level.csv 의 측정 자릿수) 하나이고 괄호는 ITEM 수다. 왼쪽 막대는 판정력 비율(신뢰구간 반폭 ÷ "
-    "허용폭: 0.5 이하 안정, 0.8 이하 주의, 그 위 불안정)이다. 오른쪽 점은 ITEM 하나의 측정 정밀도 %(log 축)이고 점 색은 "
-    "그 ITEM 의 판정력, 검은 세로 막대는 그 줄의 중앙값이다. 같은 그룹 안에서 LEVEL 이 낮을수록 정밀도 % 가 커지고 "
-    "불안정이 늘면 측정 스케일(분해능·range)이 판정력을 깎는 것이다.")
-
-
-def _level_names(table: pd.DataFrame) -> list[str]:
-    one = table["group"].nunique() == 1
-    return [lv if one else f"{g} · {lv}" for g, lv in zip(table["group"], table["level"])]
+    "칸 하나가 그룹 하나의 LEVEL(level 파일의 측정 자릿수) 하나다. 큰 숫자는 그 칸 ITEM 들의 측정 정밀도 중앙값 "
+    "(σ_meas ÷ |POR 중앙값| × 100, 같은 die 를 다시 재면 흔들리는 %), 작은 숫자는 ITEM 수다. 진할수록 정밀도가 나쁘다. "
+    "가로는 측정 종류(A·V 등)별 자릿수 오름차순이라, 같은 그룹에서 작은 LEVEL 쪽이 진하면 측정 스케일(분해능·range)이 "
+    "정밀도를 깎는 것이다. 회색 빈 칸은 그 그룹에 그 LEVEL ITEM 이 없다. 색 막대의 붉은 선은 허용폭 r 이다.")
+PRECISION_RAMP = ("#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b")
+EMPTY_CELL = "#f1f2f4"
 
 
 def _pct(v: float) -> str:
@@ -389,58 +387,71 @@ def _pct(v: float) -> str:
 
 
 def group_level_takeaway(table: pd.DataFrame, points: pd.DataFrame) -> str:
-    names, n = _level_names(table), table["n_items"].to_numpy(int)
-    worst = int(np.argmax(table["share_unstable"].to_numpy(float)))
-    text = (f"그룹 × LEVEL {len(table):,}줄. 불안정 비율이 가장 큰 줄은 {names[worst]} "
-            f"(ITEM {n[worst]:,}개 중 {table['share_unstable'].iloc[worst]:.0%}).")
+    names = [f"{g} · {lv}" for g, lv in zip(table["group"], table["level"])]
+    text = f"그룹 {table['group'].nunique():,}개 × LEVEL {table['level'].nunique():,}개, 칸 {len(table):,}개."
     med = table[f"{PRECISION}_median"].to_numpy(float)
     if np.isfinite(med).any():
-        i = int(np.nanargmax(med))
-        text += f" 측정 정밀도 중앙값이 가장 큰 줄은 {names[i]} ({_pct(med[i])})."
+        hi, lo = int(np.nanargmax(med)), int(np.nanargmin(med))
+        text += f" 정밀도가 가장 나쁜 칸 {names[hi]} {_pct(med[hi])}, 가장 좋은 칸 {names[lo]} {_pct(med[lo])}."
     x = points[PRECISION].to_numpy(float)
-    skipped = int((~(np.isfinite(x) & (x > 0))).sum())
-    return text + (f" 측정 정밀도가 0·빈 칸이라 점을 못 찍은 ITEM {skipped:,}개." if skipped else "")
+    skipped = int((~np.isfinite(x)).sum())
+    return text + (f" 측정 정밀도가 빈 칸인 ITEM {skipped:,}개는 중앙값에서 뺐다." if skipped else "")
 
 
 def plot_group_levels(path: Path, table: pd.DataFrame, points: pd.DataFrame, r: float | None) -> None:
-    """왼쪽 = (그룹, LEVEL) 줄마다 판정력 구간 막대, 오른쪽 = 같은 줄에 ITEM 별 측정 정밀도 % 점 (log 축) 과 중앙값."""
+    """측정 정밀도 열지도: 행 = 그룹 (table 순서), 열 = LEVEL (level_order), 칸 = 측정 정밀도 % 중앙값과 ITEM 수.
+    색은 log 척도 한 색조 (진할수록 나쁨)."""
     import matplotlib.pyplot as plt
+    from matplotlib.colors import LinearSegmentedColormap, LogNorm
+    from matplotlib.patches import Rectangle
 
     from explain import add_figure_note
 
-    n = len(table)
-    fig, (ax_b, ax_p) = plt.subplots(1, 2, figsize=(13, 1.8 + 0.34 * n), sharey=True, layout="constrained",
-                                     gridspec_kw={"width_ratios": [1, 1.3]})
-    _band_bars(ax_b, table, [f"{name} ({k:,})" for name, k in zip(_level_names(table), table["n_items"])])
-    ax_b.legend(ncols=4, loc="lower center", bbox_to_anchor=(0.5, 1.0), fontsize=8, frameon=False)
-    ax_b.set_title("판정력", fontsize=10, pad=22)
-
-    row = {k: i for i, k in enumerate(zip(table["group"], table["level"]))}
-    y = np.array([row[k] for k in zip(points["group"], points["level"])], float)
-    x = points[PRECISION].to_numpy(float)
-    ok = np.isfinite(x) & (x > 0)
-    names = [name for _, name in JUDGEABILITY_BANDS]
-    color = points["judgeability"].map(dict(zip(names, BAND_COLORS))).fillna(BAND_COLORS[-1]).to_numpy()
-    jitter = np.random.default_rng(0).uniform(-0.25, 0.25, len(y))
-    if ok.any():
-        med = table[f"{PRECISION}_median"].to_numpy(float)
-        m = np.isfinite(med) & (med > 0)
-        ax_p.scatter(med[m], np.arange(n)[m], marker="|", s=300, color="black", linewidths=2, zorder=2, label="중앙값")
-        ax_p.scatter(x[ok], (y + jitter)[ok], s=18, c=color[ok], edgecolors="white", linewidths=0.4, zorder=3)
-        if r:
-            ax_p.axvline(100 * r, color="#555555", ls="--", lw=1, label=f"허용폭 r {r:.0%}")
-        ax_p.set_xscale("log")
-        ax_p.xaxis.set_major_formatter(lambda v, _: f"{v:g}%")
-        ax_p.legend(ncols=2, loc="lower center", bbox_to_anchor=(0.5, 1.0), fontsize=8, frameon=False)
-        ax_p.grid(axis="x", alpha=0.3)
-    else:
-        ax_p.text(0.5, 0.5, "측정 정밀도 값 없음", transform=ax_p.transAxes, ha="center", va="center")
-    ax_p.set_xlabel("측정 정밀도 % (σ_meas ÷ |POR 중앙값|, 작을수록 좋음)", fontsize=9)
-    ax_p.set_title("측정 정밀도 % (점 = ITEM, 색 = 판정력)", fontsize=10, pad=22)
-    for i in range(1, n):
-        if table["group"].iloc[i] != table["group"].iloc[i - 1]:
-            for ax in (ax_b, ax_p):
-                ax.axhline(i - 0.5, color="#666666", lw=0.8)
+    groups = list(dict.fromkeys(table["group"]))
+    levels = sorted(set(table["level"]), key=level_order)
+    cell = {(g, lv): (m, k) for g, lv, m, k in
+            zip(table["group"], table["level"], table[f"{PRECISION}_median"].astype(float), table["n_items"])}
+    values = np.array([m for m, _ in cell.values()], float)
+    pos = values[np.isfinite(values) & (values > 0)]
+    lo, hi = (pos.min(), pos.max()) if pos.size else (0.1, 10.0)
+    if hi < 10 * lo:                                       # 한 자릿수보다 좁으면 색이 과장되지 않게 넓힌다
+        mid = math.sqrt(lo * hi)
+        lo, hi = mid / math.sqrt(10), mid * math.sqrt(10)
+    norm, cmap = LogNorm(lo, hi), LinearSegmentedColormap.from_list("precision", PRECISION_RAMP)
+    fig, ax = plt.subplots(figsize=(max(6.5, 2.6 + 1.05 * len(levels)), 1.5 + 0.62 * len(groups)), layout="constrained")
+    for i, g in enumerate(groups):
+        for j, lv in enumerate(levels):
+            m, k = cell.get((g, lv), (math.nan, 0))
+            ok = math.isfinite(m) and m > 0
+            ax.add_patch(Rectangle((j - 0.5, i - 0.5), 1, 1, facecolor=cmap(norm(m)) if ok else EMPTY_CELL,
+                                   edgecolor="white", lw=2.5))
+            if not k:
+                continue
+            ink = "white" if ok and norm(m) > 0.55 else "#1f2328"
+            ax.text(j, i - 0.1, _pct(m) if ok else "-", ha="center", va="center", fontsize=10.5, color=ink,
+                    weight="bold")
+            ax.text(j, i + 0.26, f"ITEM {int(k):,}", ha="center", va="center", fontsize=7.5, color=ink, alpha=0.85)
+    kinds = [level_order(lv)[:2] for lv in levels]
+    for j in range(1, len(levels)):
+        if kinds[j] != kinds[j - 1]:
+            ax.axvline(j - 0.5, color="#8c959f", lw=1.2)
+    ax.set_xlim(-0.5, len(levels) - 0.5)
+    ax.set_ylim(len(groups) - 0.5, -0.5)
+    ax.set_xticks(range(len(levels)), levels)
+    ax.set_yticks(range(len(groups)), groups)
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position("top")
+    ax.tick_params(length=0, labelsize=9.5)
+    ax.set_xlabel("측정 LEVEL (종류별 작은 → 큰)", fontsize=9, color="#59636e")
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    bar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, shrink=0.85, pad=0.02, aspect=25)
+    bar.set_label("측정 정밀도 %\n(σ_meas ÷ |POR 중앙값|, 작을수록 좋음)", fontsize=8.5)
+    bar.ax.yaxis.set_major_formatter(lambda v, _: f"{v:g}%")
+    bar.ax.tick_params(labelsize=8)
+    if r and lo <= 100 * r <= hi:
+        bar.ax.axhline(100 * r, color="#c8463d", lw=1.6)
+    ax.set_title("그룹 × LEVEL 측정 정밀도 (중앙값)", fontsize=11, loc="left", pad=8)
     add_figure_note(fig, LEVEL_HOW_TO_READ, group_level_takeaway(table, points), dpi=DPI)
     fig.savefig(path, dpi=DPI)
     plt.close(fig)

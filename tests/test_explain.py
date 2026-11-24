@@ -155,7 +155,7 @@ def _overlaps(a, b) -> bool:
 
 
 @pytest.mark.parametrize("layout", [None, "constrained", "tight"])
-def test_figure_note_sits_below_axes_at_fixed_place(layout):
+def test_figure_note_is_one_this_run_line_below_axes_at_fixed_place(layout):
     configure_font()      # 한글 글꼴 폭으로 재야 겹침 검사가 실제 그림과 같다
     long = "점이 가운데 아래에 모일수록 DOE가 POR과 같다. 위쪽 점은 측정이 흔들려 판단을 못 한 ITEM이다. " * 3
     placed = []
@@ -165,19 +165,18 @@ def test_figure_note_sits_below_axes_at_fixed_place(layout):
         for ax in axes:
             ax.plot([0, 1], [0, 1])
             ax.set_xlabel("x 축 이름")
-        how, run = add_figure_note(fig, long, "차이 40개 중 32개가 + 방향")
+        run = add_figure_note(fig, long, "차이 40개 중 32개가 + 방향")
         fig.canvas.draw()
         renderer = fig.canvas.get_renderer()
-        notes = [t.get_window_extent(renderer) for t in (how, run)]
-        assert not _overlaps(notes[0], notes[1])
+        note = run.get_window_extent(renderer)
         for ax in axes:
-            assert not any(_overlaps(ax.get_tightbbox(renderer), n) for n in notes)
+            assert not _overlaps(ax.get_tightbbox(renderer), note)
         page = fig.bbox
-        assert all(n.x0 >= page.x0 and n.x1 <= page.x1 and n.y0 >= page.y0 for n in notes)
-        assert how.get_text().startswith("읽는 법: ") and run.get_text() == "이번 결과: 차이 40개 중 32개가 + 방향"
-        assert how.get_fontsize() == run.get_fontsize() == NOTE_FONTSIZE
-        assert how.get_transform() == run.get_transform() == fig.dpi_scale_trans
-        assert how.get_position()[0] == run.get_position()[0]
+        assert note.x0 >= page.x0 and note.x1 <= page.x1 and note.y0 >= page.y0
+        assert run.get_text() == "이번 결과: 차이 40개 중 32개가 + 방향"
+        assert not any("읽는 법" in t.get_text() or "점이 가운데" in t.get_text() for t in fig.texts), \
+            "읽는 법은 리포트 마우스오버로 옮겨 그림에 그리지 않는다"
+        assert run.get_fontsize() == NOTE_FONTSIZE and run.get_transform() == fig.dpi_scale_trans
         placed.append(run.get_position())
         plt.close(fig)
     assert placed[0] == placed[1], "이번 결과 줄은 그림 크기와 상관없이 왼쪽 아래 같은 인치 위치"
@@ -186,16 +185,14 @@ def test_figure_note_sits_below_axes_at_fixed_place(layout):
 @pytest.mark.parametrize("dpi", [72, 100, 110, 130, 150, 200])
 def test_figure_note_lines_fit_the_page_at_the_save_dpi(dpi, tmp_path):
     configure_font()
-    long = ("점이 가운데 아래에 모일수록 DOE가 POR과 같다 (|x| + y < 1, Δ = 허용폭, ±1 = 허용폭만큼). "
-            "위쪽 점은 측정이 흔들려 판단을 못 한 ITEM이고 VT_LONG_ITEM_NAME_0001 같은 이름은 그대로 둔다. ") * 4
     fig, ax = plt.subplots(figsize=(7, 4))
     ax.plot([0, 1], [0, 1])
-    how, run = add_figure_note(fig, long, "차이 40개 중 32개가 + 방향 (한쪽으로 몰림, p < 0.05). " * 3, dpi=dpi)
+    run = add_figure_note(fig, "읽는 법", "차이 40개 중 32개가 + 방향 (한쪽으로 몰림, p < 0.05). VT_LONG_ITEM_NAME_0001 " * 3,
+                          dpi=dpi)
     fig.savefig(tmp_path / "note.png", dpi=dpi)
     fig.set_dpi(dpi)
     renderer = fig.canvas.get_renderer()
     right = (fig.get_size_inches()[0] - 0.15) * dpi
-    for text in (how, run):
-        assert text.get_text().count("\n") >= 1
-        assert text.get_window_extent(renderer).x1 <= right + 1, text.get_text()
+    assert run.get_text().count("\n") >= 1
+    assert run.get_window_extent(renderer).x1 <= right + 1, run.get_text()
     plt.close(fig)

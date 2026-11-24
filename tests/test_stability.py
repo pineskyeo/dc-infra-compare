@@ -141,3 +141,26 @@ def test_rerun_without_level_removes_old_group_levels(tmp_path):
     assert (tmp_path / "group_levels.csv").is_file() and (tmp_path / "group_levels.png").is_file()
     assert "group_levels" not in run_write(tmp_path, wide, por_cols)
     assert not (tmp_path / "group_levels.png").exists()
+
+
+def test_group_levels_figure_is_a_precision_heatmap_without_judgeability(tmp_path, monkeypatch):
+    from matplotlib.figure import Figure
+
+    wide, por_cols = make_wide(8, 3, seed=11)
+    items = [f"I{i:03d}" for i in range(8)]
+    level_of = dict(zip(items, ["1uA", "10nA", "1uA", "10nA", "100mV", "100mV", "1uA", ""]))
+    group_of = {it: "A" if i < 4 else "B" for i, it in enumerate(items[:6])}
+    drawn = []
+    save = Figure.savefig
+    monkeypatch.setattr(Figure, "savefig", lambda fig, *a, **k: (drawn.append(fig), save(fig, *a, **k))[1])
+    t = run_write(tmp_path, wide, por_cols, group_of=group_of, level_of=level_of)["group_levels"]
+    fig = next(f for f in drawn if any("측정 정밀도" in ax.get_title(loc="left") for ax in f.axes))
+    heat = next(ax for ax in fig.axes if "측정 정밀도" in ax.get_title(loc="left"))
+    assert [lb.get_text() for lb in heat.get_xticklabels()] == ["10nA", "1uA", "100mV", "LEVEL 없음"]
+    assert [lb.get_text() for lb in heat.get_yticklabels()] == ["A", "B", "미지정"]
+    cells = [x.get_text() for x in heat.texts]
+    for med, n in zip(t["meas_precision_pct_median"].astype(float), t["n_items"].astype(int)):
+        assert stability._pct(med) in cells and f"ITEM {n}" in cells
+    words = " ".join([*cells, *(x.get_text() for x in fig.texts),
+                      *(w for ax in fig.axes for w in (ax.get_title(loc="left"), ax.get_xlabel(), ax.get_ylabel()))])
+    assert not any(w in words for w in ("판정력", "안정", "주의")), words

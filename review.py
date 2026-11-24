@@ -385,6 +385,20 @@ QUADRANTS = (   # (x, y, 이름): x > 1 이면 DOE 가 LoQ 위, y > 1 이면 이
     (0.02, 0.02, "둘 다 LoQ 아래,\n움직임도 허용폭 안"),
 )
 MAX_LABELS = 20
+LOQ_MAP_HOW_TO_READ = (
+    "점 하나가 ITEM 하나다. 오른쪽일수록 DOE 값이 정량 한계(LoQ) 위로 올라가고, 위쪽일수록 이동이 허용폭보다 크다. "
+    "주황 칸(왼쪽 위)은 둘 다 '<LoQ'로 보고되어 판정은 동등이지만 실제로는 움직였을 수 있는 곳이다. "
+    "빨간 마름모는 die 대부분이 같은 방향으로 움직였거나(방향) 일부 die만 크게 벗어난(꼬리) ITEM이다. "
+    "축 밖 값은 축 끝에 붙였다.")
+LOG_MAP_HOW_TO_READ = (
+    "한 줄이 ITEM 하나다. 왼쪽은 선형 판정, 오른쪽은 log 판정이다. 점은 이동량, 검은 선은 90% 신뢰구간, 회색 띠는 "
+    "같다고 보는 허용폭이고, 점 색은 각 판정이다. 검은 선이 회색 띠 안에 다 들어가면 동등이다. 빨간 ◆ 이름은 "
+    "선형으로 차이인데 log 로 동등이 됐거나, log 값에서 일부 die만 크게 벗어난 '확인 필요' ITEM이다.")
+ITEM_HOW_TO_READ = (
+    "① 회차별 die 값 (파랑 POR1, 회색 POR2.., 검정 DOE, 주황 점선 LoD·파선 LoQ). "
+    "② die별 변화량을 작은 순으로 늘어놓은 것, 회색 띠는 POR 회차끼리 다시 잴 때의 흔들림 5배다. "
+    "③④ 같은 die 의 POR(가로) 대 DOE(세로)를 선형 축과 log 축으로. 두 축 범위가 같아 대각선 y = x 위면 DOE 가 크다. "
+    "선형은 차이의 크기를, log 는 작은 값 die 까지 몇 배 변했는지를 보기 좋다. 빨간 테두리는 크게 벗어난 같은 die 다.")
 MAX_LOG_ROWS = 40
 FOREST_SPAN = 4.0
 FOREST_MIN_PCT = 20.0
@@ -427,23 +441,20 @@ def plot_loq_map(table: pd.DataFrame, path: Path) -> Path:
         Line2D([0], [0], marker="D", color=FLAG_COLOR, mec="black", ls="none", label=f"확인 필요 {len(hit):,}"),
         Line2D([0], [0], marker="o", color=OK_COLOR, ls="none", label=f"뚜렷한 변화 없음 {len(ok):,}")],
         loc="upper left", bbox_to_anchor=(1.01, 1.0), fontsize=9)
-    ax.set_xlabel("DOE 값 ÷ 정량 한계(LoQ)   (1 넘으면 DOE가 숫자로 보고됨)")
-    ax.set_ylabel("이동량 ÷ 허용폭   (1 넘으면 허용폭보다 크게 움직임)")
+    ax.set_xlabel("DOE 수준\n(DOE 값 ÷ LoQ, 1 넘으면 숫자로 보고)")
+    ax.set_ylabel("정규화 변화량 크기\n(|이동| ÷ 허용폭)")
     ax.set_title("LoQ 아래·근처 ITEM 재확인 (판정은 그대로)")
     ax.grid(which="major", color="#e2e2e2", lw=0.5)
     fig.tight_layout()
     n_dir, n_tail = int(table["flag_direction"].sum()), int(table["flag_tail"].sum())
     add_figure_note(
-        fig, "점 하나가 ITEM 하나다. 오른쪽일수록 DOE 값이 정량 한계(LoQ) 위로 올라가고, 위쪽일수록 이동이 허용폭보다 크다. "
-             "주황 칸(왼쪽 위)은 둘 다 '<LoQ'로 보고되어 판정은 동등이지만 실제로는 움직였을 수 있는 곳이다. "
-             "빨간 마름모는 die 대부분이 같은 방향으로 움직였거나(방향) 일부 die만 크게 벗어난(꼬리) ITEM이다. "
-             "축 밖 값은 축 끝에 붙였다.",
+        fig, LOQ_MAP_HOW_TO_READ,
         f"대상 ITEM {len(table):,}개 중 확인 필요 {len(hit):,}개 (방향 {n_dir:,}, 꼬리 {n_tail:,}). 판정은 바꾸지 않았다.", dpi=DPI)
     return _save(fig, path)
 
 
 def _forest(ax, rows: pd.DataFrame, center: str, lo: str, hi: str, d_lo: pd.Series, d_hi: pd.Series,
-            verdict: str, title: str) -> None:
+            verdict: str, title: str, xlabel: str) -> None:
     # 한 ITEM 의 큰 이동이 나머지를 눌러 버리지 않게 축은 허용폭의 FOREST_SPAN 배까지만, 밖의 점은 끝에 화살표로
     span = min(np.nanmax(np.abs(np.r_[rows[lo], rows[hi], d_lo, d_hi, 1.0])),
                max(FOREST_SPAN * np.nanmax(np.abs(np.r_[d_lo, d_hi, 1.0])), FOREST_MIN_PCT))
@@ -459,7 +470,7 @@ def _forest(ax, rows: pd.DataFrame, center: str, lo: str, hi: str, d_lo: pd.Seri
     ax.axvline(0, color="#888888", lw=0.8)
     ax.set_xlim(-1.08 * span, 1.08 * span)
     ax.set_title(title, fontsize=10)
-    ax.set_xlabel("%")
+    ax.set_xlabel(xlabel)
     ax.grid(axis="x", color="#e8e8e8", lw=0.5)
 
 
@@ -473,10 +484,10 @@ def plot_log_map(table: pd.DataFrame, path: Path) -> Path:
     else:
         dl = rows["delta_pct"].abs()
         _forest(axes[0], rows, "shift_pct", "ci_low_pct", "ci_high_pct", -dl, dl, "verdict",
-                "선형: 이동 ÷ |POR 중앙값| (회색 = 허용폭)")
+                "선형 변화", "POR 대비 %\n(이동 ÷ |POR 중앙값|, 회색 = 허용폭)")
         dlog = np.log10(1 + rows["delta_log_pct"] / 100)
         _forest(axes[1], rows, "shift_log_pct", "ci_low_log_pct", "ci_high_log_pct", 100 * (10 ** -dlog - 1),
-                rows["delta_log_pct"], "verdict_log", "log: 배율 - 1 (회색 = 허용폭)")
+                rows["delta_log_pct"], "verdict_log", "log 변화", "배율 변화 %\n(DOE ÷ POR − 1, 회색 = 허용폭)")
         ypos = np.arange(len(rows))[::-1]
         axes[0].set_yticks(ypos)
         axes[0].set_yticklabels([("◆ " if f else "") + str(i) for i, f in zip(rows["ITEM"], rows["flag"])],
@@ -492,9 +503,7 @@ def plot_log_map(table: pd.DataFrame, path: Path) -> Path:
     n_l1, n_tail, n = int(table["log_overrode_diff"].sum()), int(table["flag_tail"].sum()), len(table)
     more = f" 그림에는 확인 필요 먼저, 이동이 큰 순서로 {MAX_LOG_ROWS}개만 그렸다." if n > MAX_LOG_ROWS else ""
     add_figure_note(
-        fig, "한 줄이 ITEM 하나다. 왼쪽은 선형 판정, 오른쪽은 log 판정이다. 점은 이동량, 검은 선은 90% 신뢰구간, 회색 띠는 "
-             "같다고 보는 허용폭이고, 점 색은 각 판정이다. 검은 선이 회색 띠 안에 다 들어가면 동등이다. 빨간 ◆ 이름은 "
-             "선형으로 차이인데 log 로 동등이 됐거나, log 값에서 일부 die만 크게 벗어난 '확인 필요' ITEM이다.",
+        fig, LOG_MAP_HOW_TO_READ,
         f"대상 ITEM {n:,}개 중 확인 필요 {int(table['flag'].sum()):,}개 (log 가 차이를 동등으로 바꿈 {n_l1:,}, "
         f"꼬리 {n_tail:,}). 판정은 바꾸지 않았다.{more}", dpi=DPI)
     return _save(fig, path)
@@ -514,6 +523,8 @@ def _value_scale(ax, values: np.ndarray, lod: float, unit: str, axis: str = "y")
         top = np.abs(v).max() if v.size else lt
         decades = 10.0 ** np.arange(np.floor(np.log10(lt)), np.ceil(np.log10(max(top, lt))) + 1)
         ticks = np.r_[-decades, 0.0, decades]
+        if axis == "x":         # 좁은 칸의 가로축에서 ±LoD 눈금 글자가 0 과 겹치지 않게
+            ticks = ticks[(ticks == 0) | (np.abs(ticks) > 1.5 * lt)]
         target.set_ticks(ticks[(ticks >= v.min() - lt) & (ticks <= v.max() + lt)] if v.size else ticks)
     target.set_major_formatter(FuncFormatter(lambda t, _: fmt(t, unit)))
     target.set_minor_locator(NullLocator())
@@ -531,11 +542,9 @@ def _por_vs_doe(ax, Y: np.ndarray, z: np.ndarray, tail: np.ndarray, row: Mapping
     log 면 _value_scale (양수만 log, 0·음수 섞이면 symlog), 아니면 선형 축."""
     J = Y.shape[1]
     for j in range(J - 1, -1, -1):
-        ax.scatter(Y[:, j], z, s=12, color=POR1_COLOR if j == 0 else POR_GREY, zorder=3 if j == 0 else 2,
-                   label="POR1" if j == 0 else ("POR2.." if j == 1 else None))
+        ax.scatter(Y[:, j], z, s=12, color=POR1_COLOR if j == 0 else POR_GREY, zorder=3 if j == 0 else 2)
     if tail.any():
-        ax.scatter(Y[tail, 0], z[tail], s=46, facecolor="none", edgecolor=FLAG_COLOR, lw=1.4, zorder=4,
-                   label="크게 벗어난 die")
+        ax.scatter(Y[tail, 0], z[tail], s=46, facecolor="none", edgecolor=FLAG_COLOR, lw=1.4, zorder=4)
     allv = np.r_[Y.ravel(), z]
     allv = allv[np.isfinite(allv)]
     lo, hi = (allv.min(), allv.max()) if allv.size else (0.0, 1.0)
@@ -553,74 +562,82 @@ def _por_vs_doe(ax, Y: np.ndarray, z: np.ndarray, tail: np.ndarray, row: Mapping
         grid = np.linspace(*lims, 2)
         for target in (ax.xaxis, ax.yaxis):
             target.set_major_formatter(FuncFormatter(lambda t, _: fmt(t, unit)))
-    ax.plot(grid, grid, color="#555555", lw=0.9, ls="-", label="y = x (같음)")
+    ax.plot(grid, grid, color="#555555", lw=0.9, ls="-")
     ax.set_xlim(lims)
     ax.set_ylim(lims)
-    ax.set_box_aspect(1)
     _limit_lines(ax, row, "x")
     _limit_lines(ax, row, "y")
     ax.set_xlabel("POR (같은 die)")
     ax.set_ylabel("DOE")
-    ax.set_title("같은 die: POR 대 DOE (" + ("log 축" if log else "선형 축") + ")")
-    handles = [h for h in ax.get_legend_handles_labels()[0] if h.get_label() not in ("LoD", "LoQ")]
-    ax.legend(handles=handles, fontsize=8, loc="best")
+    ax.set_title("POR 대 DOE · " + ("log" if log else "선형"))
+
+
+ITEM_PANEL_IN = 3.4     # ITEM 그림 한 칸 (정사각형) 의 폭, 인치. 네 칸이 한 줄
+ITEM_LEGEND = (
+    Line2D([0], [0], marker="o", color=POR1_COLOR, ls="none", ms=5, label="POR1"),
+    Line2D([0], [0], marker="o", color=POR_GREY, ls="none", ms=5, label="POR2.."),
+    Line2D([0], [0], marker="o", color="#444444", ls="none", ms=5, label="DOE"),
+    Line2D([0], [0], marker="o", mfc="none", mec=FLAG_COLOR, mew=1.4, ls="none", ms=8, label="크게 벗어난 die"),
+    Line2D([0], [0], color="#ff7f0e", lw=1, ls=":", label="LoD"),
+    Line2D([0], [0], color="#ff7f0e", lw=1, ls="--", label="LoQ"),
+    Line2D([0], [0], color="#555555", lw=0.9, label="y = x (같음)"),
+    Rectangle((0, 0), 1, 1, facecolor="#dddddd", label="회차 흔들림 × 5"),
+)
 
 
 def plot_item(item: str, Y: np.ndarray, z: np.ndarray, row: Mapping, review: Review, rec: Mapping,
               path: Path) -> Path:
+    """한 줄 네 칸: 회차별 die 값, die별 변화량, POR 대 DOE 선형, POR 대 DOE log. 제목과 범례는 그림 위 한 블록 (suptitle 과 바깥 범례가 겹치지 않게)."""
     J, unit = Y.shape[1], str(row.get("UNIT") or "")
     tail = tail_dies(review.space(Y), review.space(z)) if J >= 2 and (review.name == "loq" or _log_ok(Y, z)) \
         else np.zeros(len(z), bool)
-    fig, grid = plt.subplots(2, 2, figsize=(13, 11))
-    axes = [grid[0, 0], grid[0, 1], grid[1, 0], grid[1, 1]]
-    rng = np.random.default_rng(0)
-    ax = axes[0]
-    for j in range(J + 1):
-        v = Y[:, j] if j < J else z
-        xs = j + rng.uniform(-0.18, 0.18, len(v))
-        ax.scatter(xs, v, s=12, color=POR1_COLOR if j == 0 else POR_GREY if j < J else "#444444", zorder=2)
-        if j == J and tail.any():
-            ax.scatter(xs[tail], v[tail], s=46, facecolor="none", edgecolor=FLAG_COLOR, lw=1.4, zorder=3)
-    _value_scale(ax, np.r_[Y.ravel(), z], _f(row.get("LoD")), unit)
-    _limit_lines(ax, row)
-    ax.set_xticks(range(J + 1))
-    ax.set_xticklabels([f"POR{j + 1}" for j in range(J)] + ["DOE"])
-    ax.set_title("die 값 (LoD 점선, LoQ 파선, log 축)")
-    ax.legend(fontsize=8, loc="best")
+    with plt.rc_context({"axes.titlesize": 11, "axes.labelsize": 9.5, "xtick.labelsize": 8.5,
+                         "ytick.labelsize": 8.5}):
+        fig, axes = plt.subplots(1, 4, figsize=(4 * ITEM_PANEL_IN, ITEM_PANEL_IN + 1.1), layout="constrained")
+        for ax in axes:
+            ax.set_box_aspect(1)
+        rng = np.random.default_rng(0)
+        ax = axes[0]
+        for j in range(J + 1):
+            v = Y[:, j] if j < J else z
+            xs = j + rng.uniform(-0.18, 0.18, len(v))
+            ax.scatter(xs, v, s=12, color=POR1_COLOR if j == 0 else POR_GREY if j < J else "#444444", zorder=2)
+            if j == J and tail.any():
+                ax.scatter(xs[tail], v[tail], s=46, facecolor="none", edgecolor=FLAG_COLOR, lw=1.4, zorder=3)
+        _value_scale(ax, np.r_[Y.ravel(), z], _f(row.get("LoD")), unit)
+        _limit_lines(ax, row)
+        ax.set_xticks(range(J + 1))
+        ax.set_xticklabels([f"POR{j + 1}" for j in range(J)] + ["DOE"])
+        ax.set_title("회차별 die 값")
 
-    _por_vs_doe(axes[2], Y, z, tail, row, unit, log=False)
-    _por_vs_doe(axes[3], Y, z, tail, row, unit, log=True)
+        ax = axes[1]
+        if J >= 2 and (review.name == "loq" or _log_ok(Y, z)):
+            d, _, limit = _tail_parts(review.space(Y), review.space(z), OUTLIER_SIGMAS)
+            order = np.argsort(d)
+            ax.scatter(np.arange(len(d)), d[order], s=12, color=np.where(tail[order], FLAG_COLOR, "#444444"), zorder=3)
+            m = np.median(d)
+            ax.axhspan(m - limit, m + limit, color="#dddddd", zorder=1)
+            ax.axhline(0, color="#888888", lw=0.8)
+            if review.name == "loq":
+                ax.yaxis.set_major_formatter(FuncFormatter(lambda t, _: fmt(t, unit)))
+        ax.set_xlabel("die (작은 순)")
+        ax.set_ylabel("변화량\n(DOE − POR 평균)" if review.name == "loq"
+                      else "log 변화량\n(log10|DOE| − log10|POR| 평균)")
+        ax.set_title("die별 변화량")
+        note = (f"↑ {int(rec['n_up'])} · ↓ {int(rec['n_down'])}"
+                + (f" · {times(rec['ratio'])}배" if np.isfinite(_f(rec.get("ratio"))) else "")) \
+            if review.name == "loq" else \
+            f"선형 {pct(rec.get('shift_pct'), 100)} · log {pct(rec.get('shift_log_pct'), 100)}"
+        ax.text(0.03, 0.96, note, transform=ax.transAxes, ha="left", va="top", fontsize=8.5,
+                bbox=dict(facecolor="white", edgecolor="#cccccc", boxstyle="round,pad=0.3"))
 
-    ax = axes[1]
-    if J >= 2 and (review.name == "loq" or _log_ok(Y, z)):
-        d, _, limit = _tail_parts(review.space(Y), review.space(z), OUTLIER_SIGMAS)
-        order = np.argsort(d)
-        rank = np.arange(len(d))
-        ax.scatter(rank, d[order], s=14, color=np.where(tail[order], FLAG_COLOR, "#444444"), zorder=3)
-        m = np.median(d)
-        ax.axhspan(m - limit, m + limit, color="#dddddd", zorder=1, label="POR 회차끼리의 흔들림 × 5")
-        ax.axhline(0, color="#888888", lw=0.8)
-        ax.legend(fontsize=8, loc="upper left")
-        if review.name == "loq":
-            ax.yaxis.set_major_formatter(FuncFormatter(lambda t, _: fmt(t, unit)))
-    ax.set_xlabel("die (d 오름차순)")
-    ax.set_ylabel("d = DOE - POR 평균" if review.name == "loq" else "d = log10|DOE| - log10|POR| 평균")
-    ax.set_title("die별 차이 (빨강 = 크게 벗어난 die)")
-    note = (f"die {int(rec['n_up'])}개 증가 · {int(rec['n_down'])}개 감소"
-            + (f"\n약 {times(rec['ratio'])}배 ({times(rec['ratio_lo'])}~{times(rec['ratio_hi'])}배)"
-               if np.isfinite(_f(rec.get("ratio"))) else "")) if review.name == "loq" else \
-        f"선형 {pct(rec.get('shift_pct'), 100)} · log {pct(rec.get('shift_log_pct'), 100)}"
-    ax.text(0.98, 0.04, note, transform=ax.transAxes, ha="right", va="bottom", fontsize=9,
-            bbox=dict(facecolor="white", edgecolor="#cccccc"))
-    final = row.get("verdict_final") or row.get("verdict")
-    fig.suptitle(f"{item} · 판정 {final} (그대로) · 확인 필요: {'LoQ 재확인' if review.name == 'loq' else 'log 재확인'}")
-    fig.tight_layout()
-    add_figure_note(
-        fig, "왼쪽 위는 회차별 die 값(파랑 POR1, 회색 POR2.., 검정 DOE)이다. 오른쪽 위는 die별 차이를 작은 순으로 늘어놓은 "
-             "것으로, 회색 띠는 POR 회차끼리 다시 잴 때의 흔들림 5배다. 아래 두 칸은 같은 die 의 POR 값(가로)과 DOE 값(세로)을 "
-             "선형 축(왼쪽)과 log 축(오른쪽)으로 그린 것이고, 두 축 범위가 같아 대각선 y = x 위면 DOE 가 크다. 선형은 실제 차이의 "
-             "크기를, log 는 작은 값 die 까지 몇 배 변했는지를 보기 좋다. 빨간 테두리는 크게 벗어난 같은 die 다.",
-        rec["why"], dpi=DPI)
+        _por_vs_doe(axes[2], Y, z, tail, row, unit, log=False)
+        _por_vs_doe(axes[3], Y, z, tail, row, unit, log=True)
+        final = row.get("verdict_final") or row.get("verdict")
+        title = f"{item} · 판정 {final} (그대로) · {'LoQ' if review.name == 'loq' else 'log'} 재확인 확인 필요"
+        fig.legend(handles=list(ITEM_LEGEND), loc="outside upper center", ncols=len(ITEM_LEGEND), fontsize=8.5,
+                   frameon=False, title=title, title_fontsize=12)
+        add_figure_note(fig, ITEM_HOW_TO_READ, rec["why"], dpi=DPI)
     return _save(fig, path)
 
 
