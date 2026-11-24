@@ -95,6 +95,8 @@ OUTPUTS: tuple[Output, ...] = (
     Output("classes/counts.csv", ("classes/counts.csv",), "classes_counts", "classes.py (dcc classes)"),
     Output("classes/items_by_route.csv", ("classes/items_by_route.csv",), "classes_items_by_route",
            "classes.py (dcc classes)"),
+    Output("classes/typed_compare.csv", ("classes/typed_compare.csv",), "classes_typed_compare",
+           "classes.py (dcc classes)"),
 )
 
 

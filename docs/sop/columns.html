@@ -90,14 +90,15 @@
 <tr><td><a href="#loq-review-csv"><code>loq_review.csv</code></a></td><td>review.py (참고용 LoQ 재확인)</td><td>LoQ 아래·LoQ 근처 ITEM을 LoQ 규칙과 무관한 근거(방향 일관성, 배수, 검출률, 꼬리)로 다시 보고 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.</td></tr>
 <tr><td><a href="#log-review-csv"><code>log_review.csv</code></a></td><td>review.py (참고용 log 재확인)</td><td>log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보고, 선형 차이가 log로 동등이 된 ITEM과 꼬리가 바뀐 ITEM에 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.</td></tr>
 <tr><td><a href="#classes-counts-csv"><code>classes/counts.csv</code></a></td><td>classes.py (dcc classes)</td><td>ITEM 분류 축(cls_*)과 판정 길(route)의 값마다 ITEM 수. 전체, --groups를 주면 그룹마다. 참고용이고 판정은 바꾸지 않는다.</td></tr>
-<tr><td><a href="#classes-items-by-route-csv"><code>classes/items_by_route.csv</code></a></td><td>classes.py (dcc classes)</td><td>ITEM마다 판정 길, 그 길의 참고 판정, 분류 값을 판정 길 순서로 적는다.</td></tr>
+<tr><td><a href="#classes-items-by-route-csv"><code>classes/items_by_route.csv</code></a></td><td>classes.py (dcc classes)</td><td>ITEM마다 판정 길, 유형별 판정(참고), 그 길의 참고 판정, 분류 값을 판정 길 순서로 적는다.</td></tr>
+<tr><td><a href="#classes-typed-compare-csv"><code>classes/typed_compare.csv</code></a></td><td>classes.py (dcc classes)</td><td>판정 길마다 지금 최종 판정과 유형별 판정(참고)의 짝별 ITEM 수. 유형별 판정을 쓰면 얼마나 바뀌는지 본다.</td></tr>
 </tbody></table></div>
 </section>
 
 <section id="items-csv"><h2>items.csv</h2>
 <p>ITEM마다 판정, 판정 근거 숫자, 데이터 상태를 한 행에 적는다. 모든 결과의 출발점이다.</p>
 <p class="s">만드는 명령 por_doe_compare.py (dcc judge, run_all) · 위치 <code>items.csv</code></p>
-<p class="s">열 100개</p>
+<p class="s">열 103개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>ID</code></td><td>익명 번호</td><td>ITEM 이름을 감춘 번호. 항목군 순번과 ITEM 이름 순번으로 만든다.</td><td>F{항목군 순번 2자리}_I{ITEM 순번 4자리}. 항목군 = <code>ITEM</code> 앞쪽 영문자. 순번은 이름 순서</td><td>같은 ITEM 목록이면 실행마다 같은 번호다. 공유할 때 ITEM 이름 대신 쓰고, item_map.csv로 실제 이름을 찾는다.</td></tr>
 <tr><td><code>ITEM</code></td><td>ITEM 이름</td><td>측정 항목 이름. 원데이터에 적힌 그대로다.</td><td>원데이터 <code>ITEM</code> 그대로</td><td></td></tr>
@@ -192,6 +193,9 @@
 <tr><td><code>cls_scale</code></td><td>척도</td><td>값을 log로 볼 ITEM인지.</td><td><code>scale</code>이 log·linear(scales 표)면 그 값. 아니면 <code>spread_robust</code> &lt; 0.3이거나 <code>noise_slope</code>를 못 구하면 판별 불가, <code>noise_slope</code> ≥ 0.7이면 log, 그 밖은 linear</td><td>log면 위로 갈수록 퍼짐이 커지는 ITEM이다 (잡음이 값에 비례).</td></tr>
 <tr><td><code>cls_run</code></td><td>POR 회차 상태</td><td>POR 회차끼리 얼마나 같은지.</td><td>POR 회차 하나가 통째로 밀렸고 (stability/runs.csv) 이 ITEM의 그 회차 점수(median(회차 − 다른 회차 평균) / <code>sigma_die</code>)가 같은 부호로 0.25 이상이면 회차 밀림. 아니면 <code>status</code>에 조건 불안정이 있으면 조건 불안정, 회차 흔들림이 있으면 회차 흔들림, 없으면 안정</td><td>회차 밀림이면 그 ITEM 하나가 아니라 POR 회차 전체의 문제다.</td></tr>
 <tr><td><code>route</code></td><td>판정 길</td><td>ITEM 종류에 맞는 판정 방법. 참고용이고 <code>verdict_final</code>은 바꾸지 않는다.</td><td>위에서부터 처음 맞는 것. 제외(<code>cls_valid</code>가 정상 아님), 한계 비교(<code>cls_shape</code>에 한계에 걸림), 절대 허용폭(<code>cls_level</code> 0 중심, 또는 <code>cls_resolution</code> 계단이고 <code>cls_level</code> 정량·바닥 근처), LoQ 판정(<code>cls_level</code> 바닥 아래), log TOST(<code>cls_scale</code> log이고 <code>cls_sign</code> 양수만·음수만), 선형 TOST</td><td>판정 길별 개수와 예시 ITEM 그림은 dcc classes가 만든다.</td></tr>
+<tr><td><code>verdict_typed</code></td><td>유형별 판정 (참고)</td><td>판정 길(route)에 맞게 다시 본 최종 판정. 참고용이고 verdict_final은 바꾸지 않는다.</td><td><code>verdict</code>가 동등이면 그대로. 아니면 판정 길의 판정: 한계 비교 <code>verdict_limit</code>, 절대 허용폭 <code>verdict_abs</code>, log TOST <code>verdict_log</code>, LoQ 판정 <code>verdict</code>, 선형 TOST는 <code>cls_level</code> 바닥 근처면 <code>verdict_with_accuracy</code>(없으면 <code>verdict</code>), 아니면 <code>verdict</code>. 그 판정이 동등·차이·미결이 아니면(절대 허용폭 값이 없는 등, 제외 길) <code>verdict_final</code> 그대로</td><td><code>verdict_final</code>과 다른 ITEM이 유형별 판정을 쓰면 바뀌는 ITEM이다. <code>typed_basis</code>로 어느 방법이 바꿨는지 본다.</td></tr>
+<tr><td><code>typed_basis</code></td><td>유형별 판정 근거</td><td>verdict_typed를 정한 방법.</td><td>1·2단계 동등, 한계 비교, 절대 허용폭, LoQ 판정, log TOST, 선형 TOST, 선형 TOST · 장비 정확도, 지금 판정 (판정 길이 판정 못 함)</td><td>'지금 판정'이면 판정 길이 판정을 못 해 <code>verdict_final</code>을 둔 것이다(예: 절대 허용폭 값을 아직 안 정함).</td></tr>
+<tr><td><code>verdict_typed_log_run</code></td><td>유형별 판정, 고친 log 허용폭 (참고)</td><td>verdict_typed와 같고 log TOST 길에만 고친 log 허용폭 판정을 쓴 것.</td><td><code>verdict_typed</code>와 같은 규칙, log TOST 길은 <code>verdict_log</code> 대신 <code>verdict_log_run</code></td><td><code>verdict_typed</code>와 다르면 log 허용폭 방식에 따라 갈리는 ITEM이다.</td></tr>
 <tr><td><code>verdict_abs</code></td><td>절대 허용폭 판정</td><td>판정 길이 절대 허용폭인 ITEM을 그룹의 절대 허용폭으로 다시 본 참고 판정. 다른 ITEM은 빈 칸이다.</td><td><code>ci_low</code>·<code>ci_high</code>가 ±<code>abs_delta</code> 안이면 동등, 통째로 밖이면 차이, 걸치면 미결 (판정과 같은 신뢰구간의 TOST)</td><td><code>verdict_final</code>과 다르면 상대 허용폭과 절대 허용폭이 다른 답을 낸 ITEM이다.</td></tr>
 <tr><td><code>abs_delta</code></td><td>절대 허용폭</td><td>--abs-tol 파일에 적은 그 ITEM 그룹의 허용폭 (ITEM 단위).</td><td>--abs-tol 파일(group,abs_delta)에서 --groups로 찾은 그룹의 값. 판정 길이 절대 허용폭이고 그룹 행이 있을 때만</td><td>비었으면 <code>route_note</code>에 이유가 있다.</td></tr>
 <tr><td><code>verdict_limit</code></td><td>한계 비교 판정</td><td>판정 길이 한계 비교인 ITEM을 한계 밖 die만으로 본 참고 판정. 다른 ITEM은 빈 칸이다.</td><td>POR 모든 회차와 DOE가 한계 밖인 die의 <code>d</code>로 중앙값 TOST (Δ = <code>delta</code>). 그런 die가 10개 미만이면 미결. 한계는 <code>cls_shape</code>와 같다</td><td><code>limit_p</code>와 같이 본다. 한계 밖 값이 같아도 한계에 걸린 die 수가 바뀌었을 수 있다.</td></tr>
@@ -680,15 +684,18 @@
 </tbody></table></div>
 </section>
 <section id="classes-items-by-route-csv"><h2>classes/items_by_route.csv</h2>
-<p>ITEM마다 판정 길, 그 길의 참고 판정, 분류 값을 판정 길 순서로 적는다.</p>
+<p>ITEM마다 판정 길, 유형별 판정(참고), 그 길의 참고 판정, 분류 값을 판정 길 순서로 적는다.</p>
 <p class="s">만드는 명령 classes.py (dcc classes) · 위치 <code>classes/items_by_route.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
-<p class="s">열 20개</p>
+<p class="s">열 23개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>route</code></td><td>판정 길</td><td>items.csv <code>route</code>와 같다. 이 표는 판정 길 순서(제외, 한계 비교, 절대 허용폭, LoQ 판정, log TOST, 선형 TOST), 그 안은 ITEM 이름 순서다.</td><td><code>route</code></td><td></td></tr>
 <tr><td><code>ID</code></td><td>익명 번호</td><td>items.csv <code>ID</code>와 같다.</td><td><code>ID</code></td><td></td></tr>
 <tr><td><code>ITEM</code></td><td>ITEM 이름</td><td>items.csv <code>ITEM</code>와 같다.</td><td><code>ITEM</code></td><td></td></tr>
 <tr><td><code>group</code></td><td>그룹</td><td>--groups 파일의 ITEM 그룹. 파일에 없는 ITEM은 미지정. --groups를 줄 때만 있는 열이다.</td><td>--groups 파일 ITEM,group</td><td></td></tr>
 <tr><td><code>verdict_final</code></td><td>최종 판정</td><td>items.csv <code>verdict_final</code>와 같다.</td><td><code>verdict_final</code></td><td></td></tr>
+<tr><td><code>verdict_typed</code></td><td>유형별 판정 (참고)</td><td>items.csv <code>verdict_typed</code>와 같다.</td><td><code>verdict_typed</code></td><td></td></tr>
+<tr><td><code>typed_basis</code></td><td>유형별 판정 근거</td><td>items.csv <code>typed_basis</code>와 같다.</td><td><code>typed_basis</code></td><td></td></tr>
+<tr><td><code>verdict_typed_log_run</code></td><td>유형별 판정, 고친 log 허용폭 (참고)</td><td>items.csv <code>verdict_typed_log_run</code>와 같다.</td><td><code>verdict_typed_log_run</code></td><td></td></tr>
 <tr><td><code>verdict_abs</code></td><td>절대 허용폭 판정</td><td>items.csv <code>verdict_abs</code>와 같다.</td><td><code>verdict_abs</code></td><td></td></tr>
 <tr><td><code>abs_delta</code></td><td>절대 허용폭</td><td>items.csv <code>abs_delta</code>와 같다.</td><td><code>abs_delta</code></td><td></td></tr>
 <tr><td><code>verdict_limit</code></td><td>한계 비교 판정</td><td>items.csv <code>verdict_limit</code>와 같다.</td><td><code>verdict_limit</code></td><td></td></tr>
@@ -704,6 +711,17 @@
 <tr><td><code>cls_noise</code></td><td>잡음 모양</td><td>items.csv <code>cls_noise</code>와 같다.</td><td><code>cls_noise</code></td><td></td></tr>
 <tr><td><code>cls_scale</code></td><td>척도</td><td>items.csv <code>cls_scale</code>와 같다.</td><td><code>cls_scale</code></td><td></td></tr>
 <tr><td><code>cls_run</code></td><td>POR 회차 상태</td><td>items.csv <code>cls_run</code>와 같다.</td><td><code>cls_run</code></td><td></td></tr>
+</tbody></table></div>
+</section>
+<section id="classes-typed-compare-csv"><h2>classes/typed_compare.csv</h2>
+<p>판정 길마다 지금 최종 판정과 유형별 판정(참고)의 짝별 ITEM 수. 유형별 판정을 쓰면 얼마나 바뀌는지 본다.</p>
+<p class="s">만드는 명령 classes.py (dcc classes) · 위치 <code>classes/typed_compare.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
+<p class="s">열 4개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>route</code></td><td>판정 길</td><td>items.csv <code>route</code>. 판정 길 순서(제외부터 선형 TOST까지)</td><td><code>route</code></td><td></td></tr>
+<tr><td><code>verdict_final</code></td><td>지금 최종 판정</td><td>items.csv <code>verdict_final</code></td><td><code>verdict_final</code></td><td></td></tr>
+<tr><td><code>verdict_typed</code></td><td>유형별 판정 (참고)</td><td>items.csv <code>verdict_typed</code></td><td><code>verdict_typed</code></td><td>verdict_final과 다른 행이 유형별 판정으로 바뀌는 ITEM이다</td></tr>
+<tr><td><code>n_items</code></td><td>ITEM 수</td><td>이 판정 길에서 지금 판정이 verdict_final이고 유형별 판정이 verdict_typed인 ITEM 수</td><td></td><td>0인 칸은 행이 없다</td></tr>
 </tbody></table></div>
 </section>
 

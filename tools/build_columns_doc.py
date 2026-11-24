@@ -57,7 +57,8 @@ PURPOSE = {
     "loq_review.csv": "LoQ 아래·LoQ 근처 ITEM을 LoQ 규칙과 무관한 근거(방향 일관성, 배수, 검출률, 꼬리)로 다시 보고 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.",
     "classes/counts.csv": "ITEM 분류 축(cls_*)과 판정 길(route)의 값마다 ITEM 수. 전체, --groups를 주면 그룹마다. "
                           "참고용이고 판정은 바꾸지 않는다.",
-    "classes/items_by_route.csv": "ITEM마다 판정 길, 그 길의 참고 판정, 분류 값을 판정 길 순서로 적는다.",
+    "classes/items_by_route.csv": "ITEM마다 판정 길, 유형별 판정(참고), 그 길의 참고 판정, 분류 값을 판정 길 순서로 적는다.",
+    "classes/typed_compare.csv": "판정 길마다 지금 최종 판정과 유형별 판정(참고)의 짝별 ITEM 수. 유형별 판정을 쓰면 얼마나 바뀌는지 본다.",
     "log_review.csv": "log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보고, 선형 차이가 log로 동등이 된 ITEM과 꼬리가 바뀐 ITEM에 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.",
 }
 
@@ -70,7 +71,7 @@ INPUTS = {
     "verdict_by_group": ("compare",), "stability_by_group": ("compare",), "group_dirs": ("group_summary",),
     "loq_review": ("items",), "log_review": ("items",), "measure_stability_overall": ("items",), "measure_stability_groups": ("items",),
     "measure_stability_dies": ("items",), "measure_stability_runs": ("items",), "item_evidence": ("items",),
-    "classes_counts": ("items",), "classes_items_by_route": ("items",),
+    "classes_counts": ("items",), "classes_items_by_route": ("items",), "classes_typed_compare": ("items",),
     "measure_stability_group_levels": ("items",),
 }
 

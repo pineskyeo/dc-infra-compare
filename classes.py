@@ -4,7 +4,8 @@
 
 DIR 에 쓴다:
   counts.csv                   분류 축(cls_*)과 판정 길(route)의 값마다 ITEM 수. 전체, --groups 를 주면 그룹마다
-  items_by_route.csv           ITEM 마다 판정 길, 그 길의 참고 결과, 분류 값 (판정 길 순서)
+  items_by_route.csv           ITEM 마다 판정 길, 유형별 판정(참고), 그 길의 참고 결과, 분류 값 (판정 길 순서)
+  typed_compare.csv            판정 길 × (지금 최종 판정 → 유형별 판정) ITEM 수
   classes.png                  축마다 막대 그림
   examples/<판정 길>/<ITEM>.png  판정 길마다 ITEM 3개까지 ITEM 한 장 그림 (원데이터 --por, --doe 를 줄 때만)
 """
@@ -28,6 +29,7 @@ SEP = ";"
 EXAMPLES_DIR = "examples"
 EXAMPLES_PER_ROUTE = 3
 COUNT_COLS = ["group", "axis", "value", "n_items", "share"]
+TYPED_COMPARE_COLS = ["route", "verdict_final", "verdict_typed", "n_items"]
 # (열, 그림 제목, 규칙에 적힌 값 순서)
 AXIS_VIEW = [(a.column, a.title, a.known) for a in AXES] + [("route", ROUTE_TITLE, ROUTE_NAMES)]
 
@@ -65,7 +67,29 @@ def by_route(items: pd.DataFrame, groups: pd.Series | None) -> pd.DataFrame:
     t = items.assign(group=groups) if groups is not None else items
     rank = {name: i for i, name in enumerate(ROUTE_NAMES)}
     t = t.assign(_r=t["route"].map(rank)).sort_values(["_r", "ITEM"], kind="stable")
-    return t[head + list(RESULT_COLS) + list(CLS_COLS)].reset_index(drop=True)
+    return t[head + [c for c in RESULT_COLS if c in t] + list(CLS_COLS)].reset_index(drop=True)
+
+
+def typed_compare(items: pd.DataFrame) -> pd.DataFrame:
+    """TYPED_COMPARE_COLS: 판정 길 × 지금 최종 판정 × 유형별 판정마다 ITEM 수 (0 인 칸은 없음). 판정 길 순서, 그 안은 판정 순서.
+    verdict_typed 열이 없는 옛 items.csv 면 빈 표."""
+    if "verdict_typed" not in items:
+        return pd.DataFrame(columns=TYPED_COMPARE_COLS)
+    t = items.groupby(["route", "verdict_final", "verdict_typed"]).size().reset_index(name="n_items")
+    rank = {name: i for i, name in enumerate(ROUTE_NAMES)}
+    key = {"route": lambda s: s.map(rank), "verdict_final": lambda s: s.map(ORDER), "verdict_typed": lambda s: s.map(ORDER)}
+    t = t.sort_values(["route", "verdict_final", "verdict_typed"], key=lambda s: key[s.name](s).fillna(len(ORDER)),
+                      kind="stable")
+    return t[TYPED_COMPARE_COLS].reset_index(drop=True)
+
+
+def typed_change_text(items: pd.DataFrame) -> str:
+    if "verdict_typed" not in items:
+        return "유형별 판정 열(verdict_typed)이 없다. 지금 코드로 다시 판정하면 생긴다."
+    changed = items[items["verdict_final"] != items["verdict_typed"]]
+    pairs = changed.groupby(["verdict_final", "verdict_typed"]).size()
+    detail = ", ".join(f"{a}→{b} {n:,}" for (a, b), n in pairs.items())
+    return (f"유형별 판정(참고)이면 최종 판정이 바뀌는 ITEM {len(changed):,}개" + (f" ({detail})" if detail else "") + ".")
 
 
 def pick_examples(items: pd.DataFrame) -> dict[str, list[str]]:
@@ -88,8 +112,8 @@ HOW_TO_READ = ("막대 하나가 그 분류 값의 ITEM 수다. 분류는 POR �
 
 
 def takeaway(items: pd.DataFrame) -> str:
-    return (f"ITEM {len(items):,}개의 판정 길: {route_counts(items['route'])}. "
-            "최종 판정(verdict_final)은 이 분류와 무관하게 그대로다.")
+    return (f"ITEM {len(items):,}개의 판정 길: {route_counts(items['route'])}. {typed_change_text(items)} "
+            "최종 판정(verdict_final)은 그대로다.")
 
 
 def plot(items: pd.DataFrame, path: Path) -> None:
@@ -186,11 +210,12 @@ def main(argv: list[str] | None = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     counts(items, groups).to_csv(out / "counts.csv", index=False, encoding="utf-8-sig")
     by_route(items, groups).to_csv(out / "items_by_route.csv", index=False, encoding="utf-8-sig")
+    typed_compare(items).to_csv(out / "typed_compare.csv", index=False, encoding="utf-8-sig")
     plot(items, out / "classes.png")
     remove_examples(out / EXAMPLES_DIR)
     examples = write_examples(items, a, out / EXAMPLES_DIR) if a.por else []
     print(takeaway(items))
-    print(f"결과: {out / 'counts.csv'}, {out / 'items_by_route.csv'}, {out / 'classes.png'}"
+    print(f"결과: {out / 'counts.csv'}, {out / 'items_by_route.csv'}, {out / 'typed_compare.csv'}, {out / 'classes.png'}"
           + (f", 예시 그림 {len(examples)}장 ({out / EXAMPLES_DIR})" if a.por else " (원데이터가 없어 예시 그림 없음)"))
     return 0
 

@@ -233,7 +233,7 @@ def test_scales_file_sets_scale_and_writes_auto(por3: Path, tmp_path: Path):
     # 분류의 척도(cls_scale)와 판정 길(route)은 scales 표를 따르게 되어 있다 (classify.py)
     assert dict(zip(items["ITEM"], items["cls_scale"]))["VT_SAME"] == "log"
     assert dict(zip(items["ITEM"], items["route"]))["VT_SAME"] == "log TOST"
-    by_table = ["scale", "cls_scale", "route"]
+    by_table = ["scale", "cls_scale", "route", "verdict_typed", "typed_basis", "verdict_typed_log_run"]
     pd.testing.assert_frame_equal(items.drop(columns=by_table), before.drop(columns=by_table))
     # 같은 --out 에 --scales 없이 다시 돌리면 지난 결정 파일이 남지 않는다
     assert run_compare(por3, out).returncode == 0

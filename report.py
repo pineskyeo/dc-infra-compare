@@ -513,6 +513,46 @@ HOW_TO_READ = (
 )
 
 
+def _typed_basis_text(r: Mapping) -> str:
+    """유형별 판정이 본 숫자 한 줄: 이동량 [신뢰구간] 과 그 판정 길의 허용폭."""
+    basis, unit = str(r.get("typed_basis") or ""), unit_of(r)
+    if basis == "log TOST":
+        return (f"log 이동 {log_pct(r.get('center_log'))} [{log_pct(r.get('ci_low_log'))}, {log_pct(r.get('ci_high_log'))}]"
+                f" · 허용 ±{log_pct(r.get('delta_log')).lstrip('+')}")
+    lin = f"이동 {fmt(r.get('center'), unit, signed=True)} [{fmt(r.get('ci_low'), unit, signed=True)}, " \
+          f"{fmt(r.get('ci_high'), unit, signed=True)}]"
+    if basis == "절대 허용폭":
+        return f"{lin} · 허용 ±{fmt(r.get('abs_delta'), unit)}"
+    if basis.endswith("장비 정확도"):
+        return f"{lin} · 허용 ±max(Δ {fmt(r.get('delta'), unit)}, 장비 정확도 {fmt(r.get('accuracy_margin'), unit)})"
+    return str(r.get("route_note") or "")
+
+
+def typed_compare(page: Page, items: pd.DataFrame) -> None:
+    """verdict_final 과 verdict_typed (유형별 판정, 참고) 가 다른 ITEM."""
+    if "verdict_typed" not in items:
+        page.p("이 items.csv 에는 유형별 판정(verdict_typed)이 없다. item-classes 코드로 다시 판정하면 생긴다.", "note")
+        return
+    page.p("유형별 판정은 1·2단계(선형 TOST, LoQ 아래는 '<LoQ 보고 일치')에서 동등인 ITEM 은 그대로 두고, 아닌 ITEM 만 "
+           "판정 길(route)에 맞는 방법으로 다시 본다: 한계 비교, 절대 허용폭, log TOST, 바닥 근처 선형은 장비 정확도로 "
+           "넓힌 허용폭. 그 방법이 판정을 못 하면(절대 허용폭 값이 없는 등) 지금 판정을 둔다. 참고용이고 집계와 다른 표는 지금 판정(verdict_final)을 쓴다.")
+    changed = items[items["verdict_final"].astype(str) != items["verdict_typed"].astype(str)]
+    if changed.empty:
+        page.p("유형별 판정을 써도 최종 판정이 같다. 바뀌는 ITEM 이 없다.")
+        return
+    pairs = changed.groupby(["verdict_final", "verdict_typed"]).size()
+    page.p(f"최종 판정이 바뀌는 ITEM {len(changed):,}개: "
+           + ", ".join(f"{a} → {b} {n:,}개" for (a, b), n in pairs.items()) + ".")
+    by = changed.groupby("typed_basis").size()
+    page.p("바꾼 방법: " + ", ".join(f"{b} {n:,}개" for b, n in by.items()) + ".")
+    cols = [*id_cols("items.csv", namer=page.namer), Col("items.csv", "route", lambda r: r.get("route")),
+            Col("items.csv", "verdict_final", lambda r: r.get("verdict_final")),
+            Col("items.csv", "verdict_typed", lambda r: r.get("verdict_typed")),
+            Col("items.csv", "typed_basis", lambda r: r.get("typed_basis")),
+            Col("", "근거", _typed_basis_text)]
+    page.table(cols, changed.sort_values(["typed_basis", "ITEM"]).to_dict("records"))
+
+
 def how_to_read(page: Page) -> None:
     page.h2("읽는 법", "how")
     page.add("<ul>" + "".join(f"<li>{page.namer.text(s)}</li>" for s in HOW_TO_READ) + "</ul>")
@@ -524,7 +564,7 @@ def judge_report(folder: Path, items: pd.DataFrame, namer: Namer) -> Path:
     page = Page(f"판정 리포트 · {folder.name}", namer, folder / namer.report_file)
     nav(page, [("kpi", "한눈에"), ("map", "판정 지도"), ("problems", "차이·미결"), ("excluded", "판정 제외"),
                ("loq", "LoQ 확인 필요"), ("log", "log 확인 필요"), ("logrun", "log 허용폭 두 방식"),
-               ("stability", "측정 안정도"), ("how", "읽는 법")])
+               ("typed", "유형별 판정 (참고)"), ("stability", "측정 안정도"), ("how", "읽는 법")])
     page.h2("한눈에", "kpi")
     kpi(page, items, folder)
     page.h2("판정 지도", "map")
@@ -540,6 +580,8 @@ def judge_report(folder: Path, items: pd.DataFrame, namer: Namer) -> Path:
     review(page, folder, "log")
     page.h2("log 허용폭 두 방식", "logrun")
     log_run_compare(page, items)
+    page.h2("유형별 판정 (참고)", "typed")
+    typed_compare(page, items)
     page.h2("측정 안정도", "stability")
     stability(page, folder)
     how_to_read(page)

@@ -36,6 +36,7 @@ doe = data/A/DOE
 - 키는 `por`(한 줄에 회차 하나, 2회 이상), `doe`, 그리고 선택으로 `level`, `blank`(한 줄에 하나), `blank_map`, `key`, `encoding`, `r`, `groups`, `scales`, `abs_tol`, `before`, `out`입니다. 뜻은 아래 옵션 표와 같습니다.
 - `groups`를 적으면 판정 단계(`por_doe_compare.py`)에 `--groups`를 넘겨 그룹별 측정 안정도(`stability/groups.csv`, `group_levels.csv`)를 씁니다. 판정은 바뀌지 않습니다. `scales`를 적으면 `--scales`도 넘겨 그룹마다 log·linear를 정하므로 `scales`에는 `groups`가 필요합니다.
 - `abs_tol`(group,abs_delta 파일, ITEM 단위)을 적으면 판정 단계에 `--abs-tol`도 넘깁니다. 판정 길이 절대 허용폭인 ITEM의 참고 판정 `verdict_abs`에만 쓰고 판정은 바꾸지 않습니다. `groups`가 필요합니다.
+- 유형별 판정(참고): `items.csv`의 `verdict_typed`는 1·2단계(선형 TOST, LoQ 아래는 '<LoQ 보고 일치')에서 동등인 ITEM은 그대로 두고, 아닌 ITEM만 판정 길(`route`)의 방법(한계 비교, 절대 허용폭, log TOST, 바닥 근처는 장비 정확도로 넓힌 허용폭)으로 다시 본 판정입니다. 판정 길이 판정을 못 하면(절대 허용폭 값이 없는 등) `verdict_final`을 그대로 둡니다. `typed_basis`는 정한 방법, `verdict_typed_log_run`은 log TOST 길에 고친 log 허용폭을 쓴 것입니다. 판정 화면 끝, `classes/typed_compare.csv`, 리포트 "유형별 판정 (참고)" 칸에서 `verdict_final`과 다른 ITEM을 봅니다. `verdict_final`은 바꾸지 않습니다.
 - 상대 경로는 현재 폴더가 아니라 설정 파일이 있는 폴더 기준입니다.
 - 모르는 이름·키, POR 1회, 없는 경로는 아무것도 실행하기 전에 알려 주고 끝납니다(rc=2).
 
@@ -66,7 +67,7 @@ python dcc.py classes A1                    # ITEM 분류와 판정 길 (참고,
 | `item/` | 고른 ITEM의 Fail 근거(`fail_evidence.py --only`), `item/plots/`는 `--plots` 상세 그림 | `item`, `judge --detail` |
 | `group/plots/` | 그룹별 판정 지도 | `group` |
 | `group/compare/`, `group/summary/` | 기존·개선 비교, 그룹별 비교 요약 | `group --before`(또는 조합의 `before` 키) |
-| `classes/` | ITEM 분류 개수(`counts.csv`), 판정 길별 목록(`items_by_route.csv`), `classes.png`, `examples/<판정 길>/` | `classes` |
+| `classes/` | ITEM 분류 개수(`counts.csv`), 판정 길별 목록(`items_by_route.csv`), 유형별 판정 비교(`typed_compare.csv`), `classes.png`, `examples/<판정 길>/` | `classes` |
 
 `item`과 `group`은 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize)과 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
 

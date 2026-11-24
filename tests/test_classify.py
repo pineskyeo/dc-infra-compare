@@ -264,3 +264,30 @@ def test_por_doe_compare_abs_tol_needs_groups(tmp_path):
     proc = _run(ROOT / "por_doe_compare.py", "--por", tmp_path, "--por", tmp_path, "--doe", tmp_path,
                 "--abs-tol", abs_file)
     assert proc.returncode != 0 and "--abs-tol 에는 --groups" in proc.stderr
+
+
+def test_typed_verdict_keeps_stage_one_equal_and_uses_the_route_otherwise():
+    from classify import B_ACCURACY, B_BASE, B_KEEP, typed_verdict
+    row = {"verdict": "미결", "verdict_final": "동등", "verdict_log": "동등", "verdict_log_run": "미결",
+           "verdict_abs": "차이", "verdict_limit": "동등", "verdict_with_accuracy": "동등", "cls_level": "정량"}
+    assert typed_verdict({**row, "verdict": "동등", "route": "log TOST"}) == ("동등", B_BASE)
+    assert typed_verdict({**row, "route": "절대 허용폭"}) == ("차이", "절대 허용폭")
+    assert typed_verdict({**row, "route": "한계 비교"}) == ("동등", "한계 비교")
+    assert typed_verdict({**row, "route": "log TOST"}) == ("동등", "log TOST")
+    assert typed_verdict({**row, "route": "log TOST"}, "verdict_log_run") == ("미결", "log TOST")
+    assert typed_verdict({**row, "route": "선형 TOST"}) == ("미결", "선형 TOST")
+    assert typed_verdict({**row, "route": "선형 TOST", "cls_level": "바닥 근처"}) == ("동등", B_ACCURACY)
+    assert typed_verdict({**row, "route": "LoQ 판정"}) == ("미결", "LoQ 판정")
+    no_abs = {**row, "route": "절대 허용폭", "verdict_abs": float("nan")}
+    assert typed_verdict(no_abs) == ("동등", B_KEEP)
+    assert typed_verdict({**row, "route": "제외", "verdict": "판정 제외", "verdict_final": "판정 제외"}) == ("판정 제외", B_KEEP)
+
+
+def test_typed_compare_counts_pairs_per_route():
+    import classes
+    items = pd.DataFrame({"route": ["선형 TOST", "log TOST", "log TOST", "절대 허용폭"],
+                          "verdict_final": ["미결", "미결", "미결", "동등"], "verdict_typed": ["미결", "동등", "동등", "동등"]})
+    t = classes.typed_compare(items)
+    assert t.values.tolist() == [["절대 허용폭", "동등", "동등", 1], ["log TOST", "미결", "동등", 2],
+                                 ["선형 TOST", "미결", "미결", 1]]
+    assert "바뀌는 ITEM 2개 (미결→동등 2)" in classes.typed_change_text(items)

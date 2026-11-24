@@ -111,7 +111,7 @@ LOG_RUN_COLS = ["verdict_log_run", "delta_log_run"]
 POR_MEAN_RE = re.compile(r"POR\d+_mean")
 # ITEM 분류와 판정 길 (classify.py, 참고, 판정에 안 씀). classify.AXES 열 순서 + route + 판정 길 참고 결과
 CLASS_COLS = ("cls_valid", "cls_sign", "cls_level", "cls_resolution", "cls_shape", "cls_noise", "cls_scale", "cls_run",
-              "route", "verdict_abs", "abs_delta", "verdict_limit", "limit_share_por", "limit_share_doe", "limit_p",
+              "route", "verdict_typed", "typed_basis", "verdict_typed_log_run", "verdict_abs", "abs_delta", "verdict_limit", "limit_share_por", "limit_share_doe", "limit_p",
               "route_note")
 # items.csv 열 순서의 유일한 출처: 묶음 순서대로, 묶음 안은 적힌 순서. POR_MEAN_RE 는 맞는 열을 원래 순서로.
 # 표에 없는 열은 맨 끝에 원래 순서로 붙는다.
@@ -1188,6 +1188,11 @@ def main() -> None:
             print(f"auto 그룹 결정 ({out / SCALES_AUTO_CSV}, 확인 후 scales 파일에 옮겨 적을 수 있음)")
             print(auto.to_string(index=False))
     print(f"\n{classify.takeaway(res)}")
+    typed = res["verdict_final"] != res["verdict_typed"]
+    print(f"참고: 유형별 판정(1·2단계 동등은 그대로, 아니면 판정 길의 판정)이면 최종 판정이 바뀌는 ITEM {int(typed.sum())}개 "
+          "(verdict_final → verdict_typed)")
+    if typed.any():
+        print(pd.crosstab([res.loc[typed, "route"], res.loc[typed, "verdict_final"]], res.loc[typed, "verdict_typed"]).to_string())
     bad = reason_group(res.loc[res["verdict"] != "동등", "reason"]).value_counts()
     if len(bad):
         print("\n동등이 아닌 사유")

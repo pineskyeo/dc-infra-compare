@@ -15,6 +15,12 @@ ITEM 마다 POR 값만 보고 (DOE 는 보지 않는다) 종류를 정하고, �
                   spread_robust < 0.3 이거나 기울기를 못 구하면 판별 불가, 그 밖은 linear)
   cls_run         회차 밀림 / 조건 불안정 / 회차 흔들림 / 안정
 
+유형별 판정 (참고, verdict_typed): 1·2단계 = 기본 판정 verdict (선형 TOST, LoQ 아래는 <LoQ 보고 일치) 이 동등이면 그대로.
+  아니면 3단계 = 판정 길의 판정: 한계 비교 verdict_limit, 절대 허용폭 verdict_abs, log TOST verdict_log, LoQ 판정 verdict,
+  선형 TOST 는 바닥 근처면 verdict_with_accuracy (없으면 verdict), 아니면 verdict. 그 판정이 동등·차이·미결이 아니면
+  (판정 제외·빈 칸: 절대 허용폭 값이 없는 등, 제외 길) 지금 판정 verdict_final 을 그대로 둔다 (log·장비 정확도 옵션 포함).
+  verdict_typed_log_run 은 log TOST 길에 verdict_log_run (고친 log 허용폭) 을 쓴 것.
+
 판정 길 참고 결과 (그 길의 ITEM 만 채운다):
   절대 허용폭  --abs-tol 파일 (group,abs_delta) 의 Δ 로 같은 신뢰구간(center, ci_low, ci_high)을 TOST → verdict_abs
   한계 비교    한계(POR 최댓값·최솟값에 붙은 값, Open 코드)에 걸린 die 비율 POR (회차 평균) 대 DOE, 정확 McNemar p,
@@ -31,7 +37,7 @@ import pandas as pd
 from scipy import stats
 
 from infra_compare import read_pairs
-from por_doe_compare import (CLASS_COLS, EXCLUSION_CAUSES, K_LOQ, MIN_DIE, NOISE_SPREAD_MIN,
+from por_doe_compare import (CLASS_COLS, EXCLUSION_CAUSES, JUDGED, K_LOQ, MIN_DIE, NOISE_SPREAD_MIN,
                              NP_UNKNOWN, OUTLIER_K, SCALE_LINEAR, SCALE_LOG, SHAPE_EXCLUDE_ABS, ST_BIMODAL,
                              ST_RUN_JITTER, ST_UNSTABLE, V_EXCLUDED, ExclusionFacts, ci_median, limit_sigma, near_loq,
                              por_sides, robust_sigma, tost, zero_sides)
@@ -159,6 +165,24 @@ ROUTES: tuple[tuple[str, Callable[[Mapping[str, str]], bool]], ...] = (
 ROUTE_NAMES = tuple(name for name, _ in ROUTES)
 CLS_COLS = tuple(a.column for a in AXES)
 RESULT_COLS = CLASS_COLS[len(CLS_COLS) + 1:]       # route 뒤 참고 결과 열
+
+
+B_BASE, B_ACCURACY, B_KEEP = "1·2단계 동등", "선형 TOST · 장비 정확도", "지금 판정 (판정 길이 판정 못 함)"
+
+
+def typed_verdict(row: Mapping, log_col: str = "verdict_log") -> tuple[str, str]:
+    """(verdict_typed, typed_basis). row 는 판정 열 + 분류 열 + 판정 길 참고 결과. 규칙은 모듈 설명의 유형별 판정."""
+    if str(row.get("verdict", "")) == "동등":
+        return "동등", B_BASE
+    route = row.get("route")
+    near = [("verdict_with_accuracy", B_ACCURACY)] if row.get("cls_level") == LEVEL_NEAR else []
+    tries = {R_LIMIT: [("verdict_limit", R_LIMIT)], R_ABS: [("verdict_abs", R_ABS)], R_LOG: [(log_col, R_LOG)],
+             R_LOQ: [("verdict", R_LOQ)], R_LINEAR: [*near, ("verdict", R_LINEAR)]}.get(route, [])
+    for col, basis in tries:
+        v = row.get(col)
+        if isinstance(v, str) and v in JUDGED:
+            return v, basis
+    return str(row.get("verdict_final", row.get("verdict", ""))), B_KEEP
 
 
 def classify(f: Facts) -> dict[str, str]:
@@ -327,6 +351,9 @@ def add_columns(res: pd.DataFrame, facts: Mapping[str, Facts], wide: pd.DataFram
             out.update(abs_result(row, (group_of or {}).get(str(item).strip()), abs_tol))
         elif c["route"] == R_LIMIT and f.limit is not None:
             out.update(f.limit)
+        full = {**row, **c, **out}
+        out["verdict_typed"], out["typed_basis"] = typed_verdict(full)
+        out["verdict_typed_log_run"] = typed_verdict(full, "verdict_log_run")[0]
         rows.append({**c, **out})
     return pd.concat([res.reset_index(drop=True), pd.DataFrame(rows, columns=list(CLASS_COLS))], axis=1)
 
