@@ -14,13 +14,15 @@ sys.path.insert(0, str(ROOT / "tests"))
 
 import fail_evidence as fe  # noqa: E402
 import golden_cases as gc  # noqa: E402
+from item_view import basis_numbers  # noqa: E402
 from por_doe_compare import ci_rank  # noqa: E402
 
 CASES = {c.name: c for c in gc.CASES}
 # 판정 묶음 → (fail_evidence --only ITEM, 그 ITEM 의 verdict_basis)
 PICKS = {
-    "por3_level_blank_scales": {"VT_SHIFT": "linear", "VT_NOISY_DOE": "linear", "IOFF_LEAK": "linear",
-                                "VOS_OFFSET": "accuracy"},
+    # scales 표가 VT 그룹을 log 로 정해 VT ITEM 은 판정 길이 log TOST, IOFF_LEAK 은 LoQ 판정, VOS_OFFSET 은 절대 허용폭
+    "por3_level_blank_scales": {"VT_SHIFT": "log", "VT_NOISY_DOE": "log", "IOFF_LEAK": "loq",
+                                "VOS_OFFSET": "abs"},
     "truth_scales": {"I00013": "log"},
 }
 # fail_evidence 원데이터 인자 (판정 인자에서 --groups·--scales 를 뺀 것)
@@ -97,10 +99,11 @@ def test_evidence_margins(runs):
     judged = _items(items_csv)
     folders = _folders(fe_out)
     vos = pd.read_csv(folders["VOS_OFFSET"] / "evidence.csv", encoding="utf-8-sig").iloc[0]
-    assert vos["accuracy_margin"] == pytest.approx(judged.at["VOS_OFFSET", "accuracy_margin"])
+    assert vos["verdict_basis"] == "abs" and math.isnan(vos["accuracy_margin"])
+    assert vos["abs_delta"] == pytest.approx(judged.at["VOS_OFFSET", "abs_delta"])
     assert vos["delta"] == pytest.approx(vos["policy_margin"] + vos["run_margin"])
     shift = pd.read_csv(folders["VT_SHIFT"] / "evidence.csv", encoding="utf-8-sig").iloc[0]
-    assert math.isnan(shift["accuracy_margin"])                        # accuracy 판정이 아니면 빈 칸
+    assert math.isnan(shift["accuracy_margin"]) and math.isnan(shift["abs_delta"])   # 그 판정이 아니면 빈 칸
     assert shift["por_over_loq"] == pytest.approx(abs(judged.at["VT_SHIFT", "por_median"]) / judged.at["VT_SHIFT", "LoQ"])
     leak = pd.read_csv(folders["IOFF_LEAK"] / "evidence.csv", encoding="utf-8-sig").iloc[0]
     assert leak["n_outlier_die"] == 20 and len(leak["outlier_dies"].split("; ")) == 20
@@ -119,13 +122,16 @@ def test_forest_cells_match_item_rows(runs):
     assert list(rows["verdict_final"]) == sorted(rows["verdict_final"], key=["차이", "미결"].index)
     for item in rows.index:
         j, r = judged.loc[item], rows.loc[item]
+        if basis_numbers(j.to_dict()).log:
+            continue                                                      # log 판정 행은 아래 log 테스트가 본다
+        margin = basis_numbers(j.to_dict()).margin
         por = abs(j["por_median"])
         assert r["이동"].endswith("%") and float(r["이동"][:-1]) == pytest.approx(100 * j["center"] / por, rel=0.05)
-        assert float(r["허용폭"].lstrip("±")[:-1]) == pytest.approx(100 * j["delta"] / por, rel=0.05)
-        assert r["center"] == pytest.approx(j["center"] / j["delta"])
-        assert r["ci_low"] == pytest.approx(j["ci_low"] / j["delta"])
-        assert r["ci_high"] == pytest.approx(j["ci_high"] / j["delta"])
-    assert rows.at["VT_SHIFT", "이동"] == "+6.6%" and rows.at["VT_SHIFT", "허용폭"] == "±5.0%"
+        assert float(r["허용폭"].lstrip("±")[:-1]) == pytest.approx(100 * margin / por, rel=0.05)
+        assert r["center"] == pytest.approx(j["center"] / margin)
+        assert r["ci_low"] == pytest.approx(j["ci_low"] / margin)
+        assert r["ci_high"] == pytest.approx(j["ci_high"] / margin)
+    assert rows.at["VT_SHIFT", "이동"] == "+6.6%" and rows.at["VT_SHIFT", "허용폭"].startswith("±")
     assert "허용폭 밖" in rows.at["VT_SHIFT", "판정 이유"]
 
 

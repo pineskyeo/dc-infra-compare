@@ -121,25 +121,24 @@ def remove_own_outputs(out: Path, patterns) -> None:
             if p.is_file():
                 p.unlink()
 DEFAULT_XLIM = 3.0
-LOQ_TITLE = "LoQ 아래 ITEM: DOE 값과 이동"
-LOQ_XLABEL = "DOE 값 ÷ 정량 한계(LoQ)   (1 넘으면 DOE가 숫자로 보고됨)"
-LOQ_YLABEL = "이동량 ÷ 허용폭   (1 넘으면 허용폭보다 크게 움직임)"
+LOQ_TITLE = "LoQ 아래 ITEM: DOE 수준과 변화량"
+LOQ_XLABEL = "정규화 DOE 수준\n(DOE ÷ LoQ. 1 넘으면 숫자로 보고, 가로 막대 = 90% 구간)"
+LOQ_YLABEL = "정규화 변화량\n(|이동| ÷ 허용폭)"
 NO_LOQ_ITEMS = "해당 ITEM 없음"
 NO_VALID_POINTS = "표시할 유효한 좌표 없음"
 LOQ_FLAG_LABEL = "LoQ 재확인 '확인 필요' {n:,}"
 LOQ_HOW_TO_READ = (
-    "점 하나가 LoQ 아래 ITEM 하나다. 이 ITEM들은 POR 값이 정량 한계(LoQ) 아래라 숫자 대신 '<LoQ'로 보고하고, DOE도 "
-    "LoQ 아래면 둘 다 '<LoQ'라 동등으로 본다. 오른쪽일수록 DOE 값이 LoQ 위로 올라가고, 위쪽일수록 이동이 허용폭보다 "
-    "크다. 빨간 칸(오른쪽 위)은 DOE가 숫자로 보고되고 크게 움직인 곳이다. 주황 칸(왼쪽 위)은 둘 다 '<LoQ'라 동등이지만 "
-    "실제로는 움직였을 수 있는 곳이다. 검은 마름모는 review.py LoQ 재확인이 die 방향이나 꼬리로 '확인 필요'라고 본 "
-    "ITEM이다 (판정은 그대로, 이름은 review/loq_review.csv).")
+    "점 하나가 LoQ 아래 ITEM 하나다. POR 값이 정량 한계(LoQ) 아래라 숫자 대신 '<LoQ'로 보고한다. 가로 막대는 DOE "
+    "수준의 90% 구간이다. 막대 전체가 1 왼쪽이면 둘 다 '<LoQ'라 동등, 막대 전체가 1 오른쪽이고 이동이 허용폭 밖이면 "
+    "DOE가 숫자로 보고되어 차이, 막대가 1 선에 걸치면 미결이다. 위쪽일수록 이동이 허용폭보다 크다. 주황 칸(왼쪽 위)은 "
+    "둘 다 '<LoQ'라 동등이지만 실제로는 움직였을 수 있는 곳이다. 검은 마름모는 LoQ 재확인 '확인 필요' ITEM이다.")
 # LoQ 패널은 두 축 모두 log. 범위 밖·0 이하·무한대 값은 축 끝에 다른 마커로 붙인다.
 LOQ_AXIS_MIN = 1e-3
 LOQ_AXIS_MAX = 1e3
 LOQ_CLIPPED_NOTE = "축 끝 클리핑 {n}개 (0값 {zero}개 포함)"
 # (x, y, 칸 이름): x>1 은 DOE 가 LoQ 위라 숫자로 보고, y>1 은 이동이 허용폭보다 큼.
 LOQ_QUADRANT_NOTES = (
-    (0.98, 0.98, "DOE가 숫자로 보고되고\n크게 움직임 (차이·미결)"),
+    (0.98, 0.98, "DOE가 숫자로 보고되고\n크게 움직임 (차이, 막대가 1에 걸치면 미결)"),
     (0.02, 0.98, "둘 다 '<LoQ' 보고인데 크게 움직임\n(숨은 변화 가능, 판정은 동등)"),
     (0.98, 0.02, "DOE가 숫자로 보고되지만\n움직임은 허용폭 안"),
     (0.02, 0.02, "둘 다 '<LoQ' 보고,\n움직임도 허용폭 안"),
@@ -187,7 +186,7 @@ KOREAN_TEXTS = tuple(dict.fromkeys(
         DIRECTION_NONE,
         MAP_HOW_TO_READ,
         "최종 판정 (전체 ITEM 수)",
-        "최종 판정 근거: 기본 판정 장비 정확도 옵션 물리 log 판정",
+        "최종 판정 근거: 선형 TOST LoQ 판정 log TOST 장비 정확도 절대 허용폭 한계 비교",
         LOQ_TITLE,
         LOQ_XLABEL,
         LOQ_YLABEL,
@@ -758,10 +757,15 @@ def _loq_points(items: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     _require_columns(items, {"zone", "doe_center", "LoQ", "center", "delta", "verdict"})
     in_panel = items["zone"].isin(LOQ_ZONES) & (items["verdict"].astype(str) != V_EXCLUDED)
     selected = items.loc[in_panel].assign(verdict=verdict_col(items)[in_panel])     # 색은 최종 판정
-    for column in ("doe_center", "LoQ", "center", "delta"):
-        selected[column] = pd.to_numeric(selected[column], errors="coerce")
+    for column in ("doe_center", "LoQ", "center", "delta", "ci_low", "ci_high"):
+        selected[column] = pd.to_numeric(selected[column], errors="coerce") if column in selected else np.nan
     with np.errstate(divide="ignore", invalid="ignore"):
         selected["_x"] = selected["doe_center"].abs() / selected["LoQ"]
+        a = selected["doe_center"] - selected["center"] + selected["ci_low"]       # DOE 수준 구간 (loq_verdict)
+        b = selected["doe_center"] - selected["center"] + selected["ci_high"]
+        far, near = np.maximum(a.abs(), b.abs()), np.where(a * b > 0, np.minimum(a.abs(), b.abs()), 0.0)
+        selected["_x_lo"] = (near / selected["LoQ"]).clip(LOQ_AXIS_MIN, LOQ_AXIS_MAX)
+        selected["_x_hi"] = (far / selected["LoQ"]).clip(LOQ_AXIS_MIN, LOQ_AXIS_MAX)
         # 이동 0 은 허용폭이 0 이어도 "안 움직임"이라 0/0 으로 버리지 않고 아래 끝에 놓는다
         selected["_y"] = np.where(selected["center"] == 0, 0.0, selected["center"].abs() / selected["delta"])
     valid = selected[["_x", "_y"]].notna().all(axis=1)
@@ -808,6 +812,9 @@ def draw_loq(ax, items: pd.DataFrame, flagged: frozenset[str] | None = None) -> 
     ax.axhline(1, color="#888888", linewidth=0.7, linestyle="--", zorder=1)
     for verdict in TOOL_VERDICT_ORDER:
         group = points.loc[points["verdict"] == verdict]
+        bars = group.dropna(subset=["_x_lo", "_x_hi"])
+        ax.hlines(bars["_y"], bars["_x_lo"], bars["_x_hi"], color=TOOL_VERDICT_COLORS[verdict], linewidth=1.6,
+                  alpha=0.55, zorder=2)
         for clipped, marker in ((False, "o"), (True, "^")):
             part = group.loc[group["_clipped"] == clipped]
             if not part.empty:

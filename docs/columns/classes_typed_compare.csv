@@ -1,5 +1,0 @@
-﻿column,쉬운이름,뜻,수식,볼것
-route,판정 길,items.csv `route`. 판정 길 순서(제외부터 선형 TOST까지),`route`,
-verdict_final,지금 최종 판정,items.csv `verdict_final`,`verdict_final`,
-verdict_typed,유형별 판정 (참고),items.csv `verdict_typed`,`verdict_typed`,verdict_final과 다른 행이 유형별 판정으로 바뀌는 ITEM이다
-n_items,ITEM 수,이 판정 길에서 지금 판정이 verdict_final이고 유형별 판정이 verdict_typed인 ITEM 수,,0인 칸은 행이 없다

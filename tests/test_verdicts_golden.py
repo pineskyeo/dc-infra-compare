@@ -28,5 +28,5 @@ def test_verdict_columns_match_golden(case, datasets, tmp_path: Path):
 def test_cases_cover_every_verdict_and_basis():
     text = "".join(golden_path(c).read_text(encoding="utf-8") for c in CASES)
     for value in ("동등", "차이", "미결", "판정 제외", "검출한계 이하", "검출~정량", "die 부족",
-                  "log", "accuracy", "log_physics", "auto→log", "auto→linear"):
+                  "linear", "loq", "log", "abs", "limit", "auto→log", "auto→linear"):
         assert f",{value}," in text, value

@@ -15,14 +15,10 @@ ITEM 마다 POR 값만 보고 (DOE 는 보지 않는다) 종류를 정하고, �
                   spread_robust < 0.3 이거나 기울기를 못 구하면 판별 불가, 그 밖은 linear)
   cls_run         회차 밀림 / 조건 불안정 / 회차 흔들림 / 안정
 
-유형별 판정 (참고, verdict_typed): 1·2단계 = 기본 판정 verdict (선형 TOST, LoQ 아래는 <LoQ 보고 일치) 이 동등이면 그대로.
-  아니면 3단계 = 판정 길의 판정: 한계 비교 verdict_limit, 절대 허용폭 verdict_abs, log TOST verdict_log, LoQ 판정 verdict,
-  선형 TOST 는 바닥 근처면 verdict_with_accuracy (없으면 verdict), 아니면 verdict. 그 판정이 동등·차이·미결이 아니면
-  (판정 제외·빈 칸: 절대 허용폭 값이 없는 등, 제외 길) 지금 판정 verdict_final 을 그대로 둔다 (log·장비 정확도 옵션 포함).
-  verdict_typed_log_run 은 log TOST 길에 verdict_log_run (고친 log 허용폭) 을 쓴 것.
-
-판정 길 참고 결과 (그 길의 ITEM 만 채운다):
-  절대 허용폭  --abs-tol 파일 (group,abs_delta) 의 Δ 로 같은 신뢰구간(center, ci_low, ci_high)을 TOST → verdict_abs
+최종 판정 3단계 (por_doe_compare.final_verdict) 가 판정 길의 결과를 쓴다. 판정 길마다 채우는 열 (그 길의 ITEM 만):
+  절대 허용폭  같은 신뢰구간(center, ci_low, ci_high)을 ±abs_delta 로 TOST → verdict_abs. abs_delta 는 --abs-tol 파일
+               (group,abs_delta) 의 그룹 값, 없으면 기본값: 0 중심은 그 ITEM 의 LoQ, 계단은 max(Δ, 값 간격 resolution_step,
+               바닥 근처면 장비 정확도 폭)
   한계 비교    한계(POR 최댓값·최솟값에 붙은 값, Open 코드)에 걸린 die 비율 POR (회차 평균) 대 DOE, 정확 McNemar p,
                두 쪽 모두 한계 밖인 die 로 TOST → verdict_limit
 """
@@ -37,7 +33,8 @@ import pandas as pd
 from scipy import stats
 
 from infra_compare import read_pairs
-from por_doe_compare import (CLASS_COLS, EXCLUSION_CAUSES, JUDGED, K_LOQ, MIN_DIE, NOISE_SPREAD_MIN,
+from por_doe_compare import (CLASS_COLS, EXCLUSION_CAUSES, K_LOQ, LEVEL_NEAR, MIN_DIE, R_ABS, R_EXCLUDED, R_LIMIT,
+                             R_LINEAR, R_LOG, R_LOQ, NOISE_SPREAD_MIN,
                              NP_UNKNOWN, OUTLIER_K, SCALE_LINEAR, SCALE_LOG, SHAPE_EXCLUDE_ABS, ST_BIMODAL,
                              ST_RUN_JITTER, ST_UNSTABLE, V_EXCLUDED, ExclusionFacts, ci_median, limit_sigma, near_loq,
                              por_sides, robust_sigma, tost, zero_sides)
@@ -49,12 +46,11 @@ RESOLUTION_STEP_MIN = 0.1    # 계단: POR 값 분해능 step ≥ 이 배수 × 
 
 V_OK, V_DIE_SHORT = "정상", "die 부족"
 SIGN_MIXED, SIGN_ZERO, SIGN_POS, SIGN_NEG, SIGN_NONE = "부호 섞임", "0 포함", "양수만", "음수만", "값 없음"
-LEVEL_ZERO, LEVEL_BELOW, LEVEL_NEAR, LEVEL_QUANT = "0 중심", "바닥 아래", "바닥 근처", "정량"
+LEVEL_ZERO, LEVEL_BELOW, LEVEL_QUANT = "0 중심", "바닥 아래", "정량"
 RES_STEP, RES_CONT = "계단", "연속"
 SHAPE_BIMODAL, SHAPE_OUTLIER, SHAPE_LIMIT, SHAPE_ONE = "두 덩어리", "튀는 die", "한계에 걸림", "한 덩어리"
 SCALE_UNKNOWN = "판별 불가"
 RUN_SHIFT, RUN_UNSTABLE, RUN_JITTER, RUN_OK = "회차 밀림", "조건 불안정", "회차 흔들림", "안정"
-R_EXCLUDED, R_LIMIT, R_ABS, R_LOQ, R_LOG, R_LINEAR = "제외", "한계 비교", "절대 허용폭", "LoQ 판정", "log TOST", "선형 TOST"
 
 
 @dataclass(frozen=True)
@@ -165,24 +161,6 @@ ROUTES: tuple[tuple[str, Callable[[Mapping[str, str]], bool]], ...] = (
 ROUTE_NAMES = tuple(name for name, _ in ROUTES)
 CLS_COLS = tuple(a.column for a in AXES)
 RESULT_COLS = CLASS_COLS[len(CLS_COLS) + 1:]       # route 뒤 참고 결과 열
-
-
-B_BASE, B_ACCURACY, B_KEEP = "1·2단계 동등", "선형 TOST · 장비 정확도", "지금 판정 (판정 길이 판정 못 함)"
-
-
-def typed_verdict(row: Mapping, log_col: str = "verdict_log") -> tuple[str, str]:
-    """(verdict_typed, typed_basis). row 는 판정 열 + 분류 열 + 판정 길 참고 결과. 규칙은 모듈 설명의 유형별 판정."""
-    if str(row.get("verdict", "")) == "동등":
-        return "동등", B_BASE
-    route = row.get("route")
-    near = [("verdict_with_accuracy", B_ACCURACY)] if row.get("cls_level") == LEVEL_NEAR else []
-    tries = {R_LIMIT: [("verdict_limit", R_LIMIT)], R_ABS: [("verdict_abs", R_ABS)], R_LOG: [(log_col, R_LOG)],
-             R_LOQ: [("verdict", R_LOQ)], R_LINEAR: [*near, ("verdict", R_LINEAR)]}.get(route, [])
-    for col, basis in tries:
-        v = row.get(col)
-        if isinstance(v, str) and v in JUDGED:
-            return v, basis
-    return str(row.get("verdict_final", row.get("verdict", ""))), B_KEEP
 
 
 def classify(f: Facts) -> dict[str, str]:
@@ -305,20 +283,37 @@ def read_abs_tol(path) -> dict[str, float]:
     return dict(zip(t["group"], value.astype(float)))
 
 
-def abs_result(row: Mapping, group: str | None, abs_tol: Mapping[str, float] | None) -> dict:
-    """절대 허용폭 참고 판정: 판정의 신뢰구간 (center, ci_low, ci_high) 을 Δ = abs_delta 로 TOST."""
-    if abs_tol is None:
-        return {"route_note": "--abs-tol 파일 없음"}
-    if group is None:
-        return {"route_note": "ITEM 그룹 없음 (--groups 에 없음)"}
-    if group not in abs_tol:
-        return {"route_note": f"--abs-tol 에 그룹 {group} 없음"}
-    d = abs_tol[group]
-    center, lo, hi = (float(row.get(k, np.nan)) for k in ("center", "ci_low", "ci_high"))
+def _num(row: Mapping, key: str) -> float:
+    try:
+        return float(row.get(key, np.nan))
+    except (TypeError, ValueError):
+        return np.nan
+
+
+def abs_delta_for(row: Mapping, level: str, group: str | None, abs_tol: Mapping[str, float] | None) -> tuple[float, str]:
+    """(abs_delta, 출처). --abs-tol 의 그룹 값, 없으면 기본값: 0 중심은 LoQ, 계단은 max(Δ, 값 간격 resolution_step),
+    계단이고 바닥 근처면 장비 정확도 폭까지 (바닥 근처 선형 TOST 와 같은 넓힘)."""
+    if abs_tol is not None and group is not None and group in abs_tol:
+        return abs_tol[group], f"abs_tol 그룹 {group}"
+    if level == LEVEL_ZERO:
+        return _num(row, "LoQ"), "기본값 LoQ"
+    floors = [_num(row, "delta"), _num(row, "resolution_step")]
+    if level == LEVEL_NEAR:
+        floors.append(_num(row, "accuracy_margin"))
+        return float(np.nanmax(floors)), "기본값 max(Δ, 값 간격, 장비 정확도)"
+    return float(np.nanmax(floors)), "기본값 max(Δ, 값 간격)"
+
+
+def abs_result(row: Mapping, level: str, group: str | None, abs_tol: Mapping[str, float] | None) -> dict:
+    """절대 허용폭 판정: 판정의 신뢰구간 (center, ci_low, ci_high) 을 Δ = abs_delta 로 TOST."""
+    d, source = abs_delta_for(row, level, group, abs_tol)
+    center, lo, hi = (_num(row, k) for k in ("center", "ci_low", "ci_high"))
+    if not (np.isfinite(d) and d > 0):
+        return {"route_note": f"{source}: abs_delta 가 0 이하이거나 없음"}
     if not (np.isfinite(lo) and np.isfinite(hi)):
-        return {"abs_delta": d, "route_note": "신뢰구간 없음"}
+        return {"abs_delta": d, "route_note": f"{source}: 신뢰구간 없음"}
     verdict, why = tost(center, lo, hi, d)
-    return {"abs_delta": d, "verdict_abs": verdict, "route_note": why}
+    return {"abs_delta": d, "verdict_abs": verdict, "route_note": f"{source}: {why}"}
 
 
 def shifted_items(wide: pd.DataFrame, por_cols: list[str], sigma_die: pd.Series) -> set[str]:
@@ -348,12 +343,9 @@ def add_columns(res: pd.DataFrame, facts: Mapping[str, Facts], wide: pd.DataFram
         c = classify(f)
         out = {**dict.fromkeys(RESULT_COLS, np.nan), "route_note": ""}
         if c["route"] == R_ABS:
-            out.update(abs_result(row, (group_of or {}).get(str(item).strip()), abs_tol))
+            out.update(abs_result(row, c["cls_level"], (group_of or {}).get(str(item).strip()), abs_tol))
         elif c["route"] == R_LIMIT and f.limit is not None:
             out.update(f.limit)
-        full = {**row, **c, **out}
-        out["verdict_typed"], out["typed_basis"] = typed_verdict(full)
-        out["verdict_typed_log_run"] = typed_verdict(full, "verdict_log_run")[0]
         rows.append({**c, **out})
     return pd.concat([res.reset_index(drop=True), pd.DataFrame(rows, columns=list(CLASS_COLS))], axis=1)
 

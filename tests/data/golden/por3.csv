@@ -1,12 +1,12 @@
 ITEM,verdict,verdict_final,verdict_basis,zone,reason,verdict_log,log_reason,verdict_with_accuracy,scale,status
-VOS_OFFSET,차이,차이,linear,정량,shift +3.333e-06가 ±Δ(1.567e-06) 밖,미결,경계 (신뢰구간이 Δ에 걸침),,item,회차 흔들림;분해능 부족;LoQ 근처
+VOS_OFFSET,차이,차이,abs,정량,shift +3.333e-06가 ±Δ(1.567e-06) 밖,미결,경계 (신뢰구간이 Δ에 걸침),,item,회차 흔들림;분해능 부족;LoQ 근처
 VT_SHIFT,차이,차이,linear,정량,shift +0.02996가 ±Δ(0.02256) 밖,차이,shift +0.02785가 ±Δ(0.02199) 밖,,item,정상
 VT_NOISY_DOE,미결,미결,linear,정량,해상도 부족 (신뢰구간 반폭 ≥ Δ),미결,해상도 부족 (신뢰구간 반폭 ≥ Δ),,item,정상
 IDSAT_SPEC,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,동등,90% 신뢰구간이 ±Δ 안,,item,정상
-IOFF_FLOOR,동등,동등,linear,검출한계 이하,<LoQ 보고 일치 (이동이 ±Δ 안),판정 제외,부호 섞임,,item,회차 흔들림
-IOFF_LEAK,동등,동등,linear,검출한계 이하,<LoQ 보고 일치 (DOE 중심도 LoQ 미만),판정 제외,부호 섞임,,item,회차 흔들림
-IOFF_RUNWOBBLE,동등,동등,linear,검출한계 이하,<LoQ 보고 일치 (이동이 ±Δ 안),판정 제외,부호 섞임,,item,정상
-IOFF_STEP,동등,동등,linear,검출한계 이하,<LoQ 보고 일치 (이동이 ±Δ 안),판정 제외,0값 있음,,item,산포 0
+IOFF_FLOOR,동등,동등,loq,검출한계 이하,<LoQ 보고 일치 (DOE 구간도 LoQ 미만),판정 제외,부호 섞임,,item,회차 흔들림
+IOFF_LEAK,동등,동등,loq,검출한계 이하,<LoQ 보고 일치 (DOE 구간도 LoQ 미만),판정 제외,부호 섞임,,item,회차 흔들림
+IOFF_RUNWOBBLE,동등,동등,loq,검출한계 이하,<LoQ 보고 일치 (이동이 ±Δ 안),판정 제외,부호 섞임,,item,정상
+IOFF_STEP,동등,동등,loq,검출한계 이하,<LoQ 보고 일치 (이동이 ±Δ 안),판정 제외,0값 있음,,item,산포 0
 ION_OUTLIER,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,동등,90% 신뢰구간이 ±Δ 안,,item,정상
 RON_CONTACT,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,동등,90% 신뢰구간이 ±Δ 안,,item,정상
 VT_SAME,동등,동등,linear,정량,90% 신뢰구간이 ±Δ 안,동등,90% 신뢰구간이 ±Δ 안,,item,정상

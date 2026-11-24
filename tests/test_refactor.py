@@ -106,9 +106,15 @@ def test_items_csv_matches_frozen_legacy_by_column_name(por3_data: Path, tmp_pat
     def without(r: dict[str, str], cols) -> dict[str, str]:
         return {k: v for k, v in r.items() if k not in cols}
 
+    # 결정 (2026-11-24): LoQ 아래 판정은 DOE 중심 한 점이 아니라 DOE 구간으로 본다 (loq_verdict). 판정과 사유가 바뀔 수 있다
+    loq_changed = ("verdict", "reason")
     for item, new in new_by_item.items():
         legacy = legacy_by_item[item]
-        if item in widened:
+        if new["zone"] in ("검출한계 이하", "검출~정량"):
+            assert without(new, (*loq_changed, "verdict_with_accuracy")) == \
+                without(legacy, (*loq_changed, "verdict_with_accuracy")), item
+            assert new["reason"].startswith(("<LoQ 보고 일치", "DOE 구간")), item
+        elif item in widened:
             assert without(new, accuracy_changed) == without(legacy, accuracy_changed), item
         else:
             acc = {"verdict_with_accuracy"}

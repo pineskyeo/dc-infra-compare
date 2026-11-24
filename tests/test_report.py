@@ -262,10 +262,3 @@ def test_review_section_caps_item_figures_and_says_where_the_rest_are(built, tmp
     section = (folder / "report.html").read_text(encoding="utf-8").split('id="loq"')[1].split('id="log"')[0]
     assert "확인 필요 상세" not in section
     assert f"확인 필요 {len(flagged):,}개 중 근거가 센 0개의 상세 그림만 싣는다" in section
-
-
-def test_typed_section_counts_items_whose_final_verdict_would_change(built):
-    items = pd.read_csv(built["full"] / "items.csv")
-    n = int((items["verdict_final"] != items["verdict_typed"]).sum())
-    section = (built["full"] / "report.html").read_text(encoding="utf-8").split('id="typed"')[1].split('id="stability"')[0]
-    assert (f"최종 판정이 바뀌는 ITEM {n:,}개" in section) if n else ("바뀌는 ITEM 이 없다" in section)

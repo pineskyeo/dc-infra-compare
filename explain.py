@@ -22,7 +22,8 @@ SI_UNITS = {"A": "A", "V": "V", "Ω": "Ω", "ohm": "Ω", "OHM": "Ω", "Ohm": "Ω
 SI_PREFIXES = {-15: "f", -12: "p", -9: "n", -6: "µ", -3: "m", 0: "", 3: "k", 6: "M", 9: "G"}
 V_EXCLUDED = "판정 제외"
 LOQ_ZONES = ("검출한계 이하", "검출~정량")
-BASIS_NAMES = {"linear": "기본 판정", "log": "log 판정", "accuracy": "장비 정확도 옵션", "log_physics": "물리 log 판정"}
+BASIS_NAMES = {"linear": "선형 TOST", "loq": "LoQ 판정", "log": "log TOST", "accuracy": "장비 정확도",
+               "abs": "절대 허용폭", "limit": "한계 비교"}
 
 
 def _num(x) -> float:
@@ -107,22 +108,38 @@ REASON_RULES: tuple[Rule, ...] = (
     (r"해상도 부족", "측정이 흔들려 이동량 범위가 허용폭보다 넓다. 같은지 다른지 판단할 수 없다."),
     (r"경계", "이동량 범위가 허용폭 경계에 걸쳐 있다. 같다고도 다르다고도 할 수 없다."),
     (r"<LoQ 보고 일치 \(이동이 ±Δ 안\)", "POR 값이 정량 한계(LoQ) 아래라 둘 다 '<LoQ'로 보고되고, 이동도 허용폭 안이다."),
-    (r"<LoQ 보고 일치 \(DOE 중심도 LoQ 미만\)",
-     "이동은 허용폭 밖이지만 DOE도 정량 한계(LoQ) 아래에 머물러 둘 다 '<LoQ'로 보고된다."),
-    (r"DOE 중심 .* 이상이고 이동 .*밖$", "POR은 정량 한계(LoQ) 아래인데 DOE가 LoQ 위로 올라가 보고 값이 달라진다."),
+    (r"<LoQ 보고 일치 \(DOE 구간도 LoQ 미만\)",
+     "이동은 허용폭 밖이지만 DOE 범위 전체가 정량 한계(LoQ) 아래에 머물러 둘 다 '<LoQ'로 보고된다."),
+    (r"DOE 구간 .* 이상이고 이동 .*밖$", "POR은 정량 한계(LoQ) 아래인데 DOE 범위 전체가 LoQ 위로 올라가 보고 값이 달라진다."),
+    (r"DOE 구간 .*±Δ\(.*\)에 걸침$", "DOE 범위는 정량 한계(LoQ) 위지만 이동량 범위가 허용폭 경계에 걸쳐 단정할 수 없다."),
+    (r"DOE 구간 .*LoQ\(.*\)에 걸침$", "DOE 범위가 정량 한계(LoQ) 선에 걸쳐 보고 값이 바뀌었는지 단정할 수 없다."),
     (r"die (\d+)개 \(< (\d+)\)$", lambda m: f"die가 {m[1]}개뿐이라 판정하기에 부족하다 ({m[2]}개 이상 필요)."),
     (rf"{V_EXCLUDED}: (.*)$", _excluded),
 )
 
 
+def basis_of(row: Mapping) -> str:
+    """verdict_basis. 열이 없는 옛 행은 LoQ 아래 zone 이면 loq, 아니면 linear."""
+    return _text(row.get("verdict_basis")) or ("loq" if _text(row.get("zone")) in LOQ_ZONES else "linear")
+
+
 def reason_plain(row: Mapping) -> str:
     """최종 판정(verdict_final)을 정한 사유를 한 문장으로. 모르는 사유는 원문 그대로."""
-    basis = _text(row.get("verdict_basis")) or "linear"
-    if basis == "accuracy":
-        return "LoQ 근처라 허용폭을 장비 정확도 폭까지 넓히면 이동량 범위 전체가 그 안이라 같다고 본다."
-    raw = _text(row.get("log_reason" if basis in ("log", "log_physics") else "reason"))
+    basis = basis_of(row)
+    final = _text(row.get("verdict_final")) or _text(row.get("verdict"))
+    if basis in BASIS_WORDS:
+        return f"{BASIS_WORDS[basis]} {VERDICT_WORDS.get(final, final)}"
+    raw = _text(row.get("log_reason" if basis == "log" else "reason"))
     plain = _match(REASON_RULES, raw) or raw
-    return f"log 값(배율)으로 보면 {plain}" if basis in ("log", "log_physics") else plain
+    return f"log 값(배율)으로 보면 {plain}" if basis == "log" else plain
+
+
+# 3단계 판정 길이 정한 최종 판정의 쉬운 말 (log 는 log_reason 문장을 쓴다)
+BASIS_WORDS = {"accuracy": "바닥 근처라 허용폭을 장비 정확도 폭까지 넓혀 보면",
+               "abs": "값이 0 근처이거나 계단처럼 띄엄띄엄 찍혀 고정 허용폭(절대 허용폭)으로 보면",
+               "limit": "측정 한계에 걸린 die 가 많아 한계 밖 die 만으로 보면"}
+VERDICT_WORDS = {"동등": "이동량 범위 전체가 그 안이라 같다고 본다.", "차이": "이동량 범위 전체가 그 밖이라 달라졌다고 본다.",
+                 "미결": "이동량 범위가 경계에 걸쳐 단정할 수 없다."}
 
 
 def _sentence(*parts: str) -> str:
@@ -157,6 +174,9 @@ def _delta_line(row: Mapping, unit: str, basis: str) -> str:
     parts = f"{r}{fmt(policy, unit)} + 회차 흔들림 {fmt(run, unit)}"
     if basis == "accuracy" and math.isfinite(acc):
         return f"같다고 보는 범위는 ±{fmt(max(delta, acc), unit)}다 = max({parts}, 장비 정확도 폭 {fmt(acc, unit)})."
+    abs_d = _num(row.get("abs_delta"))
+    if basis == "abs" and math.isfinite(abs_d):
+        return f"같다고 보는 범위는 ±{fmt(abs_d, unit)}다 (절대 허용폭, {_text(row.get('route_note')).split(':')[0]})."
     return f"같다고 보는 범위는 ±{fmt(delta, unit)}다 = {parts}."
 
 
@@ -191,15 +211,15 @@ def _precision_line(row: Mapping, unit: str) -> str:
 def verdict_card(row: Mapping, dies_up: int | None = None, dies_down: int | None = None) -> list[str]:
     """ITEM 판정 카드 (설계 1-6). row 는 items.csv 한 행. dies_up·dies_down 은 DOE가 높은·낮은 die 수 (원데이터에서)."""
     unit = _text(row.get("UNIT"))
-    basis = _text(row.get("verdict_basis")) or "linear"
+    basis = basis_of(row)
     final, verdict = _text(row.get("verdict_final")) or _text(row.get("verdict")), _text(row.get("verdict"))
-    head = f"{_text(row.get('ITEM'))} · {final} ({BASIS_NAMES.get(basis, basis)})"
+    head = f"{_text(row.get('ITEM'))} · {final}" + ("" if final == V_EXCLUDED else f" ({BASIS_NAMES.get(basis, basis)})")
     if verdict and verdict != final:
-        head += f" · 기본 판정은 {verdict}"
+        head += f" · 1·2단계 판정은 {verdict}"
     if final == V_EXCLUDED:
         return [head, f"→ {reason_plain(row)}"]
     moved, ci = _shift_lines(row, unit, dies_up, dies_down)
-    if basis in ("log", "log_physics"):
+    if basis == "log":
         lines = [head, moved, *_log_lines(row)]
     else:
         lines = [head, moved, ci, _delta_line(row, unit, basis)]

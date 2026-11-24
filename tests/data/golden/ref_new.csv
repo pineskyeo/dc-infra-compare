@@ -2,7 +2,7 @@ ITEM,verdict,verdict_final,verdict_basis,zone,reason,verdict_log,log_reason,verd
 ILEAK_WOBBLE,차이,차이,linear,정량,shift +5.133e-12가 ±Δ(8.512e-13) 밖,판정 제외,부호 섞임,,item,산포 0
 IOFF_LEAKY,차이,차이,linear,정량,shift +4.734e-13가 ±Δ(1.656e-15) 밖,판정 제외,부호 섞임,,item,산포 0
 IOFF_OFFSET,차이,차이,linear,정량,shift +2.845e-12가 ±Δ(6.257e-15) 밖,판정 제외,부호 섞임,,item,산포 0
-FEW_DIE,미결,미결,linear,정량,경계 (신뢰구간이 Δ에 걸침),미결,경계 (신뢰구간이 Δ에 걸침),,item,산포 0
+FEW_DIE,미결,미결,limit,정량,경계 (신뢰구간이 Δ에 걸침),미결,경계 (신뢰구간이 Δ에 걸침),,item,산포 0
 ILEAK_DETECT,미결,미결,linear,정량,해상도 부족 (신뢰구간 반폭 ≥ Δ),미결,해상도 부족 (신뢰구간 반폭 ≥ Δ),,item,산포 0
 IOFF_FLOOR,미결,미결,linear,정량,해상도 부족 (신뢰구간 반폭 ≥ Δ),판정 제외,부호 섞임,,item,산포 0
 IOFF_MAP,미결,미결,linear,정량,해상도 부족 (신뢰구간 반폭 ≥ Δ),판정 제외,부호 섞임,,item,산포 0

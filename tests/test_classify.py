@@ -182,7 +182,7 @@ def test_add_columns_abs_route_reference():
         res = judged(Y, z, name)
         rows.append(res)
         fx[name] = classify.item_facts(Y, z, res, R)
-    res = pdc.add_final_verdict(pd.DataFrame(rows).assign(scale="item"))
+    res = pd.DataFrame(rows).assign(scale="item")
     wide = pd.concat([pd.DataFrame(PLAIN, columns=["POR1", "POR2", "POR3"]).assign(ITEM=n) for n in fx])
     out = classify.add_columns(res, fx, wide, ["POR1", "POR2", "POR3"], {"VT_STEP": "VT", "FLOOR": "IOFF"},
                                {"VT": 0.05})
@@ -190,12 +190,16 @@ def test_add_columns_abs_route_reference():
     assert list(out.columns[-len(pdc.CLASS_COLS):]) == list(pdc.CLASS_COLS)
     assert by.loc["VT_STEP", "route"] == "절대 허용폭"
     assert (by.loc["VT_STEP", "verdict_abs"], by.loc["VT_STEP", "abs_delta"]) == ("동등", 0.05)
-    assert by.loc["FLOOR", "route"] == "절대 허용폭" and pd.isna(by.loc["FLOOR", "verdict_abs"])
-    assert by.loc["FLOOR", "route_note"] == "--abs-tol 에 그룹 IOFF 없음"
+    assert by.loc["VT_STEP", "route_note"].startswith("abs_tol 그룹 VT")
+    # 표에 그룹이 없으면 기본값: 0 중심은 그 ITEM 의 LoQ
+    assert by.loc["FLOOR", "route"] == "절대 허용폭"
+    assert by.loc["FLOOR", "abs_delta"] == pytest.approx(by.loc["FLOOR", "LoQ"])
+    assert by.loc["FLOOR", "route_note"].startswith("기본값 LoQ") and by.loc["FLOOR", "verdict_abs"] in pdc.JUDGED
     assert by.loc["PLAIN", "route"] == "선형 TOST" and pd.isna(by.loc["PLAIN", "verdict_abs"])
-    assert (out["verdict_final"] == res["verdict_final"]).all()
     none = classify.add_columns(res, fx, wide, ["POR1", "POR2", "POR3"], None, None).set_index("ITEM")
-    assert none.loc["VT_STEP", "route_note"] == "--abs-tol 파일 없음"
+    step = none.loc["VT_STEP"]
+    assert step["route_note"].startswith("기본값 max(Δ, 값 간격")
+    assert step["abs_delta"] == pytest.approx(max(step["delta"], step["resolution_step"]))
 
 
 def test_read_abs_tol_rejects_non_positive(tmp_path):
@@ -264,30 +268,3 @@ def test_por_doe_compare_abs_tol_needs_groups(tmp_path):
     proc = _run(ROOT / "por_doe_compare.py", "--por", tmp_path, "--por", tmp_path, "--doe", tmp_path,
                 "--abs-tol", abs_file)
     assert proc.returncode != 0 and "--abs-tol 에는 --groups" in proc.stderr
-
-
-def test_typed_verdict_keeps_stage_one_equal_and_uses_the_route_otherwise():
-    from classify import B_ACCURACY, B_BASE, B_KEEP, typed_verdict
-    row = {"verdict": "미결", "verdict_final": "동등", "verdict_log": "동등", "verdict_log_run": "미결",
-           "verdict_abs": "차이", "verdict_limit": "동등", "verdict_with_accuracy": "동등", "cls_level": "정량"}
-    assert typed_verdict({**row, "verdict": "동등", "route": "log TOST"}) == ("동등", B_BASE)
-    assert typed_verdict({**row, "route": "절대 허용폭"}) == ("차이", "절대 허용폭")
-    assert typed_verdict({**row, "route": "한계 비교"}) == ("동등", "한계 비교")
-    assert typed_verdict({**row, "route": "log TOST"}) == ("동등", "log TOST")
-    assert typed_verdict({**row, "route": "log TOST"}, "verdict_log_run") == ("미결", "log TOST")
-    assert typed_verdict({**row, "route": "선형 TOST"}) == ("미결", "선형 TOST")
-    assert typed_verdict({**row, "route": "선형 TOST", "cls_level": "바닥 근처"}) == ("동등", B_ACCURACY)
-    assert typed_verdict({**row, "route": "LoQ 판정"}) == ("미결", "LoQ 판정")
-    no_abs = {**row, "route": "절대 허용폭", "verdict_abs": float("nan")}
-    assert typed_verdict(no_abs) == ("동등", B_KEEP)
-    assert typed_verdict({**row, "route": "제외", "verdict": "판정 제외", "verdict_final": "판정 제외"}) == ("판정 제외", B_KEEP)
-
-
-def test_typed_compare_counts_pairs_per_route():
-    import classes
-    items = pd.DataFrame({"route": ["선형 TOST", "log TOST", "log TOST", "절대 허용폭"],
-                          "verdict_final": ["미결", "미결", "미결", "동등"], "verdict_typed": ["미결", "동등", "동등", "동등"]})
-    t = classes.typed_compare(items)
-    assert t.values.tolist() == [["절대 허용폭", "동등", "동등", 1], ["log TOST", "미결", "동등", 2],
-                                 ["선형 TOST", "미결", "미결", 1]]
-    assert "바뀌는 ITEM 2개 (미결→동등 2)" in classes.typed_change_text(items)

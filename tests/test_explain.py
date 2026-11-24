@@ -46,10 +46,14 @@ def test_pct(part, whole, text):
      "측정이 흔들려 이동량 범위가 허용폭보다 넓다. 같은지 다른지 판단할 수 없다."),
     ({"reason": "<LoQ 보고 일치 (이동이 ±Δ 안)"},
      "POR 값이 정량 한계(LoQ) 아래라 둘 다 '<LoQ'로 보고되고, 이동도 허용폭 안이다."),
-    ({"reason": "<LoQ 보고 일치 (DOE 중심도 LoQ 미만)"},
-     "이동은 허용폭 밖이지만 DOE도 정량 한계(LoQ) 아래에 머물러 둘 다 '<LoQ'로 보고된다."),
-    ({"reason": "DOE 중심 2.1e-11가 LoQ(1.652e-11) 이상이고 이동 +2e-11가 ±Δ(4.9e-15) 밖"},
-     "POR은 정량 한계(LoQ) 아래인데 DOE가 LoQ 위로 올라가 보고 값이 달라진다."),
+    ({"reason": "<LoQ 보고 일치 (DOE 구간도 LoQ 미만)"},
+     "이동은 허용폭 밖이지만 DOE 범위 전체가 정량 한계(LoQ) 아래에 머물러 둘 다 '<LoQ'로 보고된다."),
+    ({"reason": "DOE 구간 1.9e-11~2.3e-11가 LoQ(1.652e-11) 이상이고 이동 +2e-11가 ±Δ(4.9e-15) 밖"},
+     "POR은 정량 한계(LoQ) 아래인데 DOE 범위 전체가 LoQ 위로 올라가 보고 값이 달라진다."),
+    ({"reason": "DOE 구간 1.2e-11~2.3e-11가 LoQ(1.652e-11)에 걸침"},
+     "DOE 범위가 정량 한계(LoQ) 선에 걸쳐 보고 값이 바뀌었는지 단정할 수 없다."),
+    ({"reason": "DOE 구간 1.7e-11~2.3e-11가 LoQ(1.652e-11) 이상이지만 이동 구간이 ±Δ(4.9e-15)에 걸침"},
+     "DOE 범위는 정량 한계(LoQ) 위지만 이동량 범위가 허용폭 경계에 걸쳐 단정할 수 없다."),
     ({"reason": "die 6개 (< 10)"}, "die가 6개뿐이라 판정하기에 부족하다 (10개 이상 필요)."),
     ({"reason": "판정 제외: 회차 0값 (POR2); 모든 값 같음"},
      "판정에서 뺐다. POR2 값만 die 절반 넘게 0이다, POR·DOE 값이 모두 같다."),
@@ -60,8 +64,10 @@ def test_pct(part, whole, text):
      "판정에서 뺐다. 허용폭이 0 이하라 정할 수 없다."),
     ({"verdict_basis": "log", "reason": "경계 (신뢰구간이 Δ에 걸침)", "log_reason": "90% 신뢰구간이 ±Δ 안"},
      "log 값(배율)으로 보면 이동량 범위(90% 신뢰구간) 전체가 허용폭 안이라 같다고 본다."),
-    ({"verdict_basis": "accuracy", "reason": "shift +3.3e-06가 ±Δ(1.6e-06) 밖"},
-     "LoQ 근처라 허용폭을 장비 정확도 폭까지 넓히면 이동량 범위 전체가 그 안이라 같다고 본다."),
+    ({"verdict_basis": "accuracy", "verdict_final": "동등", "reason": "shift +3.3e-06가 ±Δ(1.6e-06) 밖"},
+     "바닥 근처라 허용폭을 장비 정확도 폭까지 넓혀 보면 이동량 범위 전체가 그 안이라 같다고 본다."),
+    ({"verdict_basis": "abs", "verdict_final": "미결", "reason": "shift +3.3e-06가 ±Δ(1.6e-06) 밖"},
+     "값이 0 근처이거나 계단처럼 띄엄띄엄 찍혀 고정 허용폭(절대 허용폭)으로 보면 이동량 범위가 경계에 걸쳐 단정할 수 없다."),
     ({"reason": "새 사유 문구"}, "새 사유 문구"),
 ])
 def test_reason_plain_every_family(row, text):
@@ -77,7 +83,7 @@ VT_SHIFT = {"ITEM": "VT_SHIFT", "UNIT": "V", "verdict_final": "차이", "verdict
 
 def test_card_quantified_difference():
     assert verdict_card(VT_SHIFT, dies_up=61, dies_down=0) == [
-        "VT_SHIFT · 차이 (기본 판정)",
+        "VT_SHIFT · 차이 (선형 TOST)",
         "DOE가 POR보다 +30 mV (+6.6%) 높다. die 61개 중 61개에서 DOE가 높고 0개에서 낮다.",
         "실제 이동량은 +29.8 mV ~ +30.4 mV 사이로 본다 (90% 신뢰구간).",
         "같다고 보는 범위는 ±22.6 mV다 = 값의 5% 22.6 mV + 회차 흔들림 0 V.",
@@ -87,16 +93,16 @@ def test_card_quantified_difference():
 
 
 def test_card_loq_zone_has_no_percent_and_explains_loq():
-    row = {"ITEM": "IOFF_LEAK", "UNIT": "A", "verdict_final": "동등", "verdict_basis": "linear", "verdict": "동등",
-           "zone": "검출한계 이하", "reason": "<LoQ 보고 일치 (DOE 중심도 LoQ 미만)", "n_die": 61,
+    row = {"ITEM": "IOFF_LEAK", "UNIT": "A", "verdict_final": "동등", "verdict_basis": "loq", "verdict": "동등",
+           "zone": "검출한계 이하", "reason": "<LoQ 보고 일치 (DOE 구간도 LoQ 미만)", "n_die": 61,
            "center": 5.858201e-13, "ci_low": 2.354243e-13, "ci_high": 1.556112e-12, "delta": 4.894006e-15,
            "policy_margin": 4.894006e-15, "run_margin": 0.0, "por_median": -9.788012e-14, "LoQ": 1.652256e-11}
     assert verdict_card(row) == [
-        "IOFF_LEAK · 동등 (기본 판정)",
+        "IOFF_LEAK · 동등 (LoQ 판정)",
         "DOE가 POR보다 +586 fA 높다.",
         "실제 이동량은 +235 fA ~ +1.56 pA 사이로 본다 (90% 신뢰구간).",
         "같다고 보는 범위는 ±4.89 fA다 = 값의 5% 4.89 fA + 회차 흔들림 0 A.",
-        "→ 이동은 허용폭 밖이지만 DOE도 정량 한계(LoQ) 아래에 머물러 둘 다 '<LoQ'로 보고된다.",
+        "→ 이동은 허용폭 밖이지만 DOE 범위 전체가 정량 한계(LoQ) 아래에 머물러 둘 다 '<LoQ'로 보고된다.",
         "POR 값은 -97.9 fA, 정량 한계는 16.5 pA다 (LoQ의 0.00592배). "
         "값이 LoQ 아래라 숫자 대신 '<LoQ' 보고가 같은지로 판정했다.",
     ]
@@ -106,7 +112,7 @@ def test_card_excluded_is_head_and_reason_only():
     row = {"ITEM": "STEP", "verdict_final": "판정 제외", "verdict_basis": "linear", "verdict": "판정 제외",
            "zone": "판정 제외", "reason": "판정 제외: die 산포 0 (σ_die=0)", "center": 0.0, "ci_low": 0.0,
            "ci_high": 0.0, "delta": 0.003}
-    assert verdict_card(row) == ["STEP · 판정 제외 (기본 판정)", "→ 판정에서 뺐다. die 값이 고정되어 있어 흔들림을 잴 수 없다."]
+    assert verdict_card(row) == ["STEP · 판정 제외", "→ 판정에서 뺐다. die 값이 고정되어 있어 흔들림을 잴 수 없다."]
 
 
 def test_card_accuracy_basis_shows_equipment_term():
@@ -116,9 +122,9 @@ def test_card_accuracy_basis_shows_equipment_term():
            "por_median": 3.133333e-05, "LoQ": 2.096713e-05, "sigma_meas": 2.096713e-06, "meas_precision_pct": 6.691637,
            "accuracy_margin": 1.074527e-03}
     lines = verdict_card(row)
-    assert lines[0] == "VOS_OFFSET · 동등 (장비 정확도 옵션) · 기본 판정은 차이"
+    assert lines[0] == "VOS_OFFSET · 동등 (장비 정확도) · 1·2단계 판정은 차이"
     assert lines[3] == "같다고 보는 범위는 ±1.07 mV다 = max(값의 5% 1.57 µV + 회차 흔들림 0 V, 장비 정확도 폭 1.07 mV)."
-    assert lines[4].startswith("→ LoQ 근처라 허용폭을 장비 정확도 폭까지 넓히면")
+    assert lines[4].startswith("→ 바닥 근처라 허용폭을 장비 정확도 폭까지 넓혀 보면")
 
 
 def test_card_log_basis_reads_in_ratio():
@@ -128,7 +134,7 @@ def test_card_log_basis_reads_in_ratio():
            "ci_high_log": 0.0453, "delta_log": 0.0293, "sigma_rep_log": 0.00807, "LoQ": 0.146, "sigma_meas": 0.0146,
            "meas_precision_pct": 1.48}
     assert verdict_card(row) == [
-        "I00013 · 차이 (log 판정) · 기본 판정은 미결",
+        "I00013 · 차이 (log TOST) · 1·2단계 판정은 미결",
         "DOE가 POR보다 +0.0987 u (+10.0%) 높다.",
         "log 값으로 보면 DOE가 POR의 1.1배다 (+10.0%).",
         "실제 배율은 1.1 ~ 1.11배 사이로 본다 (90% 신뢰구간).",

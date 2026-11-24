@@ -16,8 +16,9 @@
        Δ' = max(Δ, accuracy_margin) 의 TOST 판정을 verdict_with_accuracy 에 남기고 (정량 zone 만),
        LoQ 근처 ITEM 에서만 accuracy 옵션(5)이 쓴다. 그 밖은 참고
    정량 (|POR| ≥ LoQ): 신뢰구간이 ±Δ 안 → 동등, 통째로 밖 → 차이, 걸침 → 미결
-   LoQ 미만: 값은 "<LoQ"로 보고한다 (IUPAC). 신뢰구간이 통째로 ±Δ 밖이고 DOE 중심(POR 중앙값 + shift)이
-     LoQ 이상이라 보고가 달라질 때만 차이, 그 밖은 동등 ("<LoQ 보고 일치")
+   LoQ 미만: 값은 "<LoQ"로 보고한다 (IUPAC). DOE 수준 구간 = POR 수준 중앙값 + [ci_low, ci_high] (loq_verdict).
+     신뢰구간이 ±Δ 안 → 동등. DOE 구간이 통째로 LoQ 미만 → 동등 ("<LoQ 보고 일치"). DOE 구간이 통째로 LoQ 이상이고
+     신뢰구간이 통째로 ±Δ 밖 → 차이 (보고가 숫자로 바뀜). 그 밖 (DOE 구간이 LoQ 에 걸침 등) → 미결
    판정 제외: 판정할 것이 없는 ITEM. 맞는 원인 모두를 아래 순서로 '; ' 구분해 reason에 적는다 (EXCLUSION_CAUSES)
      (1) 중심·신뢰구간 NaN/inf
      (2) 회차 0값: POR 회차나 DOE 하나가 die 절반 넘게 정확히 0인데 다른 쪽 하나라도 절반 넘게 0이 아님 (이름을 적음)
@@ -32,20 +33,14 @@
 4. 참고 (판정에 안 씀): t-test (NIST 7.3.1.1), POR 회차끼리 t-test, 튀는 die (|d − 중앙값| > 5 robust σ),
    ITEM 분류와 판정 길 (classify.py, CLASS_COLS. POR 값만 본다. --abs-tol 은 절대 허용폭 참고 판정에만)
 
-5. 최종 판정 verdict_final: 위 판정(verdict)이 동등이나 판정 제외면 그대로. 차이·미결인 ITEM만 +@ 옵션(OPTIONS)이
-   재판정하고, 옵션은 모두 TOST 만 한다 (LoQ 판정 없음). OPTIONS 순서로 대상인 옵션 중 동등을 주는 첫 옵션이 정한다.
-   동등이 없으면 대상이고 판정이 나온 log 옵션(log, log_physics)의 판정, 그것도 없으면 기본 판정 (basis linear).
-   accuracy 옵션은 동등일 때만 판정을 바꾼다 (final_verdict)
-   1) log: scale item 이면 status 'log 후보' (decades ≥ 1, log_fit > 0.1), auto→log 면 decades ≥ 1, log_fit > 0.
-      log10 값에서 TOST (judge_log)
-   2) accuracy: status 'LoQ 근처' (LoQ ≤ |POR 중앙값| < LoQ / (10 r)) 이고 accuracy_margin 이 있음.
-      Δ' = max(Δ, accuracy_margin) 의 TOST (verdict_with_accuracy). LoQ = 10σ 라 이 구간에서는 1회 측정 잡음(LoQ/10)이
-      허용폭 r × |POR| 보다 크다
-   3) log_physics: scale log 이고 decades ≥ 1, log_fit > 0. 1) 과 같은 log10 TOST (verdict_log)
+5. 최종 판정 verdict_final (final_verdict): 위 판정(verdict, 1·2단계)이 동등이면 그대로. 아니면 3단계로 ITEM 의
+   판정 길(route, classify.py 가 POR 값만 보고 정함)의 판정 (ROUTE_METHODS): 한계 비교 verdict_limit, 절대 허용폭
+   verdict_abs, log TOST verdict_log (Δ_log = log10(1 + r) + sigma_rep_log), 선형 TOST 이고 cls_level 바닥 근처면
+   verdict_with_accuracy (Δ' = max(Δ, accuracy_margin)). 그 판정이 동등·차이·미결이 아니면 (판정 제외·빈 칸, 제외·LoQ 판정
+   길) 1·2단계 판정. verdict_basis = 정한 방법 (linear, loq, log, accuracy, abs, limit).
+   verdict_final_log_run (참고): log TOST 길에 verdict_log_run (Δ_log_run = log10(1 + r) + t·√(1+1/J)·sigma_run_log).
    scale (--groups ITEM,group 과 --scales group,scale): 표의 log·linear 는 그대로, 표에 없거나 auto 인 그룹은 이번 실행의
-   그 그룹 ITEM 으로 정한다 (auto→log·auto→linear, scales_auto.csv). decades·log_fit 이 있는 ITEM 중 절반 넘게
-   decades ≥ 1 이고 그 ITEM 들의 log_fit 중앙값 > 0 이면 log. 그룹이 없거나 --scales 가 없으면 item.
-   linear·auto→linear 는 log 옵션 대상이 아니고, 한 ITEM 은 두 log 옵션 중 많아야 하나의 대상이다
+   그 그룹 ITEM 으로 정한다 (auto→log·auto→linear, scales_auto.csv). classify 의 cls_scale 이 표의 log·linear 를 따른다
 """
 from __future__ import annotations
 
@@ -111,7 +106,7 @@ LOG_RUN_COLS = ["verdict_log_run", "delta_log_run"]
 POR_MEAN_RE = re.compile(r"POR\d+_mean")
 # ITEM 분류와 판정 길 (classify.py, 참고, 판정에 안 씀). classify.AXES 열 순서 + route + 판정 길 참고 결과
 CLASS_COLS = ("cls_valid", "cls_sign", "cls_level", "cls_resolution", "cls_shape", "cls_noise", "cls_scale", "cls_run",
-              "route", "verdict_typed", "typed_basis", "verdict_typed_log_run", "verdict_abs", "abs_delta", "verdict_limit", "limit_share_por", "limit_share_doe", "limit_p",
+              "route", "verdict_abs", "abs_delta", "verdict_limit", "limit_share_por", "limit_share_doe", "limit_p",
               "route_note")
 # items.csv 열 순서의 유일한 출처: 묶음 순서대로, 묶음 안은 적힌 순서. POR_MEAN_RE 는 맞는 열을 원래 순서로.
 # 표에 없는 열은 맨 끝에 원래 순서로 붙는다.
@@ -609,11 +604,40 @@ def tost(center: float, lo: float, hi: float, delta: float) -> tuple[str, str]:
     return "미결", "경계 (신뢰구간이 Δ에 걸침)"
 
 
+LOQ_BELOW, LOQ_ABOVE, LOQ_CROSS = "LoQ 미만", "LoQ 이상", "LoQ 에 걸침"
+
+
+def loq_side(lo: float, hi: float, loq: float) -> str:
+    """구간 [lo, hi] 이 |값| < LoQ 안에 통째로 있나 (LOQ_BELOW), 통째로 |값| ≥ LoQ 쪽에 있나 (LOQ_ABOVE), 걸치나."""
+    if -loq < lo and hi < loq:
+        return LOQ_BELOW
+    return LOQ_ABOVE if lo >= loq or hi <= -loq else LOQ_CROSS
+
+
+def loq_verdict(center: float, lo: float, hi: float, delta: float, base: float, loq: float) -> tuple[str, str]:
+    """2단계 LoQ 판정 (|POR 중앙값| < LoQ). DOE 수준 구간 = base (POR 수준 중앙값) + [lo, hi]."""
+    shift = tost(center, lo, hi, delta)[0]
+    a, b = base + lo, base + hi
+    side = loq_side(a, b, loq)
+    span = f"DOE 구간 {a:.4g}~{b:.4g}"
+    if shift == "동등":
+        return "동등", "<LoQ 보고 일치 (이동이 ±Δ 안)"
+    if side == LOQ_BELOW:
+        return "동등", "<LoQ 보고 일치 (DOE 구간도 LoQ 미만)"
+    if side == LOQ_ABOVE and shift == "차이":
+        return "차이", f"{span}가 LoQ({loq:.4g}) 이상이고 이동 {center:+.4g}가 ±Δ({delta:.4g}) 밖"
+    if side == LOQ_ABOVE:
+        return "미결", f"{span}가 LoQ({loq:.4g}) 이상이지만 이동 구간이 ±Δ({delta:.4g})에 걸침"
+    return "미결", f"{span}가 LoQ({loq:.4g})에 걸침"
+
+
 def reason_group(reason: pd.Series) -> pd.Series:
     """사유에서 숫자를 빼고 종류만 남긴다 (표로 세기 위해). 판정 제외 사유는 괄호 속 값을 뺀다."""
     s = (reason.astype(str)
          .str.replace(r"^shift .*밖$", "shift가 ±Δ 밖", regex=True)
-         .str.replace(r"^DOE 중심 .*밖$", "LoQ 미만: DOE 중심 ≥ LoQ이고 이동이 ±Δ 밖", regex=True))
+         .str.replace(r"^DOE 구간 .*밖$", "LoQ 미만: DOE 구간 ≥ LoQ이고 이동이 ±Δ 밖", regex=True)
+         .str.replace(r"^DOE 구간 .*LoQ\([^)]*\)에 걸침$", "LoQ 미만: DOE 구간이 LoQ에 걸침", regex=True)
+         .str.replace(r"^DOE 구간 .*±Δ\([^)]*\)에 걸침$", "LoQ 미만: DOE 구간 ≥ LoQ, 이동이 ±Δ에 걸침", regex=True))
     return s.where(~s.str.startswith(V_EXCLUDED), s.str.replace(r" \([^)]*\)", "", regex=True))
 
 
@@ -767,13 +791,10 @@ def judge(Y: np.ndarray, z: np.ndarray, r: float, blank_lim=None,
 
     if level < loq:
         zone = "검출한계 이하" if level < lod else "검출~정량"
-        doe_c = float(np.median(R)) + center
-        out.update(zone=zone, doe_center=doe_c, range_doe="")   # 바닥 값은 DOE/POR 비가 의미 없어 DOE range를 정하지 않음
-        if (lo > delta or hi < -delta) and abs(doe_c) >= loq:
-            return {**out, "verdict": "차이",
-                    "reason": f"DOE 중심 {doe_c:.4g}가 LoQ({loq:.4g}) 이상이고 이동 {center:+.4g}가 ±Δ({delta:.4g}) 밖"}, outlier
-        note = "DOE 중심도 LoQ 미만" if (lo > delta or hi < -delta) else "이동이 ±Δ 안"
-        return {**out, "verdict": "동등", "reason": f"<LoQ 보고 일치 ({note})"}, outlier
+        base = float(np.median(R))
+        out.update(zone=zone, doe_center=base + center, range_doe="")   # 바닥 값은 DOE/POR 비가 의미 없어 DOE range를 정하지 않음
+        verdict, why = loq_verdict(center, lo, hi, delta, base, loq)
+        return {**out, "verdict": verdict, "reason": why}, outlier
 
     src_d = "정책 + 회차"
     out.update(zone="정량", delta_source=src_d, verdict_with_accuracy=_verdict_with_accuracy(
@@ -897,72 +918,35 @@ def _num(row: Mapping, key: str) -> float:
         return np.nan
 
 
-def _log_shape(row: Mapping) -> bool:
-    return _num(row, "decades") >= LOG_DECADES_MIN and _num(row, "log_fit") > LOG_FIT_MIN_SCALE     # NaN이면 False
-
-
-# scale → (그 scale 의 ITEM 이 대상인 log 옵션 basis, 대상 검사). 표에 없는 scale(linear, auto→linear)은 log 옵션 대상이 아니다.
-# scale 마다 basis 가 하나라 한 ITEM 이 두 log 옵션의 대상이 될 수 없다. item 은 옛 items.csv 에도 있는 status 로 본다.
-SCALE_LOG_RULES: dict[str, tuple[str, Callable[[Mapping], bool]]] = {
-    SCALE_ITEM: ("log", lambda row: ST_LOG_CANDIDATE in _status_parts(row.get("status"))),
-    AUTO_SCALES[SCALE_LOG]: ("log", _log_shape),
-    SCALE_LOG: ("log_physics", _log_shape),
-}
-
-
-def _scale(row: Mapping) -> str:
-    """row 의 scale. scale 열이 없거나 빈 옛 items.csv 는 item."""
-    return _text(row.get("scale")) or SCALE_ITEM
-
-
-def _log_rule(basis: str) -> Callable[[Mapping], bool]:
-    def eligible(row: Mapping) -> bool:
-        rule = SCALE_LOG_RULES.get(_scale(row))
-        return rule is not None and rule[0] == basis and rule[1](row)
-    return eligible
-
-
-def _near_loq_with_margin(row: Mapping) -> bool:
-    return ST_NEAR_LOQ in _status_parts(row.get("status")) and bool(np.isfinite(_num(row, "accuracy_margin")))
-
-
-@dataclass(frozen=True)
-class Option:
-    """기본 판정(judge) 뒤의 +@ 재판정 하나 (TOST 만). eligible(row): row 는 items.csv 한 행 (dict 처럼 get).
-    replaces: 대상이고 판정이 나오면 동등이 아니어도 기본 판정을 대신하는지. False 면 동등일 때만 쓴다.
-    compute(Y, z, r, 기본 판정 결과) → 이 옵션이 채우는 열, 모든 ITEM에 채운다 (참고용). 판정 열을 다른 곳(judge,
-    다른 옵션)이 채우면 None."""
-    basis: str
-    verdict_col: str
-    eligible: Callable[[Mapping], bool]
-    replaces: bool
-    compute: Callable[[np.ndarray, np.ndarray, float, dict], dict] | None = None
-
-
-# 순서가 cascade 순서 (final_verdict). verdict_with_accuracy 는 judge 가 정량 zone 에서 채운다
-OPTIONS = (Option("log", "verdict_log", _log_rule("log"), replaces=True, compute=log_columns),
-           Option("accuracy", "verdict_with_accuracy", _near_loq_with_margin, replaces=False),
-           Option("log_physics", "verdict_log", _log_rule("log_physics"), replaces=True))
+# 판정 길 (route). classify.py 가 ITEM 마다 POR 값만 보고 정하고, 최종 판정 3단계가 길마다 아래 판정 열을 쓴다
+R_EXCLUDED, R_LIMIT, R_ABS, R_LOQ, R_LOG, R_LINEAR = "제외", "한계 비교", "절대 허용폭", "LoQ 판정", "log TOST", "선형 TOST"
+LEVEL_NEAR = "바닥 근처"            # classify cls_level: LoQ 근처
+LOQ_ZONE_NAMES = ("검출한계 이하", "검출~정량")
 JUDGED = ("동등", "차이", "미결")
 
 
-def final_verdict(row: Mapping) -> tuple[str, str]:
-    """최종 판정 (verdict_final, verdict_basis). row 는 items.csv 한 행 (verdict, status, scale, 옵션 판정 열 등).
-    기본 판정이 동등이나 판정 제외면 (verdict, 'linear'). 아니면 OPTIONS 순서로 대상이고 판정(동등·차이·미결)이
-    나온 옵션 중 동등인 첫 옵션의 (동등, basis), 없으면 replaces 인 첫 옵션의 (판정, basis), 없으면 (verdict, 'linear').
-    없는 열은 빈 칸으로 본다 (옛 items.csv)."""
-    verdict = row.get("verdict")
-    if _text(verdict) in ("동등", V_EXCLUDED):
-        return verdict, "linear"
-    judged = [(v, o) for o in OPTIONS if o.eligible(row) and (v := _text(row.get(o.verdict_col))) in JUDGED]
-    pick = next((j for j in judged if j[0] == "동등"), None) or next((j for j in judged if j[1].replaces), None)
-    return (pick[0], pick[1].basis) if pick else (verdict, "linear")
+def route_method(row: Mapping, log_col: str = "verdict_log") -> tuple[str, str] | None:
+    """3단계에서 이 ITEM 의 판정 길이 쓰는 (판정 열, verdict_basis). 쓸 열이 없는 길 (제외, LoQ 판정, 선형 TOST) 은 None."""
+    route = _text(row.get("route"))
+    if route == R_LINEAR:
+        return ("verdict_with_accuracy", "accuracy") if _text(row.get("cls_level")) == LEVEL_NEAR else None
+    return {R_LIMIT: ("verdict_limit", "limit"), R_ABS: ("verdict_abs", "abs"), R_LOG: (log_col, "log")}.get(route)
+
+
+def final_verdict(row: Mapping, log_col: str = "verdict_log") -> tuple[str, str]:
+    """최종 판정 (verdict_final, verdict_basis). row 는 items.csv 한 행 (verdict, zone, route, cls_level, 판정 길 열).
+    1·2단계 판정 verdict 가 동등이면 그대로. 아니면 판정 길의 판정이 동등·차이·미결이면 그것, 아니면 verdict.
+    route 가 없는 옛 items.csv 는 verdict 그대로."""
+    verdict = _text(row.get("verdict"))
+    stage = "loq" if _text(row.get("zone")) in LOQ_ZONE_NAMES else "linear"
+    method = None if verdict == "동등" else route_method(row, log_col)
+    v = _text(row.get(method[0])) if method else ""
+    return (v, method[1]) if v in JUDGED else (verdict, stage)
 
 
 def add_final_verdict(res: pd.DataFrame) -> pd.DataFrame:
     """res 에 verdict_final·verdict_basis 열을 verdict 바로 뒤에 넣어 돌려준다. 없는 열은 빈 칸으로 본다 (옛 CSV).
-    verdict_log_run 열이 있으면 verdict_final_log_run (log 옵션이 verdict_log 대신 verdict_log_run 을 쓸 때의 최종 판정,
-    참고용) 도 넣는다."""
+    verdict_log_run 열이 있으면 verdict_final_log_run (log TOST 길이 verdict_log_run 을 쓸 때의 최종 판정, 참고용) 도 넣는다."""
     rows = res.to_dict("records")
     fb = [final_verdict(row) for row in rows]
     res = res.drop(columns=["verdict_final", "verdict_basis", "verdict_final_log_run"], errors="ignore")
@@ -970,8 +954,7 @@ def add_final_verdict(res: pd.DataFrame) -> pd.DataFrame:
     res.insert(at, "verdict_final", [f for f, _ in fb])
     res.insert(at + 1, "verdict_basis", [b for _, b in fb])
     if "verdict_log_run" in res:
-        res.insert(at + 2, "verdict_final_log_run",
-                   [final_verdict({**row, "verdict_log": row.get("verdict_log_run")})[0] for row in rows])
+        res.insert(at + 2, "verdict_final_log_run", [final_verdict(row, "verdict_log_run")[0] for row in rows])
     return res
 
 
@@ -1082,7 +1065,7 @@ def judge_item(item: str, g: pd.DataFrame, por_cols: list[str], units: dict, r: 
         extra["verdict_no_blank"] = judge(Y, z, r, None, info)[0]["verdict"]
     status = item_status(Y, z, res["delta"], res["LoQ"], r)
     prec = meas_precision(*(res.get(k, np.nan) for k in ("sigma_die", "sigma_run", "por_median", "delta")))
-    opts = {k: v for o in OPTIONS if o.compute for k, v in o.compute(Y, z, r, res).items()}
+    opts = log_columns(Y, z, r, res)
     spread = spread_robust(Y.mean(axis=1))
     ref = {**loq_ref(res["por_median"], res["LoQ"], status["resolution_step"]), "spread_robust": spread,
            **noise_cols(Y, spread), "judgeability": judgeability(_ci_half_over_delta(res))}
@@ -1156,8 +1139,7 @@ def main() -> None:
         res["scale"], auto = item_scales(res, group_of, read_scales(a.scales))
     else:
         res["scale"] = SCALE_ITEM
-    res = add_final_verdict(res)
-    res = classify.add_columns(res, facts, wide, por_cols, group_of, abs_tol)
+    res = add_final_verdict(classify.add_columns(res, facts, wide, por_cols, group_of, abs_tol))
     res.insert(0, "ID", anon_ids(res["ITEM"])[1])
     res = res[order_columns(res.columns)]
     res = res.sort_values(["verdict", "ITEM"], key=lambda s: s.map(ORDER) if s.name == "verdict" else s)
@@ -1173,9 +1155,10 @@ def main() -> None:
 
     print(f"\n판정 (허용폭 ±{a.r:.0%} + POR 회차 흔들림, 중앙값 TOST, LoQ 미만은 '<LoQ 보고 일치')")
     print(pd.crosstab(res["zone"], res["verdict"], margins=True, margins_name="합계").to_string())
-    print("\n최종 판정 (차이·미결만 옵션 재판정, 순서 log → accuracy (LoQ 근처, Δ' = max(Δ, 장비 정확도 폭)) → "
-          "log_physics, 동등을 주는 첫 옵션)")
-    print(pd.crosstab(res["verdict_basis"], res["verdict_final"], margins=True, margins_name="합계").to_string())
+    print("\n최종 판정 (1·2단계 동등은 그대로, 아니면 판정 길의 판정: 한계 비교, 절대 허용폭, log TOST, "
+          "바닥 근처는 Δ' = max(Δ, 장비 정확도 폭))")
+    print(pd.crosstab([res["route"], res["verdict_basis"]], res["verdict_final"], margins=True,
+                      margins_name="합계").to_string())
     changed = res["verdict_final"] != res["verdict_final_log_run"]
     print(f"\n참고: log 허용폭을 선형처럼 (log10(1+r) + t·√(1+1/J)·sigma_run_log) 두면 최종 판정이 바뀌는 ITEM {int(changed.sum())}개 "
           "(verdict_final → verdict_final_log_run)")
@@ -1188,11 +1171,6 @@ def main() -> None:
             print(f"auto 그룹 결정 ({out / SCALES_AUTO_CSV}, 확인 후 scales 파일에 옮겨 적을 수 있음)")
             print(auto.to_string(index=False))
     print(f"\n{classify.takeaway(res)}")
-    typed = res["verdict_final"] != res["verdict_typed"]
-    print(f"참고: 유형별 판정(1·2단계 동등은 그대로, 아니면 판정 길의 판정)이면 최종 판정이 바뀌는 ITEM {int(typed.sum())}개 "
-          "(verdict_final → verdict_typed)")
-    if typed.any():
-        print(pd.crosstab([res.loc[typed, "route"], res.loc[typed, "verdict_final"]], res.loc[typed, "verdict_typed"]).to_string())
     bad = reason_group(res.loc[res["verdict"] != "동등", "reason"]).value_counts()
     if len(bad):
         print("\n동등이 아닌 사유")

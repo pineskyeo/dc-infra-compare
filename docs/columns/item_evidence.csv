@@ -21,6 +21,7 @@ delta,허용폭,"같다고 보는 범위의 반폭 (items.csv delta, log 판정�
 policy_margin,정책 허용폭,값에 비례한 허용폭 항,r × |POR 중앙값| (log 판정이면 log10(1 + r)),기본 r = 5%
 run_margin,회차 흔들림 허용폭,POR 회차끼리 흔들리는 만큼 더 주는 항,"t(0.95, J − 1) × √(1 + 1/J) × σ_run, J = POR 회차 수 (log 판정이면 sigma_rep_log)",크면 POR 반복이 불안정하다
 accuracy_margin,장비 정확도 폭,accuracy 판정일 때만: 장비 사양 정확도로 정한 허용폭 (items.csv accuracy_margin). 다른 판정은 빈 칸,items.csv accuracy_margin 그대로,delta 보다 크면 이 폭으로 판정했다
+abs_delta,절대 허용폭,abs 판정일 때만: 고정 허용폭 (items.csv abs_delta). 다른 판정은 빈 칸,items.csv abs_delta 그대로,이 판정은 delta 대신 이 폭으로 했다
 n_outlier_die,튀는 die 수,판정이 튀는 die 로 본 수 (원데이터에서 다시 셈),"|d − median(d)| > 5 × robust σ(d), d 는 선형 차이",items.csv n_outlier_die 와 같아야 한다. 참고용이라 판정에 직접 쓰지 않는다 (중앙값·순번 신뢰구간이라 ci_rank_k 개보다 적으면 거의 영향 없음)
 outlier_dies,튀는 die 좌표,튀는 die 좌표를 '; ' 로 이은 것,,item_view.png ①②③ 에 검은 테두리로 표시
 LoQ,정량 한계,items.csv LoQ (POR 반복·분해능·blank 중 큰 것으로 정함),10 × σ_lim (blank 가 크면 blank LoQ),|POR| 가 이보다 작으면 '<LoQ' 보고로 판정

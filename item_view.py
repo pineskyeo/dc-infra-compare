@@ -31,7 +31,7 @@ POR_COL_RE = re.compile(r"^POR\d+$")
 NOT_DIE_COLS = {"ITEM", "DOE", "d", "por_range", "blank_item", "blank_sigma0", "blank_offset"}
 XY_PAIRS = (("X", "Y"), ("DIE_X", "DIE_Y"), ("COORD_X", "COORD_Y"), ("DIEX", "DIEY"))
 XY_TEXT_RE = re.compile(r"^\s*(-?\d+(?:\.\d+)?)\s*[_,:/ ]\s*(-?\d+(?:\.\d+)?)\s*$")
-LOG_BASES = ("log", "log_physics")
+LOG_BASES = ("log",)
 POR_COLOR, DOE_COLOR, BAR_COLOR, MEDIAN_COLOR = "#9a9a9a", "#d62728", "#8fb3d9", "#1f3b73"
 BAND_COLOR, DELTA_COLOR, ACC_COLOR, OUTLIER_COLOR = "#cfe3f7", "#ff7f0e", "#2ca02c", "#000000"
 
@@ -92,10 +92,16 @@ class Basis:
     policy: float
     run: float
     accuracy: float           # 장비 정확도 폭 (accuracy 판정만, 아니면 NaN)
+    absolute: float = math.nan    # 절대 허용폭 (abs 판정만, 아니면 NaN)
 
     @property
     def margin(self) -> float:
-        """판정에 쓴 허용폭. accuracy 판정이면 max(Δ, 장비 정확도 폭)."""
+        """판정에 쓴 허용폭. abs 판정이면 절대 허용폭, accuracy 판정이면 max(Δ, 장비 정확도 폭).
+        limit 판정은 한계 밖 die 만 본 따로 된 숫자라 이 ITEM 의 숫자로 놓을 수 없어 NaN."""
+        if self.name == "limit":
+            return math.nan
+        if math.isfinite(self.absolute):
+            return self.absolute
         return max(self.delta, self.accuracy) if math.isfinite(self.accuracy) else self.delta
 
 
@@ -107,7 +113,8 @@ def basis_numbers(row) -> Basis:
                      delta, delta - rep, rep, math.nan)
     return Basis(name, False, _num(row, "center"), _num(row, "ci_low"), _num(row, "ci_high"), _num(row, "delta"),
                  _num(row, "policy_margin"), _num(row, "run_margin"),
-                 _num(row, "accuracy_margin") if name == "accuracy" else math.nan)
+                 _num(row, "accuracy_margin") if name == "accuracy" else math.nan,
+                 _num(row, "abs_delta") if name == "abs" else math.nan)
 
 
 # ---------------------------------------------------------------- die별 근거
@@ -156,7 +163,7 @@ def die_evidence(rows: pd.DataFrame, row) -> DieEvidence:
 EVIDENCE_COLUMNS = ("ITEM", "ID", "verdict_final", "verdict_basis", "reason_plain", "d_scale", "center", "ci_low",
                     "ci_high", "n_die", "ci_rank_k", "ci_low_die", "ci_low_d", "ci_high_die", "ci_high_d",
                     "n_d_pos", "n_d_neg", "n_d_zero", "delta", "policy_margin", "run_margin", "accuracy_margin",
-                    "n_outlier_die", "outlier_dies", "LoQ", "por_over_loq")
+                    "abs_delta", "n_outlier_die", "outlier_dies", "LoQ", "por_over_loq")
 
 
 def evidence_row(rows: pd.DataFrame, row) -> dict:
@@ -171,6 +178,7 @@ def evidence_row(rows: pd.DataFrame, row) -> dict:
                center=b.center, ci_low=b.ci_low, ci_high=b.ci_high, n_die=ev.n,
                n_d_pos=int((ev.d > 0).sum()), n_d_neg=int((ev.d < 0).sum()), n_d_zero=int((ev.d == 0).sum()),
                delta=b.delta, policy_margin=b.policy, run_margin=b.run, accuracy_margin=b.accuracy,
+               abs_delta=b.absolute,
                n_outlier_die=int(ev.outlier.sum()),
                outlier_dies="; ".join(lab for lab, o in zip(ev.labels, ev.outlier) if o),
                LoQ=loq, por_over_loq=abs(por) / loq if math.isfinite(por) and loq > 0 else math.nan)
@@ -214,6 +222,8 @@ def _margin_lines(b: Basis, unit: str) -> list[MarginLine]:
         lines.append((b.delta, f"허용폭 {size}", DELTA_COLOR, "--"))
     if math.isfinite(b.accuracy) and b.accuracy > b.delta:
         lines.append((b.accuracy, f"장비 정확도로 넓힌 허용폭 ±{explain.fmt(b.accuracy, unit)}", ACC_COLOR, ":"))
+    if math.isfinite(b.absolute):
+        lines.append((b.absolute, f"절대 허용폭 ±{explain.fmt(b.absolute, unit)}", ACC_COLOR, ":"))
     return lines
 
 

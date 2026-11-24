@@ -19,11 +19,11 @@ POR = ["POR1", "POR2", "POR3"]
 L1_SEED = 25      # lognormal 0.4 dec, 반복 0.03 dec, DOE ×1.08: 기본 판정 차이 → log 로 최종 동등
 
 
-def judged(name: str, Y: np.ndarray, z: np.ndarray) -> dict:
-    """por_doe_compare 판정 그대로 (judge_item + add_final_verdict) 의 items.csv 한 행."""
+def judged(name: str, Y: np.ndarray, z: np.ndarray, route: str = "") -> dict:
+    """por_doe_compare 판정 그대로 (judge_item + add_final_verdict) 의 items.csv 한 행. route 는 분류가 정할 판정 길."""
     g = pd.DataFrame(Y, columns=POR[:Y.shape[1]]).assign(DOE=z)
     res, _ = judge_item(name, g, POR[:Y.shape[1]], {name: "A"}, 0.05, {}, pd.DataFrame(), {})
-    return add_final_verdict(pd.DataFrame([{**res, "scale": "item"}])).iloc[0].to_dict()
+    return add_final_verdict(pd.DataFrame([{**res, "scale": "item", "route": route}])).iloc[0].to_dict()
 
 
 def floor_item(rng, change, n: int = 61, J: int = 3, mu: float = 6.0):
@@ -58,7 +58,7 @@ def loq_population():
 @pytest.fixture(scope="module")
 def l1_item():
     Y, z = lognormal_item(L1_SEED)
-    row = judged("LEAK_L1", Y, z)
+    row = judged("LEAK_L1", Y, z, route="log TOST")
     return pd.DataFrame([row]), {"LEAK_L1": (Y, z)}
 
 
