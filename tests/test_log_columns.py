@@ -152,7 +152,7 @@ def is_subsequence(sub: list, seq: list) -> bool:
 def test_t5_old_columns_unchanged(monkeypatch, data):
     Y, z = data()
     row = run_item(Y, z)
-    monkeypatch.setattr(pdc, "OPTIONS", ())      # 옵션 열을 안 붙이던 수정 전 경로
+    monkeypatch.setattr(pdc, "log_columns", lambda *a: {})      # log 열을 안 붙이던 수정 전 경로
     old = run_item(Y, z)
     assert is_subsequence(OLD_COLS, list(old))
     assert list(old)[-len(OLD_COLS[-11:]):] == OLD_COLS[-11:]

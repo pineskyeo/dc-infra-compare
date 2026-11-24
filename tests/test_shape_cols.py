@@ -260,7 +260,10 @@ def test_w5_verdict_and_old_status_unchanged(name, old_module):
     # rel_shift(= center / |por_median|)는 items.csv 에서 뺐다
     assert list(new_res) == ["verdict_with_accuracy" if k == "verdict_no_accuracy" else k
                              for k in old_res if k != "rel_shift"]
-    assert all(same(new_res[k], old_res[k]) for k in new_res if k != "verdict_with_accuracy"), name
+    # 결정 (2026-11-24): LoQ 아래 판정은 DOE 구간으로 본다 (loq_verdict) 라 LoQ 아래 zone 의 판정·사유는 바뀔 수 있다
+    loq = new_res["zone"] in ("검출한계 이하", "검출~정량")
+    skip = {"verdict_with_accuracy", *(("verdict", "reason") if loq else ())}
+    assert all(same(new_res[k], old_res[k]) for k in new_res if k not in skip), name
     assert same(new_res.get("verdict_with_accuracy", np.nan), np.nan), name
     assert np.array_equal(new_mask, old_mask)
 
