@@ -15,7 +15,7 @@
 <article class="page">
 <header class="page-head"><p class="kicker">따라하기</p><h1>⑥ 판정 3단계</h1><p class="purpose">90% 구간을 허용폭과 견줘 동등 · 미결 · 차이를 정한다.</p></header>
 <section class="layer easy" aria-label="쉽게">
-<div data-scene="verdict"></div>
+<div data-scene="stages"></div>
 <ul class="points">
 <li>1단계: 90% 구간이 ±Δ 안이면 동등, 통째로 밖이면 차이, 걸치면 미결.</li>
 <li>2단계: LoQ 아래 ITEM만. DOE 구간이 LoQ 위로 통째로 넘지 않으면 동등.</li>
@@ -64,7 +64,9 @@ k = P(W ≤ k−1) ≤ 0.05 인 가장 큰 정수, W ~ 이항(n, ½)
 <div class="formula">abs_delta = 그룹 abs_tol 값                     <span class="c">--abs-tol 파일에 그룹이 있으면</span>
           = LoQ                                <span class="c">0 중심</span>
           = max(Δ, 값 간격 [, 장비 정확도])      <span class="c">계단 (바닥 근처면 장비 정확도까지)</span>
-Δ<sub>log</sub> = log10(1 + r) + σ<sub>rep,log</sub>                <span class="c">L = log10|값| 에서 같은 TOST</span></div>
+Δ<sub>log</sub> = log10(1 + r) + σ<sub>rep,log</sub>                <span class="c">L = log10|값| 에서 같은 TOST</span>
+배율 변화 = 10<sup>x</sup> − 1                          <span class="c">x = log 구간 끝 또는 ±Δ<sub>log</sub></span></div>
+<p>쉽게 영역 그림의 log TOST 행은 log 구간(<code>ci_low_log</code>, <code>ci_high_log</code>)과 ±Δ<sub>log</sub>(<code>delta_log</code>)를 배율 변화(%)로 바꿔 보인다. 판정은 log 값 그대로 한다. 이 영역을 펼치면 그림 아래에 log 값이 함께 나온다.</p>
 
 <h2 id="final">최종 판정</h2>
 <p>1·2단계가 동등이면 그대로 확정. 아니면 판정 길의 판정이 동등 · 미결 · 차이 중 하나일 때 그것을 쓰고, 길이 판정하지 못하면 1·2단계 판정을 둔다. 판정을 정한 곳은 <code>verdict_basis</code> (linear, loq, log, accuracy, abs, limit) 에 적힌다.</p>

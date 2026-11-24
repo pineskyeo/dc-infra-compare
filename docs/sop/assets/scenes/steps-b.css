@@ -1,1 +1,44 @@
-/* steps-b 담당 장면·쪽 전용 규칙 */
+/* steps-b 담당 장면·쪽 전용 규칙 (④ ⑤ ⑥ ⑦) */
+.scene text.halo{paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round}
+.b-ghost{fill:none;stroke:var(--aux);stroke-width:1.2;stroke-dasharray:3 3}
+
+/* ④ d 를 줄 세움: 첫 박자는 값 축 위, b4-lift 가 켜지면 순위 자리로 올라감, b4-pick 이 켜지면 구간 밖은 흐리게 */
+.scene .b4-lift[data-b],.scene .b4-pick[data-b]{opacity:1}
+.b4-dot{fill:var(--por);fill-opacity:.8;transition:transform .7s ease calc(var(--r) * 6ms),fill .45s ease,fill-opacity .45s ease}
+.b4-lift.on ~ .b4-dots .b4-dot{transform:translateY(var(--dy))}
+.b4-pick.on ~ .b4-dots .b4-dot.out{fill:#C9D0D9;fill-opacity:1}
+.b4-pick.on ~ .b4-dots .b4-dot.end{fill:var(--doe);fill-opacity:1;stroke:#fff;stroke-width:1.2}
+.b4-leader{stroke:#B8C0CA;stroke-width:1;stroke-dasharray:2 3}
+.b4-drop{stroke:var(--doe);stroke-width:1.2;stroke-dasharray:3 3}
+.b4-val{font-weight:700}
+.sc-t.b4-mid{fill:var(--ink)}
+
+/* ⑤ Δ 의 두 몫 */
+.b5-seg1{fill:var(--eq)}
+.b5-seg2{fill:var(--aux)}
+.scene .b5-grow{transform-box:fill-box;transform-origin:left center;transform:scaleX(.05);transition:transform .7s ease}
+.scene .on > .b5-grow{transform:none}
+.b5-brace{fill:none;stroke:var(--ink);stroke-width:1.4}
+.sc-t.b5-sum{font-size:15px;font-weight:700;fill:var(--ink)}
+.b5-big{font-size:22px;font-weight:700;color:var(--eq);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* ⑦ 판정 → 원인 */
+.scene .b7-verdict{opacity:.28;transition:opacity .5s ease}
+.scene .b7-verdict.mine.on{opacity:1}
+.scene .b7-verdict:not(.mine).on{opacity:.28}
+.b7-wire{fill:none;stroke:#D5DAE1;stroke-width:1.2}
+.b7-wire.hit{stroke:var(--por);stroke-width:2}
+.b7-cause rect{fill:var(--paper);stroke:#D5DAE1;stroke-width:1.2;transition:fill .45s ease,stroke .45s ease}
+.b7-cause text{fill:#8A939E}
+.b7-cause.hit rect{fill:var(--bg2);stroke:var(--por);stroke-width:2}
+.b7-cause.hit text{fill:var(--ink);font-weight:700}
+.sc-t.b7-fact{fill:var(--por);font-weight:700}
+.b7-action{font-weight:700}
+
+/* 전문까지 볼 때만 그림 아래에 보이는 원래 값 */
+.b-raw{display:none;margin:6px 0 0;font-size:13px;color:var(--ink2);font-family:var(--mono)}
+html[data-layer="expert"] .b-raw{display:block}
+
+/* 전문 영역 표 */
+.b-num td{font-variant-numeric:tabular-nums}
+.b-causes td:nth-child(2){white-space:nowrap}
