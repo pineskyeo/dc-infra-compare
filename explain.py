@@ -5,7 +5,7 @@
   reason_plain(row)   최종 판정 사유 한 문장
   verdict_card(row)   ITEM 판정 카드 (판정과 근거, 이동량, 신뢰구간, 허용폭 구성, 사유, 정밀도와 LoQ 배수)
   wrap_text(text, prop, dpi, width_px)   글꼴 prop 으로 dpi 에서 width_px 폭에 맞춰 줄 나누기
-  add_figure_note(fig, how_to_read, this_run, dpi)   그림 아래 "읽는 법" / "이번 결과" 두 줄 (dpi = 저장 dpi)
+  add_figure_note(fig, how_to_read, this_run, dpi)   그림 아래 "이번 결과" 한 줄 (읽는 법은 리포트 마우스오버로)
 """
 from __future__ import annotations
 
@@ -209,7 +209,8 @@ def verdict_card(row: Mapping, dies_up: int | None = None, dies_down: int | None
 
 NOTE_FONTSIZE = 9
 NOTE_LEFT_IN = 0.15          # 그림 왼쪽 끝에서
-NOTE_PAD_IN = 0.1            # 주석 위·아래 여백, 두 줄 사이 간격
+NOTE_PAD_IN = 0.1            # 주석 위·아래 여백
+NOTE_COLOR = "#444444"
 
 
 def _font_files(prop: font_manager.FontProperties) -> list:
@@ -241,19 +242,16 @@ def wrap_text(text: str, prop: font_manager.FontProperties, dpi: float, width_px
 
 
 def add_figure_note(fig, how_to_read: str, this_run: str, dpi: float | None = None):
-    """그림 아래에 "읽는 법: ..." 과 "이번 결과: ..." 를 단다. 모든 그림에서 같은 글자 크기, 왼쪽 아래 같은 인치 위치
-    ("이번 결과" 가 맨 아래, 그 위에 "읽는 법"). 글을 저장할 dpi(없으면 fig.dpi)의 실제 글꼴로 재서 줄을 나누고, 그림
-    높이를 그만큼 늘리고 기존 축·글자를 그만큼 위로 옮겨 겹치지 않게 한다. (읽는 법, 이번 결과) Text 를 돌려준다."""
+    """그림 아래에 "이번 결과: ..." 를 단다. how_to_read (읽는 법) 는 그림에 그리지 않는다: 리포트가 그림 위
+    마우스오버로 보여 주고, 그림에는 이번 결과만 남겨 글자를 줄인다. 모든 그림에서 같은 글자 크기, 왼쪽 아래 같은 인치
+    위치. 저장할 dpi(없으면 fig.dpi)의 실제 글꼴로 재서 줄을 나누고, 그림 높이를 그만큼 늘리고 기존 축·글자를 그만큼
+    위로 옮겨 겹치지 않게 한다. 이번 결과 Text 를 돌려준다."""
     width, height = fig.get_size_inches()
-    style = dict(transform=fig.dpi_scale_trans, ha="left", va="bottom", fontsize=NOTE_FONTSIZE)
-    how, run = (fig.text(NOTE_LEFT_IN, 0, "", **style) for _ in range(2))
+    run = fig.text(NOTE_LEFT_IN, NOTE_PAD_IN, "", transform=fig.dpi_scale_trans, ha="left", va="bottom",
+                   fontsize=NOTE_FONTSIZE, color=NOTE_COLOR)
     dpi = dpi or fig.dpi
-    width_px = (width - 2 * NOTE_LEFT_IN) * dpi
-    how.set_text(wrap_text(f"읽는 법: {how_to_read}", how.get_fontproperties(), dpi, width_px))
-    run.set_text(wrap_text(f"이번 결과: {this_run}", run.get_fontproperties(), dpi, width_px))
-    renderer = fig.canvas.get_renderer()
-    h_run, h_how = (t.get_window_extent(renderer).height / fig.dpi for t in (run, how))
-    footer = 3 * NOTE_PAD_IN + h_run + h_how
+    run.set_text(wrap_text(f"이번 결과: {this_run}", run.get_fontproperties(), dpi, (width - 2 * NOTE_LEFT_IN) * dpi))
+    footer = 2 * NOTE_PAD_IN + run.get_window_extent(fig.canvas.get_renderer()).height / fig.dpi
     new_height = height + footer
     fig.set_size_inches(width, new_height, forward=True)
     engine = fig.get_layout_engine() if hasattr(fig, "get_layout_engine") else None
@@ -267,6 +265,4 @@ def add_figure_note(fig, how_to_read: str, this_run: str, dpi: float | None = No
         if t.get_transform() == fig.transFigure:
             x, y = t.get_position()
             t.set_position((x, (y * height + footer) / new_height))
-    run.set_position((NOTE_LEFT_IN, NOTE_PAD_IN))
-    how.set_position((NOTE_LEFT_IN, 2 * NOTE_PAD_IN + h_run))
-    return how, run
+    return run

@@ -220,3 +220,31 @@ def test_max_figures_draws_only_the_strongest_flagged_items(tmp_path):
     assert flagged["ITEM"].iloc[0] in drawn and len(drawn) <= 2
     if len(flagged) > 1:
         assert "근거가 센 1개까지만" in stdout
+
+
+def test_item_figure_is_one_row_of_four_square_panels(loq_population, tmp_path, monkeypatch):
+    from matplotlib.figure import Figure
+    from PIL import Image
+
+    items, raw = loq_population
+    rv = review.REVIEWS["loq"]
+    rec = review.review_table(rv, items, raw).set_index("ITEM").loc["TAIL20"].to_dict()
+    row = items.set_index("ITEM").loc["TAIL20"].to_dict()
+    drawn = []
+    save = Figure.savefig
+    monkeypatch.setattr(Figure, "savefig", lambda fig, *a, **k: (drawn.append(fig), save(fig, *a, **k))[1])
+    review.configure_font()
+    path = review.plot_item("TAIL20", *raw["TAIL20"], row, rv, {**rec, "ITEM": "TAIL20"}, tmp_path / "TAIL20.png")
+    fig = drawn[0]
+    fig.canvas.draw()
+    boxes = [ax.get_window_extent() for ax in fig.axes]
+    assert len(boxes) == 4
+    assert max(b.y0 for b in boxes) - min(b.y0 for b in boxes) < 2, "네 칸이 한 줄"
+    assert [b.x0 for b in boxes] == sorted(b.x0 for b in boxes)
+    assert all(abs(b.width / b.height - 1) < 0.05 for b in boxes), "칸은 정사각형"
+    assert [ax.get_title() for ax in fig.axes] == ["회차별 die 값", "die별 변화량", "POR 대 DOE · 선형", "POR 대 DOE · log"]
+    assert fig.axes[1].get_ylabel() == "변화량\n(DOE − POR 평균)"
+    texts = [t.get_text() for t in fig.texts]
+    assert any(t.startswith("이번 결과: ") for t in texts) and not any("읽는 법" in t for t in texts)
+    width, height = Image.open(path).size
+    assert width > 2.5 * height
