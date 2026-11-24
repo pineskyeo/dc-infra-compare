@@ -76,6 +76,16 @@ def test_add_final_verdict_columns_and_old_csv_without_route():
     assert "verdict_final_log_run" not in add_final_verdict(d.drop(columns=["verdict_log_run", "verdict_final_log_run"]))
 
 
+@pytest.mark.parametrize("lo, hi, delta, want", [
+    (2.000000000000001e-06, 3.999999999999999e-06, 1.9999999999999944e-06, "미결"),   # 끝이 값 간격과 같음: 경계
+    (-2.0000000000000004e-06, 2.0000000000000004e-06, 1.9999999999999998e-06, "동등"),  # 끝이 ±값 간격: 안으로 본다
+    (2.1e-06, 4e-06, 2e-06, "차이"),
+])
+def test_tost_compares_grid_values_not_float_noise(lo, hi, delta, want):
+    from por_doe_compare import tost
+    assert tost((lo + hi) / 2, lo, hi, delta)[0] == want
+
+
 LOQ = 10.0
 
 
