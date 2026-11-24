@@ -242,9 +242,15 @@ def test_item_figure_is_one_row_of_four_square_panels(loq_population, tmp_path, 
     assert max(b.y0 for b in boxes) - min(b.y0 for b in boxes) < 2, "네 칸이 한 줄"
     assert [b.x0 for b in boxes] == sorted(b.x0 for b in boxes)
     assert all(abs(b.width / b.height - 1) < 0.05 for b in boxes), "칸은 정사각형"
-    assert [ax.get_title() for ax in fig.axes] == ["회차별 die 값", "die별 변화량", "POR 대 DOE · 선형", "POR 대 DOE · log"]
+    assert [ax.get_title() for ax in fig.axes] == ["회차별 die 값", "die별 변화량", "POR1 대 DOE · 선형", "POR1 대 DOE · log"]
     assert fig.axes[1].get_ylabel() == "변화량\n(DOE − POR 평균)"
     texts = [t.get_text() for t in fig.texts]
     assert any(t.startswith("이번 결과: ") for t in texts) and not any("읽는 법" in t for t in texts)
     width, height = Image.open(path).size
     assert width > 2.5 * height
+    Y, z = raw["TAIL20"]
+    want = {(round(a, 12), round(b, 12)) for i in range(len(z)) for a, b in
+            [(Y[i, 0], z[i]), *((Y[i, 0], Y[i, j]) for j in range(1, Y.shape[1]))]}
+    for ax in fig.axes[2:]:
+        drawn_pts = {(round(a, 12), round(b, 12)) for c in ax.collections for a, b in c.get_offsets()}
+        assert drawn_pts == want, "가로는 POR1, 세로는 DOE 와 POR2.."

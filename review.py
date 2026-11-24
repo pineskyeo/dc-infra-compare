@@ -397,8 +397,9 @@ LOG_MAP_HOW_TO_READ = (
 ITEM_HOW_TO_READ = (
     "① 회차별 die 값 (파랑 POR1, 회색 POR2.., 검정 DOE, 주황 점선 LoD·파선 LoQ). "
     "② die별 변화량을 작은 순으로 늘어놓은 것, 회색 띠는 POR 회차끼리 다시 잴 때의 흔들림 5배다. "
-    "③④ 같은 die 의 POR(가로) 대 DOE(세로)를 선형 축과 log 축으로. 두 축 범위가 같아 대각선 y = x 위면 DOE 가 크다. "
-    "선형은 차이의 크기를, log 는 작은 값 die 까지 몇 배 변했는지를 보기 좋다. 빨간 테두리는 크게 벗어난 같은 die 다.")
+    "③④ 가로는 같은 die 의 POR1, 세로는 DOE(검정)와 다른 POR 회차(회색)이고 선형 축과 log 축으로 그린다. "
+    "회색이 대각선 y = x 에 붙어 있으면 다시 재도 같은 값이라 측정이 안정적이다. 검정이 회색보다 대각선에서 멀수록 DOE 가 "
+    "변한 것이다. log 축에서 작은 값 쪽만 휘면 몇 배가 아니라 일정한 양이 더해진 변화다. 빨간 테두리는 크게 벗어난 같은 die 다.")
 MAX_LOG_ROWS = 40
 FOREST_SPAN = 4.0
 FOREST_MIN_PCT = 20.0
@@ -538,11 +539,13 @@ def _limit_lines(ax, row: Mapping, axis: str = "y") -> None:
 
 
 def _por_vs_doe(ax, Y: np.ndarray, z: np.ndarray, tail: np.ndarray, row: Mapping, unit: str, log: bool) -> None:
-    """같은 die 의 POR(가로) 대 DOE(세로). 두 축 범위를 같게 하고 정사각형으로 그려 y = x 가 45° 대각선이 되게 한다.
+    """가로는 같은 die 의 POR1, 세로는 DOE (검정) 와 다른 POR 회차 (회색). 회색은 다시 잴 때의 흔들림이라 DOE 와 견줄 기준이다.
+    두 축 범위를 같게 하고 정사각형으로 그려 y = x 가 45° 대각선이 되게 한다.
     log 면 _value_scale (양수만 log, 0·음수 섞이면 symlog), 아니면 선형 축."""
     J = Y.shape[1]
-    for j in range(J - 1, -1, -1):
-        ax.scatter(Y[:, j], z, s=12, color=POR1_COLOR if j == 0 else POR_GREY, zorder=3 if j == 0 else 2)
+    for j in range(1, J):
+        ax.scatter(Y[:, 0], Y[:, j], s=12, color=POR_GREY, zorder=2)
+    ax.scatter(Y[:, 0], z, s=12, color="#444444", zorder=3)
     if tail.any():
         ax.scatter(Y[tail, 0], z[tail], s=46, facecolor="none", edgecolor=FLAG_COLOR, lw=1.4, zorder=4)
     allv = np.r_[Y.ravel(), z]
@@ -567,9 +570,9 @@ def _por_vs_doe(ax, Y: np.ndarray, z: np.ndarray, tail: np.ndarray, row: Mapping
     ax.set_ylim(lims)
     _limit_lines(ax, row, "x")
     _limit_lines(ax, row, "y")
-    ax.set_xlabel("POR (같은 die)")
-    ax.set_ylabel("DOE")
-    ax.set_title("POR 대 DOE · " + ("log" if log else "선형"))
+    ax.set_xlabel("POR1 (같은 die)")
+    ax.set_ylabel("DOE · POR2..")
+    ax.set_title("POR1 대 DOE · " + ("log" if log else "선형"))
 
 
 ITEM_PANEL_IN = 3.4     # ITEM 그림 한 칸 (정사각형) 의 폭, 인치. 네 칸이 한 줄
@@ -587,7 +590,7 @@ ITEM_LEGEND = (
 
 def plot_item(item: str, Y: np.ndarray, z: np.ndarray, row: Mapping, review: Review, rec: Mapping,
               path: Path) -> Path:
-    """한 줄 네 칸: 회차별 die 값, die별 변화량, POR 대 DOE 선형, POR 대 DOE log. 제목과 범례는 그림 위 한 블록 (suptitle 과 바깥 범례가 겹치지 않게)."""
+    """한 줄 네 칸: 회차별 die 값, die별 변화량, POR1 대 DOE 선형, POR1 대 DOE log. 제목과 범례는 그림 위 한 블록 (suptitle 과 바깥 범례가 겹치지 않게)."""
     J, unit = Y.shape[1], str(row.get("UNIT") or "")
     tail = tail_dies(review.space(Y), review.space(z)) if J >= 2 and (review.name == "loq" or _log_ok(Y, z)) \
         else np.zeros(len(z), bool)
