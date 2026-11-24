@@ -187,6 +187,18 @@ def hand_row(name: str, lo: float, hi: float, **extra) -> dict:
             "route": "LoQ 판정", "cls_level": "바닥 아래", **extra}
 
 
+@pytest.mark.parametrize("k, n, text", [(1, 222, "<1%"), (221, 222, ">99%"), (0, 222, "0%"), (222, 222, "100%"),
+                                         (111, 222, "50%")])
+def test_shares_never_round_to_zero_or_all(k, n, text):
+    assert loq_check.Count(n, k).text() == f"{n:,}번 중 {k:,}번 ({text})"
+    assert report.share(k / n) == text
+
+
+def test_item_average_rates_keep_the_ends_exact():
+    assert loq_check._caught_k(1 / 666, 222) == 1 and loq_check._caught_k(1 - 1 / 666, 222) == 221
+    assert loq_check._caught_k(0.0, 222) == 0 and loq_check._caught_k(1.0, 222) == 222
+
+
 def test_ledger_finds_each_pass_kind():
     rows = [hand_row("P_SHIFT", -1.5, 1.5), hand_row("P_BELOW", 2.5, 5.5), hand_row("P_CROSS", 6, 9),
             hand_row("P_ABS", 9, 12, route="절대 허용폭", cls_level="0 중심", abs_delta=20.0,
@@ -213,9 +225,16 @@ def test_summary_names_stage3_route_and_counts_rule_passes(tmp_path):
     g = book.summary.ledger
     assert book.check is None
     assert g.passes == {loq_check.K_SHIFT: 1, loq_check.K_BELOW: 1, "판정 길 (절대 허용폭)": 1}
-    assert g.rule_pass == 2 and g.rule_flagged is None
-    assert book.headline_lines()[0] == "LoQ 아래 ITEM 3개 (전체 3개 중): 동등 3 · 미결 0 · 차이 0"
-    assert "시험은 아직 없음 (dcc.py loq A1)" in book.headline_lines()
+    assert g.rule_pass == 1, "판정 길로 동등은 LoQ 규칙으로 동등에 세지 않음"
+    assert g.rule_tost == {"차이": 1, "미결": 0} and g.rule_flagged is None
+    assert g.stage3 == {"절대 허용폭": 1}
+    lines = book.headline_lines()
+    assert lines[0] == "LoQ 아래 ITEM 3개 (전체 3개 중): 동등 3 · 미결 0 · 차이 0"
+    assert "LoQ 규칙으로 동등 1개" in lines[1]
+    assert "판정 길(절대 허용폭)이 2단계 차이·미결을 동등으로 바꾼 ITEM 1개." in lines
+    assert "시험은 아직 없음 (dcc.py loq A1)" in lines
+    q1 = book.answers()[0][1]
+    assert "1개가 LoQ 규칙으로 동등" in q1 and "판정 길(절대 허용폭)" in q1
 
 
 def test_route_that_cannot_be_rejudged_is_untested(tmp_path):
@@ -235,6 +254,7 @@ def test_route_that_cannot_be_rejudged_is_untested(tmp_path):
     assert "verdict_abs" in t.loc["ABS_STALE", "tested"] and "다시 낼 수 없음" in t.loc["ABS_STALE", "tested"]
     assert "log TOST" in t.loc["LOG_ROUTE", "tested"]
     assert book.check.n_items == 2 and sum(book.check.untested.values()) == 2
+    assert "시험한 ITEM 2개 (LoQ 아래 4개 중, 못 한 2개: " in book.check_line()
     trials = pd.read_csv(tmp_path / "A1" / "loq" / loq_check.TRIALS_CSV, encoding="utf-8-sig")
     assert set(trials["ITEM"]) == {"OK", "ABS_OK"}
 
@@ -271,11 +291,12 @@ def test_reports_render_the_same_book(population, tmp_path):
     judge = visible(out / "report.html").split('id="kpi"')[1].split("</details>")[0]
     assert "LoQ 요약" in judge and book.headline_lines()[0] in judge and 'href="loq/report.html"' in judge
     page = visible(out / "loq" / "report.html")
-    for title in ("한 줄 답", "동등이 된 이유", "시험 결과 (POR 회차로 만든 비교)", "LoQ 규칙으로 동등이 된 ITEM",
+    for title in ("한 줄 답", "동등이 된 이유", "시험 결과 (POR 회차로 만든 비교)", "LoQ 규칙·판정 길로 동등이 된 ITEM",
                   "LoQ 확인 필요", "방법과 한계", "한계 영역을 전부 통과시켰나?"):
         assert title in page, title
-    assert html.escape(book.headline_lines()[2]) in page
-    rule = book.items.loc[book.items["pass_kind"].isin(loq_check.RULE_PASSES), "ITEM"]
+    assert html.escape(book.check_line()) in page and book.check_line() in book.headline_lines()
+    assert "시험한 ITEM 50개 (LoQ 아래 50개 중, 못 한 0개)" in book.check_line()
+    rule = book.items.loc[book.items["pass_kind"].isin(loq_check.LISTED), "ITEM"]
     assert len(rule) and all(f"<td>{item}</td>" in page for item in rule)
     sheets, body = xlsx_text(out / "loq" / loq_check.WORKBOOK)
     assert sheets == [loq_check.SUMMARY, loq_check.REASONS, loq_check.LEVELS_SHEET, loq_check.ITEMS_SHEET]

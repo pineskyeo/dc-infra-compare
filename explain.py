@@ -64,6 +64,18 @@ def fmt(x, unit: str = "", signed: bool = False) -> str:
     return f"{sign}{_sig3(mant)} {SI_PREFIXES[exp]}{si}"
 
 
+def share_text(rate) -> str:
+    """비율 (0~1) → 정수 %. 0 이 아닌 작은 비율은 <1%, 1 이 아닌 큰 비율은 >99% 라 0%·100% 는 정확히 0·1 일 때만."""
+    v = 100 * _num(rate)
+    if not math.isfinite(v):
+        return "-"
+    if 0 < v < 0.5:
+        return "<1%"
+    if 99.5 <= v < 100:
+        return ">99%"
+    return f"{v:.0f}%"
+
+
 def pct(part, whole) -> str:
     """100 × part / |whole| 을 부호와 함께. |값| ≥ 1 이면 소수 한 자리, 그 아래는 유효숫자 2자리. whole 이 0·NaN 이면 "-"."""
     p, w = _num(part), _num(whole)

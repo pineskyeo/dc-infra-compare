@@ -34,7 +34,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 import review  # noqa: E402
-from explain import add_figure_note  # noqa: E402
+from explain import add_figure_note, share_text  # noqa: E402
 from fail_evidence import add_raw_args  # noqa: E402
 from plot_verdicts import configure_font  # noqa: E402
 from por_doe_compare import (  # noqa: E402
@@ -62,7 +62,8 @@ N_BOOT, SEED, BOOT_PCT = 2000, 0, (5.0, 95.0)
 # 동등이 된 이유. 2단계 사유 상수 → 이유, 2단계는 차이·미결인데 판정 길이 동등을 주면 K_STAGE3
 K_SHIFT, K_BELOW, K_CROSS, K_STAGE3 = "이동이 허용폭 안", "DOE 구간도 LoQ 아래", "DOE 구간이 LoQ에 걸침", "판정 길"
 PASS_KINDS = {LOQ_PASS_SHIFT: K_SHIFT, LOQ_PASS_BELOW: K_BELOW, LOQ_PASS_CROSS: K_CROSS}
-RULE_PASSES = (K_BELOW, K_CROSS, K_STAGE3)               # 보통 TOST 였다면 동등이 아님 (2단계 첫 줄이 보통 TOST)
+RULE_PASSES = (K_BELOW, K_CROSS)                         # LoQ 규칙으로 동등: 보통 TOST 였다면 차이·미결
+LISTED = (*RULE_PASSES, K_STAGE3)                         # ITEM 표에 싣는 동등 (LoQ 규칙이나 판정 길로)
 KIND_ORDER = (K_SHIFT, K_BELOW, K_CROSS, K_STAGE3, "미결", "차이")
 KIND_COLORS = {K_SHIFT: "#009E73", K_BELOW: "#0072B2", K_CROSS: "#56B4E9", K_STAGE3: "#CC79A7", "미결": "#E69F00",
                "차이": "#D55E00"}
@@ -125,9 +126,7 @@ class Count(NamedTuple):
     def text(self, unit: str = "번") -> str:
         if not self.n:
             return f"0{unit}"
-        r = 100 * self.k / self.n
-        share = "1% 미만" if 0 < r < 0.5 else f"{r:.0f}%"
-        return f"{self.n:,}{unit} 중 {self.k:,}{unit} ({share})"
+        return f"{self.n:,}{unit} 중 {self.k:,}{unit} ({share_text(self.rate)})"
 
 
 # ---------------------------------------------------------------- 동등이 된 이유 (items.csv 만)
@@ -352,7 +351,7 @@ def item_table(ledger: pd.DataFrame, trials: pd.DataFrame, extras: Mapping[str, 
         rows.append(out)
     t = pd.DataFrame(rows).reindex(columns=[*ITEM_COLS, "verdict", "delta", "LoQ", "review_rule"])
     t["why"] = [why(r) for r in t.to_dict("records")]
-    rule = t["pass_kind"].isin(RULE_PASSES).to_numpy(bool)
+    rule = t["pass_kind"].isin(LISTED).to_numpy(bool)
     flagged = t["review_flag"].map(_yes).to_numpy(bool)
     order = np.lexsort((-t["catch_ratio"].astype(float).fillna(-1).to_numpy(), ~flagged, ~rule))
     return t.iloc[order][ITEM_COLS].reset_index(drop=True)
@@ -464,9 +463,14 @@ class Ledger:
     n_near: int
     final: dict[str, int]          # 동등·미결·차이
     passes: dict[str, int]         # 동등이 된 이유 (판정 길은 길 이름까지) → ITEM 수
-    rule_pass: int                 # RULE_PASSES 로 동등
+    rule_pass: int                 # RULE_PASSES (LoQ 규칙) 로 동등
     rule_tost: dict[str, int]      # 그중 보통 TOST 판정 (차이·미결) → ITEM 수
     rule_flagged: int | None       # 그중 재확인 확인 필요 (review/loq_review.csv 가 없으면 None)
+    stage3: dict[str, int]         # 판정 길 → 2단계 차이·미결을 그 길이 동등으로 바꾼 ITEM 수
+
+    def stage3_line(self) -> str:
+        return " · ".join(f"판정 길({route})이 2단계 차이·미결을 동등으로 바꾼 ITEM {n:,}개"
+                          for route, n in self.stage3.items())
 
 
 @dataclass(frozen=True)
@@ -499,10 +503,18 @@ def _ledger(items: pd.DataFrame, led: pd.DataFrame, has_review: bool) -> Ledger:
         elif len(hit):
             passes[k] = len(hit)
     rule = led[kinds.isin(RULE_PASSES)]
+    stage3 = led.loc[kinds == K_STAGE3, "route"].astype(str).value_counts()
     return Ledger(len(items), len(led), n_near(items),
                   {v: int(led["verdict_final"].eq(v).sum()) for v in ("동등", "미결", "차이")}, passes, len(rule),
                   {v: int(rule["verdict_tost"].eq(v).sum()) for v in CAUGHT},
-                  int(rule["review_flag"].map(_yes).sum()) if has_review else None)
+                  int(rule["review_flag"].map(_yes).sum()) if has_review else None,
+                  {str(k): int(n) for k, n in stage3.items()})
+
+
+def _caught_k(rate: float, n: int) -> int:
+    """ITEM 평균 비율 → 비교 수 중 잡힌 수. 0 도 1 도 아닌 비율은 0번·n번으로 반올림하지 않는다."""
+    k = int(round(rate * n))
+    return min(max(k, 1), n - 1) if 0 < rate < 1 and n > 1 else k
 
 
 def _check(table: pd.DataFrame, levels: pd.DataFrame) -> Check:
@@ -511,7 +523,7 @@ def _check(table: pd.DataFrame, levels: pd.DataFrame) -> Check:
     caught = {}
     for m in (*MEASURES, "diff"):
         col = "diff_final" if m == "diff" else f"caught_{m}"
-        caught[m] = {float(r["level"]): Count(int(r["n_comparisons"]), int(round(r[col] * r["n_comparisons"])))
+        caught[m] = {float(r["level"]): Count(int(r["n_comparisons"]), _caught_k(r[col], int(r["n_comparisons"])))
                      for r in levels.to_dict("records") if math.isfinite(_f(r[col]))}
     ratio = tested["doe_noise_ratio"].astype(float)
     return Check(len(tested), J, table.loc[table["tested"].astype(str) != TESTED, "tested"].value_counts().to_dict(),
@@ -543,21 +555,30 @@ class LoqBook:
         if c is None:
             return f"시험은 아직 없음 (dcc.py loq {self.folder.name})"
         if not c.n_items:
-            return "시험할 수 있는 LoQ 아래 ITEM 이 없다."
-        return (f"시험 (POR 회차로 만든 비교, ITEM {c.n_items:,}개): 변화 없음에서 판정이 잡은 비교 "
+            return "시험할 수 있는 LoQ 아래 ITEM 이 없다." + (f" {self.coverage()}." if self.summary.ledger.n_zone else "")
+        return (f"시험 (POR 회차로 만든 비교, {self.coverage()}): 변화 없음에서 판정이 잡은 비교 "
                 f"{c.at('final', NO_CHANGE).text()} · DOE 0.8×LoQ 에서 판정 {c.at('final', 0.8).text()}, 재확인 "
                 f"{c.at('review', 0.8).text()} · DOE 1.5×LoQ 에서 판정 {c.at('final', 1.5).text()}.")
 
+    def coverage(self) -> str:
+        """시험한 ITEM n개 (LoQ 아래 N개 중, 못 한 m개: 이유별 수). 비율이 N 전부를 덮지 않음을 숫자 옆에 둔다."""
+        c = self.check
+        missed = sum(c.untested.values())
+        why = ": " + ", ".join(f"{k} {n:,}개" for k, n in c.untested.items()) if missed else ""
+        return f"시험한 ITEM {c.n_items:,}개 (LoQ 아래 {self.summary.ledger.n_zone:,}개 중, 못 한 {missed:,}개{why})"
+
     def headline_lines(self) -> list[str]:
-        """한눈에 블록과 LoQ 리포트 첫 칸이 같이 쓰는 문장. 첫 줄은 ITEM 수, 둘째 줄은 LoQ 규칙 효과, 셋째 줄은 시험."""
+        """한눈에 블록과 LoQ 리포트 첫 칸이 같이 쓰는 문장. ITEM 수, LoQ 규칙 효과, (판정 길 효과), 시험 순."""
         g = self.summary.ledger
         f = g.final
         lines = [f"LoQ 아래 ITEM {g.n_zone:,}개 (전체 {g.n_total:,}개 중): 동등 {f['동등']:,} · 미결 {f['미결']:,} · "
                  f"차이 {f['차이']:,}"]
         flagged = ("재확인 결과 없음" if g.rule_flagged is None
                    else f"그중 재확인 '확인 필요' {g.rule_flagged:,}개")
-        lines.append(f"LoQ 규칙이 없었다면 차이 {g.rule_tost['차이']:,}개·미결 {g.rule_tost['미결']:,}개 → LoQ 규칙으로 동등. "
-                     f"{flagged}.")
+        lines.append(f"LoQ 규칙이 없었다면 차이 {g.rule_tost['차이']:,}개·미결 {g.rule_tost['미결']:,}개 → LoQ 규칙으로 동등 "
+                     f"{g.rule_pass:,}개. {flagged}.")
+        if g.stage3:
+            lines.append(f"{g.stage3_line()}.")
         lines.append(self.check_line())
         if g.n_near:
             lines.append(f"LoQ 근처 ITEM {g.n_near:,}개는 정량 구간이라 보통 판정을 탔고 여기서 세지 않았다.")
@@ -567,8 +588,12 @@ class LoqBook:
         """세 질문과 숫자로 만든 답 (한두 문장)."""
         g, c = self.summary.ledger, self.check
         n_eq = g.final["동등"]
+        flagged = "" if g.rule_flagged is None else f", 재확인 확인 필요 {g.rule_flagged:,}개"
         q1 = (f"LoQ 아래 ITEM {Count(g.n_zone, n_eq).text('개')} 가 동등이다. 그중 {g.passes.get(K_SHIFT, 0):,}개는 "
-              f"이동이 허용폭 안이라 LoQ 규칙 없이도 동등이고, {g.rule_pass:,}개가 LoQ 규칙이나 판정 길로 동등이 됐다.")
+              f"이동이 허용폭 안이라 LoQ 규칙 없이도 동등이고, {g.rule_pass:,}개가 LoQ 규칙으로 동등이 됐다 (보통 TOST "
+              f"였다면 차이 {g.rule_tost['차이']:,}개·미결 {g.rule_tost['미결']:,}개{flagged}).")
+        if g.stage3:
+            q1 += f" 이와 따로 {g.stage3_line()}."
         if c is not None and c.n_items:
             q1 += (f" 만든 비교에서 DOE 를 LoQ 의 1.5배로 올리면 판정이 {c.at('final', 1.5).text()} 를 잡았다. "
                    "전부 통과시킨다면 이 비율은 0% 다.")
@@ -603,12 +628,14 @@ class LoqBook:
         rows = [("전체 ITEM", f"{g.n_total:,}"), ("LoQ 아래 ITEM", f"{g.n_zone:,}"),
                 *((f"최종 {v}", f"{n:,}") for v, n in g.final.items()),
                 *((f"동등 이유: {k}", f"{n:,}") for k, n in g.passes.items()),
-                ("LoQ 규칙·판정 길로 동등", f"{g.rule_pass:,}"),
+                ("LoQ 규칙으로 동등", f"{g.rule_pass:,}"),
                 *((f"그중 보통 TOST 였다면 {v}", f"{n:,}") for v, n in g.rule_tost.items()),
                 ("그중 재확인 확인 필요", "-" if g.rule_flagged is None else f"{g.rule_flagged:,}"),
+                *((f"판정 길({route})이 2단계 차이·미결을 동등으로", f"{n:,}") for route, n in g.stage3.items()),
                 ("LoQ 근처 (정량 구간, 따로 셈)", f"{g.n_near:,}")]
         if c is not None:
-            rows += [("시험한 ITEM", f"{c.n_items:,}"), ("POR 회차 (ITEM 마다 비교 수)", f"{c.n_runs:,}"),
+            rows += [("시험한 ITEM", f"{c.n_items:,}"), ("시험 못 한 ITEM", f"{sum(c.untested.values()):,}"),
+                     ("POR 회차 (ITEM 마다 비교 수)", f"{c.n_runs:,}"),
                      *((f"시험 못 함: {k}", f"{n:,}") for k, n in c.untested.items()),
                      *((f"{level_name(u)} 잡힘 ({MEASURE_NAMES[m]})", c.at(m, u).text())
                        for u, m in ((NO_CHANGE, "final"), (NO_CHANGE, "tost"), (NO_CHANGE, "review"), (0.8, "final"),
@@ -631,8 +658,8 @@ class LoqBook:
         cols = {"수준": t["level_name"], "ITEM 수": t["n_items"], "비교 수": t["n_comparisons"]}
         for m, name in MEASURE_NAMES.items():
             col = "diff_final" if m == "diff" else f"caught_{m}"
-            cols[f"{name} %"] = t[col].map(_pct)
-            cols[f"{name} 90% 범위"] = [f"{_pct(a)}~{_pct(b)}" if math.isfinite(_f(a)) else "-"
+            cols[f"{name} %"] = t[col].map(share_text)
+            cols[f"{name} 90% 범위"] = [f"{share_text(a)}~{share_text(b)}" if math.isfinite(_f(a)) else "-"
                                        for a, b in zip(t[f"{col}_lo"], t[f"{col}_hi"])]
         return pd.DataFrame(cols)
 
@@ -681,11 +708,6 @@ TIPS = {
 }
 
 
-def _pct(v) -> str:
-    x = _f(v)
-    return f"{100 * x:.0f}%" if math.isfinite(x) else "-"
-
-
 def _sig(v) -> str:
     x = _f(v)
     return f"{x:.3g}" if math.isfinite(x) else "-"
@@ -724,9 +746,11 @@ DPI = 110
 
 
 def curve_note(c: Check) -> str:
-    return (f"변화 없음에서 판정이 잡은 비율 {_pct(c.at('final', NO_CHANGE).rate)} (보통 TOST "
-            f"{_pct(c.at('tost', NO_CHANGE).rate)}). DOE 0.8×LoQ 에서 판정 {_pct(c.at('final', 0.8).rate)}, 재확인 "
-            f"{_pct(c.at('review', 0.8).rate)}. DOE 1.5×LoQ 에서 판정 {_pct(c.at('final', 1.5).rate)}.")
+    def at(measure: str, level: float) -> str:
+        return share_text(c.at(measure, level).rate)
+    return (f"변화 없음에서 판정이 잡은 비율 {at('final', NO_CHANGE)} (보통 TOST {at('tost', NO_CHANGE)}). "
+            f"DOE 0.8×LoQ 에서 판정 {at('final', 0.8)}, 재확인 {at('review', 0.8)}. DOE 1.5×LoQ 에서 판정 "
+            f"{at('final', 1.5)}.")
 
 
 def plot_curve(levels: pd.DataFrame, book: LoqBook, path: Path) -> Path:
@@ -751,7 +775,7 @@ def plot_curve(levels: pd.DataFrame, book: LoqBook, path: Path) -> Path:
         v = _f(null[col])
         if math.isfinite(v):
             ax.plot([x0 + dx], [100 * v], ls="none", marker=marker, ms=8, color=color, mec="white", mew=1.5)
-            labels.append(f"{name} {_pct(v)}")
+            labels.append(f"{name} {share_text(v)}")
     ax.text(x0, 108, "\n".join(labels), ha="center", va="top", fontsize=8.5, color="#333333")
     ax.set_xlim(-0.5, 3.1)
     ax.set_ylim(-3, 112)

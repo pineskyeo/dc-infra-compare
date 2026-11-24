@@ -6,7 +6,7 @@
   <폴더>/report.html         판정: 한눈에 (LoQ 요약 포함), 판정 지도, 차이·미결, 판정 제외, LoQ·log 확인 필요, 측정 안정도,
                              log 허용폭 두 방식
   <폴더>/loq/report.html     loq/ 가 있으면 (dcc.py loq): LoQ 아래 ITEM 만. 한 줄 답, 동등이 된 이유, 만든 비교의 시험,
-                             LoQ 규칙으로 동등이 된 ITEM, LoQ 확인 필요, 방법과 한계. 같은 표를 loq/LoQ.xlsx 로도 쓴다
+                             LoQ 규칙·판정 길로 동등이 된 ITEM, LoQ 확인 필요, 방법과 한계. 같은 표를 loq/LoQ.xlsx 로도 쓴다
   <폴더>/item/report.html    item/ 이 있으면: ITEM 별 변화량, ITEM 마다 카드 (판정, 이유, 한 장 그림, 근거 숫자)
   <폴더>/group/report.html   group/ 이 있으면: 그룹별 표, 그룹 × LEVEL 측정 정밀도, 그룹 그림
   <폴더>/compare/report.html compare/ 가 있으면: 기존·개선 비교 요약, 그룹별, 판정 변화, 나빠진 ITEM, 그림.
@@ -77,8 +77,7 @@ def plain_num(x) -> str:
 
 
 def share(x) -> str:
-    v = num(x)
-    return f"{100 * v:.0f}%" if math.isfinite(v) else "-"
+    return explain.share_text(x)
 
 
 def precision_pct(x) -> str:
@@ -988,8 +987,10 @@ def loq_report(folder: Path, namer: Namer, book: loq_check.LoqBook) -> Path | No
     with page.section("answer", "한 줄 답", LOQ_BLOCK_TIP, open=True):
         null, high = c.at("final", loq_check.NO_CHANGE), c.at("final", 1.5)
         cards(page, [("LoQ 아래 ITEM", f"{g.n_zone:,}", f"전체 {g.n_total:,}개 중"),
-                     ("LoQ 규칙·판정 길로 동등", f"{g.rule_pass:,}", "보통 TOST 였다면 차이·미결"),
-                     ("변화 없음에서 잡힘", share(null.rate), f"비교 {null.n:,}번"),
+                     ("LoQ 규칙으로 동등", f"{g.rule_pass:,}",
+                      f"보통 TOST 였다면 차이 {g.rule_tost['차이']:,}·미결 {g.rule_tost['미결']:,}"
+                      + ("" if g.rule_flagged is None else f" · 재확인 확인 필요 {g.rule_flagged:,}")),
+                     ("변화 없음에서 잡힘", share(null.rate), f"시험한 ITEM {c.n_items:,}개 · 비교 {null.n:,}번"),
                      ("DOE 1.5×LoQ 에서 잡힘", share(high.rate), f"비교 {high.n:,}번")])
         page.add('<ul class="lines">' + "".join(f"<li>{namer.text(s)}</li>" for s in lines) + "</ul>")
         for question, answer in book.answers():
@@ -1016,10 +1017,10 @@ def loq_report(folder: Path, namer: Namer, book: loq_check.LoqBook) -> Path | No
         if len(never):
             with page.fold(f"DOE 를 LoQ 의 3배까지 올려도 회차 비교가 다 잡히지는 않는 ITEM {len(never):,}개"):
                 frame(page, never, LOQ_ITEMS_SHOWN, tips=loq_check.TIPS)
-    with page.section("items", "LoQ 규칙으로 동등이 된 ITEM",
+    with page.section("items", "LoQ 규칙·판정 길로 동등이 된 ITEM",
                       "LoQ 규칙이나 판정 길로 동등이 된 ITEM. 재확인 확인 필요 먼저, 그다음 잡히는 수준이 POR 의 몇 배인지 "
                       "큰 순.") as sec:
-        rule = items[items["동등 이유"].isin(loq_check.RULE_PASSES)]
+        rule = items[items["동등 이유"].isin(loq_check.LISTED)]
         sec.badge = f"{len(rule):,}"
         if rule.empty:
             page.p("LoQ 규칙이나 판정 길로 동등이 된 ITEM 이 없다.", "note")
