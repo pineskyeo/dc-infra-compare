@@ -138,6 +138,7 @@ def render() -> str:
         f"<td>{html.escape(o.made_by)}</td><td>{inline(PURPOSE[o.kind])}</td></tr>" for o in OUTPUTS)
     how = "\n".join(f"<li>{inline(t)}</li>" for t in HOW_TO_READ)
     main = f"""
+<!-- legacy -->
 <p class="loc"><a href="index.html">개요</a> › {TITLE} · 관련 <a href="reading.html">결과 읽는 법</a></p>
 <h1>결과 파일 {TITLE}</h1>
 

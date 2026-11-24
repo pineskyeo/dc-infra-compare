@@ -1,3 +1,4 @@
+<!-- legacy -->
 <p class="loc"><a href="concepts.html">개념 익히기</a> › 0 근처와 절대 허용폭 (개념 14 / 19) · 쓰는 단계 <a href="step-6.html#typed">⑥</a></p>
 <h1>0 근처에서 %가 안 되는 이유와 절대 허용폭</h1>
 
@@ -26,7 +27,7 @@
 <tr><td>0</td><td>0 + 1.7 = 1.7</td><td><span class="pill bad">차이</span></td><td><span class="pill ok">동등</span></td></tr>
 </tbody></table></div>
 <p class="look"><b>여기서 볼 것</b> · ① 회색 띠 = 이동 구간 [3, 5] · Δ 선이 띠 위면 동등, 띠 안이면 미결, 띠 아래면 차이 ② 중앙값을 0으로 옮기면 Δ 선이 띠를 뚫고 내려감 · 이동은 그대로인데 판정만 바뀜 ③ 파란 고정 허용폭 선은 높이가 그대로라 늘 동등</p>
-<p class="s">그림은 허용폭 두 가지만 견줌 · 실제 도구는 |중앙값| &lt; LoQ면 2단계 <a href="c-loq-judge.html">LoQ 판정</a>을 먼저 하고, 거기서 동등이 아닐 때만 3단계 절대 허용폭으로 감</p>
+<p class="s">그림은 허용폭 두 가지만 견줌 · 실제 도구는 |중앙값| &lt; LoQ면 2단계 <a href="c-loq.html">LoQ 판정</a>을 먼저 하고, 거기서 동등이 아닐 때만 3단계 절대 허용폭으로 감</p>
 </section>
 
 <section id="formula"><h2>수식</h2>
@@ -39,7 +40,7 @@
 <tr><td>파일 없음 · 계단 + 바닥 근처</td><td>max(Δ, 값 간격 한 칸, 장비 정확도 폭)</td></tr>
 </tbody></table></div>
 <ul>
-<li>계단 = 값 간격 한 칸 ≥ 0.1·Δ · 한 칸보다 작은 이동은 볼 수 없으니 허용폭을 한 칸보다 좁게 두지 않음 <span class="from"><a href="c-resolution.html">분해능과 √12</a></span></li>
+<li>계단 = 값 간격 한 칸 ≥ 0.1·Δ · 한 칸보다 작은 이동은 볼 수 없으니 허용폭을 한 칸보다 좁게 두지 않음 <span class="from"><a href="c-loq.html">분해능과 √12</a></span></li>
 <li>abs_tol 파일은 combos.ini의 <code>abs_tol</code> 키 · <code>groups</code>도 필요 <span class="from"><a href="run.html#dcc">실행 방법</a></span></li>
 </ul>
 <p class="s"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 기본값 규칙과 적용 대상</p>
@@ -163,4 +164,4 @@
 })();
 </script>
 
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-delta.html">허용 범위 Δ</a></li><li><a href="c-resolution.html">분해능과 √12</a></li><li><a href="c-loq-judge.html">LoQ 아래 판정</a></li><li><a href="c-routes.html">ITEM 유형과 판정 길</a></li><li><a href="step-6.html#typed">⑥ 판정 · 3단계</a></li></ul></nav>
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-delta.html">허용 범위 Δ</a></li><li><a href="c-loq.html">분해능과 √12</a></li><li><a href="c-loq.html">LoQ 아래 판정</a></li><li><a href="c-routes.html">ITEM 유형과 판정 길</a></li><li><a href="step-6.html#typed">⑥ 판정 · 3단계</a></li></ul></nav>

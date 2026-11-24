@@ -30,10 +30,20 @@
   }
 
   // ---------- 숫자와 판정 말 ----------
-  function fmt(x, signed) {
+  const SI = [[1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'], [1e-6, 'µ'], [1e-9, 'n'], [1e-12, 'p'], [1e-15, 'f']];
+  const UNIT_NAME = { ohm: 'Ω' };
+  // unit 을 안 주면 지금 고른 예제의 단위. 단위가 있으면 1e-12 → 1 pA 처럼 SI 접두어로, '' 이면 단위 없는 수
+  function fmt(x, signed, unit) {
     if (x === null || x === undefined || !isFinite(x)) return '–';
+    const u = unit === undefined ? (D && D.types[typeKey] ? D.types[typeKey].unit : '') : unit;
     const a = Math.abs(x);
-    let t = a !== 0 && (a >= 1e5 || a < 1e-3) ? x.toExponential(2) : String(Number(x.toPrecision(4)));
+    let t;
+    if (u) {
+      const [f, pre] = a === 0 ? [1, ''] : (SI.find(([f]) => a >= f * 0.9995) || SI[SI.length - 1]);
+      t = `${Number((x / f).toPrecision(3))} ${pre}${UNIT_NAME[u] || u}`;
+    } else {
+      t = a !== 0 && (a >= 1e5 || a < 1e-3) ? x.toExponential(2) : String(Number(x.toPrecision(4)));
+    }
     if (signed && x > 0) t = '+' + t;
     return t.replace('-', '−');
   }
@@ -154,7 +164,7 @@
       inputs: [['POR 값', `die ${t.n_die}개 × ${t.J}회`]],
       does: '같은 die를 다시 잰 흔들림(σ_die)과 회차마다 다 같이 밀리는 크기(σ_run)로 나눈다.',
       output: [['σ_die', fmt(t.step2.sigma_die)], ['σ_run', fmt(t.step2.sigma_run)],
-        ['측정 정밀도', `${fmt(t.step2.meas_precision_pct)}%`]],
+        ['측정 정밀도', `${fmt(t.step2.meas_precision_pct, false, '')}%`]],
       mini: miniBars([['σ_die', t.step2.sigma_die, 'por'], ['σ_run', t.step2.sigma_run, 'aux']])
     }),
     3: t => ({
@@ -182,7 +192,7 @@
       if (st.stage3) inputs.push(['판정 길', st.stage3.route]);
       let does = '1단계 TOST로 구간을 ±Δ와 견준다.';
       if (st.stage2) does += ' POR 값이 LoQ 아래라 2단계 LoQ 판정도 한다.';
-      if (st.stage3) does += ` 동등이 아니라 판정 길 '${st.stage3.route}'로 다시 본다.`;
+      if (st.stage3) does += ` 동등이 아니라 판정 길 '${st.stage3.route}'에서 다시 본다.`;
       return {
         inputs, does,
         output: [['최종 판정', pill(st.final.verdict)], ['정한 곳', BASIS[st.final.basis] || st.final.basis]],
@@ -292,6 +302,7 @@
   // ---------- 장면 (애니메이션) ----------
   const SCENES = {};
   function defineScene(name, build) { SCENES[name] = build; }
+  window.SOP = { defineScene, h, s, fill, fmt, pill, scale, domain, VCLASS, MARKS, BEAT_MS };
 
   function initScenes() {
     document.querySelectorAll('[data-scene]').forEach(host => {
@@ -365,14 +376,14 @@
       s('line', { x1: x(r.tol), x2: x(r.tol), y1: y + 26, y2: y + 86, class: 'sc-edge' }),
       s('text', { x: x(-r.tol), y: y + 20, class: 'sc-t eq mid' }, `−${r.tolName}`),
       s('text', { x: x(r.tol), y: y + 20, class: 'sc-t eq mid' }, `+${r.tolName}`),
-      s('text', { x: x(-r.tol), y: y + 102, class: 'sc-t mid' }, fmt(-r.tol)),
-      s('text', { x: x(r.tol), y: y + 102, class: 'sc-t mid' }, fmt(r.tol, true)),
+      s('text', { x: x(-r.tol), y: y + 102, class: 'sc-t mid' }, fmt(-r.tol, false, r.unit)),
+      s('text', { x: x(r.tol), y: y + 102, class: 'sc-t mid' }, fmt(r.tol, true, r.unit)),
       near(-r.tol) || near(r.tol) ? null : s('text', { x: x(0), y: y + 102, class: 'sc-t mid' }, '0'),
       s('line', { x1: x(0), x2: x(0), y1: y + 52, y2: y + 70, class: 'sc-zero' }),
       s('g', { class: 'late' }, [
         s('rect', { x: Math.min(x(r.lo), x(r.hi) - 4), y: y + 56, width: Math.max(4, x(r.hi) - x(r.lo)), height: 10, rx: 5, class: 'sc-ci' }),
         s('circle', { cx: x(r.c), cy: y + 61, r: 4.5, class: 'sc-c' }),
-        s('text', { x: lab, y: y + 47, class: 'sc-t doe mid' }, `${r.ciName} ${fmt(r.lo, true)} ~ ${fmt(r.hi, true)}`)])
+        s('text', { x: lab, y: y + 47, class: 'sc-t doe mid' }, `${r.ciName} ${fmt(r.lo, true, r.unit)} ~ ${fmt(r.hi, true, r.unit)}`)])
     ]);
   }
   function loqRow(y, r, b) {
@@ -426,7 +437,7 @@
   function stage3Row(t) {
     const st = t.step6.stage3, basis = st.basis, iv = t.step4, p = t.step5;
     if (basis === 'log' && iv.log) {
-      return { kind: 'shift', lo: iv.log.ci_low, hi: iv.log.ci_high, c: iv.log.center, tol: p.delta_log, tolName: 'Δlog', ciName: 'log 구간' };
+      return { kind: 'shift', lo: iv.log.ci_low, hi: iv.log.ci_high, c: iv.log.center, tol: p.delta_log, tolName: 'Δlog', ciName: 'log 구간', unit: '' };
     }
     const tol = { abs: p.abs_delta, accuracy: p.used && p.used.value }[basis];
     const name = { abs: '절대폭', accuracy: "Δ'" }[basis];
@@ -452,7 +463,7 @@
       const b = beats.length;
       const r = stage3Row(t);
       const v = st.stage3.verdict;
-      beats.push(v ? `동등이 아님 → 판정 길 '${st.stage3.route}'로 다시 봄 → ${v}`
+      beats.push(v ? `동등이 아님 → 판정 길 '${st.stage3.route}'에서 다시 봄 → ${v}`
         : `판정 길 '${st.stage3.route}'는 따로 판정하지 않음 → 앞 판정 유지`);
       rows.push(rowHead(y, '3단계 · 판정 길', st.stage3.route, v, b, b));
       rows.push(r.kind === 'shift' ? shiftRow(y, r, b) : noteRow(y, '이 길은 따로 판정하지 않아 1·2단계 판정을 그대로 둔다', b));
@@ -500,6 +511,7 @@
       console.error(e);
     }
   }
+  function boot() {
   run(initLayer);
   if (document.querySelector('[data-scene],[data-tracker],[data-journeys]')) {
     if (!D) run(() => { throw new Error('예제 자료(SOP_JOURNEYS)가 없습니다'); });
@@ -510,4 +522,7 @@
       run(initJourneys);
     }
   }
+  }
+  // assets/scenes/*.js 가 defineScene 을 마친 뒤에 그린다 (스크립트는 body 끝에서 차례로 실행)
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

@@ -1,3 +1,4 @@
+<!-- legacy -->
 <p class="loc"><a href="concepts.html">개념 익히기</a> › σ<sub>die</sub>와 σ<sub>run</sub> (개념 3 / 19) · 쓰는 단계 <a href="step-2.html">②</a> <a href="step-0.html">⓪</a> <a href="step-3.html">③</a> <a href="step-5.html">⑤</a></p>
 <h1>σ<sub>die</sub>와 σ<sub>run</sub></h1>
 
@@ -15,7 +16,7 @@
 </ul>
 <details><summary>보충</summary><ul>
 <li>die 사이 퍼짐(die마다 다른 고정 수준)은 σ<sub>die</sub>도 σ<sub>run</sub>도 아님. 기준 조건과 비교 조건에 똑같이 들어가 die별 차이 d에서 빠짐 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
-<li>σ와 MAD의 관계는 <a href="c-mad.html">표준편차 σ와 MAD</a>, 중앙값이 평균보다 덜 효율적인 정도(π/2)는 <a href="c-efficiency.html">중앙값 효율 1.25</a></li>
+<li>σ와 MAD의 관계는 <a href="c-sigma-split.html">표준편차 σ와 MAD</a>, 중앙값이 평균보다 덜 효율적인 정도(π/2)는 <a href="c-power.html">중앙값 효율 1.25</a></li>
 </ul></details></section>
 
 <section id="formula"><h2>수식</h2>
@@ -39,7 +40,7 @@
 <ol>
 <li>σ<sub>die</sub>: ① die마다 이웃 회차 차이(2−1, 3−2) ② 회차 쌍마다 die 전체 중앙값을 뺌 ③ 모든 die의 차이를 모아 1.4826·MAD ④ ÷√2<ul class="chain"><li>→ ITEM당 1개<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup><sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup><sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li></ul></li>
 <li>σ<sub>run</sub>: die마다 회차 평균을 뺀 값 e<sub>ij</sub>의 회차별 중앙값 r<sub>j</sub> → r<sub>j</sub>의 분산에서 die 잡음 몫을 뺌<sup class="fnref"><a href="#fn5" aria-label="출처 5">5</a></sup><sup class="fnref"><a href="#fn6" aria-label="출처 6">6</a></sup><sup class="fnref"><a href="#fn7" aria-label="출처 7">7</a></sup><sup class="fnref"><a href="#fn8" aria-label="출처 8">8</a></sup></li>
-<li>die 잡음 몫: 회차 이동이 0이어도 회차 중앙값 r<sub>j</sub>는 die 잡음 때문에 움직임. 평균이면 분산 σ<sub>die</sub>²/n, 중앙값은 그 π/2배<sup class="fnref"><a href="#fn9" aria-label="출처 9">9</a></sup> · <a href="c-efficiency.html">중앙값 효율 1.25</a></li>
+<li>die 잡음 몫: 회차 이동이 0이어도 회차 중앙값 r<sub>j</sub>는 die 잡음 때문에 움직임. 평균이면 분산 σ<sub>die</sub>²/n, 중앙값은 그 π/2배<sup class="fnref"><a href="#fn9" aria-label="출처 9">9</a></sup> · <a href="c-power.html">중앙값 효율 1.25</a></li>
 <li>뺀 값이 0보다 작으면 σ<sub>run</sub> = 0 (식의 max)</li>
 </ol></section>
 
@@ -118,8 +119,8 @@
 <li>die 1~6 이웃 회차 차이(2−1, 3−2): [0.786, −0.425], [−0.678, 1.489], [1.066, −0.76], [−0.637, 0.403], [−0.688, 2.558], [0.019, 1.702] <span class="from">위 표에서 같은 방법</span></li>
 <li>회차 쌍별 차이의 중앙값 [0.674, 0.586] → 각 쌍에서 뺌 <span class="from">die 60개 전체의 2−1 차이 중앙값, 3−2 차이 중앙값</span></li>
 <li>모두 모음 120개 (중앙값 0.0) <span class="from">die 60개 × 회차 쌍 2개</span></li>
-<li>MAD = 중앙값에서 떨어진 거리의 중앙값 = 0.944 <span class="from">120개가 0.0에서 떨어진 거리 · <a href="c-mad.html">표준편차 σ와 MAD</a></span></li>
-<li>1.4826 × 0.944 = 1.39957 <span class="from">robust σ: MAD를 표준편차 크기로 바꿈 · <a href="c-mad.html">표준편차 σ와 MAD</a></span></li>
+<li>MAD = 중앙값에서 떨어진 거리의 중앙값 = 0.944 <span class="from">120개가 0.0에서 떨어진 거리 · <a href="c-sigma-split.html">표준편차 σ와 MAD</a></span></li>
+<li>1.4826 × 0.944 = 1.39957 <span class="from">robust σ: MAD를 표준편차 크기로 바꿈 · <a href="c-sigma-split.html">표준편차 σ와 MAD</a></span></li>
 <li>÷ √2 = 0.98965 ≈ 0.990 = σ<sub>die</sub> <span class="from">이웃 회차 차이 하나에 흔들림 두 번</span></li>
 </ol>
 <h3>σ<sub>run</sub> (회차 이동)</h3>
@@ -166,7 +167,7 @@
 <li>단순 합이면 0.98965 + 0.50389 = 1.49354 → 1.49%로 과대</li>
 </ol>
 <ul>
-<li>주의: status가 '산포 0'이면 0%가 나오지만 좋은 값이 아님(분해능·고정값 문제). 정량 구간에서 분해능이 거칠면 <a href="glossary.html#excluded">판정 제외</a>이고, 판정되더라도 meas_precision은 좋은 값으로 읽지 않음 · <a href="c-resolution.html">분해능과 √12</a></li>
+<li>주의: status가 '산포 0'이면 0%가 나오지만 좋은 값이 아님(분해능·고정값 문제). 정량 구간에서 분해능이 거칠면 <a href="glossary.html#excluded">판정 제외</a>이고, 판정되더라도 meas_precision은 좋은 값으로 읽지 않음 · <a href="c-loq.html">분해능과 √12</a></li>
 </ul>
 <p class="s">합성 예시 · 실행 결과 아님</p>
 </section>
@@ -189,4 +190,4 @@
 <li id="fn14"><span class="badge-int">이 문서의 해석</span> 회차(run)를 σ<sub>run</sub>으로 보는 것을 VIM 중간 정밀도 조건에 대응시킴</li>
 </ol></section>
 
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="step-2.html">② 흔들림 구하기</a></li><li><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a></li><li><a href="step-0.html">⓪ 표본 크기 정하기</a></li><li><a href="c-mad.html">표준편차 σ와 MAD</a></li><li><a href="c-efficiency.html">중앙값 효율 1.25</a></li></ul></nav>
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="step-2.html">② 흔들림 구하기</a></li><li><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a></li><li><a href="step-0.html">⓪ 표본 크기 정하기</a></li><li><a href="c-sigma-split.html">표준편차 σ와 MAD</a></li><li><a href="c-power.html">중앙값 효율 1.25</a></li></ul></nav>

@@ -2,7 +2,7 @@
 <html lang="ko" data-layer="easy">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ITEM 유형과 판정 길 · DC Test 동일성 검증</title>
-<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/legacy.css">
+<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/scenes/steps-a.css"><link rel="stylesheet" href="assets/scenes/steps-b.css"><link rel="stylesheet" href="assets/scenes/guide.css"><link rel="stylesheet" href="assets/scenes/concepts.css"><link rel="stylesheet" href="assets/legacy.css">
 <script>try{if(localStorage.getItem('sop-layer')==='expert')document.documentElement.setAttribute('data-layer','expert');}catch(e){}</script>
 </head>
 <body data-page="c-routes">
@@ -10,9 +10,10 @@
 <header class="top"><a class="brand" href="index.html">DC Test 동일성 검증</a>
 <div class="layer-toggle" role="group" aria-label="보기"><button type="button" data-set-layer="easy">쉽게</button><button type="button" data-set-layer="expert">전문까지</button></div></header>
 <div id="sop-error" class="sop-error" role="alert" hidden></div>
-<nav class="side" aria-label="문서"><a href="index.html">개요</a><div class="nav-group"><p class="nav-h">따라하기</p><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 나누기</a><a href="step-3.html">③ LoQ와 ITEM 유형</a><a href="step-4.html">④ 변화 구간</a><a href="step-5.html">⑤ 허용폭 Δ</a><a href="step-6.html">⑥ 판정 3단계</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="journey.html">예제 따라가기</a></div><div class="nav-group"><p class="nav-h">결과 읽기</p><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a></div><div class="nav-group"><p class="nav-h">공부하기</p><a href="concepts.html">개념 익히기</a><details class="nav-more" open><summary>개념 19쪽</summary><a href="c-median.html">중앙값과 평균</a><a href="c-mad.html">표준편차 σ와 MAD</a><a href="c-sigma-split.html">σ_die와 σ_run</a><a href="c-resolution.html">분해능과 √12</a><a href="c-loq.html">LoQ와 10배</a><a href="c-signci.html">부호검정과 중앙값 90% 구간</a><a href="c-median-ci.html">중앙값 90% 구간 구하기</a><a href="c-tfactor.html">회차 예측 한계 계수</a><a href="c-delta.html">허용폭 Δ</a><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a><a href="c-map.html">판정 지도는 왜 삼각형인가</a><a href="c-loq-judge.html">LoQ 아래 판정</a><a href="c-routes.html" aria-current="page">ITEM 유형과 판정 길</a><a href="c-abs-tol.html">0 근처와 절대 허용폭</a><a href="c-log-scale.html">잡음이 값에 비례하면 log</a><a href="c-efficiency.html">중앙값 효율 1.25</a><a href="c-power.html">검정력과 표본 크기</a><a href="c-ttest-vs-tost.html">t-test와 TOST</a><a href="c-precision.html">정밀도 비교 (제안)</a></details></div><div class="nav-group"><p class="nav-h">참고</p><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></div></nav>
+<nav class="side" aria-label="문서"><a href="index.html">개요</a><div class="nav-group"><p class="nav-h">따라하기</p><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 나누기</a><a href="step-3.html">③ LoQ와 ITEM 유형</a><a href="step-4.html">④ 변화 구간</a><a href="step-5.html">⑤ 허용폭 Δ</a><a href="step-6.html">⑥ 판정 3단계</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="journey.html">예제 따라가기</a></div><div class="nav-group"><p class="nav-h">결과 읽기</p><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a></div><div class="nav-group"><p class="nav-h">공부하기</p><a href="concepts.html">개념 익히기</a><details class="nav-more" open><summary>개념 9쪽</summary><a href="c-sigma-split.html">σ_die와 σ_run</a><a href="c-loq.html">LoQ와 10배</a><a href="c-median-ci.html">중앙값 90% 구간 구하기</a><a href="c-delta.html">허용폭 Δ</a><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a><a href="c-routes.html" aria-current="page">ITEM 유형과 판정 길</a><a href="c-abs-tol.html">0 근처와 절대 허용폭</a><a href="c-log-scale.html">잡음이 값에 비례하면 log</a><a href="c-power.html">검정력과 표본 크기</a></details></div><div class="nav-group"><p class="nav-h">참고</p><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></div></nav>
 <main id="main"><nav class="strip" aria-label="단계"><a href="step-0.html" class="chip" title="⓪ 표본 크기 정하기">⓪</a><a href="step-1.html" class="chip" title="① 반복 측정">①</a><a href="step-2.html" class="chip" title="② 흔들림 나누기">②</a><a href="step-3.html" class="chip" title="③ LoQ와 ITEM 유형">③</a><a href="step-4.html" class="chip" title="④ 변화 구간">④</a><a href="step-5.html" class="chip" title="⑤ 허용폭 Δ">⑤</a><a href="step-6.html" class="chip" title="⑥ 판정 3단계">⑥</a><a href="step-7.html" class="chip" title="⑦ 미결·차이일 때 다음 행동">⑦</a></nav>
 <article class="page legacy">
+<!-- legacy -->
 <p class="loc"><a href="concepts.html">개념 익히기</a> › ITEM 유형과 판정 길 (개념 13 / 19) · 쓰는 단계 <a href="step-6.html#typed">⑥</a></p>
 <h1>ITEM 유형과 판정 길</h1>
 
@@ -51,7 +52,7 @@
 <tr><td>1</td><td>제외</td><td>판정할 수 있나 ≠ 정상</td><td>1·2단계 판정 그대로</td><td>—</td></tr>
 <tr><td>2</td><td>한계 비교</td><td>모양에 '한계에 걸림'</td><td>한계(Open 코드, 최댓값·최솟값) 밖 die로 TOST (verdict_limit)</td><td>limit</td></tr>
 <tr><td>3</td><td>절대 허용폭</td><td>0 중심 · 또는 계단이고 정량·바닥 근처</td><td>같은 신뢰구간을 ±abs_delta로 TOST · <a href="c-abs-tol.html">절대 허용폭</a></td><td>abs</td></tr>
-<tr><td>4</td><td>LoQ 판정</td><td>바닥 아래</td><td>2단계 판정 그대로 · <a href="c-loq-judge.html">LoQ 아래 판정</a></td><td>loq</td></tr>
+<tr><td>4</td><td>LoQ 판정</td><td>바닥 아래</td><td>2단계 판정 그대로 · <a href="c-loq.html">LoQ 아래 판정</a></td><td>loq</td></tr>
 <tr><td>5</td><td>log TOST</td><td>척도 log · 부호 하나(양수만 · 음수만)</td><td>log10|값|으로 TOST · <a href="c-log-scale.html">잡음이 값에 비례하면 log</a></td><td>log</td></tr>
 <tr><td>6</td><td>선형 TOST</td><td>나머지</td><td>1단계 판정 그대로 · 바닥 근처면 Δ' = max(Δ, 장비 정확도 폭)로 TOST</td><td>linear · accuracy</td></tr>
 </tbody></table></div>
@@ -276,9 +277,13 @@
 })();
 </script>
 
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-loq-judge.html">LoQ 아래 판정</a></li><li><a href="c-abs-tol.html">0 근처와 절대 허용폭</a></li><li><a href="c-log-scale.html">잡음이 값에 비례하면 log</a></li><li><a href="step-6.html#typed">⑥ 판정 · 3단계 유형별 판정</a></li><li><a href="reading.html#final">결과 읽는 법 · 최종 판정 열</a></li></ul></nav>
-<footer class="pager"><a href="c-loq-judge.html" class="prev">← LoQ 아래 판정</a><a href="c-abs-tol.html" class="next">0 근처와 절대 허용폭 →</a></footer>
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-loq.html">LoQ 아래 판정</a></li><li><a href="c-abs-tol.html">0 근처와 절대 허용폭</a></li><li><a href="c-log-scale.html">잡음이 값에 비례하면 log</a></li><li><a href="step-6.html#typed">⑥ 판정 · 3단계 유형별 판정</a></li><li><a href="reading.html#final">결과 읽는 법 · 최종 판정 열</a></li></ul></nav>
+<footer class="pager"><a href="c-tost.html" class="prev">← TOST와 동등 · 차이 · 미결</a><a href="c-abs-tol.html" class="next">0 근처와 절대 허용폭 →</a></footer>
 </article></main>
 <script src="assets/concepts.js"></script>
 <script src="assets/sop.js"></script>
+<script src="assets/scenes/steps-a.js"></script>
+<script src="assets/scenes/steps-b.js"></script>
+<script src="assets/scenes/guide.js"></script>
+<script src="assets/scenes/concepts.js"></script>
 </body></html>

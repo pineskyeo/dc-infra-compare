@@ -2,7 +2,7 @@
 <html lang="ko" data-layer="easy">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TOST와 동등 · 차이 · 미결 · DC Test 동일성 검증</title>
-<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/legacy.css">
+<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/scenes/steps-a.css"><link rel="stylesheet" href="assets/scenes/steps-b.css"><link rel="stylesheet" href="assets/scenes/guide.css"><link rel="stylesheet" href="assets/scenes/concepts.css"><link rel="stylesheet" href="assets/legacy.css">
 <script>try{if(localStorage.getItem('sop-layer')==='expert')document.documentElement.setAttribute('data-layer','expert');}catch(e){}</script>
 </head>
 <body data-page="c-tost">
@@ -10,9 +10,10 @@
 <header class="top"><a class="brand" href="index.html">DC Test 동일성 검증</a>
 <div class="layer-toggle" role="group" aria-label="보기"><button type="button" data-set-layer="easy">쉽게</button><button type="button" data-set-layer="expert">전문까지</button></div></header>
 <div id="sop-error" class="sop-error" role="alert" hidden></div>
-<nav class="side" aria-label="문서"><a href="index.html">개요</a><div class="nav-group"><p class="nav-h">따라하기</p><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 나누기</a><a href="step-3.html">③ LoQ와 ITEM 유형</a><a href="step-4.html">④ 변화 구간</a><a href="step-5.html">⑤ 허용폭 Δ</a><a href="step-6.html">⑥ 판정 3단계</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="journey.html">예제 따라가기</a></div><div class="nav-group"><p class="nav-h">결과 읽기</p><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a></div><div class="nav-group"><p class="nav-h">공부하기</p><a href="concepts.html">개념 익히기</a><details class="nav-more" open><summary>개념 19쪽</summary><a href="c-median.html">중앙값과 평균</a><a href="c-mad.html">표준편차 σ와 MAD</a><a href="c-sigma-split.html">σ_die와 σ_run</a><a href="c-resolution.html">분해능과 √12</a><a href="c-loq.html">LoQ와 10배</a><a href="c-signci.html">부호검정과 중앙값 90% 구간</a><a href="c-median-ci.html">중앙값 90% 구간 구하기</a><a href="c-tfactor.html">회차 예측 한계 계수</a><a href="c-delta.html">허용폭 Δ</a><a href="c-tost.html" aria-current="page">TOST와 동등 · 차이 · 미결</a><a href="c-map.html">판정 지도는 왜 삼각형인가</a><a href="c-loq-judge.html">LoQ 아래 판정</a><a href="c-routes.html">ITEM 유형과 판정 길</a><a href="c-abs-tol.html">0 근처와 절대 허용폭</a><a href="c-log-scale.html">잡음이 값에 비례하면 log</a><a href="c-efficiency.html">중앙값 효율 1.25</a><a href="c-power.html">검정력과 표본 크기</a><a href="c-ttest-vs-tost.html">t-test와 TOST</a><a href="c-precision.html">정밀도 비교 (제안)</a></details></div><div class="nav-group"><p class="nav-h">참고</p><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></div></nav>
+<nav class="side" aria-label="문서"><a href="index.html">개요</a><div class="nav-group"><p class="nav-h">따라하기</p><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 나누기</a><a href="step-3.html">③ LoQ와 ITEM 유형</a><a href="step-4.html">④ 변화 구간</a><a href="step-5.html">⑤ 허용폭 Δ</a><a href="step-6.html">⑥ 판정 3단계</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="journey.html">예제 따라가기</a></div><div class="nav-group"><p class="nav-h">결과 읽기</p><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a></div><div class="nav-group"><p class="nav-h">공부하기</p><a href="concepts.html">개념 익히기</a><details class="nav-more" open><summary>개념 9쪽</summary><a href="c-sigma-split.html">σ_die와 σ_run</a><a href="c-loq.html">LoQ와 10배</a><a href="c-median-ci.html">중앙값 90% 구간 구하기</a><a href="c-delta.html">허용폭 Δ</a><a href="c-tost.html" aria-current="page">TOST와 동등 · 차이 · 미결</a><a href="c-routes.html">ITEM 유형과 판정 길</a><a href="c-abs-tol.html">0 근처와 절대 허용폭</a><a href="c-log-scale.html">잡음이 값에 비례하면 log</a><a href="c-power.html">검정력과 표본 크기</a></details></div><div class="nav-group"><p class="nav-h">참고</p><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></div></nav>
 <main id="main"><nav class="strip" aria-label="단계"><a href="step-0.html" class="chip" title="⓪ 표본 크기 정하기">⓪</a><a href="step-1.html" class="chip" title="① 반복 측정">①</a><a href="step-2.html" class="chip" title="② 흔들림 나누기">②</a><a href="step-3.html" class="chip" title="③ LoQ와 ITEM 유형">③</a><a href="step-4.html" class="chip" title="④ 변화 구간">④</a><a href="step-5.html" class="chip" title="⑤ 허용폭 Δ">⑤</a><a href="step-6.html" class="chip" title="⑥ 판정 3단계">⑥</a><a href="step-7.html" class="chip" title="⑦ 미결·차이일 때 다음 행동">⑦</a></nav>
 <article class="page legacy">
+<!-- legacy -->
 <p class="loc"><a href="concepts.html">개념 익히기</a> › TOST와 동등 · 차이 · 미결 (개념 10 / 19) · 쓰는 단계 <a href="step-6.html">⑥</a></p>
 <h1>TOST와 동등 · 차이 · 미결</h1>
 
@@ -22,7 +23,7 @@
 <section id="plain"><h2>쉬운 말로</h2>
 <ul id="why">
 <li>보통 검정(<a class="g" href="glossary.html#t-test"><abbr title="t-test · 차이의 평균이 0인지 보는 검정">t-test(짝지은 t 검정)</abbr></a>)은 '차이가 있다'를 보이는 도구. 차이를 못 찾았다고 같다는 뜻이 아님. <a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a>가 적으면 큰 차이도 놓침<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li>
-<li>반대로 die가 많으면 실무상 무시할 작은 차이도 유의차로 나옴. 예시 t-test p = 4.2e-07, <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> 회차끼리 견줘도 3쌍 모두 유의차 <span class="from">⑥ 참고 지표, <a href="c-ttest-vs-tost.html">t-test와 TOST</a></span></li>
+<li>반대로 die가 많으면 실무상 무시할 작은 차이도 유의차로 나옴. 예시 t-test p = 4.2e-07, <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> 회차끼리 견줘도 3쌍 모두 유의차 <span class="from">⑥ 참고 지표, <a href="c-tost.html">t-test와 TOST</a></span></li>
 <li>TOST는 같음을 직접 보임: '편향 &gt; −Δ'와 '편향 &lt; +Δ'를 한쪽 5% 검정으로 따로 확인해 둘 다 통과하면 동등<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li>
 <li>두 검정을 한 번에 보는 방법 = 90% CI가 (−Δ, +Δ) 안에 통째로 들어가는지 봄. 한쪽 5%씩 두 번이라 90%<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li>
 <li data-e="1">TOST 이름 뜻: 한쪽 검정(One-Sided Test)을 두 번(Two)<ul class="chain"><li>→ ① 편향 &gt; −Δ ② 편향 &lt; +Δ, 각각 한쪽 5%</li><li>→ 둘 다 통과 ⇔ 가운데 90% CI가 (−Δ, +Δ) 안</li><li>→ 같은 판정<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li></ul></li>
@@ -32,7 +33,7 @@
 <p class="s">더 자세한 쉬운 말은 아래 <a href="#plain-more">쉬운 말 더 보기</a></p>
 
 <details><summary>보충</summary><ul>
-<li><a class="g" href="glossary.html#loq"><abbr title="정량한계 · 믿고 숫자로 비교할 수 있는 가장 작은 크기">정량한계(LoQ, Limit of Quantitation)</abbr></a> 미만 ITEM은 ⑥에서 TOST에 더해 DOE 수준 구간을 LoQ와 견줘 봄(LoQ 판정). 이 갈래도 ④의 CI와 ⑤의 Δ를 씀<ul class="chain"><li>→ <a href="c-loq-judge.html">LoQ 아래 판정</a></li></ul></li>
+<li><a class="g" href="glossary.html#loq"><abbr title="정량한계 · 믿고 숫자로 비교할 수 있는 가장 작은 크기">정량한계(LoQ, Limit of Quantitation)</abbr></a> 미만 ITEM은 ⑥에서 TOST에 더해 DOE 수준 구간을 LoQ와 견줘 봄(LoQ 판정). 이 갈래도 ④의 CI와 ⑤의 Δ를 씀<ul class="chain"><li>→ <a href="c-loq.html">LoQ 아래 판정</a></li></ul></li>
 <li>1·2단계에서 동등이 아닌 ITEM은 ⑥ 3단계에서 유형에 맞는 판정 길(절대 허용폭, log TOST 등)로 다시 TOST<ul class="chain"><li>→ <a href="c-routes.html">ITEM 유형과 판정 길</a></li></ul></li>
 <li>미결 · 차이가 나오면 <a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></li>
 </ul></details></section>
@@ -90,7 +91,7 @@
 <tr><td>+Δ보다 통째로 위인 구간</td><td><span class="pill bad">차이</span></td><td>구간 전체가 +6.699 밖</td></tr>
 </tbody></table></div>
 <p class="look"><b>여기서 볼 것</b> · 판정은 b 한 점이 아니라 구간 전체의 자리로 정함. 구간 끝 하나라도 ±Δ 선을 넘으면 더는 동등이 아님</p>
-<p class="s">이 구간을 점 하나로 찍은 그림이 판정 지도 → <a href="c-map.html">판정 지도는 왜 삼각형인가</a> (움직이는 그림)</p>
+<p class="s">이 구간을 점 하나로 찍은 그림이 판정 지도 → <a href="c-tost.html">판정 지도는 왜 삼각형인가</a> (움직이는 그림)</p>
 
 <figure class="cfig" id="ftost" data-anim="steps" data-start="3">
 <svg viewBox="0 0 640 180" role="img" aria-labelledby="ftost-t"><title id="ftost-t">비교 조건 이동 b에 따라 바뀌는 동등 · 미결 · 차이 비율 (모의실험)</title>
@@ -137,7 +138,7 @@
 <section id="example"><h2>예시 계산</h2>
 <p class="s">예시 데이터: <a href="step-2.html#ex-data">합성 예시 die 6개 표</a></p>
 <ol class="calc">
-<li>90% CI = [0.610, 1.102] <span class="from">④ 차이(편향)와 90% 신뢰구간 구하기 · <a href="c-signci.html">부호검정과 중앙값 90% 신뢰구간</a> · <a href="c-median-ci.html">중앙값의 90% 신뢰구간 구하는 법</a></span></li>
+<li>90% CI = [0.610, 1.102] <span class="from">④ 차이(편향)와 90% 신뢰구간 구하기 · <a href="c-median-ci.html">부호검정과 중앙값 90% 신뢰구간</a> · <a href="c-median-ci.html">중앙값의 90% 신뢰구간 구하는 법</a></span></li>
 <li>Δ = 5.0 + 1.69896 = 6.69896 ≈ 6.699 <span class="from">⑤ 허용 범위 Δ 정하기 · <a href="c-delta.html">허용 범위 Δ</a></span></li>
 <li>아래 검정: 아래 끝 0.610 &gt; −6.699 → '편향 &gt; −Δ' 통과</li>
 <li>위 검정: 위 끝 1.102 &lt; +6.699 → '편향 &lt; +Δ' 통과</li>
@@ -154,9 +155,13 @@
 <li id="fn4"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 쉬운 말 설명과 그림(모의실험)</li>
 </ol></section>
 
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-signci.html">부호검정과 중앙값 90% 신뢰구간</a></li><li><a href="c-median-ci.html">중앙값의 90% 신뢰구간 구하는 법</a></li><li><a href="c-delta.html">허용 범위 Δ</a></li><li><a href="c-ttest-vs-tost.html">t-test와 TOST</a></li><li><a href="step-6.html">⑥ 판정</a></li><li><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></li></ul></nav>
-<footer class="pager"><a href="c-delta.html" class="prev">← 허용폭 Δ</a><a href="c-map.html" class="next">판정 지도는 왜 삼각형인가 →</a></footer>
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-median-ci.html">부호검정과 중앙값 90% 신뢰구간</a></li><li><a href="c-median-ci.html">중앙값의 90% 신뢰구간 구하는 법</a></li><li><a href="c-delta.html">허용 범위 Δ</a></li><li><a href="c-tost.html">t-test와 TOST</a></li><li><a href="step-6.html">⑥ 판정</a></li><li><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></li></ul></nav>
+<footer class="pager"><a href="c-delta.html" class="prev">← 허용폭 Δ</a><a href="c-routes.html" class="next">ITEM 유형과 판정 길 →</a></footer>
 </article></main>
 <script src="assets/concepts.js"></script>
 <script src="assets/sop.js"></script>
+<script src="assets/scenes/steps-a.js"></script>
+<script src="assets/scenes/steps-b.js"></script>
+<script src="assets/scenes/guide.js"></script>
+<script src="assets/scenes/concepts.js"></script>
 </body></html>

@@ -1,3 +1,4 @@
+<!-- legacy -->
 <p class="loc"><a href="concepts.html">개념 익히기</a> › 중앙값의 90% 신뢰구간 (개념 7 / 19) · 쓰는 단계 <a href="step-4.html">④</a></p>
 <h1>중앙값의 90% 신뢰구간(CI, Confidence Interval)은 어떻게 구하나</h1>
 
@@ -234,7 +235,7 @@
 <li>d를 크기순으로 세우고 양끝에서 k개씩 떼면 → 남은 구간 = 아래에서 k+1번째 값 ~ n−k번째 값</li>
 <li>진짜 중앙값이 남은 구간 밖에 있는 경우는 둘뿐: 'm보다 작은 die가 k개 이하(앞면이 k번 이하)' 또는 'm보다 큰 die가 k개 이하(뒷면이 k번 이하)'<ul class="chain"><li>→ 두 쪽 확률이 같아 각각 한쪽 P(B ≤ k)<sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li></ul></li>
 <li>한쪽 P(B ≤ k)가 5% 이하인 가장 큰 k를 고름 <span class="from">5% × 2쪽 = 10% → 남은 90%</span><ul class="chain"><li>→ die 60개면 k = 23, 구간은 24번째 ~ 37번째 값, 실제 신뢰도 90.75% <span class="from">예시 계산 1~3줄</span><sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup><sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li></ul></li>
-<li>값의 크기는 쓰지 않고 순번만 씀 → <a class="g" href="glossary.html#sign-test"><abbr title="부호검정 · 차이가 +인 die와 −인 die 수만 세어 중앙값을 따지는 방법">부호검정</abbr></a>과 같은 생각 · 판정에서의 쓰임은 <a href="c-signci.html">부호검정과 중앙값 90% 신뢰구간</a></li>
+<li>값의 크기는 쓰지 않고 순번만 씀 → <a class="g" href="glossary.html#sign-test"><abbr title="부호검정 · 차이가 +인 die와 −인 die 수만 세어 중앙값을 따지는 방법">부호검정</abbr></a>과 같은 생각 · 판정에서의 쓰임은 <a href="c-median-ci.html">부호검정과 중앙값 90% 신뢰구간</a></li>
 </ul>
 <details><summary>보충</summary><ul>
 <li>실제 신뢰도가 딱 90%가 아닌 이유: k는 정수<ul class="chain"><li>→ 고를 수 있는 신뢰도가 몇 개뿐</li><li>→ 90% 이상 중 가장 가까운 값을 씀<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li></ul></li>
@@ -318,7 +319,7 @@
 <ul>
 <li>데이터 90% 범위 = ±1.645σ: die 하나의 d가 들어갈 범위 · 중앙값의 범위가 아님 <span class="from">σ = d의 흔들림</span></li>
 <li>평균의 90% CI ≈ ±1.645 × σ/√60 = ±0.2124σ ≈ ±0.21σ <span class="from">√60 = 7.746</span></li>
-<li>중앙값의 90% CI ≈ ±1.645 × 1.2533 × σ/√60 = ±0.2662σ ≈ ±0.27σ <span class="from">1.2533 = √(π/2), <a href="c-efficiency.html">중앙값 효율 1.25</a></span><sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li>
+<li>중앙값의 90% CI ≈ ±1.645 × 1.2533 × σ/√60 = ±0.2662σ ≈ ±0.27σ <span class="from">1.2533 = √(π/2), <a href="c-power.html">중앙값 효율 1.25</a></span><sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li>
 <li>0.2662 / 0.2124 = 1.2533 → 정규분포일 때 중앙값 CI가 평균 CI보다 약 25% 넓음</li>
 <li>쉬운 말로: 데이터 범위는 die 하나가 어디 떨어질지, CI는 60개를 모아 낸 중앙값 하나가 어디 있을지<ul class="chain"><li>→ 모아 낸 값이라 범위가 훨씬 좁음(±1.645σ 대 ±0.27σ) <span class="badge-int">내부 기준(문헌 근거 없음)</span></li></ul></li>
 <li>이 쪽의 순번 방법은 정규분포를 가정하지 않음 → 위 식은 넓이를 견주는 데만 씀</li>
@@ -344,4 +345,4 @@
 <li id="fn6">TOST = 90% 신뢰구간이 ±Δ 안: Schuirmann (1987) J. Pharmacokinet. Biopharm. 15:657-680 · 초록 · <a href="https://link.springer.com/article/10.1007/BF01068419" rel="noopener" target="_blank">링크</a></li>
 </ol></section>
 
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-signci.html">부호검정과 중앙값 90% 신뢰구간</a></li><li><a href="c-efficiency.html">중앙값 효율 1.25</a></li><li><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a></li></ul></nav>
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-median-ci.html">부호검정과 중앙값 90% 신뢰구간</a></li><li><a href="c-power.html">중앙값 효율 1.25</a></li><li><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a></li></ul></nav>

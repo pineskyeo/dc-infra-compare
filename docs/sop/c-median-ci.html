@@ -2,7 +2,7 @@
 <html lang="ko" data-layer="easy">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>중앙값 90% 구간 구하기 · DC Test 동일성 검증</title>
-<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/legacy.css">
+<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/scenes/steps-a.css"><link rel="stylesheet" href="assets/scenes/steps-b.css"><link rel="stylesheet" href="assets/scenes/guide.css"><link rel="stylesheet" href="assets/scenes/concepts.css"><link rel="stylesheet" href="assets/legacy.css">
 <script>try{if(localStorage.getItem('sop-layer')==='expert')document.documentElement.setAttribute('data-layer','expert');}catch(e){}</script>
 </head>
 <body data-page="c-median-ci">
@@ -10,9 +10,10 @@
 <header class="top"><a class="brand" href="index.html">DC Test 동일성 검증</a>
 <div class="layer-toggle" role="group" aria-label="보기"><button type="button" data-set-layer="easy">쉽게</button><button type="button" data-set-layer="expert">전문까지</button></div></header>
 <div id="sop-error" class="sop-error" role="alert" hidden></div>
-<nav class="side" aria-label="문서"><a href="index.html">개요</a><div class="nav-group"><p class="nav-h">따라하기</p><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 나누기</a><a href="step-3.html">③ LoQ와 ITEM 유형</a><a href="step-4.html">④ 변화 구간</a><a href="step-5.html">⑤ 허용폭 Δ</a><a href="step-6.html">⑥ 판정 3단계</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="journey.html">예제 따라가기</a></div><div class="nav-group"><p class="nav-h">결과 읽기</p><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a></div><div class="nav-group"><p class="nav-h">공부하기</p><a href="concepts.html">개념 익히기</a><details class="nav-more" open><summary>개념 19쪽</summary><a href="c-median.html">중앙값과 평균</a><a href="c-mad.html">표준편차 σ와 MAD</a><a href="c-sigma-split.html">σ_die와 σ_run</a><a href="c-resolution.html">분해능과 √12</a><a href="c-loq.html">LoQ와 10배</a><a href="c-signci.html">부호검정과 중앙값 90% 구간</a><a href="c-median-ci.html" aria-current="page">중앙값 90% 구간 구하기</a><a href="c-tfactor.html">회차 예측 한계 계수</a><a href="c-delta.html">허용폭 Δ</a><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a><a href="c-map.html">판정 지도는 왜 삼각형인가</a><a href="c-loq-judge.html">LoQ 아래 판정</a><a href="c-routes.html">ITEM 유형과 판정 길</a><a href="c-abs-tol.html">0 근처와 절대 허용폭</a><a href="c-log-scale.html">잡음이 값에 비례하면 log</a><a href="c-efficiency.html">중앙값 효율 1.25</a><a href="c-power.html">검정력과 표본 크기</a><a href="c-ttest-vs-tost.html">t-test와 TOST</a><a href="c-precision.html">정밀도 비교 (제안)</a></details></div><div class="nav-group"><p class="nav-h">참고</p><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></div></nav>
+<nav class="side" aria-label="문서"><a href="index.html">개요</a><div class="nav-group"><p class="nav-h">따라하기</p><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 나누기</a><a href="step-3.html">③ LoQ와 ITEM 유형</a><a href="step-4.html">④ 변화 구간</a><a href="step-5.html">⑤ 허용폭 Δ</a><a href="step-6.html">⑥ 판정 3단계</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="journey.html">예제 따라가기</a></div><div class="nav-group"><p class="nav-h">결과 읽기</p><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a></div><div class="nav-group"><p class="nav-h">공부하기</p><a href="concepts.html">개념 익히기</a><details class="nav-more" open><summary>개념 9쪽</summary><a href="c-sigma-split.html">σ_die와 σ_run</a><a href="c-loq.html">LoQ와 10배</a><a href="c-median-ci.html" aria-current="page">중앙값 90% 구간 구하기</a><a href="c-delta.html">허용폭 Δ</a><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a><a href="c-routes.html">ITEM 유형과 판정 길</a><a href="c-abs-tol.html">0 근처와 절대 허용폭</a><a href="c-log-scale.html">잡음이 값에 비례하면 log</a><a href="c-power.html">검정력과 표본 크기</a></details></div><div class="nav-group"><p class="nav-h">참고</p><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></div></nav>
 <main id="main"><nav class="strip" aria-label="단계"><a href="step-0.html" class="chip" title="⓪ 표본 크기 정하기">⓪</a><a href="step-1.html" class="chip" title="① 반복 측정">①</a><a href="step-2.html" class="chip" title="② 흔들림 나누기">②</a><a href="step-3.html" class="chip" title="③ LoQ와 ITEM 유형">③</a><a href="step-4.html" class="chip" title="④ 변화 구간">④</a><a href="step-5.html" class="chip" title="⑤ 허용폭 Δ">⑤</a><a href="step-6.html" class="chip" title="⑥ 판정 3단계">⑥</a><a href="step-7.html" class="chip" title="⑦ 미결·차이일 때 다음 행동">⑦</a></nav>
 <article class="page legacy">
+<!-- legacy -->
 <p class="loc"><a href="concepts.html">개념 익히기</a> › 중앙값의 90% 신뢰구간 (개념 7 / 19) · 쓰는 단계 <a href="step-4.html">④</a></p>
 <h1>중앙값의 90% 신뢰구간(CI, Confidence Interval)은 어떻게 구하나</h1>
 
@@ -249,7 +250,7 @@
 <li>d를 크기순으로 세우고 양끝에서 k개씩 떼면 → 남은 구간 = 아래에서 k+1번째 값 ~ n−k번째 값</li>
 <li>진짜 중앙값이 남은 구간 밖에 있는 경우는 둘뿐: 'm보다 작은 die가 k개 이하(앞면이 k번 이하)' 또는 'm보다 큰 die가 k개 이하(뒷면이 k번 이하)'<ul class="chain"><li>→ 두 쪽 확률이 같아 각각 한쪽 P(B ≤ k)<sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li></ul></li>
 <li>한쪽 P(B ≤ k)가 5% 이하인 가장 큰 k를 고름 <span class="from">5% × 2쪽 = 10% → 남은 90%</span><ul class="chain"><li>→ die 60개면 k = 23, 구간은 24번째 ~ 37번째 값, 실제 신뢰도 90.75% <span class="from">예시 계산 1~3줄</span><sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup><sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li></ul></li>
-<li>값의 크기는 쓰지 않고 순번만 씀 → <a class="g" href="glossary.html#sign-test"><abbr title="부호검정 · 차이가 +인 die와 −인 die 수만 세어 중앙값을 따지는 방법">부호검정</abbr></a>과 같은 생각 · 판정에서의 쓰임은 <a href="c-signci.html">부호검정과 중앙값 90% 신뢰구간</a></li>
+<li>값의 크기는 쓰지 않고 순번만 씀 → <a class="g" href="glossary.html#sign-test"><abbr title="부호검정 · 차이가 +인 die와 −인 die 수만 세어 중앙값을 따지는 방법">부호검정</abbr></a>과 같은 생각 · 판정에서의 쓰임은 <a href="c-median-ci.html">부호검정과 중앙값 90% 신뢰구간</a></li>
 </ul>
 <details><summary>보충</summary><ul>
 <li>실제 신뢰도가 딱 90%가 아닌 이유: k는 정수<ul class="chain"><li>→ 고를 수 있는 신뢰도가 몇 개뿐</li><li>→ 90% 이상 중 가장 가까운 값을 씀<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li></ul></li>
@@ -333,7 +334,7 @@
 <ul>
 <li>데이터 90% 범위 = ±1.645σ: die 하나의 d가 들어갈 범위 · 중앙값의 범위가 아님 <span class="from">σ = d의 흔들림</span></li>
 <li>평균의 90% CI ≈ ±1.645 × σ/√60 = ±0.2124σ ≈ ±0.21σ <span class="from">√60 = 7.746</span></li>
-<li>중앙값의 90% CI ≈ ±1.645 × 1.2533 × σ/√60 = ±0.2662σ ≈ ±0.27σ <span class="from">1.2533 = √(π/2), <a href="c-efficiency.html">중앙값 효율 1.25</a></span><sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li>
+<li>중앙값의 90% CI ≈ ±1.645 × 1.2533 × σ/√60 = ±0.2662σ ≈ ±0.27σ <span class="from">1.2533 = √(π/2), <a href="c-power.html">중앙값 효율 1.25</a></span><sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li>
 <li>0.2662 / 0.2124 = 1.2533 → 정규분포일 때 중앙값 CI가 평균 CI보다 약 25% 넓음</li>
 <li>쉬운 말로: 데이터 범위는 die 하나가 어디 떨어질지, CI는 60개를 모아 낸 중앙값 하나가 어디 있을지<ul class="chain"><li>→ 모아 낸 값이라 범위가 훨씬 좁음(±1.645σ 대 ±0.27σ) <span class="badge-int">내부 기준(문헌 근거 없음)</span></li></ul></li>
 <li>이 쪽의 순번 방법은 정규분포를 가정하지 않음 → 위 식은 넓이를 견주는 데만 씀</li>
@@ -359,9 +360,13 @@
 <li id="fn6">TOST = 90% 신뢰구간이 ±Δ 안: Schuirmann (1987) J. Pharmacokinet. Biopharm. 15:657-680 · 초록 · <a href="https://link.springer.com/article/10.1007/BF01068419" rel="noopener" target="_blank">링크</a></li>
 </ol></section>
 
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-signci.html">부호검정과 중앙값 90% 신뢰구간</a></li><li><a href="c-efficiency.html">중앙값 효율 1.25</a></li><li><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a></li></ul></nav>
-<footer class="pager"><a href="c-signci.html" class="prev">← 부호검정과 중앙값 90% 구간</a><a href="c-tfactor.html" class="next">회차 예측 한계 계수 →</a></footer>
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-median-ci.html">부호검정과 중앙값 90% 신뢰구간</a></li><li><a href="c-power.html">중앙값 효율 1.25</a></li><li><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a></li></ul></nav>
+<footer class="pager"><a href="c-loq.html" class="prev">← LoQ와 10배</a><a href="c-delta.html" class="next">허용폭 Δ →</a></footer>
 </article></main>
 <script src="assets/concepts.js"></script>
 <script src="assets/sop.js"></script>
+<script src="assets/scenes/steps-a.js"></script>
+<script src="assets/scenes/steps-b.js"></script>
+<script src="assets/scenes/guide.js"></script>
+<script src="assets/scenes/concepts.js"></script>
 </body></html>

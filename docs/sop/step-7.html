@@ -2,7 +2,7 @@
 <html lang="ko" data-layer="easy">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>⑦ 미결·차이일 때 다음 행동 · DC Test 동일성 검증</title>
-<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/legacy.css">
+<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/scenes/steps-a.css"><link rel="stylesheet" href="assets/scenes/steps-b.css"><link rel="stylesheet" href="assets/scenes/guide.css"><link rel="stylesheet" href="assets/scenes/concepts.css"><link rel="stylesheet" href="assets/legacy.css">
 <script>try{if(localStorage.getItem('sop-layer')==='expert')document.documentElement.setAttribute('data-layer','expert');}catch(e){}</script>
 </head>
 <body data-page="step-7" data-step="7">
@@ -10,9 +10,10 @@
 <header class="top"><a class="brand" href="index.html">DC Test 동일성 검증</a>
 <div class="layer-toggle" role="group" aria-label="보기"><button type="button" data-set-layer="easy">쉽게</button><button type="button" data-set-layer="expert">전문까지</button></div></header>
 <div id="sop-error" class="sop-error" role="alert" hidden></div>
-<nav class="side" aria-label="문서"><a href="index.html">개요</a><div class="nav-group"><p class="nav-h">따라하기</p><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 나누기</a><a href="step-3.html">③ LoQ와 ITEM 유형</a><a href="step-4.html">④ 변화 구간</a><a href="step-5.html">⑤ 허용폭 Δ</a><a href="step-6.html">⑥ 판정 3단계</a><a href="step-7.html" aria-current="page">⑦ 미결·차이일 때 다음 행동</a><a href="journey.html">예제 따라가기</a></div><div class="nav-group"><p class="nav-h">결과 읽기</p><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a></div><div class="nav-group"><p class="nav-h">공부하기</p><a href="concepts.html">개념 익히기</a><details class="nav-more"><summary>개념 19쪽</summary><a href="c-median.html">중앙값과 평균</a><a href="c-mad.html">표준편차 σ와 MAD</a><a href="c-sigma-split.html">σ_die와 σ_run</a><a href="c-resolution.html">분해능과 √12</a><a href="c-loq.html">LoQ와 10배</a><a href="c-signci.html">부호검정과 중앙값 90% 구간</a><a href="c-median-ci.html">중앙값 90% 구간 구하기</a><a href="c-tfactor.html">회차 예측 한계 계수</a><a href="c-delta.html">허용폭 Δ</a><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a><a href="c-map.html">판정 지도는 왜 삼각형인가</a><a href="c-loq-judge.html">LoQ 아래 판정</a><a href="c-routes.html">ITEM 유형과 판정 길</a><a href="c-abs-tol.html">0 근처와 절대 허용폭</a><a href="c-log-scale.html">잡음이 값에 비례하면 log</a><a href="c-efficiency.html">중앙값 효율 1.25</a><a href="c-power.html">검정력과 표본 크기</a><a href="c-ttest-vs-tost.html">t-test와 TOST</a><a href="c-precision.html">정밀도 비교 (제안)</a></details></div><div class="nav-group"><p class="nav-h">참고</p><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></div></nav>
+<nav class="side" aria-label="문서"><a href="index.html">개요</a><div class="nav-group"><p class="nav-h">따라하기</p><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 나누기</a><a href="step-3.html">③ LoQ와 ITEM 유형</a><a href="step-4.html">④ 변화 구간</a><a href="step-5.html">⑤ 허용폭 Δ</a><a href="step-6.html">⑥ 판정 3단계</a><a href="step-7.html" aria-current="page">⑦ 미결·차이일 때 다음 행동</a><a href="journey.html">예제 따라가기</a></div><div class="nav-group"><p class="nav-h">결과 읽기</p><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a></div><div class="nav-group"><p class="nav-h">공부하기</p><a href="concepts.html">개념 익히기</a><details class="nav-more"><summary>개념 9쪽</summary><a href="c-sigma-split.html">σ_die와 σ_run</a><a href="c-loq.html">LoQ와 10배</a><a href="c-median-ci.html">중앙값 90% 구간 구하기</a><a href="c-delta.html">허용폭 Δ</a><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a><a href="c-routes.html">ITEM 유형과 판정 길</a><a href="c-abs-tol.html">0 근처와 절대 허용폭</a><a href="c-log-scale.html">잡음이 값에 비례하면 log</a><a href="c-power.html">검정력과 표본 크기</a></details></div><div class="nav-group"><p class="nav-h">참고</p><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></div></nav>
 <main id="main"><nav class="strip" aria-label="단계"><a href="step-0.html" class="chip" title="⓪ 표본 크기 정하기">⓪</a><a href="step-1.html" class="chip" title="① 반복 측정">①</a><a href="step-2.html" class="chip" title="② 흔들림 나누기">②</a><a href="step-3.html" class="chip" title="③ LoQ와 ITEM 유형">③</a><a href="step-4.html" class="chip" title="④ 변화 구간">④</a><a href="step-5.html" class="chip" title="⑤ 허용폭 Δ">⑤</a><a href="step-6.html" class="chip" title="⑥ 판정 3단계">⑥</a><a href="step-7.html" class="chip now" title="⑦ 미결·차이일 때 다음 행동" aria-current="step">⑦ 미결·차이일 때 다음 행동</a></nav>
 <article class="page legacy">
+<!-- legacy -->
 <p class="loc"><a href="index.html">개요</a> › 단계 ⑦ (⓪~⑦ 중) · 앞 단계 <a href="step-6.html">⑥ 판정</a></p>
 <h1>⑦ 미결·차이일 때 다음 행동</h1>
 
@@ -23,7 +24,7 @@
 <div class="tw"><table><thead><tr><th>⑥ 결과</th><th>뜻</th><th>다음 행동</th><th>근거</th></tr></thead><tbody>
 <tr><td><span class="pill hold">미결</span> 해상도 부족</td><td>90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a>이 ±Δ에 걸침, CI 반폭 ≥ Δ. b가 0이어도 ±Δ 안에 못 들어감(정밀도 부족)</td><td>① σ<sub>run</sub>과 σ<sub>die</sub> 중 큰 쪽 확인 ② 측정 조건 점검으로 흔들림 줄이기 ③ die 늘리기: 가능할 때만. <a class="g" href="glossary.html#wafer"><abbr title="wafer · die가 여러 개 만들어진 원판">wafer</abbr></a>당 die 약 60개라 die 60 → 120은 다른 wafer를 써야 하고, wafer가 바뀌면 wafer 차이가 섞임 ④ 회차(J) 증가 검토: Δ도 새 J로 다시 구함(⑤) ⑤ 그래도 미결이면 사람 판정 기록</td><td><a href="step-6.html#stage1">⑥ 미결 · 해상도 부족</a> · <a href="step-0.html">⓪</a> '부족하면 wafer 2장 이상 또는 J 증가 검토' · <span class="badge-int">내부 기준(문헌 근거 없음)</span></td></tr>
 <tr><td><span class="pill hold">미결</span> 경계</td><td>CI 반폭 &lt; Δ인데 ±Δ에 걸침. 정밀도는 충분, b가 Δ 근처</td><td>① 회차를 늘려도 미결이 줄지 않을 수 있음(아래 이유) ② 측정 조건 점검 후 다시 잼 ③ die 늘리기는 가능할 때만(위와 같은 wafer 조건) ④ 그래도 경계면 사람 판정 기록</td><td><a href="step-6.html#stage1">⑥ 미결 · 경계</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></td></tr>
-<tr><td><span class="pill hold">미결</span> LoQ 위 경계</td><td>LoQ 미만 ITEM에서 DOE 수준 구간(기준 조건 중앙값 + CI)이 통째로 LoQ 이상인데 CI가 ±Δ에 걸침</td><td>① review/의 LoQ 재확인(loq_review.csv)에서 방향 · 꼬리 확인 ② 회차 · die를 늘려 CI 좁히기 ③ 그래도 걸치면 사람 판정 기록</td><td><a href="step-6.html#loq">⑥ LoQ 판정 미결</a> · <a href="c-loq-judge.html">LoQ 아래 판정</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></td></tr>
+<tr><td><span class="pill hold">미결</span> LoQ 위 경계</td><td>LoQ 미만 ITEM에서 DOE 수준 구간(기준 조건 중앙값 + CI)이 통째로 LoQ 이상인데 CI가 ±Δ에 걸침</td><td>① review/의 LoQ 재확인(loq_review.csv)에서 방향 · 꼬리 확인 ② 회차 · die를 늘려 CI 좁히기 ③ 그래도 걸치면 사람 판정 기록</td><td><a href="step-6.html#loq">⑥ LoQ 판정 미결</a> · <a href="c-loq.html">LoQ 아래 판정</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></td></tr>
 <tr><td><span class="pill bad">차이</span></td><td>CI가 통째로 ±Δ 밖. <a class="g" href="glossary.html#loq"><abbr title="정량한계 · 믿고 숫자로 비교할 수 있는 가장 작은 크기">정량한계(LoQ, Limit of Quantitation)</abbr></a> 미만 갈래는 DOE 수준 구간이 통째로 LoQ 이상일 때만 · 3단계 판정 길로 정한 차이는 그 길의 허용폭 기준(route · verdict_basis)</td><td>① <a class="g" href="glossary.html#cand"><abbr title="비교 조건 · 바꾸려는 조건">비교 조건(Candidate)</abbr></a>을 탓하기 전에 측정 쪽 원인 점검: <a class="g" href="glossary.html#probecard"><abbr title="프로브카드 · 바늘을 die 패드에 대어 장비와 die를 전기로 잇는 부품">프로브카드</abbr></a> 접촉, 장비, 측정 조건(<a class="g" href="glossary.html#retouch">재터치다운</a> 여부 포함) ② 다시 잼 ③ 그래도 차이면 차이로 두고 사람 판정 기록</td><td><a href="step-6.html#stage1">⑥ 차이</a> · <a href="step-6.html#loq">⑥ LoQ 미만 차이</a> · ⓪ 예외 '프로브카드 접촉·측정 조건을 점검' · <span class="badge-int">내부 기준(문헌 근거 없음)</span></td></tr>
 </tbody></table></div>
 <ul>
@@ -37,7 +38,7 @@
 <details><summary>보충</summary><ul>
 <li>다시 잴 때도 같은 die를 <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> J회 + 비교 조건 1회, 매 회차 재터치다운 (<a href="step-1.html">① 반복 측정</a>과 같음)</li>
 <li>⓪에서 σ<sub>run</sub>/|기준 조건 중앙값|이 2.13%를 넘으면 반복을 늘리는 대신 프로브카드 접촉·측정 조건을 점검하라고 정함. 회차 이동이 큰 경우도 점검이 먼저 <span class="from">2.13% = ⓪ J 고르기 구간의 J 5 끝(5% / 2.3353 = 2.141%, ⓪ 표기 2.13%)</span></li>
-<li>정밀도(흔들림) 자체를 비교 조건과 견주는 방법은 <a href="c-precision.html">정밀도 비교(제안)</a></li>
+<li>정밀도(흔들림) 자체를 비교 조건과 견주는 방법은 <a href="c-sigma-split.html">정밀도 비교(제안)</a></li>
 </ul></details></section>
 
 <section id="formula"><h2>수식</h2>
@@ -64,7 +65,7 @@
 <tr><td>9</td><td>1.8595</td><td>1.0541</td><td>1.9601</td><td>5.9877</td></tr>
 <tr><td>10</td><td>1.8331</td><td>1.0488</td><td>1.9226</td><td>5.9688</td></tr>
 </tbody></table></div>
-<p class="s">예시 ITEM의 σ<sub>run</sub>(② 흔들림 구하기)로 J만 바꿔 ⑤의 식에 넣은 값 · 계수 설명은 <a href="c-tfactor.html">회차 예측 한계 계수</a></p>
+<p class="s">예시 ITEM의 σ<sub>run</sub>(② 흔들림 구하기)로 J만 바꿔 ⑤의 식에 넣은 값 · 계수 설명은 <a href="c-delta.html">회차 예측 한계 계수</a></p>
 <div class="crit"><h3>사람 판정 기록에 남길 것</h3>
 <ul><li>누가: 판정한 사람</li><li>언제: 날짜</li><li>무엇을 보고: ⑥ 결과(구간 · 판정 · 사유), 미결이면 해상도 부족 · 경계 중 어느 쪽인지, CI와 ±Δ, 점검한 측정 조건, 다시 잰 결과, die를 늘렸다면 쓴 wafer</li><li>결론과 이유</li></ul>
 <p><span class="badge-int">내부 기준(문헌 근거 없음)</span><sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup></p></div>
@@ -169,9 +170,13 @@
 <li id="fn4"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 결과별 다음 행동 표, die 늘리기 조건(wafer), 측정 조건 점검 항목, 사람 판정 기록 항목, 그림 1 · 2(모의실험)와 해석</li>
 </ol></section>
 
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-power.html">검정력 90%와 표본 크기</a></li><li><a href="c-tfactor.html">회차 예측 한계 계수</a></li><li><a href="c-delta.html">허용 범위 Δ</a></li><li><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a></li><li><a href="c-precision.html">정밀도 비교(제안)</a></li><li><a href="reading.html">결과 읽는 법</a></li></ul></nav>
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-power.html">검정력 90%와 표본 크기</a></li><li><a href="c-delta.html">회차 예측 한계 계수</a></li><li><a href="c-delta.html">허용 범위 Δ</a></li><li><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a></li><li><a href="c-sigma-split.html">정밀도 비교(제안)</a></li><li><a href="reading.html">결과 읽는 법</a></li></ul></nav>
 <footer class="pager"><a href="step-6.html" class="prev">← ⑥ 판정 3단계</a><a href="journey.html" class="next">예제 따라가기 →</a></footer>
 </article></main>
 <script src="assets/concepts.js"></script>
 <script src="assets/sop.js"></script>
+<script src="assets/scenes/steps-a.js"></script>
+<script src="assets/scenes/steps-b.js"></script>
+<script src="assets/scenes/guide.js"></script>
+<script src="assets/scenes/concepts.js"></script>
 </body></html>

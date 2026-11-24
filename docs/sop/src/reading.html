@@ -1,3 +1,4 @@
+<!-- legacy -->
 <p class="loc"><a href="index.html">개요</a> › 결과 읽는 법 · 앞 단계 <a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></p>
 <h1>결과 읽는 법</h1>
 
@@ -40,7 +41,7 @@
 <tr><td><span class="pill bad">차이</span></td><td>DOE 수준 구간이 통째로 LoQ 이상 + CI 통째로 ±Δ 밖</td><td>보고가 숫자로 바뀜 · <a href="step-6.html#loq">⑥</a></td></tr>
 <tr><td><span class="pill hold">미결</span></td><td>DOE 수준 구간이 통째로 LoQ 이상 + CI가 ±Δ에 걸침</td><td>숫자로 보고되나 변화가 허용폭 경계 · <a href="step-6.html#loq">⑥</a></td></tr>
 </tbody></table></div>
-<p class="s">예전 규칙(DOE 중심 한 점만 LoQ와 비교, 차이 아니면 모두 동등)은 구간 규칙으로 바뀜 · 그림 <a href="c-loq-judge.html">LoQ 아래 판정</a><sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span></p>
+<p class="s">예전 규칙(DOE 중심 한 점만 LoQ와 비교, 차이 아니면 모두 동등)은 구간 규칙으로 바뀜 · 그림 <a href="c-loq.html">LoQ 아래 판정</a><sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span></p>
 </section>
 
 <section id="zone"><h2>구간 읽기</h2>
@@ -70,7 +71,7 @@
 <li>점 하나 = ITEM 하나 · 가로 = <a class="g" href="glossary.html#norm-shift"><abbr title="정규화 변화량 · 이동 ÷ 허용폭. 0이면 그대로, ±1이면 허용폭만큼 변함">정규화 변화량</abbr></a>(이동 ÷ 허용폭) · 세로 = <a class="g" href="glossary.html#norm-unc"><abbr title="정규화 불확실성 · 90% 신뢰구간 반폭 ÷ 허용폭. 0에 가까울수록 확실">정규화 불확실성</abbr></a>(90% CI 반폭 ÷ 허용폭)</li>
 <li><span class="pill ok">동등</span> |가로| + 세로 ≤ 1 (삼각형) · <span class="pill bad">차이</span> |가로| − 세로 &gt; 1 (V자 바깥) · <span class="pill hold">미결</span> 그 사이</li>
 <li>허용폭 = 그 ITEM의 최종 판정 방법의 것 (Δ, Δ', abs_delta, Δ<sub>log</sub> 등)</li>
-<li>왜 삼각형 · V자인지 → <a href="c-map.html">판정 지도는 왜 삼각형인가</a> (움직이는 그림)</li>
+<li>왜 삼각형 · V자인지 → <a href="c-tost.html">판정 지도는 왜 삼각형인가</a> (움직이는 그림)</li>
 </ul>
 </section>
 
@@ -164,7 +165,7 @@
 <section id="ref"><h2>참고 지표 (판정에 쓰지 않음)</h2>
 <ul>
 <li>기록만 하고 동등 판정에는 안 씀</li>
-<li>t-test는 기준 조건 회차끼리 비교해도 유의차를 자주 냄 → 동등 판정에 안 씀 · <a href="c-ttest-vs-tost.html">t-test와 TOST</a></li>
+<li>t-test는 기준 조건 회차끼리 비교해도 유의차를 자주 냄 → 동등 판정에 안 씀 · <a href="c-tost.html">t-test와 TOST</a></li>
 </ul>
 <h3>t-test (짝지은)</h3>
 <div class="formula"><div>t = d̄ / (s<sub>d</sub>/√n),  df = n − 1</div><div class="c">H<sub>0</sub>: 평균 차이 = 0. 마진이 0이라 '같다'를 증명하지 못함</div></div>
@@ -207,4 +208,4 @@
 <li id="fn7"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 쉬운 말 설명, 열 이름 대응 표</li>
 </ol></section>
 
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="step-6.html">⑥ 판정</a></li><li><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></li><li><a href="run.html">실행 방법</a></li><li><a href="c-tost.html">TOST</a></li><li><a href="c-signci.html">부호검정 신뢰구간</a></li><li><a href="c-ttest-vs-tost.html">t-test와 TOST</a></li><li><a href="c-loq-judge.html">LoQ 아래 판정</a></li><li><a href="c-routes.html">ITEM 유형과 판정 길</a></li></ul></nav>
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="step-6.html">⑥ 판정</a></li><li><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></li><li><a href="run.html">실행 방법</a></li><li><a href="c-tost.html">TOST</a></li><li><a href="c-median-ci.html">부호검정 신뢰구간</a></li><li><a href="c-tost.html">t-test와 TOST</a></li><li><a href="c-loq.html">LoQ 아래 판정</a></li><li><a href="c-routes.html">ITEM 유형과 판정 길</a></li></ul></nav>

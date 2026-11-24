@@ -14,7 +14,7 @@
   <div data-refs></div>                       각주 목록 자리 (없으면 쪽 끝에 접힌 전문 영역으로 붙임)
   <code data-code="파일.py:이름"></code>      코드 위치. 파일에 그 이름의 def·대입이 없으면 실패
 
-쪽을 새로 쓰거나 더할 때: SITE 에 행을 두고(새로 쓰면 legacy=False), docs/sop/src/<slug>.html 에 본문만 쓰고,
+쪽을 새로 쓰거나 더할 때: SITE 에 행을 두고, docs/sop/src/<slug>.html 에 본문만 쓰고 (옛 본문이면 첫 줄 <!-- legacy --> 를 지운다),
 이 도구를 돌린다. 쉽게 영역의 숫자는 assets/journeys.js 에서만 온다 (data-scene, data-tracker 로 그린다).
 assets/journeys.js 가 생기면 stub 대신 그것을 싣도록 쪽이 바뀌므로 다시 돌려야 --check 가 통과한다.
 
@@ -46,7 +46,6 @@ class Page:
     section: str
     purpose: str
     step: int | None = None
-    legacy: bool = False        # 옛 쪽을 그대로 옮긴 본문 (sop_convert_legacy.py). 새로 쓰면 False 로
 
     @property
     def file(self) -> str:
@@ -55,47 +54,36 @@ class Page:
 
 SITE: tuple[Page, ...] = (
     Page("index", "개요", "개요", "DC Test 측정 항목(ITEM)마다 바꾼 조건(DOE)이 지금 조건(POR)과 같다고 볼 수 있는지 판정하는 절차."),
-    Page("run", "실행 방법", "따라하기", "측정 파일을 모으고 도구를 돌리는 방법.", legacy=True),
-    Page("step-0", "⓪ 표본 크기 정하기", "따라하기", "die 몇 개, POR 몇 회를 잴지 정한다.", 0, legacy=True),
-    Page("step-1", "① 반복 측정", "따라하기", "같은 die를 POR J회, DOE 1회 잰다.", 1, legacy=True),
-    Page("step-2", "② 흔들림 나누기", "따라하기", "측정 흔들림을 die 반복(σ_die)과 회차 이동(σ_run)으로 나눈다.", 2,
-         legacy=True),
-    Page("step-3", "③ LoQ와 ITEM 유형", "따라하기", "LoQ = 10σ를 구하고, POR 값만 보고 ITEM 유형과 판정 길을 정한다.", 3,
-         legacy=True),
-    Page("step-4", "④ 변화 구간", "따라하기", "die별 차이 d의 중앙값과 부호검정 90% 구간을 구한다.", 4, legacy=True),
-    Page("step-5", "⑤ 허용폭 Δ", "따라하기", "이만큼 안이면 같다고 보는 폭 Δ를 정한다.", 5, legacy=True),
+    Page("run", "실행 방법", "따라하기", "측정 파일을 모으고 도구를 돌리는 방법."),
+    Page("step-0", "⓪ 표본 크기 정하기", "따라하기", "die 몇 개, POR 몇 회를 잴지 정한다.", 0),
+    Page("step-1", "① 반복 측정", "따라하기", "같은 die를 POR J회, DOE 1회 잰다.", 1),
+    Page("step-2", "② 흔들림 나누기", "따라하기", "측정 흔들림을 die 반복(σ_die)과 회차 이동(σ_run)으로 나눈다.", 2),
+    Page("step-3", "③ LoQ와 ITEM 유형", "따라하기", "LoQ = 10σ를 구하고, POR 값만 보고 ITEM 유형과 판정 길을 정한다.", 3),
+    Page("step-4", "④ 변화 구간", "따라하기", "die별 차이 d의 중앙값과 부호검정 90% 구간을 구한다.", 4),
+    Page("step-5", "⑤ 허용폭 Δ", "따라하기", "이만큼 안이면 같다고 보는 폭 Δ를 정한다.", 5),
     Page("step-6", "⑥ 판정 3단계", "따라하기", "90% 구간을 허용폭과 견줘 동등 · 미결 · 차이를 정한다.", 6),
-    Page("step-7", "⑦ 미결·차이일 때 다음 행동", "따라하기", "동등이 아닐 때 원인을 찾고 다음에 할 일을 정한다.", 7,
-         legacy=True),
+    Page("step-7", "⑦ 미결·차이일 때 다음 행동", "따라하기", "동등이 아닐 때 원인을 찾고 다음에 할 일을 정한다.", 7),
     Page("journey", "예제 따라가기", "따라하기", "ITEM 유형마다 예제 하나를 골라 ⓪부터 ⑦까지 따라간다."),
-    Page("reading", "결과 읽는 법", "결과 읽기", "결과 파일에서 판정과 그 이유를 읽는다.", legacy=True),
-    Page("columns", "열 사전", "결과 읽기", "결과 CSV의 열마다 뜻, 계산, 볼 것.", legacy=True),
-    Page("concepts", "개념 익히기", "공부하기", "판정에 쓰는 통계 개념을 하나씩 익힌다.", legacy=True),
-    Page("c-median", "중앙값과 평균", "공부하기", "튀는 값에 덜 흔들리는 가운데 값.", legacy=True),
-    Page("c-mad", "표준편차 σ와 MAD", "공부하기", "흔들림을 튀는 값에 강하게 재는 법.", legacy=True),
-    Page("c-sigma-split", "σ_die와 σ_run", "공부하기", "흔들림을 die 반복과 회차 이동으로 나누는 이유.", legacy=True),
-    Page("c-resolution", "분해능과 √12", "공부하기", "값이 계단처럼 찍힐 때의 흔들림.", legacy=True),
-    Page("c-loq", "LoQ와 10배", "공부하기", "숫자로 믿고 비교할 수 있는 가장 작은 크기.", legacy=True),
-    Page("c-signci", "부호검정과 중앙값 90% 구간", "공부하기", "중앙값의 90% 구간을 순위로 구하는 법.", legacy=True),
-    Page("c-median-ci", "중앙값 90% 구간 구하기", "공부하기", "구간 끝 순위를 정하는 계산.", legacy=True),
-    Page("c-tfactor", "회차 예측 한계 계수", "공부하기", "t·√(1+1/J)가 회차 몫을 정하는 이유.", legacy=True),
-    Page("c-delta", "허용폭 Δ", "공부하기", "Δ = 5%·|POR 중앙값| + 회차 몫.", legacy=True),
-    Page("c-tost", "TOST와 동등 · 차이 · 미결", "공부하기", "같음을 직접 보이는 검정.", legacy=True),
-    Page("c-map", "판정 지도는 왜 삼각형인가", "공부하기", "구간 폭과 위치로 본 판정 지도.", legacy=True),
-    Page("c-loq-judge", "LoQ 아래 판정", "공부하기", "LoQ 아래 ITEM을 '<LoQ' 보고로 견주는 법.", legacy=True),
-    Page("c-routes", "ITEM 유형과 판정 길", "공부하기", "POR 값만 보고 유형과 판정 길을 정하는 표.", legacy=True),
-    Page("c-abs-tol", "0 근처와 절대 허용폭", "공부하기", "값이 0 근처일 때 고정 허용폭을 쓰는 이유.", legacy=True),
-    Page("c-log-scale", "잡음이 값에 비례하면 log", "공부하기", "배율로 보는 판정.", legacy=True),
-    Page("c-efficiency", "중앙값 효율 1.25", "공부하기", "중앙값이 평균보다 덜 정밀한 만큼.", legacy=True),
-    Page("c-power", "검정력과 표본 크기", "공부하기", "die 수를 정하는 계산.", legacy=True),
-    Page("c-ttest-vs-tost", "t-test와 TOST", "공부하기", "차이 검정과 같음 검정의 차이.", legacy=True),
-    Page("c-precision", "정밀도 비교 (제안)", "공부하기", "두 조건의 측정 정밀도 견주기.", legacy=True),
-    Page("glossary", "용어집", "참고", "약어와 기호 풀이.", legacy=True),
-    Page("appendix", "부록", "참고", "근거 대조표와 미해결 항목.", legacy=True),
+    Page("reading", "결과 읽는 법", "결과 읽기", "결과 파일에서 판정과 그 이유를 읽는다."),
+    Page("columns", "열 사전", "결과 읽기", "결과 CSV의 열마다 뜻, 계산, 볼 것."),
+    Page("concepts", "개념 익히기", "공부하기", "판정에 쓰는 통계 개념을 하나씩 익힌다."),
+    Page("c-sigma-split", "σ_die와 σ_run", "공부하기", "흔들림을 die 반복과 회차 이동으로 나누는 이유."),
+    Page("c-loq", "LoQ와 10배", "공부하기", "숫자로 믿고 비교할 수 있는 가장 작은 크기."),
+    Page("c-median-ci", "중앙값 90% 구간 구하기", "공부하기", "구간 끝 순위를 정하는 계산."),
+    Page("c-delta", "허용폭 Δ", "공부하기", "Δ = 5%·|POR 중앙값| + 회차 몫."),
+    Page("c-tost", "TOST와 동등 · 차이 · 미결", "공부하기", "같음을 직접 보이는 검정."),
+    Page("c-routes", "ITEM 유형과 판정 길", "공부하기", "POR 값만 보고 유형과 판정 길을 정하는 표."),
+    Page("c-abs-tol", "0 근처와 절대 허용폭", "공부하기", "값이 0 근처일 때 고정 허용폭을 쓰는 이유."),
+    Page("c-log-scale", "잡음이 값에 비례하면 log", "공부하기", "배율로 보는 판정."),
+    Page("c-power", "검정력과 표본 크기", "공부하기", "die 수를 정하는 계산."),
+    Page("glossary", "용어집", "참고", "약어와 기호 풀이."),
+    Page("appendix", "부록", "참고", "근거 대조표와 미해결 항목."),
 )
 STEPS = {p.step: p for p in SITE if p.step is not None}
 JS = SOP / "assets" / "sop.js"
-DATA_FILES = ("assets/journeys.js", "assets/journeys.stub.js")     # 앞의 것이 있으면 그것을 싣는다
+DATA_FILE = "assets/journeys.js"
+SCENE_FILES = ('assets/scenes/steps-a', 'assets/scenes/steps-b', 'assets/scenes/guide', 'assets/scenes/concepts')   # 맡은 사람마다 .js·.css 하나 (쪽마다 같은 목록)
+LEGACY_MARK = "<!-- legacy -->"       # 옛 쪽을 그대로 옮긴 본문의 첫 줄. 새로 쓰면 지운다
 
 
 class BuildError(Exception):
@@ -193,7 +181,8 @@ def expand_layers(text: str) -> str:
 
 
 def scene_names() -> set[str]:
-    return set(re.findall(r"defineScene\('([\w-]+)'", JS.read_text(encoding="utf-8")))
+    files = [JS, *(SOP / f"{f}.js" for f in SCENE_FILES)]
+    return {n for f in files if f.is_file() for n in re.findall(r"defineScene\('([\w-]+)'", f.read_text(encoding="utf-8"))}
 
 
 def expand_mounts(text: str, page: Page) -> str:
@@ -357,22 +346,21 @@ LAYER_BOOT = ("<script>try{if(localStorage.getItem('sop-layer')==='expert')"
               "document.documentElement.setAttribute('data-layer','expert');}catch(e){}</script>")
 
 
-def data_file() -> str:
-    return next((f for f in DATA_FILES if (SOP / f).is_file()), DATA_FILES[-1])
-
-
 def render(page: Page, fragment: str, refs: dict[str, Ref]) -> str:
     body = expand_refs(expand_code(expand_mounts(expand_layers(fragment), page), page), page, refs)
     needs_data = any(f"data-{k}" in body for k in ("scene", "tracker", "journeys"))
-    css = '<link rel="stylesheet" href="assets/sop.css">'
+    legacy = fragment.startswith(LEGACY_MARK)
+    css = '<link rel="stylesheet" href="assets/sop.css">' + "".join(
+        f'<link rel="stylesheet" href="{f}.css">' for f in SCENE_FILES)
     scripts = []
-    if page.legacy:
+    if legacy:
         css += '<link rel="stylesheet" href="assets/legacy.css">'
         scripts.append('<script src="assets/concepts.js"></script>')
     if needs_data:
-        scripts.append(f'<script src="{data_file()}"></script>')
+        scripts.append(f'<script src="{DATA_FILE}"></script>')
     scripts.append('<script src="assets/sop.js"></script>')
-    head = "" if page.legacy else (
+    scripts += [f'<script src="{f}.js"></script>' for f in SCENE_FILES]
+    head = "" if legacy else (
         f'<header class="page-head"><p class="kicker">{html.escape(page.section)}</p>'
         f'<h1>{html.escape(SITE_NAME if page.slug == "index" else page.title)}</h1><p class="purpose">{html.escape(page.purpose)}</p></header>\n')
     step = f' data-step="{page.step}"' if page.step is not None else ""
@@ -390,7 +378,7 @@ def render(page: Page, fragment: str, refs: dict[str, Ref]) -> str:
 <div id="sop-error" class="sop-error" role="alert" hidden></div>
 {nav(page)}
 <main id="main">{"" if page.slug == "index" else strip(page)}
-<article class="page{" legacy" if page.legacy else ""}">
+<article class="page{" legacy" if legacy else ""}">
 {head}{body.strip()}
 {pager(page)}
 </article></main>
