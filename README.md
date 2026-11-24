@@ -52,6 +52,7 @@ python dcc.py group A1                      # 그룹별 판정 지도 (groups �
 python dcc.py group A1 --before 이전/items.csv  # + 기존·개선 비교와 그룹별 비교 요약
 python dcc.py report A1 --anon                # 리포트만 다시. --anon 은 익명 ID 만 (report_anon.html)
 python dcc.py classes A1                    # ITEM 분류와 판정 길 (참고, 판정 불변): 개수, 목록, 그림, 길마다 예시 ITEM
+python dcc.py slides A1                     # 판정 기준 장표 2쪽 slides.pptx (기존 판정과 견주려면 --before 이전/items.csv)
 ```
 
 `--items-file`에는 명령행 ITEM을 같이 줄 수 있고, 둘을 합쳐 중복 없이 씁니다. `items_index.csv`나 `worst_items.csv`처럼 `ITEM` 열이 있는 결과 표를 그대로 넘겨도 됩니다.
@@ -68,6 +69,7 @@ python dcc.py classes A1                    # ITEM 분류와 판정 길 (참고,
 | `group/plots/` | 그룹별 판정 지도 | `group` |
 | `group/compare/`, `group/summary/` | 기존·개선 비교, 그룹별 비교 요약 | `group --before`(또는 조합의 `before` 키) |
 | `classes/` | ITEM 분류 개수(`counts.csv`), 판정 길별 목록(`items_by_route.csv`), `classes.png`, `examples/<판정 길>/` | `classes` |
+| `slides.pptx` | 판정 기준 장표 2쪽. 1쪽 기존 문제와 새 판정 3단계, 2쪽 판정 결과·그룹 × LEVEL 측정 정밀도·미결 원인과 다음 조치. ITEM은 익명 번호만 | `slides` |
 
 `item`과 `group`은 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize)과 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
 

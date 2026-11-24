@@ -9,6 +9,7 @@
   python dcc.py group A1 [--before 이전/items.csv]  그룹별 요약 그림 (+ 기존·개선 비교, 그룹 요약)
   python dcc.py report A1 [--anon]                리포트만 다시 (--anon: 익명 ID 만, report_anon.html)
   python dcc.py classes A1                        ITEM 분류와 판정 길 (참고, 판정 불변): 개수, 목록, 그림, 길마다 예시 ITEM
+  python dcc.py slides A1 [--before 이전/items.csv]  판정 기준 장표 2쪽 (<out>/<이름>/slides.pptx, ITEM 은 익명 번호)
 
 설정 파일은 기본으로 현재 폴더의 combos.ini (--config 로 바꿈). 형식은 combos.example.ini.
 조합 하나의 산출물은 <out>/<이름>/ 에 둔다: items.csv, stability/, review/, plots/, item/, group/, classes/.
@@ -277,8 +278,14 @@ def report_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
     return [report_step(c, a.anon)]
 
 
+def slides_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
+    before = Path(a.before).resolve() if a.before else c.before
+    return [("slides", ["slides.py", str(c.out), "--out", str(c.out / "slides.pptx"), "--label", c.name,
+                        *(["--before", str(before)] if before is not None else [])])]
+
+
 MODES = {"judge": judge_steps, "item": item_steps, "group": group_steps, "report": report_steps,
-         "classes": classes_steps}
+         "classes": classes_steps, "slides": slides_steps}
 
 
 def plan(mode: str, c: Combo, a: argparse.Namespace) -> list[Step]:
@@ -314,7 +321,7 @@ def run_target(c: Combo, a: argparse.Namespace, steps: list[Step]) -> tuple[str,
             failed = run_combo(c, "item", evidence_steps(c, names, plots=False))
         else:
             print(f"[{c.name}] 차이·미결 ITEM 이 없어 item 분석을 건너뜁니다", flush=True)
-    if failed is not None or a.cmd == "report":
+    if failed is not None or a.cmd in ("report", "slides"):
         return failed
     return run_combo(c, "report", [report_step(c)])
 
@@ -355,6 +362,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--anon", action="store_true", help="ITEM 이름 대신 익명 ID 만 (report_anon.html, 밖으로 공유할 때)")
     p = sub.add_parser("classes", parents=[common], help="ITEM 분류와 판정 길, 참고 (<out>/<이름>/classes/)")
     p.add_argument("name", help="조합 이름")
+    p = sub.add_parser("slides", parents=[common], help="판정 기준 장표 2쪽 (<out>/<이름>/slides.pptx)")
+    p.add_argument("name", help="조합 이름")
+    p.add_argument("--before", help="기존 판정 items.csv. 주면 기존 → 새 판정 개수를 함께 보임 (조합의 before 키보다 우선)")
     return ap
 
 
