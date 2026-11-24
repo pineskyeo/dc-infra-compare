@@ -40,7 +40,7 @@ from fail_evidence import add_raw_args  # noqa: E402
 from plot_verdicts import configure_font  # noqa: E402
 from por_doe_compare import (  # noqa: E402
     JUDGED, LOQ_PASS_BELOW, LOQ_PASS_CROSS, LOQ_PASS_SHIFT, LOQ_ZONE_NAMES, MIN_DIE, R_ABS, R_EXCLUDED, R_LINEAR, R_LOQ,
-    RESCALED, ST_NEAR_LOQ, _status_parts, _text, ci_median, loq_verdict, rescaled_verdicts, robust_sigma, route_method,
+    POR_MEAN_RE, RESCALED, ST_NEAR_LOQ, _status_parts, _text, ci_median, loq_verdict, rescaled_verdicts, robust_sigma, route_method,
     tost,
 )
 
@@ -57,17 +57,20 @@ LEVELS = (NO_CHANGE, *GRID)
 REVIEW_LEVELS = (NO_CHANGE, *HEADLINE)
 CAUGHT = ("차이", "미결")
 TESTED = "예"
+RAW_MISMATCH = "원데이터가 items.csv 와 다름"
 SIM_ROUTES = (R_LOQ, R_ABS, R_LINEAR, R_EXCLUDED)       # 3단계 판정 열을 items.csv 숫자만으로 다시 낼 수 있는 길
 N_BOOT, SEED, BOOT_PCT = 2000, 0, (5.0, 95.0)
 
-# 동등이 된 이유. 2단계 사유 상수 → 이유, 2단계는 차이·미결인데 판정 길이 동등을 주면 K_STAGE3
+# 동등이 된 이유. 2단계 사유 상수 → 이유, 2단계는 차이·미결인데 판정 길이 동등을 주면 K_STAGE3, 모르는 사유는 K_OTHER
 K_SHIFT, K_BELOW, K_CROSS, K_STAGE3 = "이동이 허용폭 안", "DOE 구간도 LoQ 아래", "DOE 구간이 LoQ에 걸침", "판정 길"
+K_OTHER = "기타"
 PASS_KINDS = {LOQ_PASS_SHIFT: K_SHIFT, LOQ_PASS_BELOW: K_BELOW, LOQ_PASS_CROSS: K_CROSS}
 RULE_PASSES = (K_BELOW, K_CROSS)                         # LoQ 규칙으로 동등: 보통 TOST 였다면 차이·미결
 LISTED = (*RULE_PASSES, K_STAGE3)                         # ITEM 표에 싣는 동등 (LoQ 규칙이나 판정 길로)
-KIND_ORDER = (K_SHIFT, K_BELOW, K_CROSS, K_STAGE3, "미결", "차이")
-KIND_COLORS = {K_SHIFT: "#009E73", K_BELOW: "#0072B2", K_CROSS: "#56B4E9", K_STAGE3: "#CC79A7", "미결": "#E69F00",
-               "차이": "#D55E00"}
+PASS_ORDER = (K_SHIFT, K_BELOW, K_CROSS, K_STAGE3, K_OTHER)
+KIND_ORDER = (*PASS_ORDER, "미결", "차이")
+KIND_COLORS = {K_SHIFT: "#009E73", K_BELOW: "#0072B2", K_CROSS: "#56B4E9", K_STAGE3: "#CC79A7", K_OTHER: "#999999",
+               "미결": "#E69F00", "차이": "#D55E00"}
 
 ITEM_COLS = ["ITEM", "UNIT", "zone", "verdict_final", "pass_kind", "route", "verdict_tost", "por_loq", "doe_lo_loq",
              "doe_hi_loq", "review_flag", "review_ratio", "null_caught", "n_runs", "catch_level", "catch_ratio",
@@ -151,7 +154,7 @@ def pass_kind(row: Mapping) -> str:
         return final
     if _text(row.get("verdict")) != "동등":
         return K_STAGE3
-    return PASS_KINDS.get(_text(row.get("reason")), _text(row.get("reason")))
+    return PASS_KINDS.get(_text(row.get("reason")), K_OTHER)
 
 
 def plain_tost(row: Mapping) -> str:
@@ -213,6 +216,8 @@ def untested_reason(row: Mapping, raw: tuple[np.ndarray, np.ndarray] | None) -> 
     if raw is None:
         return "원데이터에서 이 ITEM 을 찾지 못함"
     Y = raw[0]
+    if raw_differs(row, Y):
+        return RAW_MISMATCH
     if Y.shape[1] < 2:
         return "POR 회차가 1개"
     if Y.shape[0] < MIN_DIE:
@@ -226,17 +231,30 @@ def untested_reason(row: Mapping, raw: tuple[np.ndarray, np.ndarray] | None) -> 
     return ""
 
 
+def raw_differs(row: Mapping, Y: np.ndarray) -> bool:
+    """읽은 원데이터가 이 ITEM 을 판정한 데이터와 다른가: POR 회차 수가 items.csv 의 POR 회차 평균 열 수와 다르거나,
+    die 별 회차 평균의 중앙값이 por_median 과 다름 (|POR 중앙값|·LoQ 중 큰 값의 1e-6 배 넘게)."""
+    runs = [c for c in row if POR_MEAN_RE.fullmatch(str(c)) and math.isfinite(_f(row.get(c)))]
+    if runs and len(runs) != Y.shape[1]:
+        return True
+    base, loq = _f(row.get("por_median")), _f(row.get("LoQ"))
+    scale = max(abs(base), abs(loq) if math.isfinite(loq) else 0.0)
+    return bool(abs(float(np.median(Y.mean(axis=1))) - base) > 1e-6 * scale)
+
+
 def stale_route(row: Mapping, cis: np.ndarray) -> str:
-    """rescaled_verdicts 는 판정 길 열이 동등·차이·미결이 아니거나 숫자가 없으면 원래 값을 그대로 둔다. 그러면 만든
-    비교의 최종 판정이 실제 판정의 판정 길 값이 되므로, 모든 비교에서 그 열이 다시 판정되는지 본다. 안 되면 그 이유."""
+    """판정 길 열이 동등·차이·미결이면 rescaled_verdicts 가 만든 비교마다 그 열을 다시 낸다. 다시 낼 숫자 (abs_delta 등) 가
+    없으면 그 열을 원래 값으로 둬, 만든 비교의 최종 판정이 실제 판정의 판정 길 값을 물려받는다. 그때 그 이유.
+    열이 동등·차이·미결이 아니면 실제 판정도 만든 비교도 2단계 판정으로 내려가 같은 길을 타므로 시험한다."""
     method = route_method(row)
-    if method is None:
+    if method is None or _text(row.get(method[0])) not in JUDGED:
         return ""
     col = method[0]
     fn = RESCALED.get(col)
-    ok = fn is not None and _text(row.get(col)) in JUDGED and all(
-        fn({**row, "center": c, "ci_low": lo, "ci_high": hi}, 1.0) is not None for c, lo, hi in cis)
-    return "" if ok else f"판정 길 '{_text(row.get('route'))}' 의 판정 ({col}) 을 다시 낼 수 없음"
+    if fn is not None and all(fn({**row, "center": c, "ci_low": lo, "ci_high": hi}, 1.0) is not None
+                              for c, lo, hi in cis):
+        return ""
+    return f"판정 길 '{_text(row.get('route'))}' 의 판정 ({col}) 을 다시 낼 숫자가 없음"
 
 
 def item_trials(row: Mapping, Y: np.ndarray, z: np.ndarray) -> tuple[pd.DataFrame, dict, str]:
@@ -499,7 +517,7 @@ class LoqSummary:
 def _ledger(items: pd.DataFrame, led: pd.DataFrame, has_review: bool) -> Ledger:
     kinds = led["pass_kind"].astype(str)
     passes = {}
-    for k in KIND_ORDER[:4]:
+    for k in PASS_ORDER:
         hit = led[kinds == k]
         if k == K_STAGE3:
             for route, n in hit["route"].astype(str).value_counts().items():
@@ -538,11 +556,13 @@ def _check(table: pd.DataFrame, levels: pd.DataFrame) -> Check:
 
 @dataclass(frozen=True)
 class LoqBook:
-    """리포트가 쓰는 전부. items: LoQ 아래 ITEM 한 행씩 (loq/ 가 있으면 시험 열까지), levels: loq_levels.csv."""
+    """리포트가 쓰는 전부. items: LoQ 아래 ITEM 한 행씩 (loq/ 가 있으면 시험 열까지), levels: loq_levels.csv.
+    stale: loq/ 가 있지만 지금 items.csv 와 맞지 않아 시험 결과를 쓰지 않음 (check 는 None)."""
     folder: Path
     summary: LoqSummary
     items: pd.DataFrame
     levels: pd.DataFrame | None
+    stale: bool = False
 
     @property
     def check(self) -> Check | None:
@@ -558,6 +578,8 @@ class LoqBook:
 
     def check_line(self) -> str:
         c = self.check
+        if self.stale:
+            return f"시험 결과가 지금 items.csv 와 맞지 않음 → dcc.py loq {self.folder.name} 다시"
         if c is None:
             return f"시험은 아직 없음 (dcc.py loq {self.folder.name})"
         if not c.n_items:
@@ -713,7 +735,7 @@ TIPS = {
     "재확인 %": "LoQ 재확인의 방향 기준 (BH q < 0.05, 배수 1/1.3~1.3 밖) 에 걸린 비율. 변화 없음과 머리 수준만",
     "판정 차이만 %": "최종 판정이 차이인 비율 (미결 뺌)",
     "동등 이유": "이동이 허용폭 안 = LoQ 규칙 없이도 동등, DOE 구간도 LoQ 아래·DOE 구간이 LoQ에 걸침 = LoQ 규칙으로 동등, "
-               "판정 길 = 2단계는 차이·미결인데 3단계 판정 길이 동등",
+               "판정 길 = 2단계는 차이·미결인데 3단계 판정 길이 동등, 기타 = 위에 없는 2단계 사유",
     "보통 TOST": "LoQ 규칙 없이 같은 신뢰구간을 ±Δ 로 TOST 한 판정",
     "POR ×LoQ": "POR 중앙값 ÷ LoQ (부호 그대로)",
     "DOE 구간 ×LoQ": "(POR 중앙값 + 변화량 90% 신뢰구간) ÷ LoQ",
@@ -749,15 +771,22 @@ def _book(folder: Path, items: pd.DataFrame) -> LoqBook:
     rev = _read_review(folder)
     led = ledger_frame(items, rev)
     loq_dir = folder / LOQ_DIR
-    table, levels, check = led, None, None
+    table, levels, check, stale = led, None, None, False
     if (loq_dir / ITEMS_CSV).is_file() and (loq_dir / LEVELS_CSV).is_file():
         tested = pd.read_csv(loq_dir / ITEMS_CSV, encoding="utf-8-sig", dtype={"ITEM": str, "tested": str},
                              keep_default_na=False, na_values=[""])
-        levels = pd.read_csv(loq_dir / LEVELS_CSV, encoding="utf-8-sig")
-        table = led.merge(tested[["ITEM", *(c for c in ITEM_COLS if c not in led.columns)]], on="ITEM", how="left")
-        table = table.set_index("ITEM").loc[tested["ITEM"][tested["ITEM"].isin(table["ITEM"])]].reset_index()
-        check = _check(table, levels)
-    return LoqBook(folder, LoqSummary(_ledger(items, led, rev is not None), check), table, levels)
+        stale = _verdicts(tested) != _verdicts(led)
+        if not stale:
+            levels = pd.read_csv(loq_dir / LEVELS_CSV, encoding="utf-8-sig")
+            table = led.merge(tested[["ITEM", *(c for c in ITEM_COLS if c not in led.columns)]], on="ITEM", how="left")
+            table = table.set_index("ITEM").loc[tested["ITEM"]].reset_index()
+            check = _check(table, levels)
+    return LoqBook(folder, LoqSummary(_ledger(items, led, rev is not None), check), table, levels, stale)
+
+
+def _verdicts(t: pd.DataFrame) -> dict[str, str]:
+    """ITEM → 최종 판정. loq/loq_items.csv 가 지금 items.csv 로 만든 것인지 가리는 열쇠."""
+    return dict(zip(t["ITEM"].astype(str), t["verdict_final"].map(_text)))
 
 
 # ---------------------------------------------------------------- 그림 (ITEM 이름 없음)

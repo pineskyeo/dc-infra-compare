@@ -221,6 +221,31 @@ def test_ledger_finds_each_pass_kind():
     assert led.loc["P_BELOW", "doe_hi_loq"] == pytest.approx(0.85)
 
 
+def test_every_loq_pass_reason_has_a_kind():
+    """2단계 LoQ 판정이 내는 동등 사유는 모두 PASS_KINDS 에 있다 (문자열을 바꾸면 이유 표에서 빠지지 않게)."""
+    reasons = set()
+    for base in (-8.0, -3.0, 0.0, 0.5, 3.0, 9.5):
+        for center in np.linspace(-15, 15, 31):
+            for half in (0.2, 1.0, 3.0, 8.0):
+                for delta in (0.5, 2.0, 6.0):
+                    v, why = loq_verdict(center, center - half, center + half, delta, base, 10.0)
+                    if v == "동등":
+                        reasons.add(why)
+    assert reasons == set(loq_check.PASS_KINDS)
+
+
+def test_unknown_pass_reason_is_counted_as_other(tmp_path):
+    rows = [hand_row("P_BELOW", 2.5, 5.5), {**hand_row("P_ODD", 2.5, 5.5), "reason": "새 사유"}]
+    folder = tmp_path / "A1"
+    folder.mkdir()
+    add_final_verdict(pd.DataFrame(rows)).to_csv(folder / "items.csv", index=False, encoding="utf-8-sig")
+    book = loq_check.load(folder)
+    assert book.items.set_index("ITEM").loc["P_ODD", "pass_kind"] == loq_check.K_OTHER
+    assert book.summary.ledger.passes == {loq_check.K_BELOW: 1, loq_check.K_OTHER: 1}
+    reasons = dict(book.sheets(str, True)[1][1].set_index("구간").loc["전체"])
+    assert reasons[loq_check.K_OTHER] == 1 and reasons["합계"] == 2
+
+
 def test_summary_names_stage3_route_and_counts_rule_passes(tmp_path):
     rows = [hand_row("P_SHIFT", -1.5, 1.5), hand_row("P_BELOW", 2.5, 5.5),
             hand_row("P_ABS", 9, 12, route="절대 허용폭", cls_level="0 중심", abs_delta=20.0, verdict_abs="동등")]
@@ -243,26 +268,50 @@ def test_summary_names_stage3_route_and_counts_rule_passes(tmp_path):
     assert "1개가 LoQ 규칙으로 동등" in q1 and "판정 길(절대 허용폭)" in q1
 
 
-def test_route_that_cannot_be_rejudged_is_untested(tmp_path):
-    """rescaled_verdicts 는 다시 판정 못 하는 판정 길 열을 원래 값으로 둔다. 그런 ITEM 은 시험 못 함이어야 한다."""
+def test_route_column_that_cannot_be_rejudged_is_untested(tmp_path):
+    """판정 길 열이 동등·차이·미결인데 다시 낼 숫자가 없으면 시험 못 함. 열이 판정 제외처럼 판정이 아니면 실제 판정도
+    만든 비교도 2단계로 내려가므로 시험하고, 최종 판정이 2단계 판정과 같다."""
     rng = np.random.default_rng(5)
-    raw = {name: floor_item(rng) for name in ("OK", "ABS_STALE", "ABS_OK", "LOG_ROUTE")}
+    names = ("OK", "ABS_STALE", "ABS_NOT_JUDGED", "ABS_OK", "NEAR_NO_ACC", "LOG_ROUTE")
+    raw = {name: floor_item(rng) for name in names}
     rows = [judged("OK", *raw["OK"]),
             {**judged("ABS_STALE", *raw["ABS_STALE"], route="절대 허용폭"), "cls_level": "0 중심", "abs_delta": "",
-             "verdict_abs": "판정 제외"},
+             "verdict_abs": "동등"},
+            {**judged("ABS_NOT_JUDGED", *raw["ABS_NOT_JUDGED"], route="절대 허용폭"), "cls_level": "0 중심",
+             "abs_delta": "", "verdict_abs": "판정 제외"},
             {**judged("ABS_OK", *raw["ABS_OK"], route="절대 허용폭"), "cls_level": "0 중심", "abs_delta": 10.0,
              "verdict_abs": "동등"},
+            {**judged("NEAR_NO_ACC", *raw["NEAR_NO_ACC"], route="선형 TOST"), "cls_level": "바닥 근처",
+             "verdict_with_accuracy": ""},
             judged("LOG_ROUTE", *raw["LOG_ROUTE"], route="log TOST")]
     book = build(tmp_path / "A1", rows, raw)
     t = book.items.set_index("ITEM")
-    assert t.loc["OK", "tested"] == loq_check.TESTED
-    assert t.loc["ABS_OK", "tested"] == loq_check.TESTED
-    assert "verdict_abs" in t.loc["ABS_STALE", "tested"] and "다시 낼 수 없음" in t.loc["ABS_STALE", "tested"]
+    for name in ("OK", "ABS_NOT_JUDGED", "ABS_OK", "NEAR_NO_ACC"):
+        assert t.loc[name, "tested"] == loq_check.TESTED, name
+    assert "verdict_abs" in t.loc["ABS_STALE", "tested"] and "다시 낼 숫자가 없음" in t.loc["ABS_STALE", "tested"]
     assert "log TOST" in t.loc["LOG_ROUTE", "tested"]
-    assert book.check.n_items == 2 and sum(book.check.untested.values()) == 2
-    assert "시험한 ITEM 2개 (LoQ 아래 4개 중, 못 한 2개: " in book.check_line()
+    assert book.check.n_items == 4 and sum(book.check.untested.values()) == 2
+    assert "시험한 ITEM 4개 (LoQ 아래 6개 중, 못 한 2개: " in book.check_line()
     trials = pd.read_csv(tmp_path / "A1" / "loq" / loq_check.TRIALS_CSV, encoding="utf-8-sig")
-    assert set(trials["ITEM"]) == {"OK", "ABS_OK"}
+    assert set(trials["ITEM"]) == {"OK", "ABS_NOT_JUDGED", "ABS_OK", "NEAR_NO_ACC"}
+    fallback = trials[trials["ITEM"].isin(["ABS_NOT_JUDGED", "NEAR_NO_ACC"])]
+    assert (fallback["verdict_final"] == fallback["verdict_rule"]).all()
+    assert fallback["verdict_final"].isin(loq_check.CAUGHT).any(), "같다는 비교가 비어 있지 않게"
+
+
+def test_raw_data_that_differs_from_items_csv_is_untested(tmp_path):
+    """다른 데이터로 판정한 ITEM 을 시험하면 엉뚱한 숫자가 나온다. die 를 회차마다 섞은 원데이터, 회차가 빠진 원데이터."""
+    rng = np.random.default_rng(17)
+    raw = {name: floor_item(rng) for name in ("OK", "SHUFFLED", "TWO_RUNS")}
+    rows = [judged(name, *v) for name, v in raw.items()]
+    Y, z = raw["SHUFFLED"]
+    raw["SHUFFLED"] = (np.column_stack([rng.permutation(Y[:, k]) for k in range(Y.shape[1])]), z)
+    Y, z = raw["TWO_RUNS"]
+    raw["TWO_RUNS"] = (Y[:, :2], z)
+    book = build(tmp_path / "A1", rows, raw)
+    t = book.items.set_index("ITEM")["tested"]
+    assert t.to_dict() == {"OK": loq_check.TESTED, "SHUFFLED": loq_check.RAW_MISMATCH,
+                           "TWO_RUNS": loq_check.RAW_MISMATCH}
 
 
 def test_abs_route_trials_use_abs_tolerance(tmp_path):
@@ -320,6 +369,32 @@ def test_anonymous_loq_report_has_no_item_names(population, tmp_path):
     assert not re.search(r"(SAME|LOW)_\d\d", visible(out / "report_anon.html"))
     _, body = xlsx_text(out / "loq" / loq_check.WORKBOOK_ANON)
     assert not re.search(r"(SAME|LOW)_\d\d", body)
+
+
+@pytest.mark.parametrize("change", ["verdict", "items"])
+def test_check_that_no_longer_matches_items_csv_is_not_shown(population, tmp_path, change):
+    """items.csv 를 다시 판정한 뒤 옛 loq/ 의 비율을 그대로 보이면 지금 판정의 시험으로 읽힌다."""
+    book, folder = population
+    out = tmp_path / "A1"
+    shutil.copytree(folder, out)
+    items = pd.read_csv(out / "items.csv", encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    if change == "verdict":
+        items.loc[items["ITEM"] == "SAME_00", "verdict_final"] = "미결"
+    else:
+        items = items[items["ITEM"] != "LOW_19"]
+    items.to_csv(out / "items.csv", index=False, encoding="utf-8-sig")
+    stale = loq_check.load(out)
+    message = "시험 결과가 지금 items.csv 와 맞지 않음 → dcc.py loq A1 다시"
+    assert stale.stale and stale.check is None and message in stale.headline_lines()
+    report.write_reports(out)
+    judge = visible(out / "report.html").split('id="kpi"')[1].split("</details>")[0]
+    page = visible(out / "loq" / "report.html")
+    old = book.check.at("final", 1.5).text()
+    for html_text in (judge, page):
+        assert html.escape(message) in html_text
+        assert old not in html_text and not re.search(r"\d번 중 [\d,]+번", html_text), "옛 시험 비율을 보이지 않음"
+    assert "변화 없음에서 잡힘" not in page and "data:image/png" not in (out / "loq" / "report.html").read_text()
+    assert not loq_check.load(folder).stale
 
 
 def test_judge_block_says_check_has_not_run(tmp_path):

@@ -3,7 +3,7 @@ ITEM,ITEM,ITEM 이름,,
 UNIT,단위,원데이터 UNIT 열. 표시용,,
 zone,구간,검출한계 이하 · 검출~정량. LoQ 아래 ITEM 만 행이 된다 (LoQ 근처 정량 ITEM 은 빠짐),,
 verdict_final,최종 판정,items.csv 최종 판정 그대로. 동등 · 미결 · 차이 (판정 제외는 행이 아님),,
-pass_kind,동등 이유,동등이 된 이유. 이동이 허용폭 안 (LoQ 규칙 없이도 동등) · DOE 구간도 LoQ 아래 · DOE 구간이 LoQ에 걸침 (둘은 LoQ 규칙으로 동등) · 판정 길 (2단계는 차이·미결인데 3단계 판정 길이 동등). 동등이 아니면 최종 판정,"`verdict` 가 동등이면 `reason` (2단계 사유 상수), 아니면 판정 길",LoQ 규칙·판정 길로 동등인 ITEM 이 보통 TOST 였다면 걸렸을 ITEM
+pass_kind,동등 이유,동등이 된 이유. 이동이 허용폭 안 (LoQ 규칙 없이도 동등) · DOE 구간도 LoQ 아래 · DOE 구간이 LoQ에 걸침 (둘은 LoQ 규칙으로 동등) · 판정 길 (2단계는 차이·미결인데 3단계 판정 길이 동등) · 기타 (위에 없는 2단계 사유). 동등이 아니면 최종 판정,"`verdict` 가 동등이면 `reason` (2단계 사유 상수), 아니면 판정 길. 모르는 사유는 기타",LoQ 규칙·판정 길로 동등인 ITEM 이 보통 TOST 였다면 걸렸을 ITEM
 route,판정 길,items.csv 의 판정 길 (classify),,
 verdict_tost,보통 TOST,LoQ 규칙 없이 같은 신뢰구간을 ±Δ 로 TOST 한 판정,"tost(`center`, `ci_low`, `ci_high`, `delta`)",LoQ 규칙으로 동등이면 늘 차이·미결
 por_loq,POR ×LoQ,POR 중앙값 ÷ LoQ (부호 그대로),`por_median` / `LoQ`,

@@ -695,7 +695,7 @@
 <tr><td><code>UNIT</code></td><td>단위</td><td>원데이터 UNIT 열. 표시용</td><td></td><td></td></tr>
 <tr><td><code>zone</code></td><td>구간</td><td>검출한계 이하 · 검출~정량. LoQ 아래 ITEM 만 행이 된다 (LoQ 근처 정량 ITEM 은 빠짐)</td><td></td><td></td></tr>
 <tr><td><code>verdict_final</code></td><td>최종 판정</td><td>items.csv 최종 판정 그대로. 동등 · 미결 · 차이 (판정 제외는 행이 아님)</td><td></td><td></td></tr>
-<tr><td><code>pass_kind</code></td><td>동등 이유</td><td>동등이 된 이유. 이동이 허용폭 안 (LoQ 규칙 없이도 동등) · DOE 구간도 LoQ 아래 · DOE 구간이 LoQ에 걸침 (둘은 LoQ 규칙으로 동등) · 판정 길 (2단계는 차이·미결인데 3단계 판정 길이 동등). 동등이 아니면 최종 판정</td><td><code>verdict</code> 가 동등이면 <code>reason</code> (2단계 사유 상수), 아니면 판정 길</td><td>LoQ 규칙·판정 길로 동등인 ITEM 이 보통 TOST 였다면 걸렸을 ITEM</td></tr>
+<tr><td><code>pass_kind</code></td><td>동등 이유</td><td>동등이 된 이유. 이동이 허용폭 안 (LoQ 규칙 없이도 동등) · DOE 구간도 LoQ 아래 · DOE 구간이 LoQ에 걸침 (둘은 LoQ 규칙으로 동등) · 판정 길 (2단계는 차이·미결인데 3단계 판정 길이 동등) · 기타 (위에 없는 2단계 사유). 동등이 아니면 최종 판정</td><td><code>verdict</code> 가 동등이면 <code>reason</code> (2단계 사유 상수), 아니면 판정 길. 모르는 사유는 기타</td><td>LoQ 규칙·판정 길로 동등인 ITEM 이 보통 TOST 였다면 걸렸을 ITEM</td></tr>
 <tr><td><code>route</code></td><td>판정 길</td><td>items.csv 의 판정 길 (classify)</td><td></td><td></td></tr>
 <tr><td><code>verdict_tost</code></td><td>보통 TOST</td><td>LoQ 규칙 없이 같은 신뢰구간을 ±Δ 로 TOST 한 판정</td><td>tost(<code>center</code>, <code>ci_low</code>, <code>ci_high</code>, <code>delta</code>)</td><td>LoQ 규칙으로 동등이면 늘 차이·미결</td></tr>
 <tr><td><code>por_loq</code></td><td>POR ×LoQ</td><td>POR 중앙값 ÷ LoQ (부호 그대로)</td><td><code>por_median</code> / <code>LoQ</code></td><td></td></tr>
