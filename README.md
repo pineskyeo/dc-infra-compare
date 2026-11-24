@@ -42,7 +42,7 @@ doe = data/A/DOE
 
 ```bash
 python dcc.py list                          # 조합 이름, POR 회차 수, DOE, 출력 폴더
-python dcc.py judge A1                      # 판정(por_doe_compare) → LoQ·log 재확인(review) → LoQ 점검(loq_check) → 판정 지도(plot_verdicts)
+python dcc.py judge A1                      # 판정(por_doe_compare) → LoQ·log 재확인(review) → 판정 지도(plot_verdicts) → LoQ 점검(loq_check)
 python dcc.py judge A1 --detail             # + 최종 판정이 차이·미결인 ITEM 전부 item 분석
 python dcc.py judge all                     # 모든 조합을 파일 순서대로. 실패한 조합이 있어도 계속하고 끝에 조합별 결과 한 줄
 python dcc.py item A1 VT_SAME,VT_SHIFT      # 그 ITEM만 Fail 근거 (원데이터 포함: item_view.png, evidence.csv)

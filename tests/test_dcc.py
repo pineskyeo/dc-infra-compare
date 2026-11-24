@@ -139,9 +139,9 @@ def test_plan_judge(cfg: Path):
     assert _plan(cfg, "judge", "B2") == [
         ("por_doe_compare", ["por_doe_compare.py", *raw, "--groups", str(base / "groups.csv"), "--out", str(out)]),
         ("review", ["review.py", "--input", str(out / "items.csv"), "--out", str(out), *raw]),
-        ("loq_check", ["loq_check.py", "--input", str(out / "items.csv"), "--out", str(out), *raw]),
         ("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(out / "items.csv"), "--summary",
                            "--out", str(out / "plots")]),
+        ("loq_check", ["loq_check.py", "--input", str(out / "items.csv"), "--out", str(out), *raw]),
     ]
 
 
@@ -185,7 +185,7 @@ def test_plan_loq_runs_check_then_its_own_report(cfg: Path):
     base = cfg.parent.resolve()
     out = base / "결과" / "A1"
     names = [n for n, _ in _plan(cfg, "loq", "A1")]
-    assert names == ["por_doe_compare", "review", "loq_check", "plot_verdicts", "report"], "판정 단계의 loq_check 를 두 번 돌리지 않음"
+    assert names == ["por_doe_compare", "review", "plot_verdicts", "loq_check", "report"], "판정 단계의 loq_check 를 두 번 돌리지 않음"
     make_paths(out, "items.csv")
     (check, check_args), (report, report_args) = _plan(cfg, "loq", "A1", "--anon")
     assert (check, report) == ("loq_check", "report")
@@ -196,7 +196,7 @@ def test_plan_loq_runs_check_then_its_own_report(cfg: Path):
 def test_plan_classes_runs_judge_only_without_items_csv(cfg: Path):
     base = cfg.parent.resolve()
     out = base / "결과" / "A1"
-    assert [n for n, _ in _plan(cfg, "classes", "A1")] == ["por_doe_compare", "review", "loq_check", "plot_verdicts", "classes"]
+    assert [n for n, _ in _plan(cfg, "classes", "A1")] == ["por_doe_compare", "review", "plot_verdicts", "loq_check", "classes"]
     make_paths(out, "items.csv")
     (name, args), = _plan(cfg, "classes", "A1")
     assert name == "classes"
@@ -213,7 +213,7 @@ def test_plan_item_and_group_run_judge_only_without_items_csv(cfg: Path):
     items = str(out / "items.csv")
 
     assert [n for n, _ in _plan(cfg, "item", "A1", "X1,X2")] == [
-        "por_doe_compare", "review", "loq_check", "plot_verdicts", "fail_evidence"]
+        "por_doe_compare", "review", "plot_verdicts", "loq_check", "fail_evidence"]
     make_paths(out, "items.csv")
     assert _plan(cfg, "item", "A1", "X1,X2") == [
         ("fail_evidence", ["fail_evidence.py", "--input", items, "--out", str(out / "item"),
