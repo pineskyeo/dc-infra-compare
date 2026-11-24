@@ -70,6 +70,9 @@ def test_population_is_below_loq_and_all_tested(population):
     book, _ = population
     assert book.summary.ledger.n_zone == 50
     assert book.check.n_items == 50 and book.check.n_runs == 3 and not book.check.untested
+    assert book.check.n_no_ratio == 0
+    noise = next(line for line in book.bias_lines() if line.startswith("DOE 쪽 die 간 흔들림이 POR 회차의 "))
+    assert "die 마다 다르게 변했을 수 있다" in noise and f"1 보다 큰 ITEM {book.check.n_noisy}개" in noise
 
 
 def test_no_change_is_rarely_flagged_but_plain_tost_flags_it(population):
@@ -132,8 +135,11 @@ def test_shift_moves_true_level_to_signed_target(tmp_path):
     u = 1.5
     s = loq_check.shifts(row, (u,))[0]
     assert s == pytest.approx(-u * row["LoQ"] - row["por_median"])
-    build(tmp_path / "A1", [row], {"NEG": (Y, z)})
+    book = build(tmp_path / "A1", [row], {"NEG": (Y, z)})
+    assert book.check.n_no_ratio == 1
+    assert any("재확인 (방향) 에 걸릴 수 없다. 시험한 ITEM 중 이런 ITEM 1개." in line for line in book.bias_lines())
     t = pd.read_csv(tmp_path / "A1" / "loq" / loq_check.TRIALS_CSV, encoding="utf-8-sig")
+    assert not t["review_flag"].astype(str).eq("True").any(), "음수 POR 은 재확인 배수가 없어 방향 기준에 걸리지 않음"
     at = t[np.isclose(t["level"], u)]
     level = (row["por_median"] + at["center"]) / row["LoQ"]
     assert np.allclose(level, -u, atol=0.15), level.tolist()

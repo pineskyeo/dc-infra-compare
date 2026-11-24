@@ -1034,7 +1034,7 @@ def loq_report(folder: Path, namer: Namer, book: loq_check.LoqBook) -> Path | No
         page.h3("만든 비교")
         page.add('<ul class="lines">' + "".join(f"<li>{namer.text(s)}</li>" for s in loq_check.METHOD_LINES) + "</ul>")
         page.h3("치우침과 그 방향")
-        page.add('<ul class="lines">' + "".join(f"<li>{namer.text(s)}</li>" for s in loq_check.BIAS_LINES) + "</ul>")
+        page.add('<ul class="lines">' + "".join(f"<li>{namer.text(s)}</li>" for s in book.bias_lines()) + "</ul>")
         if c.untested:
             page.p("시험 못 한 ITEM: " + ", ".join(f"{k} {n:,}개" for k, n in c.untested.items()) + ".", "note")
         page.link(f"같은 표 엑셀: {xlsx.name}", xlsx.name)

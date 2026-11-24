@@ -34,6 +34,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 import review  # noqa: E402
+from classify import LEVEL_ZERO  # noqa: E402
 from explain import add_figure_note, share_text  # noqa: E402
 from fail_evidence import add_raw_args  # noqa: E402
 from plot_verdicts import configure_font  # noqa: E402
@@ -109,9 +110,11 @@ BIAS_LINES = (
     "재확인의 꼬리 검사가 본다. 부분 변화의 잡힘은 여기 숫자보다 낮다.",
     "0 쪽으로 줄어드는 변화는 DOE 가 LoQ 아래에 머물러 규칙상 잡히지 않는다.",
     "한 ITEM 의 회차 비교는 같은 die 를 나눠 써 서로 닮는다. 그래서 범위는 ITEM 단위로 다시 뽑아 냈다.",
-    "DOE 잡음 비 (doe_noise_ratio) 가 1 보다 큰 ITEM 은 실제 DOE 가 POR 회차보다 흔들려, 이 ITEM 의 잡힘 숫자가 실제보다 "
-    "좋게 나온다.",
+    "재확인 (방향) 의 BH 보정은 거의 모든 ITEM 이 변한 묶음에서 했다. 실제 재확인은 대부분 변하지 않은 ITEM 과 함께 "
+    "보정해 같은 변화도 덜 걸린다. 그래서 여기 재확인 숫자는 실제보다 좋게 나온다.",
 )
+NOISE_LINE = ("DOE 쪽 die 간 흔들림이 POR 회차의 {x}배: 실제 DOE 가 더 흔들리거나 die 마다 다르게 변했을 수 있다. 앞의 "
+              "경우 시험의 잡힌 비율은 실제보다 좋게 나온다")
 
 
 class Count(NamedTuple):
@@ -481,6 +484,7 @@ class Check:
     caught: dict[str, dict[float, Count]]           # 측정 (final, rule, tost, review, diff) → 수준 → 비교 수 중 잡힘
     noise_ratio: float                              # doe_noise_ratio 중앙값 (시험한 ITEM)
     n_noisy: int                                    # doe_noise_ratio > 1 인 ITEM
+    n_no_ratio: int                                 # POR 이 음수이거나 0 중심이라 재확인 배수가 없는 시험한 ITEM
 
     def at(self, measure: str, level: float) -> Count:
         return self.caught[measure].get(level, Count(0, 0))
@@ -526,8 +530,10 @@ def _check(table: pd.DataFrame, levels: pd.DataFrame) -> Check:
         caught[m] = {float(r["level"]): Count(int(r["n_comparisons"]), _caught_k(r[col], int(r["n_comparisons"])))
                      for r in levels.to_dict("records") if math.isfinite(_f(r[col]))}
     ratio = tested["doe_noise_ratio"].astype(float)
+    no_ratio = sum(_f(r.get("por_median")) <= 0 or _text(r.get("cls_level")) == LEVEL_ZERO
+                   for r in tested.to_dict("records"))
     return Check(len(tested), J, table.loc[table["tested"].astype(str) != TESTED, "tested"].value_counts().to_dict(),
-                 caught, float(ratio.median()) if ratio.notna().any() else math.nan, int((ratio > 1).sum()))
+                 caught, float(ratio.median()) if ratio.notna().any() else math.nan, int((ratio > 1).sum()), no_ratio)
 
 
 @dataclass(frozen=True)
@@ -584,6 +590,19 @@ class LoqBook:
             lines.append(f"LoQ 근처 ITEM {g.n_near:,}개는 정량 구간이라 보통 판정을 탔고 여기서 세지 않았다.")
         return lines
 
+    def bias_lines(self) -> list[str]:
+        """방법과 한계의 치우침과 그 방향. 시험이 있으면 그 숫자 (배수 없는 ITEM 수, DOE 잡음 비) 를 넣는다."""
+        c = self.check
+        lines = list(BIAS_LINES)
+        n = "" if c is None else f" 시험한 ITEM 중 이런 ITEM {c.n_no_ratio:,}개."
+        lines.append("재확인의 배수 (DOE ÷ POR) 는 값이 모두 0 보다 큰 die 로만 낸다. 그래서 POR 이 음수이거나 0 중심인 "
+                     f"ITEM 은 재확인 (방향) 에 걸릴 수 없다.{n}")
+        if c is not None and math.isfinite(c.noise_ratio):
+            lines.append(NOISE_LINE.format(x=f"{c.noise_ratio:.2g}") + f" (시험한 ITEM 중앙값, 1 보다 큰 ITEM {c.n_noisy:,}개).")
+        else:
+            lines.append(NOISE_LINE.format(x="DOE 잡음 비") + ".")
+        return lines
+
     def answers(self) -> list[tuple[str, str]]:
         """세 질문과 숫자로 만든 답 (한두 문장)."""
         g, c = self.summary.ledger, self.check
@@ -618,7 +637,7 @@ class LoqBook:
         out = [(SUMMARY, self._summary_table(), tuple(self.headline_lines())),
                (REASONS, self._reasons_table(), ("동등이 된 이유는 items.csv 의 판정 사유와 판정 길로 정했다.",))]
         if self.levels is not None:
-            out.append((LEVELS_SHEET, self._levels_sheet(), (*METHOD_LINES, *BIAS_LINES)))
+            out.append((LEVELS_SHEET, self._levels_sheet(), (*METHOD_LINES, *self.bias_lines())))
         out.append((ITEMS_SHEET, self._items_sheet(label, names), ("LoQ 규칙·판정 길로 동등인 ITEM 이 먼저, 그 안에서 "
                                                                    "재확인 확인 필요 먼저, 그다음 ×POR 큰 순.",)))
         return out
@@ -703,7 +722,8 @@ TIPS = {
     "변화 없음 잡힘": "변화를 넣지 않은 회차 비교 중 판정이 차이·미결로 건 수 / 회차 수",
     "잡히는 수준 ×LoQ": "DOE 를 LoQ 의 이 배수 이상으로 올리면 회차 비교가 모두 잡힘. inf = 3배까지 아님",
     "잡히는 수준 ×POR": "같은 수준을 POR 중앙값의 배수로. POR 가 LoD 아래면 빈 칸",
-    "DOE 잡음 비": "실제 DOE − POR 의 die 흔들림 ÷ 회차 비교의 die 흔들림. 1 보다 크면 이 ITEM 의 잡힘 숫자가 실제보다 좋게 나옴",
+    "DOE 잡음 비": "실제 DOE − POR 의 die 흔들림 ÷ 회차 비교의 die 흔들림. 1 보다 크면 실제 DOE 가 더 흔들리거나 die 마다 "
+                 "다르게 변했을 수 있다. 앞의 경우 이 ITEM 의 잡힘 숫자는 실제보다 좋게 나온다",
     "시험": "예, 또는 시험하지 못한 이유",
 }
 

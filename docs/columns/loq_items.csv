@@ -15,6 +15,6 @@ null_caught,변화 없음 잡힘,변화를 넣지 않은 회차 비교 중 최�
 n_runs,회차 비교 수,POR 회차 수 J (회차 하나씩 DOE 자리에 둔 비교 수),,
 catch_level,잡히는 수준 ×LoQ,"이 수준 이상 (0.1 간격, 3배까지) 모든 수준에서 회차 비교 J번이 모두 잡히는 가장 작은 참 DOE 수준. 3배까지 아니면 inf",,1 근처면 LoQ 를 넘자마자 잡힘. inf 면 허용폭이 LoQ 보다 훨씬 큰지 볼 것
 catch_ratio,잡히는 수준 ×POR,잡히는 수준을 POR 중앙값의 배수로. |POR 중앙값| 이 LoD 아래면 빈 칸,`catch_level` × `LoQ` / |`por_median`|,DOE 가 POR 의 몇 배가 되어야 잡히나
-doe_noise_ratio,DOE 잡음 비,실제 DOE − POR 회차 평균의 die 흔들림 ÷ 회차 비교의 die 흔들림 (회차마다 중앙값을 빼고 모음). 둘 다 1.4826 × MAD,robust σ(DOE − POR 평균) / robust σ(회차 비교 차),1 보다 크면 실제 DOE 가 더 흔들려 이 ITEM 의 잡힘 숫자가 실제보다 좋게 나옴
+doe_noise_ratio,DOE 잡음 비,실제 DOE − POR 회차 평균의 die 흔들림 ÷ 회차 비교의 die 흔들림 (회차마다 중앙값을 빼고 모음). 둘 다 1.4826 × MAD,robust σ(DOE − POR 평균) / robust σ(회차 비교 차),1 보다 크면 실제 DOE 가 더 흔들리거나 die 마다 다르게 변했을 수 있다. 앞의 경우 이 ITEM 의 잡힘 숫자는 실제보다 좋게 나온다
 tested,시험,"예, 또는 시험하지 못한 이유 (원데이터 없음, POR 회차 1개, die 부족, 판정 길이 원데이터 재계산을 요구, 판정 길 열을 다시 낼 수 없음)",,시험 못 한 ITEM 은 숫자가 빈 칸
 why,설명,"이 ITEM 을 쉬운 말로: 어떻게 동등이 됐나, 시험에서 어디부터 잡히나, 재확인",,
