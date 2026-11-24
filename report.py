@@ -349,6 +349,7 @@ details.item[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10p
 details.sub{margin:10px 0}details.sub>summary{cursor:pointer;color:var(--muted);font-size:13px}
 ul.lines{margin:6px 0;padding-left:18px;color:var(--muted)}
 .headline{font-size:17px;font-weight:650;margin:2px 0 8px}
+td.wide{min-width:300px}td.keep{word-break:keep-all}
 td.좋아짐{color:var(--동등);font-weight:650}td.나빠짐{color:var(--차이);font-weight:650}td.비슷{color:var(--faint)}
 @media print{nav{display:none}.wrap{overflow:visible}figure{break-inside:avoid}}
 """
@@ -890,20 +891,22 @@ COMPARE_FIGURES = {          # compare_metrics 그림: 파일 → (제목, ITEM 
 WORSENED_SHOWN = 30
 
 
-def frame_cols(table: pd.DataFrame, tips: Mapping[str, str] = compare_book.TIPS) -> list[Col]:
-    """시트 표 (compare_book, loq_check) 의 열. 머리글 풍선은 tips, 판단 칸은 색."""
+def frame_cols(table: pd.DataFrame, tips: Mapping[str, str] = compare_book.TIPS, wide: str = "") -> list[Col]:
+    """시트 표 (compare_book, loq_check) 의 열. 머리글 풍선은 tips, 판단 칸은 색. wide 를 주면 그 열이 남는 폭을 받고
+    다른 열은 낱말 안에서 줄을 바꾸지 않는다."""
     def col(c: str) -> Col:
         tip = tips.get(c) or next((t for k, t in tips.items() if c.endswith(" " + k)), "")
-        trend = c == "판단"
+        cls = ((lambda r: str(r.get("판단") or "")) if c == "판단" else None if not wide
+               else (lambda r: "wide") if c == wide else (lambda r: "keep"))
         return Col("", c, lambda r, c=c: plain_num(r.get(c)) if not isinstance(r.get(c), str) else r.get(c),
-                   item_name=c == "ITEM", head_tip=tip, cls=(lambda r: str(r.get("판단") or "")) if trend else None)
+                   item_name=c == "ITEM", head_tip=tip, cls=cls)
     return [col(c) for c in table.columns]
 
 
 def frame(page: Page, table: pd.DataFrame, limit: int | None = None,
-          tips: Mapping[str, str] = compare_book.TIPS) -> None:
+          tips: Mapping[str, str] = compare_book.TIPS, wide: str = "") -> None:
     rows = table.to_dict("records")
-    page.table(frame_cols(table, tips), rows[:limit] if limit else rows)
+    page.table(frame_cols(table, tips, wide), rows[:limit] if limit else rows)
 
 
 def compare_report(folder: Path, namer: Namer) -> Path | None:
@@ -969,11 +972,12 @@ def compare_report(folder: Path, namer: Namer) -> Path | None:
 # ── LoQ 리포트 ──────────────────────────────────────────────────────────────
 
 LOQ_ITEMS_SHOWN = 100
+LOQ_VIEW = "ITEM 화면"      # 리포트 화면의 8열 ITEM 표 (엑셀 시트가 아님)
 
 
 def loq_trials(page: Page, book: loq_check.LoqBook, tables: Mapping[str, pd.DataFrame], xlsx: str) -> None:
     """LoQ 리포트의 시험 결과 칸: 곡선, 머리 수준 표, 3배까지 다 잡히지 않는 ITEM."""
-    c, items = book.check, tables[loq_check.ITEMS_SHEET]
+    c, items, view = book.check, tables[loq_check.ITEMS_SHEET], tables[LOQ_VIEW]
     if not c.n_items:
         page.p(book.check_line(), "note")
         return
@@ -985,10 +989,10 @@ def loq_trials(page: Page, book: loq_check.LoqBook, tables: Mapping[str, pd.Data
     frame(page, levels[shown], tips=loq_check.TIPS)
     page.p(f"0.1~3배 모든 수준은 {xlsx} 의 {loq_check.LEVELS_SHEET} 시트, 비교 하나하나는 "
            f"loq/{loq_check.TRIALS_CSV} (변화 없음과 위 수준).", "note")
-    never = items[items["잡히는 수준 ×LoQ"] == "inf"]
+    never = view[(items["잡히는 수준 ×LoQ"] == "inf").to_numpy()]
     if len(never):
         with page.fold(f"DOE 를 LoQ 의 3배까지 올려도 회차 비교가 다 잡히지는 않는 ITEM {len(never):,}개"):
-            frame(page, never, LOQ_ITEMS_SHOWN, tips=loq_check.TIPS)
+            frame(page, never, LOQ_ITEMS_SHOWN, tips=loq_check.TIPS, wide="설명")
 
 
 def loq_report(folder: Path, namer: Namer, book: loq_check.LoqBook) -> Path | None:
@@ -1000,6 +1004,7 @@ def loq_report(folder: Path, namer: Namer, book: loq_check.LoqBook) -> Path | No
     sheets = book.sheets(lambda item: namer.id_of.get(str(item), "ID 없음"), names=not namer.anon)
     xlsx = simple_xlsx.write(ldir / (loq_check.WORKBOOK_ANON if namer.anon else loq_check.WORKBOOK), sheets)
     tables = {name: table for name, table, _ in sheets}
+    tables[LOQ_VIEW] = book.item_view(lambda item: namer.id_of.get(str(item), "ID 없음"), names=not namer.anon)
     g, c = book.summary.ledger, book.check
     page = Page(f"LoQ 리포트 · {folder.name}", namer, ldir / namer.report_file,
                 subtitle=f"LoQ 아래 ITEM {g.n_zone:,}개 · 판정은 그대로 · 같은 표는 {xlsx.name}")
@@ -1035,12 +1040,14 @@ def loq_report(folder: Path, namer: Namer, book: loq_check.LoqBook) -> Path | No
     with page.section("items", "LoQ 규칙·판정 길로 동등이 된 ITEM",
                       "LoQ 규칙이나 판정 길로 동등이 된 ITEM. 재확인 확인 필요 먼저, 그다음 잡히는 수준이 POR 의 몇 배인지 "
                       "큰 순.") as sec:
-        rule = items[items["동등 이유"].isin(loq_check.LISTED)]
+        rule = tables[LOQ_VIEW][items["동등 이유"].isin(loq_check.LISTED).to_numpy()]
         sec.badge = f"{len(rule):,}"
         if rule.empty:
             page.p("LoQ 규칙이나 판정 길로 동등이 된 ITEM 이 없다.", "note")
         else:
-            frame(page, rule, LOQ_ITEMS_SHOWN, tips=loq_check.TIPS)
+            frame(page, rule, LOQ_ITEMS_SHOWN, tips=loq_check.TIPS, wide="설명")
+            page.p(f"열을 줄여 보인다. 모든 열 (구간, 최종 판정, 판정 길, 변화 없음 잡힘, DOE 잡음 비 등) 은 {xlsx.name} 의 "
+                   f"{loq_check.ITEMS_SHEET} 시트와 loq/{loq_check.ITEMS_CSV}.", "note")
             if len(rule) > LOQ_ITEMS_SHOWN:
                 page.p(f"앞의 {LOQ_ITEMS_SHOWN}개만 싣는다. 전부는 {xlsx.name} 의 {loq_check.ITEMS_SHEET} 시트.", "note")
     with page.section("loq", "LoQ 확인 필요", REVIEWS["loq"].tip) as sec:

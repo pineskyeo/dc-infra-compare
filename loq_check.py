@@ -584,7 +584,7 @@ class LoqBook:
             return f"시험은 아직 없음 (dcc.py loq {self.folder.name})"
         if not c.n_items:
             return "시험할 수 있는 LoQ 아래 ITEM 이 없다." + (f" {self.coverage()}." if self.summary.ledger.n_zone else "")
-        return (f"시험 (POR 회차로 만든 비교, {self.coverage()}): 변화 없음에서 판정이 잡은 비교 "
+        return (f"시험 (POR 회차로 만든 비교): {self.coverage()}. 변화 없음에서 판정이 잡은 비교 "
                 f"{c.at('final', NO_CHANGE).text()} · DOE 0.8×LoQ 에서 판정 {c.at('final', 0.8).text()}, 재확인 "
                 f"{c.at('review', 0.8).text()} · DOE 1.5×LoQ 에서 판정 {c.at('final', 1.5).text()}.")
 
@@ -718,9 +718,27 @@ class LoqBook:
             cols |= {"변화 없음 잡힘": [f"{int(a)}/{int(b)}" if math.isfinite(_f(a)) else "-"
                                     for a, b in zip(t["null_caught"], t["n_runs"])],
                      "잡히는 수준 ×LoQ": t["catch_level"].map(_level),
-                     "잡히는 수준 ×POR": t["catch_ratio"].map(_level),
+                     "잡히는 수준 ×POR": [_level(r["catch_ratio"]) if not _below_lod(r) else BELOW_LOD
+                                      for r in t.to_dict("records")],
                      "DOE 잡음 비": t["doe_noise_ratio"].map(_sig), "시험": t["tested"], "설명": t["why"]}
         return pd.DataFrame(cols).reset_index(drop=True)
+
+    def item_view(self, label: Callable[[str], str], names: bool) -> pd.DataFrame:
+        """리포트 화면의 ITEM 표 (8열, ITEM별 시트와 행 순서가 같다). 열을 줄였을 뿐 모든 값은 ITEM별 시트와
+        loq_items.csv 에 있다."""
+        recs = self.items.to_dict("records")
+        ids = [label(str(r["ITEM"])) for r in recs]
+        return pd.DataFrame({
+            "ID": [f"{i} {r['ITEM']}" for i, r in zip(ids, recs)] if names else ids,
+            "동등 이유": [f"{K_STAGE3} ({_text(r.get('route'))})" if r.get("pass_kind") == K_STAGE3
+                       else _text(r.get("pass_kind")) for r in recs],
+            "보통 TOST": [_text(r.get("verdict_tost")) or "-" for r in recs],
+            "POR ×LoQ": [_sig(r.get("por_loq")) for r in recs],
+            "DOE 구간 ×LoQ": [f"{_sig(r.get('doe_lo_loq'))}~{_sig(r.get('doe_hi_loq'))}" for r in recs],
+            "재확인": [_review_cell(r) for r in recs],
+            "판정이 잡는 수준": [_catch_cell(r) for r in recs],
+            "설명": [_text(r.get("why")) for r in recs],
+        })
 
 
 SUMMARY, REASONS, LEVELS_SHEET, ITEMS_SHEET = "요약", "동등 이유", "시험(수준별)", "ITEM별"
@@ -739,15 +757,47 @@ TIPS = {
     "보통 TOST": "LoQ 규칙 없이 같은 신뢰구간을 ±Δ 로 TOST 한 판정",
     "POR ×LoQ": "POR 중앙값 ÷ LoQ (부호 그대로)",
     "DOE 구간 ×LoQ": "(POR 중앙값 + 변화량 90% 신뢰구간) ÷ LoQ",
-    "재확인": "실제 LoQ 재확인 (review/loq_review.csv) 의 확인 필요",
+    "재확인": "실제 LoQ 재확인 (review/loq_review.csv) 의 확인 필요와 그 근거, ×는 DOE ÷ POR 배수 중앙값",
     "재확인 배수": "실제 LoQ 재확인의 DOE ÷ POR 배수 중앙값",
     "변화 없음 잡힘": "변화를 넣지 않은 회차 비교 중 판정이 차이·미결로 건 수 / 회차 수",
     "잡히는 수준 ×LoQ": "DOE 를 LoQ 의 이 배수 이상으로 올리면 회차 비교가 모두 잡힘. inf = 3배까지 아님",
-    "잡히는 수준 ×POR": "같은 수준을 POR 중앙값의 배수로. POR 가 LoD 아래면 빈 칸",
+    "잡히는 수준 ×POR": "같은 수준을 POR 중앙값의 배수로. POR 이 LoD 아래면 배수가 뜻이 없어 'POR 이 LoD 아래'",
+    "판정이 잡는 수준": "DOE 를 LoQ 의 이 배수 이상으로 올리면 회차 비교가 모두 잡힘. 괄호는 같은 수준을 POR 중앙값의 배수로",
     "DOE 잡음 비": "실제 DOE − POR 의 die 흔들림 ÷ 회차 비교의 die 흔들림. 1 보다 크면 실제 DOE 가 더 흔들리거나 die 마다 "
                  "다르게 변했을 수 있다. 앞의 경우 이 ITEM 의 잡힘 숫자는 실제보다 좋게 나온다",
     "시험": "예, 또는 시험하지 못한 이유",
 }
+
+
+BELOW_LOD = "POR 이 LoD 아래"
+
+
+def _below_lod(r: Mapping) -> bool:
+    return abs(_f(r.get("por_median"))) < _f(r.get("LoD"))
+
+
+def _review_cell(r: Mapping) -> str:
+    """재확인 칸: 확인 필요와 근거 (방향·꼬리), DOE ÷ POR 배수. 재확인 결과가 없으면 '-'."""
+    flag = r.get("review_flag")
+    if flag is None or (isinstance(flag, float) and math.isnan(flag)):
+        return "-"
+    ratio = _f(r.get("review_ratio"))
+    times = f"×{_sig(ratio)}" if math.isfinite(ratio) else ""
+    if not _yes(flag):
+        return times
+    why = ", ".join(x for x in (_text(r.get("review_rule")), times) if x)
+    return f"확인 필요 ({why})" if why else "확인 필요"
+
+
+def _catch_cell(r: Mapping) -> str:
+    """판정이 잡는 수준 칸: ×LoQ (×POR). 시험하지 않았으면 '-'."""
+    level = _f(r.get("catch_level"))
+    if _text(r.get("tested")) != TESTED or math.isnan(level):
+        return "-"
+    if math.isinf(level):
+        return "3×LoQ 까지 다 잡히지 않음"
+    por = BELOW_LOD if _below_lod(r) else f"POR 의 {_sig(r.get('catch_ratio'))}배"
+    return f"{level:.1f}×LoQ ({por})"
 
 
 def _sig(v) -> str:

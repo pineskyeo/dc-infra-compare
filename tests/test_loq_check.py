@@ -149,6 +149,18 @@ def test_shift_moves_true_level_to_signed_target(tmp_path):
     assert list(loq_check.shifts(zero, (0.0, 0.5, 2.0))) == [0.0, 5.0, 20.0]
 
 
+def test_por_below_lod_is_named_instead_of_blank_ratio(population):
+    book, _ = population
+    sheet = book.sheets(str, True)[-1][1].set_index("ITEM")
+    view = book.item_view(str, False).set_index("ID")
+    low, same = book.items.set_index("ITEM").loc["LOW_00"], book.items.set_index("ITEM").loc["SAME_00"]
+    assert abs(low["por_median"]) < low["LoD"] <= abs(same["por_median"])
+    assert sheet.loc["LOW_00", "잡히는 수준 ×POR"] == "POR 이 LoD 아래"
+    assert "(POR 이 LoD 아래)" in view.loc["LOW_00", "판정이 잡는 수준"]
+    assert sheet.loc["SAME_00", "잡히는 수준 ×POR"] != "POR 이 LoD 아래"
+    assert "(POR 의 " in view.loc["SAME_00", "판정이 잡는 수준"]
+
+
 def test_item_threshold_and_why(population):
     book, _ = population
     t = book.items.set_index("ITEM")
@@ -352,7 +364,10 @@ def test_reports_render_the_same_book(population, tmp_path):
     assert html.escape(book.check_line()) in page and book.check_line() in book.headline_lines()
     assert "시험한 ITEM 50개 (LoQ 아래 50개 중, 못 한 0개)" in book.check_line()
     rule = book.items.loc[book.items["pass_kind"].isin(loq_check.LISTED), "ITEM"]
-    assert len(rule) and all(f"<td>{item}</td>" in page for item in rule)
+    assert len(rule) and all(re.search(rf"<td[^>]*>ITEM\d{{4}} {item}</td>", page) for item in rule)
+    section = page.split('id="items"')[1].split("</details>")[0]
+    heads = re.findall(r"<th[ >]", section.split("</thead>")[0])
+    assert len(heads) <= 8, "ITEM 표는 화면 폭에 맞게 8열 이하"
     sheets, body = xlsx_text(out / "loq" / loq_check.WORKBOOK)
     assert sheets == [loq_check.SUMMARY, loq_check.REASONS, loq_check.LEVELS_SHEET, loq_check.ITEMS_SHEET]
     assert all(item in body for item in book.items["ITEM"])
@@ -364,7 +379,7 @@ def test_anonymous_loq_report_has_no_item_names(population, tmp_path):
     shutil.copytree(folder, out)
     assert report.main([str(out), "--anon"]) == 0
     page = visible(out / "loq" / "report_anon.html")
-    assert re.search(r"<td>ITEM\d{4}</td>", page)
+    assert re.search(r"<td[^>]*>ITEM\d{4}</td>", page)
     assert not re.search(r"(SAME|LOW)_\d\d", page)
     assert not re.search(r"(SAME|LOW)_\d\d", visible(out / "report_anon.html"))
     _, body = xlsx_text(out / "loq" / loq_check.WORKBOOK_ANON)
