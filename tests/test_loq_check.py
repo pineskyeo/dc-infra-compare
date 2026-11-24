@@ -95,14 +95,52 @@ def test_change_that_stays_below_loq_passes_and_is_shown_by_tost_and_review(popu
 
 
 def test_levels_have_denominators_and_ranges(population):
-    book, _ = population
-    t = book.levels
-    assert list(t["level"]) == list(loq_check.LEVELS)
-    assert (t["n_items"] == 50).all() and (t["n_comparisons"] == 150).all()
+    book, folder = population
+    t = book.levels.set_index("level")
+    assert list(t.index) == list(loq_check.LEVELS)
+    items = pd.read_csv(folder / "items.csv", encoding="utf-8-sig")
+    base, loq, delta = (items[c].to_numpy(float) for c in ("por_median", "LoQ", "delta"))
+    for u in loq_check.GRID:
+        real = int((np.abs(np.sign(base) * u * loq - base) > delta).sum())
+        assert t.loc[u, "n_items"] == real, f"{u}×LoQ: 허용폭 Δ 보다 큰 변화만 센다"
+        assert t.loc[u, "n_comparisons"] == 3 * real
+    assert t.loc[loq_check.NO_CHANGE, "n_items"] == 50 and t.loc[loq_check.NO_CHANGE, "n_comparisons"] == 150
+    assert t["n_items"].min() < 50, "POR 수준 근처 수준에서 빠지는 ITEM 이 있어야 시험이 된다"
+    t = t.reset_index()
     assert (t["caught_final_lo"] <= t["caught_final"] + 1e-12).all()
     assert (t["caught_final"] <= t["caught_final_hi"] + 1e-12).all()
     review_rows = t["level"].isin(loq_check.REVIEW_LEVELS)
     assert t.loc[review_rows, "caught_review"].notna().all() and t.loc[~review_rows, "caught_review"].isna().all()
+
+
+def test_trials_hold_only_changes_larger_than_delta(population):
+    _, folder = population
+    t = pd.read_csv(folder / "loq" / loq_check.TRIALS_CSV, encoding="utf-8-sig")
+    delta = pd.read_csv(folder / "items.csv", encoding="utf-8-sig").set_index("ITEM")["delta"]
+    moved = t[t["level"] != loq_check.NO_CHANGE]
+    assert (moved["shift"].abs() > moved["ITEM"].map(delta)).all()
+    assert len(t[t["level"] == loq_check.NO_CHANGE]) == 150
+
+
+def test_shift_moves_true_level_to_signed_target(tmp_path):
+    """음수 POR: 참 DOE 수준이 −u·LoQ 로 간다 (s = −u·LoQ − base). 0 중심 POR 은 + 쪽 (sgn = +1)."""
+    rng = np.random.default_rng(13)
+    Y, z = floor_item(rng)
+    Y, z = -Y, -z
+    row = judged("NEG", Y, z)
+    assert row["por_median"] < 0 and row["zone"] in ("검출한계 이하", "검출~정량")
+    u = 1.5
+    s = loq_check.shifts(row, (u,))[0]
+    assert s == pytest.approx(-u * row["LoQ"] - row["por_median"])
+    build(tmp_path / "A1", [row], {"NEG": (Y, z)})
+    t = pd.read_csv(tmp_path / "A1" / "loq" / loq_check.TRIALS_CSV, encoding="utf-8-sig")
+    at = t[np.isclose(t["level"], u)]
+    level = (row["por_median"] + at["center"]) / row["LoQ"]
+    assert np.allclose(level, -u, atol=0.15), level.tolist()
+    assert ((row["por_median"] + at["ci_high"]) < -row["LoQ"]).all()
+    assert at["verdict_final"].isin(loq_check.CAUGHT).all()
+    zero = {"por_median": 0.0, "LoQ": 10.0}
+    assert list(loq_check.shifts(zero, (0.0, 0.5, 2.0))) == [0.0, 5.0, 20.0]
 
 
 def test_item_threshold_and_why(population):

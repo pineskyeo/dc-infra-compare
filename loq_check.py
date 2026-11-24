@@ -7,10 +7,12 @@
     python loq_check.py --input <out>/A1/items.csv --out <out>/A1 --por r1/ --por r2/ --por r3/ --doe d/
     → <out>/A1/loq/: loq_items.csv, loq_levels.csv, loq_trials.csv, loq_curve.png, loq_reasons.png
 
-만든 비교 하나 = ITEM 하나 × POR 회차 k 하나 × 수준 하나. 회차 k 를 DOE 자리에, 나머지 J − 1 회차를 POR 자리에 둔다.
-  d0 = loo_scale(J) · (x_k − 나머지 회차 평균)          실제 DOE − J 회차 평균과 같은 분산
-  알려진 변화 s = sgn · u · LoQ − POR 중앙값            참 DOE 수준이 LoQ 의 u 배 (계단 ITEM 은 값 간격의 정수배)
-  신뢰구간 = ci_median(d0) + s                           부호검정 구간은 평행이동을 그대로 따라간다
+만든 비교 하나 = ITEM 하나 × POR 회차 k 하나 × 수준 하나. 회차 k (x) 를 DOE 자리에, 나머지 J − 1 회차 (평균 m′) 를
+POR 자리에 둔다. 판정과 재확인이 같은 DOE′ 를 본다.
+  DOE′ = m′ + loo_scale(J) · (x − m′) + s              DOE′ − m′ 이 실제 DOE − J 회차 평균과 같은 분산
+  알려진 변화 s = sgn · u · LoQ − POR 중앙값            참 DOE 수준이 LoQ 의 u 배
+  신뢰구간 = ci_median(DOE′ − m′)                        = ci_median(s 없이) + s (부호검정 구간은 평행이동을 따라간다)
+|s| ≤ Δ 인 (ITEM, 수준) 은 진짜 변화가 아니라 수준별 비율에서 뺀다 (변화 없음은 모두 센다).
 판정은 items.csv 의 그 ITEM 행에서 center·ci_low·ci_high 만 바꿔 por_doe_compare.rescaled_verdicts(·, 1.0) 로 낸다
 (Δ, LoQ, POR 중앙값, 판정 길은 그대로). 실행마다 OWN_FILES 를 지우고 다시 쓴다. 리포트(report.py)는 load() 로만 읽는다.
 """
@@ -77,7 +79,8 @@ TRIAL_COLS = ["ITEM", "run", "level", "shift", "center", "ci_low", "ci_high", "v
 
 CURVE_HOW_TO_READ = (
     "가로는 POR 회차 하나로 만든 DOE 의 참 수준 (LoQ 의 몇 배), 세로는 그 비교를 판정이 차이·미결로 잡은 비율이다. "
-    "ITEM 마다 회차 비교를 모두 해 ITEM 별 비율을 내고 ITEM 끼리 평균했다. 진한 선이 실제 판정 (최종), 하늘색 점선이 "
+    "ITEM 마다 회차 비교를 모두 해 ITEM 별 비율을 내고 ITEM 끼리 평균했다. 수준마다 ITEM 의 허용폭 Δ 보다 큰 변화만 "
+    "셌다 (그 ITEM 의 POR 수준 가까이는 변화가 아니라 뺀다). 진한 선이 실제 판정 (최종), 하늘색 점선이 "
     "3단계 판정 길 없이 2단계 LoQ 판정만, 회색 파선이 LoQ 규칙 없는 보통 TOST, 주황 점이 LoQ 재확인 (방향)이다. 왼쪽 "
     "회색 칸은 DOE 도 LoQ 아래라 판정 규칙상 동등인 곳이다. 맨 왼쪽 '변화 없음' 은 변화를 넣지 않은 비교라 여기서 잡힌 "
     "것은 오경보다. 띠는 ITEM 을 다시 뽑아 본 90% 범위다.")
@@ -89,7 +92,9 @@ METHOD_LINES = (
     "POR 회차 하나를 DOE 자리에, 나머지 회차를 POR 자리에 두고 판정 코드를 그대로 돌렸다. 회차 하나는 같은 조건을 다시 잰 "
     "것이라 '변화 없음' 의 답을 안다. 그 회차에 알려진 양을 더해 DOE 의 참 수준을 LoQ 의 0.1~3배로 옮기면 '변화 있음' 의 "
     "답을 안다. 허용폭 Δ, LoQ, POR 중앙값, 판정 길은 이 ITEM 의 판정 값 그대로 둔다. 회차 하나와 나머지 평균의 차는 실제 "
-    "DOE − POR 평균과 흔들림이 같도록 배수를 곱했다.",
+    "DOE − POR 평균과 흔들림이 같도록 배수를 곱했다. 판정과 재확인은 이렇게 만든 같은 DOE 를 본다.",
+    "수준마다 ITEM 의 허용폭 Δ 보다 큰 변화만 셈. 참 수준이 그 ITEM 의 POR 수준에서 Δ 안이면 변화가 아니므로 그 수준의 "
+    "비율에서 뺀다. 그래서 수준마다 ITEM 수가 다르다. 변화 없음은 모든 ITEM 을 센다.",
     "잡힘 = 최종 판정이 차이나 미결. ITEM 마다 회차 비교 J번 중 잡힌 비율을 내고 ITEM 끼리 평균한다. 범위는 ITEM 을 "
     f"{N_BOOT}번 다시 뽑아 본 90% 범위다.",
     "재확인 (방향) 은 실제 LoQ 재확인과 같은 부호검정·배수 기준 (q < 0.05, 배수 1/1.3~1.3 밖) 을 같은 수준·같은 회차의 "
@@ -189,15 +194,16 @@ def n_near(items: pd.DataFrame) -> int:
 # ---------------------------------------------------------------- 만든 비교
 
 def shifts(row: Mapping, levels=LEVELS) -> np.ndarray:
-    """수준마다 알려진 변화 s. 변화 없음은 0. 계단 ITEM 은 DOE' 가 값 격자에 남게 값 간격의 정수배로 반올림."""
+    """수준마다 알려진 변화 s: 참 DOE 수준을 sgn · u · LoQ 로 (sgn 은 POR 중앙값 부호, 0 이면 +). 변화 없음은 0."""
     base, loq = _f(row.get("por_median")), _f(row.get("LoQ"))
     sgn = 1.0 if base == 0 else math.copysign(1.0, base)
     u = np.asarray(levels, float)
-    s = np.where(u == NO_CHANGE, 0.0, sgn * u * loq - base)
-    step = _f(row.get("resolution_step"))
-    if _text(row.get("cls_resolution")) == "계단" and math.isfinite(step) and step > 0:
-        s = np.round(s / step) * step
-    return s
+    return np.where(u == NO_CHANGE, 0.0, sgn * u * loq - base)
+
+
+def counted(row: Mapping, levels=LEVELS) -> np.ndarray:
+    """수준마다 비율에 세나: 변화 없음, 또는 넣은 변화가 이 ITEM 의 허용폭 Δ 보다 클 때."""
+    return (np.asarray(levels, float) == NO_CHANGE) | (np.abs(shifts(row, levels)) > _f(row.get("delta")))
 
 
 def untested_reason(row: Mapping, raw: tuple[np.ndarray, np.ndarray] | None) -> str:
@@ -234,19 +240,20 @@ def stale_route(row: Mapping, cis: np.ndarray) -> str:
 def item_trials(row: Mapping, Y: np.ndarray, z: np.ndarray) -> tuple[pd.DataFrame, dict, str]:
     """ITEM 하나의 만든 비교 (회차 × 수준) 표, 재확인 지표 (BH 전), 시험 못 한 이유 ('' 이면 시험함)."""
     J = Y.shape[1]
-    s = shifts(row)
+    s, keep = shifts(row), counted(row)
     recs, rev, d0s = [], [], []
     for k in range(J):
         rest, x = np.delete(Y, k, axis=1), Y[:, k]
-        d0 = review.loo_scale(J) * (x - rest.mean(axis=1))
+        m = rest.mean(axis=1)
+        d0 = review.loo_scale(J) * (x - m)
         d0s.append(d0 - np.median(d0))
         c0, lo0, hi0 = ci_median(d0)
-        for u, sh in zip(LEVELS, s):
-            recs.append((k + 1, u, sh, c0 + sh, lo0 + sh, hi0 + sh))
-            if u in REVIEW_LEVELS:
-                zk = x + sh
-                rev.append({"ITEM": row["ITEM"], "run": k + 1, "level": u, **review.sign_test(zk - rest.mean(axis=1)),
-                            **review.ratio_ci(rest, zk)})
+        for u, sh, ok in zip(LEVELS, s, keep):
+            if ok:
+                recs.append((k + 1, u, sh, c0 + sh, lo0 + sh, hi0 + sh))
+            if u in REVIEW_LEVELS:      # BH 묶음은 세지 않는 수준의 ITEM 도 넣는다 (실제 재확인처럼 넓게)
+                rev.append({"ITEM": row["ITEM"], "run": k + 1, "level": u, **review.sign_test(d0 + sh),
+                            **review.ratio_ci(rest, m + d0 + sh)})
     t = pd.DataFrame(recs, columns=["run", "level", "shift", "center", "ci_low", "ci_high"])
     why = stale_route(row, t[["center", "ci_low", "ci_high"]].to_numpy())
     if why:
@@ -273,9 +280,12 @@ def review_flags(rows: list[dict]) -> pd.DataFrame:
 
 
 def catch_level(caught_all: Mapping[float, bool]) -> float:
-    """격자 수준 u 이상 모든 격자 수준에서 회차 비교가 모두 잡히는 가장 작은 u. 3.0 에서도 아니면 inf."""
+    """격자 수준 u 이상 모든 격자 수준에서 회차 비교가 모두 잡히는 가장 작은 u. 3.0 에서도 아니면 inf.
+    caught_all 에 없는 수준 (넣은 변화가 Δ 이하라 세지 않은 수준) 은 건너뛴다."""
     level = math.inf
     for u in reversed(GRID):
+        if u not in caught_all:
+            continue
         if not caught_all[u]:
             break
         level = u
@@ -285,7 +295,8 @@ def catch_level(caught_all: Mapping[float, bool]) -> float:
 # ---------------------------------------------------------------- 표
 
 def per_item_shares(trials: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """측정마다 ITEM × 수준 의 잡힌 비율 (그 ITEM 의 회차 비교 중). 재확인은 REVIEW_LEVELS 밖이 NaN."""
+    """측정마다 ITEM × 수준 의 잡힌 비율 (그 ITEM 의 회차 비교 중). 세지 않은 (ITEM, 수준) 과 REVIEW_LEVELS 밖의
+    재확인은 NaN."""
     t = trials.assign(**{f"_{m}": trials[c].isin(CAUGHT) for m, c in MEASURES.items() if m != "review"},
                       _review=trials["review_flag"].map(lambda v: np.nan if pd.isna(v) else float(v)),
                       _diff=trials["verdict_final"].eq("차이"))
@@ -294,21 +305,25 @@ def per_item_shares(trials: pd.DataFrame) -> dict[str, pd.DataFrame]:
 
 
 def levels_table(trials: pd.DataFrame, seed: int = SEED, n_boot: int = N_BOOT) -> pd.DataFrame:
-    """loq_levels.csv. 수준 한 줄: ITEM 평균 잡힌 비율과 ITEM 을 다시 뽑은 90% 범위."""
+    """loq_levels.csv. 수준 한 줄: 그 수준에서 센 ITEM 의 평균 잡힌 비율과 ITEM 을 다시 뽑은 90% 범위."""
     rows = {"level": list(LEVELS), "level_name": [level_name(u) for u in LEVELS]}
     if trials.empty:
         return pd.DataFrame(rows | {"n_items": 0, "n_comparisons": 0}).reindex(columns=LEVEL_COLS)
     shares = per_item_shares(trials)
-    n = len(shares["final"])
-    rows["n_items"] = n
+    final = shares["final"].reindex(columns=list(LEVELS))
+    n = len(final)
+    rows["n_items"] = final.notna().sum().to_numpy()
     rows["n_comparisons"] = [int(trials["level"].eq(u).sum()) for u in LEVELS]
     idx = np.random.default_rng(seed).integers(0, n, size=(n_boot, n))
-    weights = np.stack([np.bincount(i, minlength=n) for i in idx]) / n
-    for m in (*MEASURES, "diff"):
-        name = "diff_final" if m == "diff" else f"caught_{m}"
-        S = shares[m].reindex(columns=list(LEVELS)).to_numpy(float)
-        rows[name] = S.mean(axis=0)
-        rows[f"{name}_lo"], rows[f"{name}_hi"] = np.percentile(weights @ S, BOOT_PCT, axis=0)
+    weights = np.stack([np.bincount(i, minlength=n) for i in idx]).astype(float)
+    with np.errstate(invalid="ignore"):
+        for m in (*MEASURES, "diff"):
+            name = "diff_final" if m == "diff" else f"caught_{m}"
+            S = shares[m].reindex(index=final.index, columns=list(LEVELS)).to_numpy(float)
+            ok = np.isfinite(S)
+            S0 = np.where(ok, S, 0.0)
+            rows[name] = S0.sum(axis=0) / ok.sum(axis=0)
+            rows[f"{name}_lo"], rows[f"{name}_hi"] = np.percentile((weights @ S0) / (weights @ ok), BOOT_PCT, axis=0)
     return pd.DataFrame(rows)[LEVEL_COLS]
 
 
@@ -329,7 +344,7 @@ def item_table(ledger: pd.DataFrame, trials: pd.DataFrame, extras: Mapping[str, 
         if ex is not None and item in shares.index:
             s = shares.loc[item]
             J = ex["n_runs"]
-            level = catch_level({u: s[u] >= 1.0 for u in GRID})
+            level = catch_level({u: s[u] >= 1.0 for u in GRID if math.isfinite(s.get(u, math.nan))})
             base, loq, lod = _f(r.get("por_median")), _f(r.get("LoQ")), _f(r.get("LoD"))
             out.update(null_caught=int(round(s[NO_CHANGE] * J)), n_runs=J, catch_level=level,
                        catch_ratio=level * loq / abs(base) if abs(base) >= lod else math.nan,
@@ -644,7 +659,8 @@ SUMMARY, REASONS, LEVELS_SHEET, ITEMS_SHEET = "요약", "동등 이유", "시험
 MEASURE_NAMES = {"final": "판정", "rule": "2단계만", "tost": "보통 TOST", "review": "재확인", "diff": "판정 차이만"}
 TIPS = {
     "수준": "만든 DOE 의 참 수준 (LoQ 의 몇 배). 변화 없음 = 회차 하나를 그대로 DOE 로 둔 비교",
-    "비교 수": "ITEM 수 × POR 회차 수",
+    "ITEM 수": "그 수준에서 센 ITEM 수. ITEM 의 허용폭 Δ 보다 큰 변화만 셈 (변화 없음은 모든 ITEM)",
+    "비교 수": "그 수준에서 센 회차 비교 수 (센 ITEM × POR 회차 수)",
     "판정 %": "최종 판정이 차이·미결인 비율 (ITEM 마다 회차 비교 중 비율, ITEM 끼리 평균)",
     "2단계만 %": "3단계 판정 길 없이 2단계 LoQ 판정만 본 잡힌 비율",
     "보통 TOST %": "LoQ 규칙 없이 같은 신뢰구간을 ±Δ 로 TOST 했을 때 차이·미결 비율",

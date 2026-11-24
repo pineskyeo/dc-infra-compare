@@ -719,8 +719,8 @@
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>level</code></td><td>수준</td><td>만든 DOE 의 참 수준 ÷ LoQ (0.1~3.0). 0 은 변화 없음 (회차 하나를 그대로 DOE 로 둠)</td><td></td><td></td></tr>
 <tr><td><code>level_name</code></td><td>수준 이름</td><td>변화 없음 또는 u×LoQ</td><td></td><td></td></tr>
-<tr><td><code>n_items</code></td><td>ITEM 수</td><td>시험한 ITEM 수 (비율의 분모 단위)</td><td></td><td></td></tr>
-<tr><td><code>n_comparisons</code></td><td>비교 수</td><td>ITEM 수 × POR 회차 수</td><td></td><td></td></tr>
+<tr><td><code>n_items</code></td><td>ITEM 수</td><td>그 수준에서 센 ITEM 수. ITEM 의 허용폭 Δ 보다 큰 변화만 셈 (변화 없음은 모든 ITEM)</td><td></td><td></td></tr>
+<tr><td><code>n_comparisons</code></td><td>비교 수</td><td>그 수준에서 센 회차 비교 수</td><td></td><td></td></tr>
 <tr><td><code>caught_final</code></td><td>판정 잡힘</td><td>최종 판정이 차이·미결인 비율. ITEM 마다 회차 비교 중 비율을 내고 ITEM 끼리 평균</td><td>mean over ITEM (#{<code>verdict_final</code> ∈ 차이·미결} / J)</td><td>변화 없음은 오경보, 1 위는 잡아야 하는 변화</td></tr>
 <tr><td><code>caught_final_lo</code></td><td>판정 잡힘 하한</td><td>ITEM 을 2000번 다시 뽑은 90% 범위 하한 (seed 0)</td><td></td><td></td></tr>
 <tr><td><code>caught_final_hi</code></td><td>판정 잡힘 상한</td><td>같은 범위 상한</td><td></td><td></td></tr>
@@ -746,14 +746,14 @@
 <tr><td><code>ITEM</code></td><td>ITEM</td><td>ITEM 이름</td><td></td><td></td></tr>
 <tr><td><code>run</code></td><td>DOE 자리 회차</td><td>DOE 자리에 둔 POR 회차 번호 (1부터). 나머지 회차가 POR 자리</td><td></td><td></td></tr>
 <tr><td><code>level</code></td><td>수준</td><td>만든 DOE 의 참 수준 ÷ LoQ. 0 은 변화 없음. 변화 없음과 0.5·0.8·1.2·1.5·2.0 만 적는다</td><td></td><td></td></tr>
-<tr><td><code>shift</code></td><td>넣은 변화</td><td>회차 값에 더한 알려진 변화 (ITEM 단위). 계단 ITEM 은 값 간격의 정수배</td><td>sgn × <code>level</code> × <code>LoQ</code> − <code>por_median</code>, 변화 없음은 0</td><td></td></tr>
-<tr><td><code>center</code></td><td>편향</td><td>만든 비교의 die별 차 중앙값 + 넣은 변화</td><td>median(√((1 + 1/J)/(1 + 1/(J−1))) × (회차 − 나머지 평균)) + <code>shift</code></td><td></td></tr>
+<tr><td><code>shift</code></td><td>넣은 변화</td><td>참 DOE 수준을 sgn × 수준 × LoQ 로 옮기는 알려진 변화 (ITEM 단위). ITEM 의 허용폭 Δ 보다 큰 변화만 적는다 (변화 없음은 모두)</td><td>sgn × <code>level</code> × <code>LoQ</code> − <code>por_median</code>, 변화 없음은 0</td><td></td></tr>
+<tr><td><code>center</code></td><td>편향</td><td>만든 비교의 die별 차 중앙값 + 넣은 변화</td><td>median(√((1 + 1/J)/(1 + 1/(J−1))) × (회차 − 나머지 평균) + <code>shift</code>)</td><td></td></tr>
 <tr><td><code>ci_low</code></td><td>편향 하한</td><td>부호검정 90% 신뢰구간 하한 + 넣은 변화</td><td></td><td></td></tr>
 <tr><td><code>ci_high</code></td><td>편향 상한</td><td>부호검정 90% 신뢰구간 상한 + 넣은 변화</td><td></td><td></td></tr>
 <tr><td><code>verdict_final</code></td><td>최종 판정</td><td>items.csv 의 이 ITEM 행에서 편향·구간만 바꿔 rescaled_verdicts(·, 1.0) 로 낸 최종 판정</td><td></td><td></td></tr>
 <tr><td><code>verdict_rule</code></td><td>2단계 판정</td><td>같은 구간의 2단계 LoQ 판정만</td><td>loq_verdict(<code>center</code>, <code>ci_low</code>, <code>ci_high</code>, <code>delta</code>, <code>por_median</code>, <code>LoQ</code>)</td><td></td></tr>
 <tr><td><code>verdict_tost</code></td><td>보통 TOST</td><td>같은 구간을 ±Δ 로 TOST</td><td>tost(<code>center</code>, <code>ci_low</code>, <code>ci_high</code>, <code>delta</code>)</td><td></td></tr>
-<tr><td><code>review_flag</code></td><td>재확인 (방향)</td><td>회차 + 넣은 변화를 DOE 로 본 재확인 방향 기준. 같은 (수준, 회차) 의 ITEM 끼리 BH</td><td></td><td></td></tr>
+<tr><td><code>review_flag</code></td><td>재확인 (방향)</td><td>판정과 같은 만든 DOE (나머지 평균 + 배수 × (회차 − 나머지 평균) + 넣은 변화) 로 본 재확인 방향 기준. 같은 (수준, 회차) 의 ITEM 끼리 BH</td><td></td><td></td></tr>
 </tbody></table></div>
 </section>
 <section id="classes-counts-csv"><h2>classes/counts.csv</h2>

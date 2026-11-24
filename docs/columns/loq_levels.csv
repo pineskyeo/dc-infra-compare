@@ -1,8 +1,8 @@
 ﻿column,쉬운이름,뜻,수식,볼것
 level,수준,만든 DOE 의 참 수준 ÷ LoQ (0.1~3.0). 0 은 변화 없음 (회차 하나를 그대로 DOE 로 둠),,
 level_name,수준 이름,변화 없음 또는 u×LoQ,,
-n_items,ITEM 수,시험한 ITEM 수 (비율의 분모 단위),,
-n_comparisons,비교 수,ITEM 수 × POR 회차 수,,
+n_items,ITEM 수,그 수준에서 센 ITEM 수. ITEM 의 허용폭 Δ 보다 큰 변화만 셈 (변화 없음은 모든 ITEM),,
+n_comparisons,비교 수,그 수준에서 센 회차 비교 수,,
 caught_final,판정 잡힘,최종 판정이 차이·미결인 비율. ITEM 마다 회차 비교 중 비율을 내고 ITEM 끼리 평균,mean over ITEM (#{`verdict_final` ∈ 차이·미결} / J),"변화 없음은 오경보, 1 위는 잡아야 하는 변화"
 caught_final_lo,판정 잡힘 하한,ITEM 을 2000번 다시 뽑은 90% 범위 하한 (seed 0),,
 caught_final_hi,판정 잡힘 상한,같은 범위 상한,,
