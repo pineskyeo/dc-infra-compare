@@ -363,7 +363,7 @@ def plot_forest(src: pd.DataFrame, path: Path) -> Path:
         ax.set_yticklabels(rows["ITEM"].tolist(), fontsize=8)
         for label, final in zip(ax.get_yticklabels(), rows["verdict_final"]):
             label.set_color(JUDGEMENT_COLORS[final])
-        ax.set_xlabel("움직인 양 ÷ 허용폭 (점 = 이동량 중앙값, 막대 = 90% 신뢰구간, ±1 = 허용폭)")
+        ax.set_xlabel("정규화 이동량 (이동 ÷ 허용폭. 점 = 이동량 중앙값, 막대 = 90% 신뢰구간, ±1 = 허용폭)")
         ax.grid(axis="x", alpha=0.3)
         counts = rows["verdict_final"].value_counts()
         handles = [Line2D([0], [0], color=JUDGEMENT_COLORS[j], marker="o", lw=2.5, label=f"{j} {counts[j]}개")
