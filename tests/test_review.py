@@ -140,7 +140,7 @@ def test_metrics_and_flags_match_lab(lab, loq_population, l1_item):
     items, raw = loq_population
     for row in items.to_dict("records"):
         assert_same(review.loq_review_item(*raw[row["ITEM"]], row), lab.loq_review_item(*raw[row["ITEM"]], row))
-    ours = review.review_table(review.REVIEWS["loq"], items, raw)
+    ours = review.review_table(review.REVIEWS["loq"], items, raw).set_index("ITEM").loc[items["ITEM"]]
     theirs = lab.flag_loq(pd.DataFrame([lab.loq_review_item(*raw[i], r) for i, r in
                                         zip(items["ITEM"], items.to_dict("records"))]))
     for c in ("dir_q", "tail_q", "flag_direction", "flag_tail", "flag"):
@@ -193,3 +193,30 @@ def test_no_target_items_still_writes_header_and_maps(tmp_path):
         assert t.empty and list(t.columns) == [*rv.copy_cols, *rv.cols]
         (review.plot_loq_map if name == "loq" else review.plot_log_map)(t, tmp_path / f"{name}.png")
         assert (tmp_path / f"{name}.png").stat().st_size > 0
+
+
+def test_flagged_rows_come_first_strongest_evidence_first():
+    t = pd.DataFrame({"ITEM": list("ABCDE"), "flag": [False, True, True, True, False],
+                      "flag_direction": [False, True, False, True, False], "flag_tail": [False, False, True, True, False],
+                      "dir_q": [0.001, 0.04, 0.5, 0.01, 0.9], "tail_q": [0.5, 0.5, 0.001, 0.02, 0.9],
+                      "tail_frac": [0.0, 0.0, 0.10, 0.20, 0.0]})
+    assert list(review.strongest_first(t)["ITEM"]) == ["C", "D", "B", "A", "E"]
+    log = pd.DataFrame({"ITEM": list("XYZ"), "flag": [True, True, True], "log_overrode_diff": [False, True, False],
+                        "flag_tail": [True, False, True], "tail_q": [0.01, np.nan, 0.001], "tail_frac": [0.1, np.nan, 0.1]})
+    assert list(review.strongest_first(log)["ITEM"]) == ["Y", "Z", "X"]
+
+
+def test_max_figures_draws_only_the_strongest_flagged_items(tmp_path):
+    data, out = tmp_path / "por3", tmp_path / "out"
+    _run(ROOT / "examples" / "make_por3_data.py", data)
+    raw_args = [a for i in (1, 2, 3) for a in ("--por", data / f"por_run{i}")] + ["--doe", data / "doe"]
+    _run(ROOT / "por_doe_compare.py", *raw_args, "--out", out)
+    stdout = _run(ROOT / "review.py", "--input", out / "items.csv", "--out", out, "--max-figures", "1", *raw_args)
+    rv = out / "review"
+    loq = pd.read_csv(rv / "loq_review.csv", encoding="utf-8-sig")
+    flagged = loq[loq["flag"]]
+    assert list(flagged.index) == list(range(len(flagged)))
+    drawn = {p.stem for p in (rv / "items").glob("*.png")}
+    assert flagged["ITEM"].iloc[0] in drawn and len(drawn) <= 2
+    if len(flagged) > 1:
+        assert "근거가 센 1개까지만" in stdout
