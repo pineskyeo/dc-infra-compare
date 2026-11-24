@@ -107,7 +107,7 @@ items.csv  ITEM별 판정·상태
 | `./` | `items.csv`(ITEM별 판정·상태), `outlier_dies.csv`(튀는 die) | `por_doe_compare.py` (항상) |
 | `./` | `summary_items.txt`(summarize 출력) | `summarize.py` (항상) |
 | `stability/` | `overall.csv`, `dies.csv`, `runs.csv`, `stability.png`(측정 안정도), `groups.csv`(`--groups`일 때), `group_levels.csv`·`group_levels.png`(`--level`일 때) | `por_doe_compare.py` (항상) |
-| `review/` | `loq_review.csv`, `log_review.csv`, `loq_review.png`, `log_review.png`, `items/<ITEM>.png`(확인 필요 ITEM) | `review.py` (항상) |
+| `review/` | `loq_review.csv`, `log_review.csv`, `loq_review.png`, `log_review.png`, `items/<ITEM>.png`(확인 필요 ITEM, 재확인마다 근거가 센 100개까지) | `review.py` (항상) |
 | `fail_evidence/` | `fail_evidence.csv`(Fail 근거), `forest.png`(전체 그림), `items_index.csv`, `items/<유형>_<ITEM>/`(`item_view.png`, `evidence.csv` 등) | `fail_evidence.py` (항상) |
 | `plots/` | `summary.png`(판정 지도), `summary_loq.png`(LoQ 아래 ITEM) | `plot_verdicts.py` (항상) |
 | `plots/` | `summary_group_<이름>.png`(그룹 수만큼) | `plot_verdicts.py`, `--groups` |
@@ -459,7 +459,7 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 - **LoQ 재확인** (`loq_review.csv`, `loq_review.png`): LoQ 아래이거나 LoQ 근처인 ITEM은 "둘 다 '<LoQ'면 동등"으로 끝나서, 바닥 아래에서 실제로 늘어난 것이 가려질 수 있습니다. LoQ 규칙과 상관없이 die 대부분이 같은 방향으로 움직였는지(배수가 1.3배 넘게), 일부 die만 크게 벗어났는지(꼬리, 5% 이상)를 보고, 둘 중 하나가 여러 ITEM 동시 검정 보정(BH q < 0.05) 뒤에도 유의하면 "확인 필요"로 표시합니다.
 - **log 재확인** (`log_review.csv`, `log_review.png`): log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보여 줍니다. 선형으로는 차이인데 log로 동등이 된 ITEM과, log 값에서 꼬리가 유의한 ITEM이 "확인 필요"입니다.
-- `items/<ITEM>.png`: 확인 필요 ITEM마다 네 칸을 한 장에 그립니다. 위는 회차별 die 값과 die별 차이, 아래는 같은 die의 POR·DOE 짝을 선형 축과 log 축으로 나란히 그립니다. 아래 두 칸은 두 축 범위가 같아 y = x가 45° 대각선입니다.
+- `items/<ITEM>.png`: 확인 필요 ITEM마다 네 칸을 한 장에 그립니다. 위는 회차별 die 값과 die별 차이, 아래는 같은 die의 POR·DOE 짝을 선형 축과 log 축으로 나란히 그립니다. 아래 두 칸은 두 축 범위가 같아 y = x가 45° 대각선입니다. 두 표는 확인 필요 행을 근거가 센 순서(log가 차이를 동등으로 바꾼 ITEM, 걸린 규칙의 q가 작은 ITEM, 꼬리 die 비율이 큰 ITEM)로 맨 앞에 두고, 그림은 재확인마다 그 순서로 100장까지만 그립니다(`review.py --max-figures N`, 0이면 전부). 그림은 여러 프로세스로 나눠 그립니다(`DC_JOBS`, 기본 CPU 수). 리포트에는 재확인마다 앞의 20장만 싣습니다. 끝에 `걸린 시간: 원데이터 …초, 지표 …초, 요약 그림 …초, ITEM 그림 …초`를 찍습니다.
 - "확인 필요"는 다시 볼 ITEM 목록입니다. 판정에 넣을지는 결과를 보고 정합니다.
 
 ### 측정 안정도 (`stability/`)

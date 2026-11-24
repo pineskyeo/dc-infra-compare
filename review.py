@@ -8,12 +8,15 @@
               확인 필요 = L1 (기본 판정 차이가 log 로 최종 동등) 또는 log10 값에서 같은 꼬리 검사
 
     python review.py --input <items.csv> --out <폴더> --por <회차1> --por <회차2> ... --doe <DOE> [--key ...]
-출력은 <폴더>/review/: loq_review.csv, log_review.csv, loq_review.png, log_review.png, items/<ITEM>.png (확인 필요만)
+출력은 <폴더>/review/: loq_review.csv, log_review.csv, loq_review.png, log_review.png, items/<ITEM>.png.
+표는 확인 필요 행을 근거가 센 순서로 맨 앞에 둔다. ITEM 그림은 재확인마다 그 순서로 --max-figures 개 (기본 100, 0 = 전부)를
+여러 프로세스로 그린다 (DC_JOBS, 기본 CPU 수).
 """
 from __future__ import annotations
 
 import argparse
 import sys
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -26,7 +29,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.patches import Rectangle  # noqa: E402
-from matplotlib.ticker import FuncFormatter, NullFormatter  # noqa: E402
+from matplotlib.ticker import FuncFormatter, NullFormatter, NullLocator  # noqa: E402
 from scipy import stats  # noqa: E402
 
 from compare_metrics import safe_group_name  # noqa: E402
@@ -34,7 +37,8 @@ from explain import LOQ_ZONES, add_figure_note, fmt, pct  # noqa: E402
 from fail_evidence import add_raw_args, load_wide_items, read_plain  # noqa: E402
 from plot_verdicts import configure_font  # noqa: E402
 from por_doe_compare import (  # noqa: E402
-    AUTO_SCALES, MIN_DIE, SCALE_LOG, ST_LOG_CANDIDATE, ST_NEAR_LOQ, V_EXCLUDED, _status_parts, ci_median, tost,
+    AUTO_SCALES, MIN_DIE, SCALE_LOG, ST_LOG_CANDIDATE, ST_NEAR_LOQ, V_EXCLUDED, _status_parts, ci_median, dc_jobs,
+    pool_map, tost,
 )
 
 DPI = 110
@@ -46,6 +50,7 @@ LOG_BASES = ("log", "log_physics")
 LOG_SCALES = (SCALE_LOG, AUTO_SCALES[SCALE_LOG])
 REVIEW_DIR = "review"
 ITEMS_DIR = "items"
+MAX_FIGURES = 100       # 재확인 하나에서 ITEM 그림을 그릴 확인 필요 ITEM 수 (근거가 센 순서). 0 이면 전부
 NUMERIC_COLS = ("n_die", "center", "ci_low", "ci_high", "delta", "por_median", "LoQ", "LoD", "sigma_die",
                 "center_log", "ci_low_log", "ci_high_log", "delta_log", "decades", "log_fit")
 
@@ -169,6 +174,22 @@ def flag_log(rows: pd.DataFrame, q: float = FLAG_Q, tail_min: float = TAIL_FRAC_
     out["flag_tail"] = (out["tail_q"] < q) & (out["tail_frac"] >= tail_min)
     out["flag"] = out["log_overrode_diff"].astype(bool) | out["flag_tail"]
     return out
+
+
+def strongest_first(table: pd.DataFrame) -> pd.DataFrame:
+    """확인 필요 행을 근거가 센 순서로 맨 앞에 둔다: log 가 차이를 동등으로 바꾼 ITEM, 걸린 규칙의 q 가 작은 ITEM,
+    꼬리 die 비율이 큰 ITEM 순. 확인 필요가 아닌 행은 그 뒤에 원래 순서로."""
+    flag = table["flag"].astype(bool).to_numpy()
+    q = np.ones(len(table))
+    for rule, col in (("flag_direction", "dir_q"), ("flag_tail", "tail_q")):
+        if rule in table:
+            hit = table[rule].astype(bool).to_numpy()
+            q = np.where(hit, np.fmin(q, table[col].to_numpy(float)), q)
+    l1 = table["log_overrode_diff"].astype(bool).to_numpy() if "log_overrode_diff" in table else np.zeros(len(table), bool)
+    tail = np.nan_to_num(table["tail_frac"].to_numpy(float)) if "tail_frac" in table else np.zeros(len(table))
+    first = np.lexsort((-tail, np.nan_to_num(q, nan=1.0), ~l1))
+    first = first[flag[first]]
+    return table.iloc[np.r_[first, np.flatnonzero(~flag)]].reset_index(drop=True)
 
 
 # ---------------------------------------------------------------- 쉬운 말
@@ -333,7 +354,7 @@ def review_table(review: Review, items: pd.DataFrame, raw: Raw) -> pd.DataFrame:
     # 행이 없거나 원데이터가 없는 ITEM 뿐이면 object 열이라 BH·비교 전에 float 로
     table = review.flag(table.astype({c: float for c in ("dir_p", "tail_p", "tail_frac", "ratio") if c in table}))
     table["why"] = [review.why(r) for r in table.to_dict("records")]
-    return table[[*review.copy_cols, *review.cols]]
+    return strongest_first(table[[*review.copy_cols, *review.cols]])
 
 
 def read_items(path: str | Path) -> pd.DataFrame:
@@ -495,7 +516,7 @@ def _value_scale(ax, values: np.ndarray, lod: float, unit: str, axis: str = "y")
         ticks = np.r_[-decades, 0.0, decades]
         target.set_ticks(ticks[(ticks >= v.min() - lt) & (ticks <= v.max() + lt)] if v.size else ticks)
     target.set_major_formatter(FuncFormatter(lambda t, _: fmt(t, unit)))
-    target.set_minor_formatter(NullFormatter())
+    target.set_minor_locator(NullLocator())
 
 
 def _limit_lines(ax, row: Mapping, axis: str = "y") -> None:
@@ -622,33 +643,56 @@ def _clear(review_dir: Path) -> None:
         p.unlink()
 
 
-def run_reviews(items_csv: str | Path, raw_args: argparse.Namespace, out: str | Path) -> dict[str, pd.DataFrame]:
-    """두 재확인을 돌려 <out>/review/ 에 쓴다. 판정 열은 읽기만 한다. {'loq': 표, 'log': 표} 를 돌려준다."""
+def _plot_task(item: str, Y: np.ndarray, z: np.ndarray, row: Mapping, name: str, rec: Mapping, path: Path) -> None:
+    plot_item(item, Y, z, row, REVIEWS[name], rec, path)
+
+
+def run_reviews(items_csv: str | Path, raw_args: argparse.Namespace, out: str | Path,
+                max_figures: int = MAX_FIGURES) -> dict[str, pd.DataFrame]:
+    """두 재확인을 돌려 <out>/review/ 에 쓴다. 판정 열은 읽기만 한다. {'loq': 표, 'log': 표} 를 돌려준다.
+    ITEM 그림은 재확인마다 확인 필요 ITEM 을 근거가 센 순서로 max_figures 개까지 (0 이면 전부), 여러 프로세스로 그린다."""
     items = read_items(items_csv)
     review_dir = Path(out) / REVIEW_DIR
     review_dir.mkdir(parents=True, exist_ok=True)
     _clear(review_dir)
     rows = items.to_dict("records")
     wanted = list(dict.fromkeys(str(r["ITEM"]) for r in rows if any(rv.target(r) for rv in REVIEWS.values())))
+    took = {"start": time.perf_counter()}
     raw = load_raw(raw_args, wanted)
+    took["원데이터"] = time.perf_counter()
     tables = {name: review_table(rv, items, raw) for name, rv in REVIEWS.items()}
+    took["지표"] = time.perf_counter()
     for name, t in tables.items():
         t.to_csv(review_dir / f"{name}_review.csv", index=False, encoding="utf-8-sig")
     configure_font()
     plot_loq_map(tables["loq"], review_dir / "loq_review.png")
     plot_log_map(tables["log"], review_dir / "log_review.png")
+    took["요약 그림"] = time.perf_counter()
     by_item = {str(r["ITEM"]): r for r in rows}
-    drawn: set[str] = set()
+    tasks, drawn, capped = [], set(), False
     for name, t in tables.items():     # LoQ 재확인이 먼저: 둘 다 확인 필요면 원래 값 단위 그림을 남긴다
+        picked = 0
         for rec in t[t["flag"].astype(bool)].to_dict("records"):
             item = str(rec["ITEM"])
             if item in drawn or item not in raw:
                 continue
+            if max_figures and picked >= max_figures:
+                capped = True
+                break
             drawn.add(item)
-            plot_item(item, *raw[item], by_item[item], REVIEWS[name], rec,
-                      review_dir / ITEMS_DIR / f"{safe_group_name(item)}.png")
+            picked += 1
+            tasks.append((item, *raw[item], by_item[item], name, rec,
+                          review_dir / ITEMS_DIR / f"{safe_group_name(item)}.png"))
+    if tasks:
+        print(f"확인 필요 ITEM 그림 {len(tasks):,}장 그리는 중 (작업 {min(dc_jobs(), len(tasks))}개)", flush=True)
+        pool_map(_plot_task, tasks)
+    took["ITEM 그림"] = time.perf_counter()
     for name, t in tables.items():
         print(f"{name} 재확인: 대상 {len(t):,}개, 확인 필요 {int(t['flag'].sum()):,}개")
+    if capped:
+        print(f"ITEM 그림은 재확인마다 근거가 센 {max_figures:,}개까지만 그렸다 (전부: --max-figures 0)")
+    marks = list(took.items())
+    print("걸린 시간: " + ", ".join(f"{name} {t - prev:.1f}초" for (_, prev), (name, t) in zip(marks, marks[1:])))
     return tables
 
 
@@ -656,6 +700,8 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="LoQ·log 판정 재확인 (참고용, 판정은 그대로).")
     p.add_argument("--input", required=True, help="por_doe_compare.py 결과 items.csv")
     p.add_argument("--out", required=True, help="출력 폴더 (그 아래 review/ 에 씀)")
+    p.add_argument("--max-figures", type=int, default=MAX_FIGURES,
+                   help=f"재확인마다 ITEM 그림을 그릴 확인 필요 ITEM 수, 근거가 센 순서 (기본 {MAX_FIGURES}, 0 = 전부)")
     add_raw_args(p.add_argument_group("원데이터 (por_doe_compare.py 와 같은 인자)"))
     return p.parse_args(argv)
 
@@ -665,7 +711,7 @@ def main(argv: list[str] | None = None) -> int:
     if not (args.por and args.doe):
         print("오류: 원데이터 --por 와 --doe 가 필요합니다.", file=sys.stderr)
         return 2
-    run_reviews(args.input, args, args.out)
+    run_reviews(args.input, args, args.out, args.max_figures)
     return 0
 
 

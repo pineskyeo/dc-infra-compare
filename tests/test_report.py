@@ -250,3 +250,15 @@ def test_stability_section_shows_group_by_level(built):
     assert table["n_items"].sum() == len(pd.read_csv(built["full"] / "items.csv"))
     blob = (built["full"] / "stability" / "group_levels.png").read_bytes()
     assert base64.b64encode(blob).decode() in section
+
+
+def test_review_section_caps_item_figures_and_says_where_the_rest_are(built, tmp_path, monkeypatch):
+    folder = tmp_path / "FULL"
+    shutil.copytree(built["full"], folder)
+    flagged = pd.read_csv(folder / "review" / "loq_review.csv").query("flag")
+    assert len(flagged) >= 1
+    monkeypatch.setattr(report, "REVIEW_FIGURES", 0)
+    report.write_reports(folder, groups=built["groups"])
+    section = (folder / "report.html").read_text(encoding="utf-8").split('id="loq"')[1].split('id="log"')[0]
+    assert "확인 필요 상세" not in section
+    assert f"확인 필요 {len(flagged):,}개 중 근거가 센 0개의 상세 그림만 싣는다" in section

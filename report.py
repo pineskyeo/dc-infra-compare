@@ -374,6 +374,7 @@ def log_run_compare(page: Page, items: pd.DataFrame) -> None:
 
 
 REVIEW_ITEM_DIR = "items"
+REVIEW_FIGURES = 20      # 재확인 칸마다 싣는 확인 필요 ITEM 상세 그림 수 (review CSV 순서 = 근거가 센 순서)
 
 
 def review_figure(folder: Path, item: str) -> Path:
@@ -436,8 +437,12 @@ def review(page: Page, folder: Path, which: str) -> None:
         page.table(r.cols(page.namer), flagged.to_dict("records"))
     if len(table):
         page.figure(Figure(folder / "review" / f"{which}_review.png", r.figure_title, names=True))
-    for item in flagged["ITEM"].astype(str):
+    drawn = [i for i in flagged["ITEM"].astype(str) if review_figure(folder, i).is_file()]
+    for item in drawn[:REVIEW_FIGURES]:
         page.figure(Figure(review_figure(folder, item), f"{page.namer.label(item)} 확인 필요 상세", names=True))
+    if len(flagged) > min(len(drawn), REVIEW_FIGURES):
+        page.p(f"확인 필요 {len(flagged):,}개 중 근거가 센 {min(len(drawn), REVIEW_FIGURES):,}개의 상세 그림만 싣는다. "
+               f"그린 그림 {len(drawn):,}장은 review/items/ 에 있다 (review.py --max-figures 로 그릴 수를 정한다).", "note")
 
 
 STABILITY_FORMATS = {**{c: share for c in ("share_stable", "share_caution", "share_unstable", "share_no_band",
