@@ -302,7 +302,8 @@
   // ---------- 장면 (애니메이션) ----------
   const SCENES = {};
   function defineScene(name, build) { SCENES[name] = build; }
-  window.SOP = { defineScene, h, s, fill, fmt, pill, scale, domain, VCLASS, MARKS, BEAT_MS };
+  // 장면 파일은 SOP.TRACK[단계] = t => ({inputs, does, output, mini}) 로 예제 카드를 바꿀 수 있다
+  window.SOP = { defineScene, h, s, fill, fmt, pill, scale, domain, VCLASS, MARKS, BEAT_MS, TRACK, miniSvg };
 
   function initScenes() {
     document.querySelectorAll('[data-scene]').forEach(host => {
