@@ -1,1 +1,41 @@
-/* steps-a 담당 장면·쪽 전용 규칙 */
+/* steps-a 담당 장면·쪽 전용 규칙 (⓪~③) */
+.scene .end{text-anchor:end}
+.sa-zero{stroke:var(--aux);stroke-width:1;stroke-dasharray:3 3}
+.sa-sep{stroke:#DCE1E8;stroke-width:1}
+.sa-off{fill:#8A94A0}
+.sa-pill-t{font-family:var(--sans);font-size:12.5px;font-weight:700;fill:#fff;text-anchor:middle}
+.sa-ci-off{fill:#B9C1CB}
+.sa-ci-mid{fill:var(--doe);fill-opacity:.55}
+.sa-c-off{fill:#fff;stroke:#9AA3AE;stroke-width:2}
+.sa-run1{fill:#22324A}.sa-run2{fill:#5A7397}.sa-run3{fill:#9CB0CB}
+.sa-die{font-family:var(--sans);font-size:10.5px;fill:#7D8792}
+.sa-hl{fill:var(--doe);fill-opacity:.09;stroke:var(--doe);stroke-opacity:.5}
+.sa-panel{fill:var(--bg2)}
+.sa-mean{stroke:var(--por);stroke-width:1.5;stroke-dasharray:5 3}
+.sa-d{stroke:var(--doe);stroke-width:2.5}
+.sa-runline{stroke:var(--por);stroke-width:3;stroke-linecap:round}
+.sa-sdie{fill:var(--hold);fill-opacity:.14;stroke:var(--hold);stroke-opacity:.5;stroke-dasharray:4 3}
+.sc-t.sa-sdie-t{fill:var(--hold);font-weight:700}
+.scene .sa-stay[data-b]{opacity:1}
+.scene .sa-mv{transition:transform .9s cubic-bezier(.4,0,.2,1) var(--i,0ms)}
+.scene .sa-stay.on .sa-mv{transform:translate(var(--dx),var(--dy))}
+.sa-result{flex-wrap:wrap;gap:10px 28px}
+.sa-num span{display:block;font-size:13px;font-weight:700;color:var(--ink2)}
+.sa-num b{font-size:22px;color:var(--por);font-variant-numeric:tabular-nums}
+.sa-result .res-why{flex-basis:100%;font-size:15px}
+.sa-bar{fill:#C9D0D9}.sa-bar-on{fill:var(--por)}
+.sa-big{font-family:var(--sans);font-size:18px;font-weight:700;fill:var(--por)}
+.sa-lod{stroke:var(--aux);stroke-width:1.2;stroke-dasharray:3 3}
+.sa-chip{fill:var(--paper);stroke:#C9D0D9}
+.sa-chip-key{fill:none;stroke:var(--doe);stroke-width:2.5}
+.sa-chip-k{font-family:var(--sans);font-size:12px;fill:var(--ink2)}
+.sa-chip-v{font-family:var(--sans);font-size:14.5px;font-weight:700;fill:var(--ink)}
+.sa-route{fill:var(--paper);stroke:#C9D0D9}
+.sa-route-n{font-family:var(--sans);font-size:14px;font-weight:700;fill:var(--ink)}
+.sa-route-c{font-family:var(--sans);font-size:12px;fill:var(--ink2)}
+.sa-route-no{fill:#F3F5F8;fill-opacity:.7;stroke:none}
+.sa-route-skip{fill:#fff;fill-opacity:.55;stroke:none}
+.sa-route-yes{fill:var(--eq);fill-opacity:.1;stroke:var(--eq);stroke-width:2}
+.sa-mark-no{font-family:var(--sans);font-size:12.5px;fill:#8A94A0}
+.sa-mark-yes{font-family:var(--sans);font-size:13px;font-weight:700;fill:var(--eq)}
+.sa-halo{paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}

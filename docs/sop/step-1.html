@@ -2,7 +2,7 @@
 <html lang="ko" data-layer="easy">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>① 반복 측정 · DC Test 동일성 검증</title>
-<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/scenes/steps-a.css"><link rel="stylesheet" href="assets/scenes/steps-b.css"><link rel="stylesheet" href="assets/scenes/guide.css"><link rel="stylesheet" href="assets/scenes/concepts.css"><link rel="stylesheet" href="assets/legacy.css">
+<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/scenes/steps-a.css"><link rel="stylesheet" href="assets/scenes/steps-b.css"><link rel="stylesheet" href="assets/scenes/guide.css"><link rel="stylesheet" href="assets/scenes/concepts.css">
 <script>try{if(localStorage.getItem('sop-layer')==='expert')document.documentElement.setAttribute('data-layer','expert');}catch(e){}</script>
 </head>
 <body data-page="step-1" data-step="1">
@@ -12,125 +12,54 @@
 <div id="sop-error" class="sop-error" role="alert" hidden></div>
 <nav class="side" aria-label="문서"><a href="index.html">개요</a><div class="nav-group"><p class="nav-h">따라하기</p><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html" aria-current="page">① 반복 측정</a><a href="step-2.html">② 흔들림 나누기</a><a href="step-3.html">③ LoQ와 ITEM 유형</a><a href="step-4.html">④ 변화 구간</a><a href="step-5.html">⑤ 허용폭 Δ</a><a href="step-6.html">⑥ 판정 3단계</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="journey.html">예제 따라가기</a></div><div class="nav-group"><p class="nav-h">결과 읽기</p><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a></div><div class="nav-group"><p class="nav-h">공부하기</p><a href="concepts.html">개념 익히기</a><details class="nav-more"><summary>개념 9쪽</summary><a href="c-sigma-split.html">σ_die와 σ_run</a><a href="c-loq.html">LoQ와 10배</a><a href="c-median-ci.html">중앙값 90% 구간 구하기</a><a href="c-delta.html">허용폭 Δ</a><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a><a href="c-routes.html">ITEM 유형과 판정 길</a><a href="c-abs-tol.html">0 근처와 절대 허용폭</a><a href="c-log-scale.html">잡음이 값에 비례하면 log</a><a href="c-power.html">검정력과 표본 크기</a></details></div><div class="nav-group"><p class="nav-h">참고</p><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></div></nav>
 <main id="main"><nav class="strip" aria-label="단계"><a href="step-0.html" class="chip" title="⓪ 표본 크기 정하기">⓪</a><a href="step-1.html" class="chip now" title="① 반복 측정" aria-current="step">① 반복 측정</a><a href="step-2.html" class="chip" title="② 흔들림 나누기">②</a><a href="step-3.html" class="chip" title="③ LoQ와 ITEM 유형">③</a><a href="step-4.html" class="chip" title="④ 변화 구간">④</a><a href="step-5.html" class="chip" title="⑤ 허용폭 Δ">⑤</a><a href="step-6.html" class="chip" title="⑥ 판정 3단계">⑥</a><a href="step-7.html" class="chip" title="⑦ 미결·차이일 때 다음 행동">⑦</a></nav>
-<article class="page legacy">
-<!-- legacy -->
-<p class="loc"><a href="index.html">개요</a> › 단계 ① (⓪~⑦ 중) · 앞 단계 <a href="step-0.html">⓪ 표본 크기 정하기</a></p>
-<h1>① 반복 측정</h1>
-
-<section id="q"><h2>이 쪽이 답하는 질문</h2>
-<p class="q">같은 <a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a>를 몇 번, 어떤 순서로 재나 · 왜 잴 때마다 <a class="g" href="glossary.html#probecard"><abbr title="프로브카드 · 바늘을 die 패드에 대어 장비와 die를 전기로 잇는 부품">프로브카드</abbr></a>를 다시 대나(<a class="g" href="glossary.html#retouch"><abbr title="재터치다운 · 프로브카드 바늘을 떼었다가 다시 대는 것">재터치다운</abbr></a>)</p></section>
-
-<section id="plain"><h2>쉬운 말로</h2>
-<ul>
-<li>같은 <a class="g" href="glossary.html#wafer"><abbr title="wafer · die가 여러 개 만들어진 원판">wafer</abbr></a>의 같은 die를 <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a>으로 J회, <a class="g" href="glossary.html#cand"><abbr title="비교 조건 · 바꾸려는 조건">비교 조건(Candidate)</abbr></a>으로 1회 잼. 합성 예시는 기준 조건 3회 + 비교 조건 1회 × die 60개 <span class="from">J 3 · die 60개 = ⓪ 표본 크기 정하기에서 정한 값</span></li>
-<li><a class="g" href="glossary.html#run"><abbr title="회차 · 같은 die들을 한 차례 모두 재는 것">회차(run)</abbr></a> 하나 = 같은 die들을 한 차례 모두 재는 것. 기준 조건은 회차마다 따로 저장(회차 하나에 파일이나 폴더 하나)</li>
-<li>매 회차 재터치다운: 프로브카드를 die에서 떼었다가 다시 대고 잼. 기준 조건은 2회 이상, 권장 3회 이상 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
-<li>재터치다운 이유: 회차마다 모든 die 값이 함께 조금 움직임(회차 이동 σ<sub>run</sub>). 매번 다시 대야 이 움직임이 데이터에 들어가고, ⑤ 허용 범위 Δ의 회차 예측 한계에 반영됨. 다시 대지 않고 연달아 재면 σ<sub>run</sub>이 실제보다 작게 잡힘 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
-<li>데이터 모양: die × 회차 표. die 한 줄에 기준 1회~J회 값과 비교 값 1개. die마다 d = 비교 − 기준 J회 평균 (아래 예시 표)</li>
-<li>die 수 확인: 기준 조건 J회와 비교 조건 값이 모두 있는 die 수가 ⓪에서 본 수와 맞는지 확인. <a class="g" href="glossary.html#min-die"><abbr title="최소 die 수 · 최소 die 수 10(도구 상수)">최소 die 수(MIN_DIE)</abbr></a> 10개보다 적으면 판정은 미결 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
-
+<article class="page">
+<header class="page-head"><p class="kicker">따라하기</p><h1>① 반복 측정</h1><p class="purpose">같은 die를 POR J회, DOE 1회 잰다.</p></header>
+<section class="layer easy" aria-label="쉽게">
+<div data-scene="repeat"></div>
+<ul class="points">
+<li>같은 die를 POR 조건으로 J회, DOE 조건으로 1회 잰다.</li>
+<li>회차마다 프로브카드를 떼었다 다시 대고 잰다 (재터치다운).</li>
+<li>die마다 d = DOE − POR 평균. 같은 die끼리 빼니 die 사이 차이가 지워진다.</li>
+<li>파일 모으기와 도구 실행은 <a href="run.html">실행 방법</a>에.</li>
 </ul>
-<p class="s">더 자세한 쉬운 말은 아래 <a href="#plain-more">쉬운 말 더 보기</a></p>
-
-<details><summary>보충</summary><ul>
-<li>같은 die끼리 묶는 기준: wafer · die 좌표 · <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>. 판정은 ITEM마다 따로</li>
-<li>회차를 따로 저장해야 ②에서 회차마다의 이동(σ<sub>run</sub>)과 같은 die를 다시 잰 흔들림(σ<sub>die</sub>)을 나눌 수 있음</li>
-</ul></details></section>
-
-<section id="formula"><h2>수식</h2>
-<div class="formula"><div>die i (i = 1 … n): 기준 조건 x<sub>i1</sub>, …, x<sub>iJ</sub> · 비교 조건 y<sub>i</sub></div><div>x̄<sub>i</sub> = (x<sub>i1</sub> + … + x<sub>iJ</sub>) / J ,   d<sub>i</sub> = y<sub>i</sub> − x̄<sub>i</sub></div><div>x<sub>ij</sub> = die i의 값 + 회차 j 이동(크기 σ<sub>run</sub>) + 반복 흔들림(크기 σ<sub>die</sub>)</div><div class="c">셋째 줄은 데이터가 담는 성분. 매 회차 재터치다운을 해야 '회차 j 이동'이 데이터에 들어감</div></div>
-<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
-<tr><td>x<sub>ij</sub></td><td>die i를 기준 조건으로 j번째 잰 값</td><td>96.104 (die 1, 1회)</td></tr>
-<tr><td>y<sub>i</sub></td><td>die i를 비교 조건으로 잰 값</td><td>97.258 (die 1)</td></tr>
-<tr><td>x̄<sub>i</sub></td><td>die i의 기준 조건 J회 평균</td><td>96.4863 (die 1)</td></tr>
-<tr><td>d<sub>i</sub></td><td>die별 차이 = 비교 조건 − 기준 조건 J회 평균<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></td><td>0.7717 (die 1)</td></tr>
-<tr><td>J</td><td>기준 조건 반복 회차 수</td><td>3</td></tr>
-<tr><td>n</td><td>die 수</td><td>60</td></tr>
-<tr><td>σ<sub>run</sub></td><td>회차 이동. 회차마다 모든 die가 함께 움직이는 크기<sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></td><td>0.504 (②)</td></tr>
-<tr><td>σ<sub>die</sub></td><td>반복성. 같은 die를 다시 잴 때 흔들리는 크기</td><td>0.990 (②)</td></tr>
-</tbody></table></div>
-<div class="crit" id="C1-1"><!-- EDIT C1-1 --><h3>이 단계의 기준</h3>
-<p>판정 없음 · 측정 단계</p>
-<p>기준 조건 2회 이상, 권장 3회 이상 · 회차마다 재터치다운<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span></p>
-<p>유효 die 최소 10개, 모자라면 미결<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span></p></div>
-<div class="crit" id="C1-2"><!-- EDIT C1-2 --><h3>다음 단계로 넘기는 것</h3>
-<ul><li>die × 회차 표 → <a href="step-2.html">② 흔들림 구하기</a> (σ<sub>die</sub>, σ<sub>run</sub>)</li><li>기준 조건 중앙값 → <a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a></li><li>die별 d → <a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a></li></ul></div>
+<div id="ex-data"><div class="tracker" data-tracker="1" data-next-href="step-2.html" data-next-title="② 흔들림 나누기"></div></div>
 </section>
 
-<section id="figure"><h2>그림</h2>
-<figure class="cfig" id="f1" data-anim="steps" data-start="1">
-<svg viewBox="0 0 640 196" role="img" aria-labelledby="f1-t"><title id="f1-t">기준 조건 회차 수 J에 따라 바뀌는 Δ 중앙값, CI 폭, 판정 비율 (모의실험)</title>
-<text x="0" y="18">회차 수 J</text><text id="f1-j" class="val" x="96" y="18">3</text>
-<text x="0" y="52">Δ 중앙값</text><svg x="90" y="40" width="410" height="16" viewBox="0 0 8 16" preserveAspectRatio="none"><rect class="pb-bg" width="8" height="16"/><rect id="f1-d" fill="currentColor" opacity="0.55" width="6.409" height="16"/></svg><text id="f1-dt" class="val" x="512" y="52">6.409</text>
-<text x="0" y="84">CI 폭</text><svg x="90" y="72" width="410" height="16" viewBox="0 0 8 16" preserveAspectRatio="none"><rect class="pb-bg" width="8" height="16"/><rect id="f1-w" fill="currentColor" opacity="0.55" width="0.613" height="16"/></svg><text id="f1-wt" class="val" x="512" y="84">0.613</text>
-<text x="0" y="116">동등</text><svg x="90" y="104" width="410" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="f1-ok" class="pb-ok" width="100.0" height="16"/></svg><text id="f1-okt" class="val" x="512" y="116">100.0%</text>
-<text x="0" y="148">미결</text><svg x="90" y="136" width="410" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="f1-hold" class="pb-hold" width="0.0" height="16"/></svg><text id="f1-holdt" class="val" x="512" y="148">0.0%</text>
-<text x="0" y="180">차이</text><svg x="90" y="168" width="410" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="f1-bad" class="pb-bad" width="0.0" height="16"/></svg><text id="f1-badt" class="val" x="512" y="180">0.0%</text>
-</svg>
-<div class="ctl" hidden><label for="f1-ctl">회차 수 J</label><input id="f1-ctl" type="range" min="0" max="6" step="1" value="1"><output for="f1-ctl">J 3</output><button type="button" class="play" aria-pressed="false">재생</button></div>
-<div class="tw"><table class="states"><thead><tr><th>J</th><th>Δ 중앙값</th><th>CI 폭</th><th>동등</th><th>미결</th><th>차이</th></tr></thead><tbody>
-<tr><td>2</td><td>7.553</td><td>0.649</td><td>100.0%</td><td>0.0%</td><td>0.0%</td></tr>
-<tr class="now"><td>3</td><td>6.409</td><td>0.613</td><td>100.0%</td><td>0.0%</td><td>0.0%</td></tr>
-<tr><td>4</td><td>6.14</td><td>0.6</td><td>100.0%</td><td>0.0%</td><td>0.0%</td></tr>
-<tr><td>5</td><td>6.057</td><td>0.58</td><td>100.0%</td><td>0.0%</td><td>0.0%</td></tr>
-<tr><td>6</td><td>6.012</td><td>0.57</td><td>100.0%</td><td>0.0%</td><td>0.0%</td></tr>
-<tr><td>8</td><td>5.959</td><td>0.564</td><td>100.0%</td><td>0.0%</td><td>0.0%</td></tr>
-<tr><td>10</td><td>5.925</td><td>0.553</td><td>100.0%</td><td>0.0%</td><td>0.0%</td></tr>
+<details class="layer expert"><summary><span class="layer-tag">전문</span><span class="layer-title">수식 · 기준표 · 근거 · 코드</span></summary><div class="layer-body">
+<h2 id="paired">짝지은 설계</h2>
+<div class="formula">x<sub>ij</sub> = die i 의 POR j회 값 (j = 1 … J),  y<sub>i</sub> = die i 의 DOE 값
+x̄<sub>i</sub> = (x<sub>i1</sub> + … + x<sub>iJ</sub>) / J
+d<sub>i</sub> = y<sub>i</sub> − x̄<sub>i</sub>                                <span class="c">die i 의 차이</span>
+x<sub>ij</sub> = die i 의 값 + 회차 j 이동 (σ<sub>run</sub>) + 반복 흔들림 (σ<sub>die</sub>)</div>
+<p>같은 die 를 두 조건으로 재면 die 마다 쌍이 생기고, 쌍 차이 d 로 두 조건을 견준다<sup class="ref"><a href="#ref-1" aria-label="근거 1">1</a></sup>. die 사이의 공정 산포는 빼기에서 지워지고 측정 흔들림만 남는다. POR 를 J회 평균으로 쓰는 것은 설계 선택이다.</p>
+<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>items.csv 열</th></tr></thead><tbody>
+<tr><td>x̄<sub>i</sub></td><td>die i 의 POR 평균. 이것들의 중앙값이 POR 중앙값</td><td><code>por_median</code></td></tr>
+<tr><td>POR j 평균</td><td>회차 j 의 die 평균 (참고)</td><td><code>POR1_mean</code> …</td></tr>
+<tr><td>DOE 평균</td><td>DOE die 평균 (참고)</td><td><code>DOE_mean</code></td></tr>
+<tr><td>n</td><td>POR J회와 DOE 파일에 모두 있는 die 수</td><td><code>n_die</code></td></tr>
 </tbody></table></div>
-<script type="application/json" class="states">[
-{"label":"J 2","set":{"f1-j":{"text":"2"},"f1-d":{"width":"7.553"},"f1-dt":{"text":"7.553"},"f1-w":{"width":"0.649"},"f1-wt":{"text":"0.649"},"f1-ok":{"width":"100.0"},"f1-okt":{"text":"100.0%"},"f1-hold":{"width":"0.0"},"f1-holdt":{"text":"0.0%"},"f1-bad":{"width":"0.0"},"f1-badt":{"text":"0.0%"}}},
-{"label":"J 3","set":{"f1-j":{"text":"3"},"f1-d":{"width":"6.409"},"f1-dt":{"text":"6.409"},"f1-w":{"width":"0.613"},"f1-wt":{"text":"0.613"},"f1-ok":{"width":"100.0"},"f1-okt":{"text":"100.0%"},"f1-hold":{"width":"0.0"},"f1-holdt":{"text":"0.0%"},"f1-bad":{"width":"0.0"},"f1-badt":{"text":"0.0%"}}},
-{"label":"J 4","set":{"f1-j":{"text":"4"},"f1-d":{"width":"6.14"},"f1-dt":{"text":"6.14"},"f1-w":{"width":"0.6"},"f1-wt":{"text":"0.6"},"f1-ok":{"width":"100.0"},"f1-okt":{"text":"100.0%"},"f1-hold":{"width":"0.0"},"f1-holdt":{"text":"0.0%"},"f1-bad":{"width":"0.0"},"f1-badt":{"text":"0.0%"}}},
-{"label":"J 5","set":{"f1-j":{"text":"5"},"f1-d":{"width":"6.057"},"f1-dt":{"text":"6.057"},"f1-w":{"width":"0.58"},"f1-wt":{"text":"0.58"},"f1-ok":{"width":"100.0"},"f1-okt":{"text":"100.0%"},"f1-hold":{"width":"0.0"},"f1-holdt":{"text":"0.0%"},"f1-bad":{"width":"0.0"},"f1-badt":{"text":"0.0%"}}},
-{"label":"J 6","set":{"f1-j":{"text":"6"},"f1-d":{"width":"6.012"},"f1-dt":{"text":"6.012"},"f1-w":{"width":"0.57"},"f1-wt":{"text":"0.57"},"f1-ok":{"width":"100.0"},"f1-okt":{"text":"100.0%"},"f1-hold":{"width":"0.0"},"f1-holdt":{"text":"0.0%"},"f1-bad":{"width":"0.0"},"f1-badt":{"text":"0.0%"}}},
-{"label":"J 8","set":{"f1-j":{"text":"8"},"f1-d":{"width":"5.959"},"f1-dt":{"text":"5.959"},"f1-w":{"width":"0.564"},"f1-wt":{"text":"0.564"},"f1-ok":{"width":"100.0"},"f1-okt":{"text":"100.0%"},"f1-hold":{"width":"0.0"},"f1-holdt":{"text":"0.0%"},"f1-bad":{"width":"0.0"},"f1-badt":{"text":"0.0%"}}},
-{"label":"J 10","set":{"f1-j":{"text":"10"},"f1-d":{"width":"5.925"},"f1-dt":{"text":"5.925"},"f1-w":{"width":"0.553"},"f1-wt":{"text":"0.553"},"f1-ok":{"width":"100.0"},"f1-okt":{"text":"100.0%"},"f1-hold":{"width":"0.0"},"f1-holdt":{"text":"0.0%"},"f1-bad":{"width":"0.0"},"f1-badt":{"text":"0.0%"}}}
-]</script>
-<figcaption>모의실험(합성 예시 모형) · 비교 조건 이동 b 0.8, σ<sub>run</sub> 0.50389, σ<sub>die</sub> 0.98965(예시 ITEM의 도구 추정값), die 60개, 값마다 판정 2000회 · Δ·CI 막대 눈금 0~8</figcaption>
-</figure>
-<p class="look"><b>여기서 볼 것</b> · 편향이 Δ에서 먼 경우(b 0.8)는 J 2~10 모두 동등 100.0% · J를 늘리면 Δ 중앙값 7.553(J 2) → 6.409(J 3) → 5.925(J 10), CI 폭 0.649 → 0.553으로 좁아짐 · J 2 → 3에서 가장 크게 바뀌고 그 뒤로는 조금씩</p>
-</section>
 
-<section id="plain-more"><h2>쉬운 말 더 보기</h2>
+<h2 id="C1-1">입력 파일이 담을 것</h2>
 <ul>
-<li>J를 늘리면 Δ와 90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a> 폭이 함께 좁아짐 (아래 그림)</li>
-<li>σ<sub>die</sub>·σ<sub>run</sub> 계산은 다음 쪽 <a href="step-2.html">② 흔들림 구하기</a></li>
-</ul></section>
+<li>POR 회차마다 파일 (또는 폴더) 하나, DOE 파일 하나. 같은 die 는 wafer · die 좌표 · ITEM 으로 짝짓는다.</li>
+<li>POR 는 2회 이상, 권장 3회. 회차마다 재터치다운해야 회차 이동이 데이터에 들어간다. 연달아 재면 σ<sub>run</sub> 이 작게 잡혀 ⑤ 의 Δ 가 좁아진다 (내부 기준).</li>
+<li>POR 모든 회차 파일과 DOE 파일에 다 있는 die 만 쓴다. 10개 미만이면 미결.</li>
+</ul>
+<p>파일 이름 규칙과 명령은 <a href="run.html">실행 방법</a>.</p>
 
-<section id="example"><h2>예시 계산</h2>
-<div class="exdata" id="ex-data">
-<p class="s">합성 예시 · ITEM 하나, 단위 Ω · 기준 조건 3회(J = 3) + 비교 조건 1회 · die 60개(n = 60) 중 6개</p>
-<div class="tw"><table class="ex"><thead><tr><th>die</th><th>기준 1회</th><th>기준 2회</th><th>기준 3회</th><th>기준 평균</th><th>비교</th><th>d = 비교 − 기준 평균</th></tr></thead><tbody>
-<tr><td>1</td><td>96.104</td><td>96.890</td><td>96.465</td><td>96.4863</td><td>97.258</td><td>0.7717</td></tr>
-<tr><td>2</td><td>99.194</td><td>98.516</td><td>100.005</td><td>99.2383</td><td>101.005</td><td>1.7667</td></tr>
-<tr><td>3</td><td>94.828</td><td>95.894</td><td>95.134</td><td>95.2853</td><td>96.819</td><td>1.5337</td></tr>
-<tr><td>4</td><td>102.294</td><td>101.657</td><td>102.060</td><td>102.0037</td><td>101.415</td><td>−0.5887</td></tr>
-<tr><td>5</td><td>106.554</td><td>105.866</td><td>108.424</td><td>106.9480</td><td>107.455</td><td>0.5070</td></tr>
-<tr><td>6</td><td>95.385</td><td>95.404</td><td>97.106</td><td>95.9650</td><td>94.915</td><td>−1.0500</td></tr>
-</tbody></table></div>
-<p class="s"><a href="examples/example_wide.csv">합성 예시 · 전체 데이터 examples/example_wide.csv</a></p>
-</div>
-<ol class="calc">
-<li>die 1 기준 평균 = (96.104 + 96.890 + 96.465) ÷ 3 = 96.4863 <span class="from">예시 표 die 1 줄 · 기준 1~3회</span></li>
-<li>die 1 d = 97.258 − 96.4863 = 0.7717 <span class="from">97.258 = die 1 비교 조건 값</span></li>
-<li>die 6개 d = 0.7717<span class="cl">1.7667</span><span class="cl">1.5337</span><span class="cl">−0.5887</span><span class="cl">0.5070</span><span class="cl">−1.0500 </span><span class="from">예시 표 마지막 칸</span></li>
-<li>회차별 평균(참고, die 60개 전체) = 99.4598 · 100.0957 · 100.7094<span class="cl">→ 회차마다 모든 die가 함께 움직인 흔적 <span class="from">합성 예시를 만들 때 넣은 회차 이동 −0.5 / 0 / +0.5</span></span></li>
-<li>die 수 60개 ≥ 최소 10개 → 확인 통과 <span class="from">10 = 최소 die 수 내부 기준</span></li>
-<li>이 표를 ②로 넘김 → σ<sub>die</sub> 0.98965, σ<sub>run</sub> 0.50389 <span class="from">② 흔들림 구하기의 결과</span></li>
-</ol></section>
+<h2>근거와 문헌</h2>
+<ol class="refs" id="sources">
+<li id="ref-1"><span class="st st-ok">확인</span> <b>대응 차이 d = Cand − Ref 3회 평균</b><span class="ref-src">NIST/SEMATECH e-Handbook · 7.3.1.1 Analysis of paired observations <a href="https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm" rel="noopener">원문</a><br>ASTM E2935-21 · 4.2.1, 4.2.1.1 (Significance and Use) <a href="https://store.astm.org/e2935-21.html" rel="noopener">원문</a></span><span class="ref-note">쌍 설계. Ref를 J회 평균으로 쓰는 것은 설계 선택</span><span class="ref-no">대조표 #1</span></li>
+</ol>
 
-<section id="sources"><h2>출처</h2>
-<ol class="fn">
-<li id="fn1">d = 비교 조건 − 기준 조건 J회 평균(같은 die끼리 짝지은 설계): NIST/SEMATECH e-Handbook · 7.3.1.1 Analysis of paired observations · <a href="https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm" rel="noopener" target="_blank">링크</a> / ASTM E2935-21 · 4.2.1, 4.2.1.1 · <a href="https://store.astm.org/e2935-21.html" rel="noopener" target="_blank">링크</a></li>
-<li id="fn2">반복 흔들림과 회차 사이 흔들림을 나눠 보는 측정 구성: NIST/SEMATECH e-Handbook · 2.4.4 Analysis of variability (Level 1 repeatability, Level 3 run-to-run) · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section4/mpc44.htm" rel="noopener" target="_blank">링크</a> / 2.4 Gauge R &amp; R studies · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section4/mpc4.htm" rel="noopener" target="_blank">링크</a></li>
-<li id="fn3">기준 조건 2회 이상·권장 3회 이상, 매 회차 재터치다운(도구 설명, <a href="run.html">실행 방법</a>) <span class="badge-int">내부 기준(문헌 근거 없음)</span> · 최소 die 10개 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
-<li id="fn4"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 재터치다운 이유, 쉬운 말 설명과 그림(모의실험)</li>
-</ol></section>
-
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="run.html">실행 방법</a></li><li><a href="c-sigma-split.html">σ<sub>die</sub>와 σ<sub>run</sub> 나누기</a></li><li><a href="c-delta.html">회차 예측 한계 계수</a></li><li><a href="c-delta.html">허용 범위 Δ</a></li></ul></nav>
+<h2>코드 위치</h2>
+<ul>
+<li>d 와 die 수 검사: <code class="codeptr">por_doe_compare.py · judge()</code></li>
+</ul>
+</div></details>
 <footer class="pager"><a href="step-0.html" class="prev">← ⓪ 표본 크기 정하기</a><a href="step-2.html" class="next">② 흔들림 나누기 →</a></footer>
 </article></main>
-<script src="assets/concepts.js"></script>
+<script src="assets/journeys.js"></script>
 <script src="assets/sop.js"></script>
 <script src="assets/scenes/steps-a.js"></script>
 <script src="assets/scenes/steps-b.js"></script>
