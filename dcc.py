@@ -218,7 +218,8 @@ def judge_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
     if given and c.groups is None:
         keys = ", ".join(flag[2:].replace("-", "_") for flag in given)
         raise ConfigError(f"[{c.name}] {keys} 에는 groups 가 필요합니다 (조합이나 [defaults] 에 groups = ITEM,그룹 파일)")
-    extra = ["--groups", str(c.groups), *(s for flag, p in given.items() for s in (flag, str(p)))] if given else []
+    groups = [] if c.groups is None else ["--groups", str(c.groups)]       # 그룹별 측정 안정도, scales·abs_tol 의 그룹
+    extra = [*groups, *(s for flag, p in given.items() for s in (flag, str(p)))]
     return [
         ("por_doe_compare", ["por_doe_compare.py", *c.raw_args(), *extra, "--out", str(c.out)]),
         ("review", ["review.py", "--input", str(c.items_csv), "--out", str(c.out), *c.raw_args()]),

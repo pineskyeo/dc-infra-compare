@@ -137,7 +137,7 @@ def test_plan_judge(cfg: Path):
            "--level", str(base / "item_info_B.csv"), "--blank", str(base / "blank1"), str(base / "blank2"),
            "--key", "WAFERID,ITEM"]
     assert _plan(cfg, "judge", "B2") == [
-        ("por_doe_compare", ["por_doe_compare.py", *raw, "--out", str(out)]),
+        ("por_doe_compare", ["por_doe_compare.py", *raw, "--groups", str(base / "groups.csv"), "--out", str(out)]),
         ("review", ["review.py", "--input", str(out / "items.csv"), "--out", str(out), *raw]),
         ("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(out / "items.csv"), "--summary",
                            "--out", str(out / "plots")]),

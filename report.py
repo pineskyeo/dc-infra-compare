@@ -441,7 +441,9 @@ def review(page: Page, folder: Path, which: str) -> None:
 
 
 STABILITY_FORMATS = {**{c: share for c in ("share_stable", "share_caution", "share_unstable", "share_no_band",
-                                           "share_over_3x")}, "flagged": lambda v: "예" if yes(v) else "아니오"}
+                                           "share_over_3x")}, "flagged": lambda v: "예" if yes(v) else "아니오",
+                     **{c: lambda v: (f"{num(v):,.0f}%" if num(v) >= 100 else f"{num(v):.3g}%") if math.isfinite(num(v))
+                        else "-" for c in ("meas_precision_pct_median", "meas_precision_pct_p90")}}
 KV_COLS = [Col("", "항목", lambda r: r["name"]), Col("", "값", lambda r: r["value"]), Col("", "뜻", lambda r: r["meaning"])]
 
 
@@ -470,6 +472,16 @@ def stability(page: Page, folder: Path) -> None:
         page.add("<h3>그룹별</h3>")
         t = read_csv(groups)
         page.table(csv_cols("stability/groups.csv", t.columns, STABILITY_FORMATS), t.to_dict("records"))
+    levels = d / "group_levels.csv"
+    page.add("<h3>그룹 × LEVEL</h3>")
+    if levels.is_file():
+        page.p("level 파일의 LEVEL(측정 자릿수)로 그룹을 다시 나눠 본 판정력과 측정 정밀도다. 같은 그룹에서 LEVEL 이 "
+               "낮을수록 측정 정밀도 % 가 커지고 불안정이 늘면, 측정 스케일(분해능·range)이 판정력을 깎는 것이다.")
+        page.figure(Figure(d / "group_levels.png", "그룹 × LEVEL 판정력과 측정 정밀도", names=False))
+        t = read_csv(levels)
+        page.table(csv_cols("stability/group_levels.csv", t.columns, STABILITY_FORMATS), t.to_dict("records"))
+    else:
+        page.p("판정할 때 level 파일(--level, 조합의 level 키)을 주면 그룹 × LEVEL 판정력과 측정 정밀도를 그린다.", "note")
     dies = d / "dies.csv"
     if dies.is_file():
         t = read_csv(dies)

@@ -1,0 +1,10 @@
+﻿column,쉬운이름,뜻,수식,볼것
+group,그룹,--groups 파일의 그룹. 파일에 없는 ITEM은 미지정 (맨 끝),,
+level,측정 LEVEL,level 파일의 LEVEL(측정 자릿수)을 단위 접두어로 다시 쓴 이름. level 파일에 없거나 LEVEL을 읽지 못한 ITEM은 LEVEL 없음 (그룹 안 맨 끝),'예: 10 nA → 10nA, 0.1 V → 100mV. 그룹 안에서 측정 종류(A·V 등) 다음 자릿수 오름차순',같은 그룹에서 LEVEL별로 판정력과 정밀도가 어떻게 달라지는지 본다
+n_items,ITEM 수,이 그룹·LEVEL에 든 ITEM 수,,적으면 비율이 크게 흔들린다
+share_stable,안정 비율,judgeability가 안정인 ITEM 비율 (0~1),ci_half_over_delta ≤ 0.5 인 ITEM 수 / n_items,높을수록 측정이 판정에 충분히 안정
+share_caution,주의 비율,judgeability가 주의인 ITEM 비율,0.5 < ci_half_over_delta ≤ 0.8 인 ITEM 수 / n_items,미결이 섞여 나올 수 있음
+share_unstable,불안정 비율,judgeability가 불안정인 ITEM 비율,ci_half_over_delta > 0.8 인 ITEM 수 / n_items,낮은 LEVEL에서만 높으면 측정 스케일(분해능·range)이 판정력을 깎는 것이다
+share_no_band,판정력 없음 비율,ci_half_over_delta가 빈 칸인 ITEM 비율 (판정 제외 등),judgeability 빈 칸 ITEM 수 / n_items,네 비율의 합은 1
+meas_precision_pct_median,측정 정밀도 중앙값 (%),ITEM meas_precision_pct의 중앙값 (빈 칸 ITEM 제외),median(meas_precision_pct),허용폭 r(기본 5%)과 견준다. LEVEL이 낮을수록 커지면 측정 스케일 영향
+meas_precision_pct_p90,측정 정밀도 상위 10% (%),ITEM meas_precision_pct의 90번째 백분위,P90(meas_precision_pct),값이 0 근처인 ITEM이 있으면 크게 나온다

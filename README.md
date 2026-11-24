@@ -34,8 +34,8 @@ doe = data/A/DOE
 
 - `[defaults]` 밖의 섹션 하나가 조합 하나이고, 섹션 이름이 조합 이름입니다. 조합에 적은 키가 `[defaults]`보다 우선합니다.
 - 키는 `por`(한 줄에 회차 하나, 2회 이상), `doe`, 그리고 선택으로 `level`, `blank`(한 줄에 하나), `blank_map`, `key`, `encoding`, `r`, `groups`, `scales`, `abs_tol`, `before`, `out`입니다. 뜻은 아래 옵션 표와 같습니다.
-- `scales`를 적으면 판정 단계(`por_doe_compare.py`)에 `--groups`와 `--scales`를 같이 넘깁니다. 그래서 `scales`에는 `groups`가 필요합니다. 적지 않으면 판정은 그룹을 보지 않습니다(`groups`는 그룹 그림·요약에만 씀).
-- `abs_tol`(group,abs_delta 파일, ITEM 단위)을 적으면 판정 단계에 `--groups`와 `--abs-tol`을 넘깁니다. 판정 길이 절대 허용폭인 ITEM의 참고 판정 `verdict_abs`에만 쓰고 판정은 바꾸지 않습니다. `groups`가 필요합니다.
+- `groups`를 적으면 판정 단계(`por_doe_compare.py`)에 `--groups`를 넘겨 그룹별 측정 안정도(`stability/groups.csv`, `group_levels.csv`)를 씁니다. 판정은 바뀌지 않습니다. `scales`를 적으면 `--scales`도 넘겨 그룹마다 log·linear를 정하므로 `scales`에는 `groups`가 필요합니다.
+- `abs_tol`(group,abs_delta 파일, ITEM 단위)을 적으면 판정 단계에 `--abs-tol`도 넘깁니다. 판정 길이 절대 허용폭인 ITEM의 참고 판정 `verdict_abs`에만 쓰고 판정은 바꾸지 않습니다. `groups`가 필요합니다.
 - 상대 경로는 현재 폴더가 아니라 설정 파일이 있는 폴더 기준입니다.
 - 모르는 이름·키, POR 1회, 없는 경로는 아무것도 실행하기 전에 알려 주고 끝납니다(rc=2).
 
@@ -106,7 +106,7 @@ items.csv  ITEM별 판정·상태
 |---|---|---|
 | `./` | `items.csv`(ITEM별 판정·상태), `outlier_dies.csv`(튀는 die) | `por_doe_compare.py` (항상) |
 | `./` | `summary_items.txt`(summarize 출력) | `summarize.py` (항상) |
-| `stability/` | `overall.csv`, `dies.csv`, `runs.csv`, `stability.png`(측정 안정도), `groups.csv`(`--groups`일 때) | `por_doe_compare.py` (항상) |
+| `stability/` | `overall.csv`, `dies.csv`, `runs.csv`, `stability.png`(측정 안정도), `groups.csv`(`--groups`일 때), `group_levels.csv`·`group_levels.png`(`--level`일 때) | `por_doe_compare.py` (항상) |
 | `review/` | `loq_review.csv`, `log_review.csv`, `loq_review.png`, `log_review.png`, `items/<ITEM>.png`(확인 필요 ITEM) | `review.py` (항상) |
 | `fail_evidence/` | `fail_evidence.csv`(Fail 근거), `forest.png`(전체 그림), `items_index.csv`, `items/<유형>_<ITEM>/`(`item_view.png`, `evidence.csv` 등) | `fail_evidence.py` (항상) |
 | `plots/` | `summary.png`(판정 지도), `summary_loq.png`(LoQ 아래 ITEM) | `plot_verdicts.py` (항상) |
@@ -447,7 +447,7 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 ### 판정 지도 (`summary.png`)
 
-- 점 하나가 ITEM 하나입니다. 가로는 DOE가 움직인 양 ÷ 허용폭(0 = 그대로, ±1 = 허용폭만큼), 세로는 측정이 흔들리는 정도(90% 신뢰구간 반폭) ÷ 허용폭입니다.
+- 점 하나가 ITEM 하나입니다. 가로는 **정규화 변화량**(DOE − POR 변화 ÷ 허용폭)입니다. 0이면 그대로, ±1이면 허용폭만큼 변했습니다. 세로는 **정규화 불확실성**(90% 신뢰구간 반폭 ÷ 허용폭)입니다. 그 변화량이 얼마나 흔들릴 수 있는지이고, 0에 가까울수록 확실합니다.
 - 가운데 아래 초록 삼각형(|x| + y ≤ 1)은 "같다 (동등)", 좌우 주황 칸(|x| − y > 1)은 "달라졌다 (차이)", 그 사이는 "경계에 걸침 (미결)", 위쪽은 "흔들려서 판단 불가 (미결)"입니다. 가로는 신뢰구간 가운데라서 점 색(최종 판정)과 칸이 늘 같습니다. die가 모자라 미결인 ITEM은 지도에 그리지 않습니다.
 - 점 색은 최종 판정(`verdict_final`)입니다. log·장비 정확도 옵션이 판정을 정한 ITEM은 검은 테두리이고, 그 옵션의 이동·신뢰구간·허용폭 자리에 놓입니다.
 - 맨 위 두 줄은 최종 판정별 개수와 판정 근거별 개수입니다. 오른쪽 위 막대는 차이·미결 ITEM이 + 방향(DOE가 높음)과 − 방향 중 어느 쪽으로 움직였는지 셉니다. 한쪽으로 몰리면 "이번 결과"에 공정 변화일 수 있다고 적습니다.
@@ -459,7 +459,7 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 - **LoQ 재확인** (`loq_review.csv`, `loq_review.png`): LoQ 아래이거나 LoQ 근처인 ITEM은 "둘 다 '<LoQ'면 동등"으로 끝나서, 바닥 아래에서 실제로 늘어난 것이 가려질 수 있습니다. LoQ 규칙과 상관없이 die 대부분이 같은 방향으로 움직였는지(배수가 1.3배 넘게), 일부 die만 크게 벗어났는지(꼬리, 5% 이상)를 보고, 둘 중 하나가 여러 ITEM 동시 검정 보정(BH q < 0.05) 뒤에도 유의하면 "확인 필요"로 표시합니다.
 - **log 재확인** (`log_review.csv`, `log_review.png`): log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보여 줍니다. 선형으로는 차이인데 log로 동등이 된 ITEM과, log 값에서 꼬리가 유의한 ITEM이 "확인 필요"입니다.
-- `items/<ITEM>.png`: 확인 필요 ITEM마다 회차별 die 값, 같은 die의 POR·DOE 짝, die별 차이를 한 장에 그립니다.
+- `items/<ITEM>.png`: 확인 필요 ITEM마다 네 칸을 한 장에 그립니다. 위는 회차별 die 값과 die별 차이, 아래는 같은 die의 POR·DOE 짝을 선형 축과 log 축으로 나란히 그립니다. 아래 두 칸은 두 축 범위가 같아 y = x가 45° 대각선입니다.
 - "확인 필요"는 다시 볼 ITEM 목록입니다. 판정에 넣을지는 결과를 보고 정합니다.
 
 ### 측정 안정도 (`stability/`)
@@ -470,6 +470,7 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 - `dies.csv`: die 위치마다 흔들림 점수(1이 보통). 여러 ITEM에서 같이 크게 흔들리는 die는 프로빙을 의심합니다.
 - `runs.csv`: POR 회차마다 다른 회차 대비 밀린 정도. 회차 하나가 통째로 밀렸는지 봅니다.
 - `stability.png`: 위 네 가지를 한 장에 그립니다.
+- `group_levels.csv`, `group_levels.png`: 그룹 × LEVEL(level 파일의 측정 자릿수, 예 `10nA`)마다 판정력 비율과 측정 정밀도 %(`meas_precision_pct`) 중앙값·P90입니다(`--level`을 줄 때만). 그림은 같은 줄에 왼쪽 판정력 막대, 오른쪽 ITEM별 측정 정밀도 점(log 축, 점 색 = 판정력, 검은 막대 = 중앙값, 점선 = 허용폭 r)을 그립니다. 같은 그룹에서 낮은 LEVEL만 정밀도 %가 크고 불안정하면 측정 스케일(분해능·range)이 판정력을 깎는 것입니다. level 파일에 없는 ITEM은 `LEVEL 없음`, 그룹 파일에 없는 ITEM은 `미지정`으로 묶습니다.
 
 ### ITEM 한 장 보기 (`item_view.png`, `evidence.csv`)
 

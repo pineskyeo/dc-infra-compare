@@ -505,12 +505,53 @@ def _limit_lines(ax, row: Mapping, axis: str = "y") -> None:
             (ax.axhline if axis == "y" else ax.axvline)(v, color="#ff7f0e", lw=1, ls=style, label=key)
 
 
+def _por_vs_doe(ax, Y: np.ndarray, z: np.ndarray, tail: np.ndarray, row: Mapping, unit: str, log: bool) -> None:
+    """같은 die 의 POR(가로) 대 DOE(세로). 두 축 범위를 같게 하고 정사각형으로 그려 y = x 가 45° 대각선이 되게 한다.
+    log 면 _value_scale (양수만 log, 0·음수 섞이면 symlog), 아니면 선형 축."""
+    J = Y.shape[1]
+    for j in range(J - 1, -1, -1):
+        ax.scatter(Y[:, j], z, s=12, color=POR1_COLOR if j == 0 else POR_GREY, zorder=3 if j == 0 else 2,
+                   label="POR1" if j == 0 else ("POR2.." if j == 1 else None))
+    if tail.any():
+        ax.scatter(Y[tail, 0], z[tail], s=46, facecolor="none", edgecolor=FLAG_COLOR, lw=1.4, zorder=4,
+                   label="크게 벗어난 die")
+    allv = np.r_[Y.ravel(), z]
+    allv = allv[np.isfinite(allv)]
+    lo, hi = (allv.min(), allv.max()) if allv.size else (0.0, 1.0)
+    if log:
+        for a in ("x", "y"):
+            _value_scale(ax, allv, _f(row.get("LoD")), unit, a)
+        if allv.size and (allv > 0).all():
+            lims = (lo / 1.3, hi * 1.3)
+        else:
+            lims = (lo * 1.3 if lo < 0 else -abs(hi) * 0.05, hi * 1.3 if hi > 0 else abs(lo) * 0.05)
+        grid = np.geomspace(*lims, 200) if lims[0] > 0 else np.linspace(*lims, 400)
+    else:
+        pad = 0.05 * (hi - lo) if hi > lo else (abs(hi) * 0.1 or 1.0)
+        lims = (lo - pad, hi + pad)
+        grid = np.linspace(*lims, 2)
+        for target in (ax.xaxis, ax.yaxis):
+            target.set_major_formatter(FuncFormatter(lambda t, _: fmt(t, unit)))
+    ax.plot(grid, grid, color="#555555", lw=0.9, ls="-", label="y = x (같음)")
+    ax.set_xlim(lims)
+    ax.set_ylim(lims)
+    ax.set_box_aspect(1)
+    _limit_lines(ax, row, "x")
+    _limit_lines(ax, row, "y")
+    ax.set_xlabel("POR (같은 die)")
+    ax.set_ylabel("DOE")
+    ax.set_title("같은 die: POR 대 DOE (" + ("log 축" if log else "선형 축") + ")")
+    handles = [h for h in ax.get_legend_handles_labels()[0] if h.get_label() not in ("LoD", "LoQ")]
+    ax.legend(handles=handles, fontsize=8, loc="best")
+
+
 def plot_item(item: str, Y: np.ndarray, z: np.ndarray, row: Mapping, review: Review, rec: Mapping,
               path: Path) -> Path:
     J, unit = Y.shape[1], str(row.get("UNIT") or "")
     tail = tail_dies(review.space(Y), review.space(z)) if J >= 2 and (review.name == "loq" or _log_ok(Y, z)) \
         else np.zeros(len(z), bool)
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5.4))
+    fig, grid = plt.subplots(2, 2, figsize=(13, 11))
+    axes = [grid[0, 0], grid[0, 1], grid[1, 0], grid[1, 1]]
     rng = np.random.default_rng(0)
     ax = axes[0]
     for j in range(J + 1):
@@ -523,30 +564,13 @@ def plot_item(item: str, Y: np.ndarray, z: np.ndarray, row: Mapping, review: Rev
     _limit_lines(ax, row)
     ax.set_xticks(range(J + 1))
     ax.set_xticklabels([f"POR{j + 1}" for j in range(J)] + ["DOE"])
-    ax.set_title("die 값 (LoD 점선, LoQ 파선)")
+    ax.set_title("die 값 (LoD 점선, LoQ 파선, log 축)")
     ax.legend(fontsize=8, loc="best")
 
-    ax = axes[1]
-    for j in range(J - 1, -1, -1):
-        ax.scatter(Y[:, j], z, s=12, color=POR1_COLOR if j == 0 else POR_GREY, zorder=3 if j == 0 else 2,
-                   label="POR1" if j == 0 else ("POR2.." if j == 1 else None))
-    if tail.any():
-        ax.scatter(Y[tail, 0], z[tail], s=46, facecolor="none", edgecolor=FLAG_COLOR, lw=1.4, zorder=4,
-                   label="크게 벗어난 die")
-    allv = np.r_[Y.ravel(), z]
-    lo, hi = np.nanmin(allv), np.nanmax(allv)
-    ax.plot([lo, hi], [lo, hi], color="#555555", lw=0.9, ls="-", label="y = x (같음)")
-    for a in ("x", "y"):
-        _value_scale(ax, allv, _f(row.get("LoD")), unit, a)
-    _limit_lines(ax, row, "x")
-    _limit_lines(ax, row, "y")
-    ax.set_xlabel("POR (같은 die)")
-    ax.set_ylabel("DOE")
-    ax.set_title("같은 die: POR 대 DOE")
-    handles = [h for h in ax.get_legend_handles_labels()[0] if h.get_label() not in ("LoD", "LoQ")]
-    ax.legend(handles=handles, fontsize=8, loc="best")
+    _por_vs_doe(axes[2], Y, z, tail, row, unit, log=False)
+    _por_vs_doe(axes[3], Y, z, tail, row, unit, log=True)
 
-    ax = axes[2]
+    ax = axes[1]
     if J >= 2 and (review.name == "loq" or _log_ok(Y, z)):
         d, _, limit = _tail_parts(review.space(Y), review.space(z), OUTLIER_SIGMAS)
         order = np.argsort(d)
@@ -571,9 +595,10 @@ def plot_item(item: str, Y: np.ndarray, z: np.ndarray, row: Mapping, review: Rev
     fig.suptitle(f"{item} · 판정 {final} (그대로) · 확인 필요: {'LoQ 재확인' if review.name == 'loq' else 'log 재확인'}")
     fig.tight_layout()
     add_figure_note(
-        fig, "왼쪽은 회차별 die 값(파랑 POR1, 회색 POR2.., 검정 DOE)이다. 가운데는 같은 die 의 POR 값(가로)과 DOE 값(세로)이고, "
-             "대각선 위면 DOE 가 크다. 오른쪽은 die별 차이를 작은 순으로 늘어놓은 것으로, 회색 띠는 POR 회차끼리 다시 잴 때의 "
-             "흔들림 5배다. 띠 밖 빨간 점이 크게 벗어난 die 이고, 세 그림 모두 빨간 테두리로 같은 die 를 표시했다.",
+        fig, "왼쪽 위는 회차별 die 값(파랑 POR1, 회색 POR2.., 검정 DOE)이다. 오른쪽 위는 die별 차이를 작은 순으로 늘어놓은 "
+             "것으로, 회색 띠는 POR 회차끼리 다시 잴 때의 흔들림 5배다. 아래 두 칸은 같은 die 의 POR 값(가로)과 DOE 값(세로)을 "
+             "선형 축(왼쪽)과 log 축(오른쪽)으로 그린 것이고, 두 축 범위가 같아 대각선 y = x 위면 DOE 가 크다. 선형은 실제 차이의 "
+             "크기를, log 는 작은 값 die 까지 몇 배 변했는지를 보기 좋다. 빨간 테두리는 크게 벗어난 같은 die 다.",
         rec["why"], dpi=DPI)
     return _save(fig, path)
 

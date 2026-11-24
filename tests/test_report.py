@@ -193,7 +193,7 @@ def test_anon_has_no_item_name_anywhere(anon):
 def test_anon_figures_are_only_name_free_ones(anon):
     html = (anon / "report_anon.html").read_text(encoding="utf-8")
     blobs = [base64.b64decode(b) for b in DATA_URI.findall(html)]
-    assert blobs == [(anon / "stability" / "stability.png").read_bytes()]
+    assert blobs == [(anon / "stability" / n).read_bytes() for n in ("group_levels.png", "stability.png")]
 
 
 def test_log_review_rows_render(built, tmp_path):
@@ -239,3 +239,14 @@ def test_log_run_section_lists_only_items_whose_final_verdict_changes(tmp_path):
     html = visible_text(page.write())
     assert "동등 → 미결 1개" in html and "LEAK_WIDE" in html and "LEAK_SAME" not in html
     assert "+5.0%" in html and "+12.2%" in html       # delta_log_run 0.0212 → 1.05배, delta_log 0.05 → 1.122배
+
+
+def test_stability_section_shows_group_by_level(built):
+    html = (built["full"] / "report.html").read_text(encoding="utf-8")
+    section = html.split('id="stability"')[1]
+    assert "그룹 × LEVEL" in section
+    table = pd.read_csv(built["full"] / "stability" / "group_levels.csv")
+    assert set(GROUPS.values()) <= set(table["group"])
+    assert table["n_items"].sum() == len(pd.read_csv(built["full"] / "items.csv"))
+    blob = (built["full"] / "stability" / "group_levels.png").read_bytes()
+    assert base64.b64encode(blob).decode() in section

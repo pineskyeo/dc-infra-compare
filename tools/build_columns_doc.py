@@ -51,6 +51,7 @@ PURPOSE = {
     "item_evidence": "ITEM 하나의 판정 근거를 원데이터에서 다시 적는다. 신뢰구간을 정한 die와 그 값, 허용폭의 구성, 올라간·내려간 die 수, 튀는 die. ITEM 폴더마다 한 행이다.",
     "stability/overall.csv": "측정 안정도 전체 요약 한 행. 판정력 구간별 ITEM 비율, 정밀도와 판정력의 중앙값·상위 10%, 상태별·잡음 모양별 ITEM 수.",
     "stability/groups.csv": "측정 안정도를 그룹마다 한 행으로 요약한다. --groups를 줄 때만 생긴다.",
+    "stability/group_levels.csv": "그룹 × LEVEL(측정 자릿수)마다 판정력 비율과 측정 정밀도. 같은 그룹에서 낮은 LEVEL만 불안정한지 본다. --level을 줄 때만 생긴다.",
     "stability/dies.csv": "die 위치마다 POR 반복 흔들림 점수. 여러 ITEM에서 함께 크게 흔들리는 die를 찾는다.",
     "stability/runs.csv": "POR 회차마다 다른 회차 대비 밀린 정도. 회차 하나가 통째로 밀렸는지 본다.",
     "loq_review.csv": "LoQ 아래·LoQ 근처 ITEM을 LoQ 규칙과 무관한 근거(방향 일관성, 배수, 검출률, 꼬리)로 다시 보고 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.",
@@ -70,6 +71,7 @@ INPUTS = {
     "loq_review": ("items",), "log_review": ("items",), "measure_stability_overall": ("items",), "measure_stability_groups": ("items",),
     "measure_stability_dies": ("items",), "measure_stability_runs": ("items",), "item_evidence": ("items",),
     "classes_counts": ("items",), "classes_items_by_route": ("items",),
+    "measure_stability_group_levels": ("items",),
 }
 
 HOW_TO_READ = (

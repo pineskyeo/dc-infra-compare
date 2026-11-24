@@ -60,6 +60,8 @@ OUTPUTS: tuple[Output, ...] = (
            "stability.py (por_doe_compare)"),
     Output("stability/groups.csv", ("stability/groups.csv",), "measure_stability_groups",
            "stability.py (por_doe_compare --groups)"),
+    Output("stability/group_levels.csv", ("stability/group_levels.csv",), "measure_stability_group_levels",
+           "stability.py (por_doe_compare --level)"),
     Output("stability/dies.csv", ("stability/dies.csv",), "measure_stability_dies", "stability.py (por_doe_compare)"),
     Output("stability/runs.csv", ("stability/runs.csv",), "measure_stability_runs", "stability.py (por_doe_compare)"),
     Output("item_map.csv", ("item_map.csv",), "item_map", "summarize.py (run_all)"),
