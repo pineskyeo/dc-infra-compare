@@ -1,4 +1,4 @@
-"""열 사전 쪽(docs/sop/columns.html): 커밋된 쪽이 CSV 에서 새로 만든 것과 같고, 설명 칸이 비지 않고,
+"""열 사전 쪽(docs/sop/src/columns.html 조각): 커밋된 조각이 CSV 에서 새로 만든 것과 같고, 설명 칸이 비지 않고,
 수식에 나오는 열 이름이 실제 열이다."""
 import html
 import re
@@ -25,8 +25,8 @@ def unknown_names(doc: str, docs: dict[str, tuple[ColumnDoc, ...]]) -> list[tupl
 
 
 def test_committed_page_is_fresh():
-    assert (SOP / "columns.html").read_text(encoding="utf-8") == build_columns_doc.render(), \
-        "python tools/build_columns_doc.py 로 다시 만드세요"
+    assert build_columns_doc.PAGE.read_text(encoding="utf-8") == build_columns_doc.render(), \
+        "python tools/build_columns_doc.py 와 python tools/build_sop.py 로 다시 만드세요"
 
 
 def test_page_lists_every_column_of_every_output():

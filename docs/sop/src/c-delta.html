@@ -1,0 +1,108 @@
+<p class="loc"><a href="concepts.html">개념 익히기</a> › 허용 범위 Δ (개념 9 / 19) · 쓰는 단계 <a href="step-5.html">⑤</a> · <a href="step-6.html">⑥</a></p>
+<h1>허용 범위 Δ</h1>
+
+<section id="q"><h2>이 쪽이 답하는 질문</h2>
+<p class="q" id="def">어디까지 달라도 '같다'고 보나 · Δ = |<a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> 중앙값|의 5% + 회차 예측 한계에서 3.3717과 σ<sub>run</sub> 0.50389는 어디서 오나</p></section>
+
+<section id="plain"><h2>쉬운 말로</h2>
+<ul id="why">
+<li>Δ: 편향이 이 안이면 같다고 보는 폭. 실무상 괜찮은 차이와 기준 조건을 다시 재도 생기는 차이를 함께 허용함</li>
+<li>실용 한계 5%: 이만큼은 달라도 실무상 같다고 봄<sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
+<li>회차 예측 한계: 기준 조건을 다시 재기만 해도 생기는 차이. 이보다 작은 차이를 '차이'로 부르지 않게 함<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li>
+<li>회차 예측 한계 = 계수 × σ<sub>run</sub>. 계수는 반복 횟수 J로 정해지고(J 3이면 3.3717), σ<sub>run</sub>은 ② 흔들림 구하기에서 구한 회차 이동(예시 0.50389) <span class="from">둘의 유래는 아래 수식 절</span></li>
+<li>장비 정확도 한계가 있는 A·V <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>이 <a href="glossary.html#near-loq">바닥 근처</a>이고 ⑥ 3단계 판정 길이 선형 TOST면, Δ(실용 한계 + 회차 예측 한계)와 장비 정확도 한계 중 큰 값으로 다시 판정. 1·2단계의 Δ는 그대로 · 예전 accuracy 옵션은 없어지고 3단계가 대신함 · 다른 허용폭: <a href="c-abs-tol.html">절대 허용폭</a> · <a href="c-log-scale.html">log 허용폭</a><sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li>
+<li data-e="1">Δ의 두 조각(실용 한계 5% × |기준 조건 중앙값|, 회차 예측 한계 계수 × σ<sub>run</sub>)은 Δ를 만드는 재료일 뿐. 허용 범위는 0을 가운데 둔 −Δ ~ +Δ <span class="from">예시: 0.05 × 100 = 5.0, 3.3717 × 0.50389 = 1.69896 → Δ = 6.699 → 허용 범위 −6.699 ~ +6.699</span></li>
+
+</ul>
+<p class="s">더 자세한 쉬운 말은 아래 <a href="#plain-more">쉬운 말 더 보기</a></p>
+
+<details><summary>보충</summary><ul>
+<li>J를 늘리면 계수가 줄어듦: J 2 7.7327, J 4 2.6311, J 5 2.3353. J 고르는 기준은 <a href="step-0.html">⓪ 표본 크기 정하기</a></li>
+</ul></details></section>
+
+<section id="formula"><h2>수식</h2>
+<div class="formula"><div>Δ = 5%·|기준 조건 중앙값| + t<sub>0.95, J−1</sub>·√(1+1/J)·σ<sub>run</sub></div><div class="c">앞 항 = 실용 한계, 뒤 항 = 회차 예측 한계(계수 × σ<sub>run</sub>)</div></div>
+<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
+<tr><td>Δ</td><td>허용 범위. 차이가 이 안이면 같다고 봄</td><td>6.699</td></tr>
+<tr><td>J</td><td>기준 조건 반복 회차 수</td><td>3</td></tr>
+<tr><td>t<sub>0.95, J−1</sub></td><td>t 분포의 한쪽 95% 값. J가 작을수록 커짐</td><td>2.919986</td></tr>
+<tr><td>√(1+1/J)</td><td>새 회차 하나와 J회 평균의 차이를 넓히는 배율</td><td>1.154701</td></tr>
+<tr><td>σ<sub>run</sub></td><td>회차 이동. 회차마다 전체가 함께 움직이는 크기</td><td>0.504</td></tr>
+<tr><td>σ<sub>die</sub></td><td>반복성. 같은 die를 다시 잴 때 흔들리는 크기</td><td>0.990</td></tr>
+<tr><td>n</td><td>die 수</td><td>60</td></tr>
+</tbody></table></div>
+<h3>3.3717은 어디서 오나</h3>
+<ul>
+<li>t<sub>0.95, 2</sub> = 2.919986: σ<sub>run</sub>을 <a class="g" href="glossary.html#run"><abbr title="회차 · 같은 die들을 한 차례 모두 재는 것">회차(run)</abbr></a> 3번(J 3)만으로 추정하니 <a class="g" href="glossary.html#df"><abbr title="자유도 · t 값을 고를 때 쓰는 수">자유도(df, degrees of freedom)</abbr></a> J−1 = 2인 t 분포의 한쪽 95% 값을 씀. 회차가 적을수록 t가 커져 한계가 넓어짐</li>
+<li>√(1+1/3) = 1.154701: 앞으로 잴 회차 하나의 흔들림(1)과 기준 조건 3회 평균의 흔들림(1/3)을 합친 것 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
+<li>3.3717 = 2.919986 × 1.154701<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li>
+</ul>
+<h3>σ<sub>run</sub> 0.50389는 어디서 오나</h3>
+<ul>
+<li><a href="step-2.html">② 흔들림 구하기</a>에서 구함. 방법 설명은 <a href="c-sigma-split.html">σ<sub>die</sub>와 σ<sub>run</sub> 나누기</a></li>
+<li>회차마다 각 <a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a> 값에서 die 평균을 빼고 중앙값을 냄: r<sub>j</sub> = [−0.45117, 0.04633, 0.60567]</li>
+<li>세 값의 분산 Var(r<sub>j</sub>) = 0.279543. 여기에는 die 잡음 몫 (π/2)·σ<sub>die</sub>²/n = 1.5708 × 0.98965² / 60 = 0.025641도 섞여 있음<sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup></li>
+<li>σ<sub>run</sub> = √(0.279543 − 0.025641) = 0.50389 ≈ 0.504</li>
+<li>예시 ITEM을 만들 때 넣은 회차 이동은 −0.5 / 0 / +0.5. 도구는 회차 3번에서 0.504로 추정</li>
+</ul>
+</section>
+
+<section id="figure"><h2>그림</h2>
+<figure class="cfig" id="fdelta" data-anim="steps" data-start="1">
+<svg viewBox="0 0 640 196" role="img" aria-labelledby="fdelta-t"><title id="fdelta-t">회차 이동 σ_run에 따라 바뀌는 Δ와 판정 비율 (모의실험)</title>
+<text x="0" y="18">σ_run</text><text id="fdelta-s" class="val" x="96" y="18">0.50389</text>
+<text x="0" y="52">Δ 식</text><svg x="96" y="40" width="416" height="16" viewBox="0 0 16 16" preserveAspectRatio="none"><rect class="bar" width="5" height="16"/><rect id="fdelta-pl" class="barhi" x="5" width="1.6990" height="16"/><line id="fdelta-ml" class="okl" x1="6.409" y1="0" x2="6.409" y2="16" vector-effect="non-scaling-stroke"/></svg><text id="fdelta-dt" class="val" x="520" y="52">6.6990</text>
+<text x="96" y="74">막대 = 실용 한계 5.0 + 회차 예측 한계 · 세로선 = Δ 중앙값</text>
+<text x="0" y="96">Δ 중앙값</text><text id="fdelta-mt" class="val" x="96" y="96">6.409</text>
+<text x="0" y="128">동등</text><svg x="96" y="116" width="416" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="fdelta-ok" class="pb-ok" width="70.0" height="16"/></svg><text id="fdelta-okt" class="val" x="520" y="128">70.0%</text>
+<text x="0" y="160">미결</text><svg x="96" y="148" width="416" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="fdelta-hold" class="pb-hold" width="17.4" height="16"/></svg><text id="fdelta-holdt" class="val" x="520" y="160">17.4%</text>
+<text x="0" y="192">차이</text><svg x="96" y="180" width="416" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="fdelta-bad" class="pb-bad" width="12.6" height="16"/></svg><text id="fdelta-badt" class="val" x="520" y="192">12.6%</text>
+</svg>
+<div class="ctl" hidden><label for="fdelta-ctl">σ<sub>run</sub></label><input id="fdelta-ctl" type="range" min="0" max="5" step="1" value="1"><output for="fdelta-ctl">σ_run 0.50389</output><button type="button" class="play" aria-pressed="false">재생</button></div>
+<div class="tw"><table class="states"><thead><tr><th>σ<sub>run</sub></th><th>회차 예측 한계(식)</th><th>Δ(식)</th><th>Δ 중앙값</th><th>동등</th><th>미결</th><th>차이</th></tr></thead><tbody>
+<tr><td>0.25</td><td>0.8429</td><td>5.8429</td><td>5.654</td><td>40.9%</td><td>33.0%</td><td>26.1%</td></tr>
+<tr class="now"><td>0.50389</td><td>1.6990</td><td>6.6990</td><td>6.409</td><td>70.0%</td><td>17.4%</td><td>12.6%</td></tr>
+<tr><td>1.0</td><td>3.3717</td><td>8.3717</td><td>7.821</td><td>86.0%</td><td>6.2%</td><td>7.8%</td></tr>
+<tr><td>1.5</td><td>5.0576</td><td>10.0576</td><td>9.264</td><td>89.4%</td><td>4.3%</td><td>6.3%</td></tr>
+<tr><td>2.0</td><td>6.7434</td><td>11.7434</td><td>10.67</td><td>91.5%</td><td>2.8%</td><td>5.8%</td></tr>
+<tr><td>3.0</td><td>10.1151</td><td>15.1151</td><td>13.494</td><td>93.2%</td><td>1.7%</td><td>5.1%</td></tr>
+</tbody></table></div>
+<script type="application/json" class="states">[
+{"label":"σ_run 0.25","set":{"fdelta-s":{"text":"0.25"},"fdelta-pl":{"width":"0.8429"},"fdelta-dt":{"text":"5.8429"},"fdelta-ml":{"x1":"5.654","x2":"5.654"},"fdelta-mt":{"text":"5.654"},"fdelta-ok":{"width":"40.9"},"fdelta-okt":{"text":"40.9%"},"fdelta-hold":{"width":"33.0"},"fdelta-holdt":{"text":"33.0%"},"fdelta-bad":{"width":"26.1"},"fdelta-badt":{"text":"26.1%"}}},
+{"label":"σ_run 0.50389","set":{"fdelta-s":{"text":"0.50389"},"fdelta-pl":{"width":"1.6990"},"fdelta-dt":{"text":"6.6990"},"fdelta-ml":{"x1":"6.409","x2":"6.409"},"fdelta-mt":{"text":"6.409"},"fdelta-ok":{"width":"70.0"},"fdelta-okt":{"text":"70.0%"},"fdelta-hold":{"width":"17.4"},"fdelta-holdt":{"text":"17.4%"},"fdelta-bad":{"width":"12.6"},"fdelta-badt":{"text":"12.6%"}}},
+{"label":"σ_run 1.0","set":{"fdelta-s":{"text":"1.0"},"fdelta-pl":{"width":"3.3717"},"fdelta-dt":{"text":"8.3717"},"fdelta-ml":{"x1":"7.821","x2":"7.821"},"fdelta-mt":{"text":"7.821"},"fdelta-ok":{"width":"86.0"},"fdelta-okt":{"text":"86.0%"},"fdelta-hold":{"width":"6.2"},"fdelta-holdt":{"text":"6.2%"},"fdelta-bad":{"width":"7.8"},"fdelta-badt":{"text":"7.8%"}}},
+{"label":"σ_run 1.5","set":{"fdelta-s":{"text":"1.5"},"fdelta-pl":{"width":"5.0576"},"fdelta-dt":{"text":"10.0576"},"fdelta-ml":{"x1":"9.264","x2":"9.264"},"fdelta-mt":{"text":"9.264"},"fdelta-ok":{"width":"89.4"},"fdelta-okt":{"text":"89.4%"},"fdelta-hold":{"width":"4.3"},"fdelta-holdt":{"text":"4.3%"},"fdelta-bad":{"width":"6.3"},"fdelta-badt":{"text":"6.3%"}}},
+{"label":"σ_run 2.0","set":{"fdelta-s":{"text":"2.0"},"fdelta-pl":{"width":"6.7434"},"fdelta-dt":{"text":"11.7434"},"fdelta-ml":{"x1":"10.67","x2":"10.67"},"fdelta-mt":{"text":"10.67"},"fdelta-ok":{"width":"91.5"},"fdelta-okt":{"text":"91.5%"},"fdelta-hold":{"width":"2.8"},"fdelta-holdt":{"text":"2.8%"},"fdelta-bad":{"width":"5.8"},"fdelta-badt":{"text":"5.8%"}}},
+{"label":"σ_run 3.0","set":{"fdelta-s":{"text":"3.0"},"fdelta-pl":{"width":"10.1151"},"fdelta-dt":{"text":"15.1151"},"fdelta-ml":{"x1":"13.494","x2":"13.494"},"fdelta-mt":{"text":"13.494"},"fdelta-ok":{"width":"93.2"},"fdelta-okt":{"text":"93.2%"},"fdelta-hold":{"width":"1.7"},"fdelta-holdt":{"text":"1.7%"},"fdelta-bad":{"width":"5.1"},"fdelta-badt":{"text":"5.1%"}}}
+]</script>
+<figcaption>Δ(식) = 5.0 + 3.3717 × σ<sub>run</sub>(J 3), 둘째 줄은 예시 ITEM의 σ<sub>run</sub> 0.50389로 계산 · 동등·미결·차이와 Δ 중앙값: 모의실험(합성 예시 모형) · <a class="g" href="glossary.html#cand"><abbr title="비교 조건 · 바꾸려는 조건">비교 조건(Candidate)</abbr></a> 이동 b 5.5, J 3, die 60개, σ<sub>die</sub> 0.98965, 값마다 판정 2000회 · 확률 표는 예시 ITEM의 도구 추정값(σ<sub>die</sub> 0.98965, σ<sub>run</sub> 0.50389)을 참값으로 놓고 2000번 다시 만들어 도구 판정을 돌린 결과. Δ 중앙값 6.409가 6.699보다 작은 것은 회차 3번으로 추정한 σ<sub>run</sub>이 매번 달라서 <span class="badge-int">내부 기준(문헌 근거 없음)</span></figcaption>
+</figure>
+<p class="look"><b>여기서 볼 것</b> · σ<sub>run</sub>이 커지면 Δ가 넓어져(0.25에서 5.8429, 3.0에서 15.1151), 실용 한계 5.0보다 큰 실제 이동 b 5.5도 '동등'으로 나오는 비율이 40.9%에서 93.2%로 늘어남. 회차 이동이 크면 Δ가 너그러워짐 → ⓪에서 회차 예측 한계를 5% 안에 묶는 이유</p>
+</section>
+
+<section id="plain-more"><h2>쉬운 말 더 보기</h2>
+<ul>
+<li>예시: Δ = 5.0 + 1.69896 = 6.699. 0을 가운데 두고 ±6.699 안이면 같다고 봄 <span class="from">예시 계산 1~5줄</span></li>
+</ul></section>
+
+<section id="example"><h2>예시 계산</h2>
+<p class="s">예시 데이터: <a href="step-2.html#ex-data">합성 예시 die 6개 표</a></p>
+<ol class="calc">
+<li>실용 한계 = 5% × |100| = 5.0 <span class="from">100 = die 60개 전체 기준 평균의 중앙값</span></li>
+<li>3.3717 = t(0.95, 2) 2.919986 × √(1+1/3) 1.154701 <span class="from">J = 3이라 t의 자유도 J−1 = 2</span></li>
+<li>σ<sub>run</sub> = √(0.279543 − 0.025641) = 0.50389 <span class="from">② 흔들림 구하기: 회차 중앙값의 분산 0.279543에서 die 잡음 몫 0.025641을 뺌</span></li>
+<li>회차 예측 한계 = 3.3717 × σ<sub>run</sub> 0.50389 = 1.69896</li>
+<li>Δ = 5.0 + 1.69896 = 6.69896 ≈ 6.699</li>
+<li>쓰는 곳: ⑥ <a class="g" href="glossary.html#tost"><abbr title="두 번의 한쪽 검정 · '차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등">두 번의 한쪽 검정(TOST, Two One-Sided Tests)</abbr></a>에서 90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a> [0.610, 1.102] ⊂ (−6.699, +6.699)<span class="cl">→ 동등 <span class="from">[0.610, 1.102] = ④ 차이(편향)와 90% 신뢰구간 구하기</span></span></li>
+</ol></section>
+
+<section id="sources"><h2>출처</h2>
+<ol class="fn">
+<li id="fn1">회차 예측 한계 t·√(1+1/J)·σ<sub>run</sub>: NIST Dataplot Reference Manual · PREDICTION LIMITS (mean) · <a href="https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/predlimi.htm" rel="noopener" target="_blank">링크</a> / NIST/SEMATECH e-Handbook · 4.5.1.2 How can I predict the value and estimate the uncertainty of a single response? · <a href="https://www.itl.nist.gov/div898/handbook/pmd/section5/pmd512.htm" rel="noopener" target="_blank">링크</a> / Meeker, Hahn, Escobar, Statistical Intervals 2판 · 4.7 · <a href="https://www.oreilly.com/library/view/statistical-intervals-2nd/9780471687177/c04.xhtml" rel="noopener" target="_blank">링크</a></li>
+<li id="fn2">5%라는 값 <span class="badge-int">내부 기준(문헌 근거 없음)</span> · 실용 한계를 미리 정하는 절차: ASTM E2935-21 · 4.1.1 · <a href="https://store.astm.org/e2935-21.html" rel="noopener" target="_blank">링크</a></li>
+<li id="fn3">장비 정확도 한계: JCGM 100:2008 (GUM) · 4.3.7, 5.1.2 · <a href="https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf" rel="noopener" target="_blank">링크</a> / NIST/SEMATECH e-Handbook · 2.5.4.1 Standard deviations from assumed distributions · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section5/mpc541.htm" rel="noopener" target="_blank">링크</a></li>
+<li id="fn4">회차 이동 나누기: NIST/SEMATECH e-Handbook · 2.4.4 Analysis of variability · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section4/mpc44.htm" rel="noopener" target="_blank">링크</a> / 중앙값의 분산 (π/2)·σ²/n: Wikipedia "Median" · Sampling distribution 절 · <a href="https://en.wikipedia.org/wiki/Median" rel="noopener" target="_blank">링크</a></li>
+<li id="fn5"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 쉬운 말 설명과 그림(모의실험)</li>
+</ol></section>
+
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-tfactor.html">회차 예측 한계 계수</a></li><li><a href="c-sigma-split.html">σ<sub>die</sub>와 σ<sub>run</sub> 나누기</a></li><li><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a></li><li><a href="c-power.html">미결 확률과 최소 여유</a></li><li><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a></li></ul></nav>

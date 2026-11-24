@@ -1,51 +1,18 @@
-<!doctype html><html lang="ko" data-d41><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>개념 익히기 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
-<details class="fp-fold"><summary>흐름도 ⓪~⑦</summary>
-<nav aria-label="흐름도">
-<div class="fp">
-<ol class="fp-top">
-<li><a href="step-0.html" data-step="0">⓪ 표본 크기 정하기</a></li>
-<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
-<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
-<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
-</ol>
-<div class="fp-fork">
-<div class="fp-col"><span class="fp-lab">정량</span><ol>
-<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
-<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
-</ol></div>
-<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)"><span>④·⑤ 그대로 씀*</span></span></div>
-</div>
-<ol class="fp-join"><li><a href="step-6.html" data-step="6">⑥ 판정</a></li></ol>
-<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
-<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)</p>
-<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
-<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
-</div>
-</nav>
-</details><nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 구하기</a><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a><a href="step-6.html">⑥ 판정</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="page">개념 익히기</a><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></nav>
-<nav class="fp-wide" aria-label="흐름도">
-<div class="fp">
-<p class="fp-h">흐름도 ⓪~⑦</p>
-<ol class="fp-top">
-<li><a href="step-0.html" data-step="0">⓪ 표본 크기 정하기</a></li>
-<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
-<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
-<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
-</ol>
-<div class="fp-fork">
-<div class="fp-col"><span class="fp-lab">정량</span><ol>
-<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
-<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
-</ol></div>
-<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)"><span>④·⑤ 그대로 씀*</span></span></div>
-</div>
-<ol class="fp-join"><li><a href="step-6.html" data-step="6">⑥ 판정</a></li></ol>
-<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
-<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)</p>
-<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
-<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
-</div>
-</nav><main><div class="wrap">
+<!doctype html>
+<html lang="ko" data-layer="easy">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>개념 익히기 · DC Test 동일성 검증</title>
+<link rel="stylesheet" href="assets/sop.css"><link rel="stylesheet" href="assets/legacy.css">
+<script>try{if(localStorage.getItem('sop-layer')==='expert')document.documentElement.setAttribute('data-layer','expert');}catch(e){}</script>
+</head>
+<body data-page="concepts">
+<script>(function(){function f(m){var b=document.body;if(!b)return;b.setAttribute('data-sop-error','');var n=document.getElementById('sop-error');if(n){n.hidden=false;n.textContent='쪽 스크립트 오류: '+m;}}window.SOP_FAIL=f;window.addEventListener('error',function(e){var t=e.target;f(e.message||('불러오지 못함 '+((t&&(t.src||t.href))||'')));},true);window.addEventListener('unhandledrejection',function(e){f(String(e.reason));});})();</script>
+<header class="top"><a class="brand" href="index.html">DC Test 동일성 검증</a>
+<div class="layer-toggle" role="group" aria-label="보기"><button type="button" data-set-layer="easy">쉽게</button><button type="button" data-set-layer="expert">전문까지</button></div></header>
+<div id="sop-error" class="sop-error" role="alert" hidden></div>
+<nav class="side" aria-label="문서"><a href="index.html">개요</a><div class="nav-group"><p class="nav-h">따라하기</p><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 나누기</a><a href="step-3.html">③ LoQ와 ITEM 유형</a><a href="step-4.html">④ 변화 구간</a><a href="step-5.html">⑤ 허용폭 Δ</a><a href="step-6.html">⑥ 판정 3단계</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="journey.html">예제 따라가기</a></div><div class="nav-group"><p class="nav-h">결과 읽기</p><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a></div><div class="nav-group"><p class="nav-h">공부하기</p><a href="concepts.html" aria-current="page">개념 익히기</a><details class="nav-more" open><summary>개념 19쪽</summary><a href="c-median.html">중앙값과 평균</a><a href="c-mad.html">표준편차 σ와 MAD</a><a href="c-sigma-split.html">σ_die와 σ_run</a><a href="c-resolution.html">분해능과 √12</a><a href="c-loq.html">LoQ와 10배</a><a href="c-signci.html">부호검정과 중앙값 90% 구간</a><a href="c-median-ci.html">중앙값 90% 구간 구하기</a><a href="c-tfactor.html">회차 예측 한계 계수</a><a href="c-delta.html">허용폭 Δ</a><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a><a href="c-map.html">판정 지도는 왜 삼각형인가</a><a href="c-loq-judge.html">LoQ 아래 판정</a><a href="c-routes.html">ITEM 유형과 판정 길</a><a href="c-abs-tol.html">0 근처와 절대 허용폭</a><a href="c-log-scale.html">잡음이 값에 비례하면 log</a><a href="c-efficiency.html">중앙값 효율 1.25</a><a href="c-power.html">검정력과 표본 크기</a><a href="c-ttest-vs-tost.html">t-test와 TOST</a><a href="c-precision.html">정밀도 비교 (제안)</a></details></div><div class="nav-group"><p class="nav-h">참고</p><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></div></nav>
+<main id="main"><nav class="strip" aria-label="단계"><a href="step-0.html" class="chip" title="⓪ 표본 크기 정하기">⓪</a><a href="step-1.html" class="chip" title="① 반복 측정">①</a><a href="step-2.html" class="chip" title="② 흔들림 나누기">②</a><a href="step-3.html" class="chip" title="③ LoQ와 ITEM 유형">③</a><a href="step-4.html" class="chip" title="④ 변화 구간">④</a><a href="step-5.html" class="chip" title="⑤ 허용폭 Δ">⑤</a><a href="step-6.html" class="chip" title="⑥ 판정 3단계">⑥</a><a href="step-7.html" class="chip" title="⑦ 미결·차이일 때 다음 행동">⑦</a></nav>
+<article class="page legacy">
 <p class="loc"><a href="index.html">개요</a> › 개념 익히기</p>
 <h1>개념 익히기</h1>
 
@@ -97,5 +64,8 @@
 </ol></section>
 
 <nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="glossary.html">용어집</a></li><li><a href="reading.html">결과 읽는 법</a></li><li><a href="index.html">개요</a></li></ul></nav>
-<footer class="pager"><a href="reading.html">← 이전 · 결과 읽는 법</a><a href="c-median.html">다음 · 중앙값과 평균 →</a></footer>
-</div></main></body></html>
+<footer class="pager"><a href="columns.html" class="prev">← 열 사전</a><a href="c-median.html" class="next">중앙값과 평균 →</a></footer>
+</article></main>
+<script src="assets/concepts.js"></script>
+<script src="assets/sop.js"></script>
+</body></html>

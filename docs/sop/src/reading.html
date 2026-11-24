@@ -1,0 +1,210 @@
+<p class="loc"><a href="index.html">개요</a> › 결과 읽는 법 · 앞 단계 <a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></p>
+<h1>결과 읽는 법</h1>
+
+<section id="q"><h2>이 쪽이 답하는 질문</h2>
+<p class="q">결과 표 items.csv의 열은 무슨 뜻이고 어느 단계에서 나온 값인가 · <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>마다 나온 동등 · 차이 · 미결을 어떻게 읽나</p></section>
+
+<section id="verdict"><h2>판정 읽는 법</h2>
+<ul>
+<li>판정 대상 = 편향 b · <a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a>별 차이 d(<a class="g" href="glossary.html#cand"><abbr title="비교 조건 · 바꾸려는 조건">비교 조건(Candidate)</abbr></a> − <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> J회 평균)의 중앙값</li>
+<li>b의 90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a>이 허용 범위 ±Δ와 어떻게 놓이는지로 판정</li>
+<li>정량 구간은 <a class="g" href="glossary.html#tost"><abbr title="두 번의 한쪽 검정 · '차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등">두 번의 한쪽 검정(TOST, Two One-Sided Tests)</abbr></a> → 동등 · 차이 · 미결 세 가지</li>
+<li><a class="g" href="glossary.html#loq"><abbr title="정량한계 · 믿고 숫자로 비교할 수 있는 가장 작은 크기">정량한계(LoQ, Limit of Quantitation)</abbr></a> 미만 구간은 LoQ 판정(DOE 수준 구간 대 LoQ) → 동등 · 차이 · 미결 세 가지</li>
+<li>1·2단계에서 동등이 아니면 3단계: <a class="g" href="glossary.html#item-type"><abbr title="ITEM 유형 · 기준 조건 값만 보고 정한 ITEM의 종류 (부호, 수준, 분해능, 모양, 척도 등)">ITEM 유형</abbr></a>에 맞는 <a class="g" href="glossary.html#route"><abbr title="판정 길 · ITEM 유형에 맞춰 3단계에서 쓰는 판정 방법 (제외, 한계 비교, 절대 허용폭, LoQ 판정, log TOST, 선형 TOST)">판정 길</abbr></a>으로 다시 판정 → 최종 판정 verdict_final · <a href="#final">아래</a></li>
+<li>동등 = 편향이 허용 범위 안이라고 증명됨 · 차이 = 허용 범위보다 크다고 증명됨 · 미결 = 어느 쪽도 증명 못 함 · 판정 제외 = 판정할 것이 없음(신뢰구간 계산 불가, 회차 하나나 DOE만 거의 0, 모든 값 같음, 정량 구간에서 산포 0이고 분해능이 거침, 정량 구간의 최종 Δ가 0 이하 등)</li>
+<li>차이나 미결이 나오면 <a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></li>
+</ul>
+<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th></tr></thead><tbody>
+<tr><td>b</td><td>편향. die별 차이 d의 중앙값</td></tr>
+<tr><td>d</td><td>die별 차이 = 비교 조건 − 기준 조건 J회 평균</td></tr>
+<tr><td>Δ</td><td>허용 범위. 차이가 이 안이면 같다고 봄</td></tr>
+<tr><td>90% CI</td><td>b의 90% 신뢰구간. <a class="g" href="glossary.html#sign-test"><abbr title="부호검정 · 차이가 +인 die와 −인 die 수만 세어 중앙값을 따지는 방법">부호검정</abbr></a>으로 구함<sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></td></tr>
+<tr><td>CI 반폭</td><td>신뢰구간 폭의 절반. 미결을 해상도 부족과 경계로 나눌 때 씀</td></tr>
+<tr><td>J</td><td>기준 조건 반복 <a class="g" href="glossary.html#run"><abbr title="회차 · 같은 die들을 한 차례 모두 재는 것">회차(run)</abbr></a> 수</td></tr>
+<tr><td>n</td><td>die 수</td></tr>
+<tr><td>σ<sub>die</sub></td><td>반복성. 같은 die를 다시 잴 때의 흔들림</td></tr>
+<tr><td>σ<sub>run</sub></td><td>회차 이동. 회차마다 모든 die가 함께 움직이는 크기</td></tr>
+</tbody></table></div>
+<h3>정량 구간</h3>
+<div class="tw"><table><thead><tr><th>판정</th><th>조건</th><th>뜻</th></tr></thead><tbody>
+<tr><td><span class="pill ok">동등</span></td><td>−Δ ≤ CI 아래, CI 위 ≤ +Δ</td><td>편향이 허용 범위 안이라고 증명됨<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup> · <a href="step-6.html#stage1">⑥ 판정</a></td></tr>
+<tr><td><span class="pill bad">차이</span></td><td>CI 아래 &gt; +Δ 또는 CI 위 &lt; −Δ</td><td>편향이 허용 범위보다 크다고 증명됨 · <a href="step-6.html#stage1">⑥ 판정</a></td></tr>
+<tr><td><span class="pill hold">미결 · 해상도 부족</span></td><td>걸침, CI 반폭 ≥ Δ</td><td>b가 0이어도 ±Δ 안에 못 들어감. 정밀도 부족<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span> · <a href="step-6.html#stage1">⑥ 판정</a></td></tr>
+<tr><td><span class="pill hold">미결 · 경계</span></td><td>걸침, CI 반폭 &lt; Δ</td><td>정밀도는 충분, b가 Δ 근처<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span> · <a href="step-6.html#stage1">⑥ 판정</a></td></tr>
+<tr><td><span class="pill">판정 제외</span></td><td>①~⑤ 중 맞는 원인을 모두 순서대로 '; '로 이음('판정 제외: '는 첫 원인 앞에만, 예 '판정 제외: 회차 0값 (POR2)'): ① 중심·CI NaN·inf ② 회차 0값(POR 회차 하나나 DOE가 die 절반 넘게 0, 다른 쪽은 아님) ③ 모든 값 같음 ④ die 산포 0(σ<sub>die</sub> = 0 또는 고정값 비율 &gt; 50%): 정량 구간이고 분해능 step ≥ 0.1·Δ일 때만 ⑤ POR 중앙값 0이고 σ<sub>run</sub> = 0: 정량 구간일 때만. 정량 구간의 최종 Δ ≤ 0·NaN도 판정 제외. LoQ 미만은 ④⑤를 보지 않고 LoQ 판정</td><td>판정할 것이 없어 판정하지 않음 · 사유는 맞는 원인 모두 · <a href="glossary.html#excluded">용어집</a></td></tr>
+</tbody></table></div>
+<h3>LoQ 미만 구간 (2단계 LoQ 판정)</h3>
+<div class="tw"><table><thead><tr><th>판정</th><th>조건 (위에서부터 처음 맞는 것)</th><th>뜻</th></tr></thead><tbody>
+<tr><td><span class="pill ok">동등</span></td><td>CI ⊂ ±Δ</td><td>이동이 허용 범위 안 · <a href="step-6.html#loq">⑥</a></td></tr>
+<tr><td><span class="pill ok">동등</span></td><td>DOE 수준 구간(중앙값 + CI)이 통째로 LoQ 위가 아님 (아래이거나 LoQ에 걸침)</td><td>&lt;LoQ 보고와 같다고 봄 · <a href="step-6.html#loq">⑥</a></td></tr>
+<tr><td><span class="pill bad">차이</span></td><td>DOE 수준 구간이 통째로 LoQ 이상 + CI 통째로 ±Δ 밖</td><td>보고가 숫자로 바뀜 · <a href="step-6.html#loq">⑥</a></td></tr>
+<tr><td><span class="pill hold">미결</span></td><td>DOE 수준 구간이 통째로 LoQ 이상 + CI가 ±Δ에 걸침</td><td>숫자로 보고되나 변화가 허용폭 경계 · <a href="step-6.html#loq">⑥</a></td></tr>
+</tbody></table></div>
+<p class="s">예전 규칙(DOE 중심 한 점만 LoQ와 비교, 차이 아니면 모두 동등)은 구간 규칙으로 바뀜 · 그림 <a href="c-loq-judge.html">LoQ 아래 판정</a><sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span></p>
+</section>
+
+<section id="zone"><h2>구간 읽기</h2>
+<ul>
+<li>구간 값은 세 가지 · <a class="g" href="glossary.html#lod"><abbr title="검출한계 · 0이 아니라고 말할 수 있는 가장 작은 크기">검출한계(LoD, Limit of Detection)</abbr></a>로 LoQ 미만을 둘로 나눠 적음</li>
+<li>검출~정량, 검출한계 이하 = 흐름도의 'LoQ 미만' 갈래 하나 · 판정 방법 같음</li>
+</ul>
+<div class="tw"><table><thead><tr><th>구간 값</th><th>조건</th><th>판정 (<a href="step-6.html">⑥</a>)</th></tr></thead><tbody>
+<tr><td>정량</td><td>|기준 조건 중앙값| ≥ LoQ</td><td><span class="pill ok">동등</span> TOST 통과 · <span class="pill bad">차이</span> |b| &gt; Δ 증명 · <span class="pill hold">미결</span> 반폭 ≥ Δ: 해상도 부족 / 반폭 &lt; Δ: 경계</td></tr>
+<tr><td>검출~정량</td><td>LoD ≤ |기준 조건 중앙값| &lt; LoQ</td><td rowspan="2">LoQ 판정: <span class="pill ok">동등</span> ±Δ 안 · &lt;LoQ 보고 일치 · <span class="pill hold">미결</span> LoQ에 걸침 · <span class="pill bad">차이</span> 보고가 숫자로 바뀜</td></tr>
+<tr><td>검출한계 이하</td><td>|기준 조건 중앙값| &lt; LoD</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="map"><h2>판정 표 (1·2단계)</h2>
+<ul><li>편향의 90% CI가 ±Δ와 놓인 모양(줄) × 구간과 DOE 수준 구간(칸) → 1·2단계 판정(verdict)</li></ul>
+<div class="tw"><table class="map">
+<thead><tr><th>편향의 90% CI</th><th>정량<br>|기준 조건 중앙값| ≥ LoQ</th><th>LoQ 미만<br>DOE 수준 구간 통째로 LoQ 아래</th><th>LoQ 미만<br>DOE 수준 구간 LoQ에 걸침</th><th>LoQ 미만<br>DOE 수준 구간 통째로 LoQ 이상</th></tr></thead>
+<tbody>
+<tr><th>±Δ 안</th><td><span class="pill ok">동등</span></td><td><span class="pill ok">동등</span></td><td><span class="pill ok">동등</span></td><td><span class="pill ok">동등</span></td></tr>
+<tr><th>±Δ에 걸침</th><td><span class="pill hold">미결</span></td><td><span class="pill ok">동등</span></td><td><span class="pill ok">동등</span></td><td><span class="pill hold">미결</span></td></tr>
+<tr><th>통째로 ±Δ 밖</th><td><span class="pill bad">차이</span></td><td><span class="pill ok">동등</span></td><td><span class="pill ok">동등</span></td><td><span class="pill bad">차이</span></td></tr>
+</tbody></table></div>
+<p class="s">정량 구간의 미결은 CI 반폭 ≥ Δ면 해상도 부족, 아니면 경계 · 이 표의 동등은 확정, 나머지는 3단계에서 다시 봄</p>
+<h3>판정 지도 그림 (plots/summary.png)</h3>
+<ul>
+<li>점 하나 = ITEM 하나 · 가로 = <a class="g" href="glossary.html#norm-shift"><abbr title="정규화 변화량 · 이동 ÷ 허용폭. 0이면 그대로, ±1이면 허용폭만큼 변함">정규화 변화량</abbr></a>(이동 ÷ 허용폭) · 세로 = <a class="g" href="glossary.html#norm-unc"><abbr title="정규화 불확실성 · 90% 신뢰구간 반폭 ÷ 허용폭. 0에 가까울수록 확실">정규화 불확실성</abbr></a>(90% CI 반폭 ÷ 허용폭)</li>
+<li><span class="pill ok">동등</span> |가로| + 세로 ≤ 1 (삼각형) · <span class="pill bad">차이</span> |가로| − 세로 &gt; 1 (V자 바깥) · <span class="pill hold">미결</span> 그 사이</li>
+<li>허용폭 = 그 ITEM의 최종 판정 방법의 것 (Δ, Δ', abs_delta, Δ<sub>log</sub> 등)</li>
+<li>왜 삼각형 · V자인지 → <a href="c-map.html">판정 지도는 왜 삼각형인가</a> (움직이는 그림)</li>
+</ul>
+</section>
+
+<section id="final"><h2>최종 판정 열 (1·2·3단계)</h2>
+<div class="tw"><table><thead><tr><th>열</th><th>뜻</th></tr></thead><tbody>
+<tr><td>verdict</td><td>1·2단계 판정 (선형 TOST, LoQ 미만은 LoQ 판정)</td></tr>
+<tr><td>verdict_final</td><td>최종 판정 · 1·2단계 동등은 그대로, 아니면 3단계 판정 길의 판정 (못 내면 1·2단계 판정) · 집계와 차이·미결 목록은 이 열 기준</td></tr>
+<tr><td>verdict_basis</td><td>최종 판정을 정한 방법 코드 (아래 표)</td></tr>
+<tr><td>route</td><td>판정 길: 제외 · 한계 비교 · 절대 허용폭 · LoQ 판정 · log TOST · 선형 TOST · <a href="c-routes.html">ITEM 유형과 판정 길</a></td></tr>
+<tr><td>cls_valid · cls_sign · cls_level · cls_resolution · cls_shape · cls_noise · cls_scale · cls_run</td><td>ITEM 유형 분류 축 (기준 조건 값만 봄) · 값 목록은 <a href="c-routes.html#axes">분류 축</a></td></tr>
+<tr><td>verdict_final_log_run</td><td>참고 · log TOST 길에 고친 log 허용폭 Δ<sub>log_run</sub>을 쓴 최종 판정 · log 허용폭 결정 대기</td></tr>
+</tbody></table></div>
+<h3>verdict_basis 코드</h3>
+<div class="tw"><table><thead><tr><th>코드</th><th>방법</th><th>허용폭</th></tr></thead><tbody>
+<tr><td>linear</td><td>선형 TOST (1단계 그대로 · 정량 구간)</td><td>Δ</td></tr>
+<tr><td>loq</td><td>LoQ 판정 (2단계 그대로 · LoQ 아래 구간)</td><td>Δ와 LoQ</td></tr>
+<tr><td>log</td><td>log TOST</td><td>Δ<sub>log</sub> = log10(1 + r) + sigma_rep_log</td></tr>
+<tr><td>accuracy</td><td>장비 정확도로 넓힌 허용폭 (선형 TOST 길 · 바닥 근처)</td><td>Δ' = max(Δ, 장비 정확도 폭)</td></tr>
+<tr><td>abs</td><td>절대 허용폭</td><td>abs_delta</td></tr>
+<tr><td>limit</td><td>한계 비교</td><td>한계 밖 die의 TOST</td></tr>
+</tbody></table></div>
+<p class="s">리포트와 그림은 코드를 쉬운 이름으로 바꿔 보여 줌 (도구의 explain.BASIS_NAMES)</p>
+</section>
+
+<section id="example"><h2>합성 예시 읽기</h2>
+<p class="s">예시 데이터: <a href="step-1.html#ex-data">합성 예시 die 6개 표</a> · 도구 결과 표: <a href="examples/tool_items.csv">examples/tool_items.csv</a></p>
+<ol class="calc">
+<li>구간: |기준 조건 중앙값| 100 ≥ LoQ 9.8965<span class="cl">→ 정량 <span class="from">100 = die 60개 전체 기준 평균의 중앙값 · 9.8965 = 10 × σ<sub>die</sub> 0.98965(② 흔들림 구하기) · ③ 정량한계(LoQ)로 구간 나누기</span></span></li>
+<li>b 0.78583<span class="cl">90% CI [0.610, 1.10233] </span><span class="from">④ 차이(편향)와 90% 신뢰구간 구하기 · d 60개의 중앙값과 부호검정 구간</span></li>
+<li>Δ = 5.0 + 1.69896 = 6.69896 <span class="from">5.0 = 5% × |100| · 1.69896 = 3.3717 × σ<sub>run</sub> 0.50389 · ⑤ 허용 범위 Δ 정하기</span></li>
+<li>CI [0.610, 1.10233] ⊂ (−6.69896, +6.69896)<span class="cl">→ 판정 동등 · 사유 '90% 신뢰구간이 ±Δ 안' <span class="from">⑥ 판정 · 합성 예시 도구 출력</span></span></li>
+<li>참고: <a class="g" href="glossary.html#t-test"><abbr title="t-test · 차이의 평균이 0인지 보는 검정">t-test(짝지은 t 검정)</abbr></a> 유의차 (p = 4.2e-07), 기준 회차끼리 3/3 유의차<span class="cl">→ 같은 조건끼리도 유의차라 판정에 안 씀 <span class="from">합성 예시 도구 출력의 참고 지표</span></span></li>
+</ol></section>
+
+<section id="columns"><h2>결과 표 items.csv 열</h2>
+<ul>
+<li>items.csv = ITEM별 판정 · 차이, 미결, 동등, 판정 제외 순</li>
+<li>열마다 쉬운 이름, 뜻, 수식, 볼 것은 <a href="columns.html#items-csv">열 사전</a> · fail_evidence.csv, compare.csv 같은 다른 결과 파일의 열도 같은 쪽</li>
+<li>합성 예시 도구 출력 전체는 <a href="examples/tool_items.csv">examples/tool_items.csv</a></li>
+</ul>
+<h3>데이터 상태 예시 계산</h3>
+<p>회차 흔들림 (Δ = 5)</p>
+<ul>
+<li>die A 회차 10, 14, 6 → 범위 8, 평균 10 → 80%</li>
+<li>die B 회차 20, 26, 14 → 범위 12, 평균 20 → 60%</li>
+<li>die C 회차 5, 6, 4 → 범위 2, 평균 5 → 40%</li>
+<li>run_jitter_pct = 중앙값(80, 60, 40) = 60%</li>
+<li>중앙값(범위) = 중앙값(8, 12, 2) = 8</li>
+<li>run_jitter_over_delta = 8/5 = 1.6 ≥ 1 → 상태 '회차 흔들림'</li>
+</ul>
+<p>작을수록 흔들림 (die 5개)</p>
+<ul>
+<li>회차 평균 1e-9, 1e-8, 1e-7, 1e-6, 1e-5 → x = −9, −8, −7, −6, −5</li>
+<li>log 범위 y = 0.8, 0.5, 0.3, 0.2, 0.1</li>
+<li>x 순위 1..5, y 순위 5..1 → ρ = −1.00 ≤ −0.5</li>
+<li>유효 die 5 &lt; 10 → 상태는 붙이지 않고 spearman_size_jitter = −1.00만 기록 (같은 모양이 die 10개 이상이면 '작을수록 흔들림')</li>
+</ul>
+<p>조건 불안정 (n = 25, sigma_die = 2, Δ = 1)</p>
+<ul>
+<li>rr = 회차별 중앙값(값 − die별 회차 평균). die 사이 차이는 지워짐(짝지은 회차 차)</li>
+<li>gap = max(rr) − min(rr)</li>
+<li>se = 1.2533 × 2 × 1.414 / 5 = 0.709 → 3·se = 2.13</li>
+<li>A: rr = (−0.6, +0.1, +0.5) → gap = 1.1 ≥ Δ, 하지만 &lt; 2.13 → 상태 없음. por_gap_over_delta = 1.1, por_gap_over_noise = 1.55</li>
+<li>B: rr = (−1.5, +0.2, +1.3) → gap = 2.8 ≥ Δ, ≥ 2.13 → 상태 '조건 불안정'. por_gap_over_delta = 2.8, por_gap_over_noise = 3.95</li>
+<li>예전 규칙(회차별 die 중앙값의 max − min ≥ Δ)은 die 잡음만으로도 붙음. 예제 데이터(make_por3_data.py)에서 3 ITEM → 새 규칙 0 ITEM. IOFF_FLOOR는 gap/Δ 21.9, gap/se 0.85 → die 잡음</li>
+</ul>
+</section>
+
+<section id="flow"><h2>판정 흐름 (기호)</h2>
+<div class="tw"><table><thead><tr><th>노드</th><th>질문</th><th>예</th><th>아니오</th></tr></thead><tbody>
+<tr><td><a href="step-3.html">d1</a></td><td>|기준 조건 중앙값| ≥ LoQ ?</td><td>정량 → TOST (⑥)</td><td>LoQ 미만 → d4</td></tr>
+<tr><td><a href="step-6.html">d2</a></td><td>90% CI ⊂ ±Δ ?</td><td><span class="pill ok">동등</span> TOST 통과</td><td>d3</td></tr>
+<tr><td><a href="step-6.html">d3</a></td><td>CI 통째로 ±Δ 밖 ?</td><td><span class="pill bad">차이</span> |b| &gt; Δ 증명</td><td><span class="pill hold">미결</span> 반폭 ≥ Δ: 해상도 부족 / 반폭 &lt; Δ: 경계</td></tr>
+<tr><td><a href="step-6.html#loq">d4</a></td><td>(LoQ 미만) 90% CI ⊂ ±Δ ?</td><td><span class="pill ok">동등</span></td><td>d5</td></tr>
+<tr><td><a href="step-6.html#loq">d5</a></td><td>DOE 수준 구간이 통째로 LoQ 아래 ?</td><td><span class="pill ok">동등</span> &lt;LoQ 보고 일치</td><td>d6</td></tr>
+<tr><td><a href="step-6.html#loq">d6</a></td><td>DOE 수준 구간이 통째로 LoQ 이상이고 CI 통째로 ±Δ 밖 ?</td><td><span class="pill bad">차이</span> 보고가 숫자로 바뀜</td><td><span class="pill hold">미결</span></td></tr>
+<tr><td><a href="step-6.html#typed">d7</a></td><td>1·2단계 판정이 동등 ?</td><td>확정</td><td>3단계: 판정 길의 방법으로 다시 판정</td></tr>
+</tbody></table></div>
+<details><summary>보충</summary>
+<div class="tw"><table><thead><tr><th>단계</th><th>값</th><th>식</th></tr></thead><tbody>
+<tr><td><a href="step-2.html">② 흔들림 구하기</a></td><td>σ<sub>die</sub></td><td>1.4826 × <a class="g" href="glossary.html#mad"><abbr title="중앙값 절대편차 · 중앙값에서 떨어진 거리들의 중앙값">중앙값 절대편차(MAD, Median Absolute Deviation)</abbr></a> ÷ √2</td></tr>
+<tr><td><a href="step-2.html">② 흔들림 구하기</a></td><td>σ<sub>run</sub></td><td>√(회차별 중앙값의 분산 − (π/2)·σ<sub>die</sub>²/n)</td></tr>
+<tr><td><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a></td><td>LoQ</td><td>10 × (세 σ 후보 중 가장 큰 값), blank LoQ가 더 크면 blank LoQ</td></tr>
+<tr><td><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a></td><td>b</td><td>d의 중앙값</td></tr>
+<tr><td><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a></td><td>90% CI</td><td>d를 크기순으로 놓고 부호검정 순위 두 개</td></tr>
+<tr><td><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a></td><td>±Δ</td><td>5% · |기준 조건 중앙값| + t(0.95, J−1) · √(1+1/J) · σ<sub>run</sub> (J 3이면 계수 3.3717)</td></tr>
+</tbody></table></div>
+</details>
+</section>
+
+<section id="ref"><h2>참고 지표 (판정에 쓰지 않음)</h2>
+<ul>
+<li>기록만 하고 동등 판정에는 안 씀</li>
+<li>t-test는 기준 조건 회차끼리 비교해도 유의차를 자주 냄 → 동등 판정에 안 씀 · <a href="c-ttest-vs-tost.html">t-test와 TOST</a></li>
+</ul>
+<h3>t-test (짝지은)</h3>
+<div class="formula"><div>t = d̄ / (s<sub>d</sub>/√n),  df = n − 1</div><div class="c">H<sub>0</sub>: 평균 차이 = 0. 마진이 0이라 '같다'를 증명하지 못함</div></div>
+<p class="s">근거<sup class="fnref"><a href="#fn5" aria-label="출처 5">5</a></sup></p>
+<h3>나머지 참고 지표</h3>
+<div class="tw"><table><thead><tr><th>지표</th><th>계산</th><th>용도</th></tr></thead><tbody>
+<tr><td>이상치 die</td><td>|d − median(d)| &gt; 5·robustσ(d)<sup class="fnref"><a href="#fn6" aria-label="출처 6">6</a></sup></td><td>일부 die만 다른지. 반복되는 이상치 die 위치</td></tr>
+<tr><td>기준 조건끼리 t-test</td><td>기준 조건 회차 쌍 3개의 짝지은 t-test</td><td>t-test가 기준 조건끼리도 차이라 하는지</td></tr>
+<tr><td>range</td><td>원측정값이 들어가는 가장 작은 auto range</td><td>기준 조건과 비교 조건의 range가 다른지</td></tr>
+<tr><td>level_check</td><td>|파일값|/|CALCVAL| 이 LEVEL 자릿수 안인지 (1.15배 여유)</td><td>CALCVAL·LEVEL 입력 실수</td></tr>
+<tr><td>verdict_no_blank</td><td>blank 없이 낸 판정</td><td>blank가 판정을 바꿨는지</td></tr>
+<tr><td>verdict_with_accuracy</td><td>Δ' = max(Δ, 장비 정확도 폭)으로 낸 판정</td><td>판정 길이 선형 TOST이고 수준이 바닥 근처면 3단계 판정(accuracy), 그 밖은 장비 정확도가 판정을 바꿨을지 참고</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="action"><h2>차이·미결일 때</h2>
+<ul>
+<li>먼저 아래 파일과 열에서 원인을 찾음 · 다음 행동 절차는 <a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></li>
+</ul>
+<div class="tw"><table><thead><tr><th>볼 곳</th><th>알 수 있는 것</th></tr></thead><tbody>
+<tr><td>outlier_dies.csv</td><td>ITEM마다 튀는 die와 기준 조건 회차별 값, 비교 조건 값</td></tr>
+<tr><td>n_outlier_die</td><td>이상치 die: 일부 die만 다른지. 반복되는 이상치 die 위치</td></tr>
+<tr><td>verdict_no_blank</td><td>blank 없이 낸 판정: blank가 판정을 바꿨는지</td></tr>
+<tr><td>verdict_with_accuracy</td><td>Δ' = max(Δ, 장비 정확도 폭)으로 낸 판정: 선형 TOST 길 · 바닥 근처면 3단계 판정, 그 밖은 참고</td></tr>
+<tr><td>route · verdict_basis</td><td>3단계가 어느 판정 길·방법으로 최종 판정을 냈는지 · verdict와 verdict_final이 다르면 3단계가 바꾼 것</td></tr>
+<tr><td><span class="pill hold">미결 · 해상도 부족</span></td><td>b가 0이어도 ±Δ 안에 못 들어감. 정밀도 부족</td></tr>
+<tr><td><span class="pill hold">미결 · 경계</span></td><td>정밀도는 충분, b가 Δ 근처</td></tr>
+<tr><td>summary.txt</td><td>판정 근거 점검(회차 흔들림 몫, LoQ를 정한 쪽, blank·장비 정확도가 바꾼 판정 수), 반복해서 튀는 die</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="sources"><h2 id="basis">출처</h2>
+<ol class="fn">
+<li id="fn1">TOST, 90% 신뢰구간 ⊂ (−Δ, +Δ): Schuirmann (1987) J. Pharmacokinet. Biopharm. 15:657-680 · 초록 · <a href="https://link.springer.com/article/10.1007/BF01068419" rel="noopener" target="_blank">링크</a> / FDA "Statistical Approaches to Establishing Bioequivalence" (2001) · IV, VI.B.1.a · <a href="https://www.gmp-compliance.org/files/guidemgr/3616fnl.pdf" rel="noopener" target="_blank">링크</a> / ASTM E2935-21 · 1.1, 1.2 · <a href="https://store.astm.org/e2935-21.html" rel="noopener" target="_blank">링크</a></li>
+<li id="fn2">중앙값의 부호검정 신뢰구간: NIST Dataplot Reference Manual · MEDIAN CONFIDENCE LIMITS (Method 1) · <a href="https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/mediancl.htm" rel="noopener" target="_blank">링크</a> / SIGN TEST · <a href="https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/signtest.htm" rel="noopener" target="_blank">링크</a></li>
+<li id="fn3">동등 / 차이 / 미결 3분류와 미결 나누기(해상도 부족 · 경계) <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
+<li id="fn4">LoQ 미만 보고(측정값을 그대로 기록하고 &lt;LoQ 표시)와 DOE 수준 구간 규칙 <span class="badge-int">내부 기준(문헌 근거 없음)</span> · 참고: EPA MARLAP Manual Vol. III · 20.3 Recommendations · <a href="https://www.epa.gov/sites/default/files/2015-05/documents/402-b-04-001c-20_final.pdf" rel="noopener" target="_blank">링크</a></li>
+<li id="fn5">참고 지표 t-test (짝지은): NIST/SEMATECH e-Handbook · 7.3.1.1 Analysis of paired observations · <a href="https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm" rel="noopener" target="_blank">링크</a></li>
+<li id="fn6">이상치 die (MAD 기반 표시, 빼지 않음): NIST/SEMATECH e-Handbook · 1.3.5.17 Detection of Outliers · <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm" rel="noopener" target="_blank">링크</a> / FDA (2001) · VII.C Outlier Considerations · <a href="https://www.gmp-compliance.org/files/guidemgr/3616fnl.pdf" rel="noopener" target="_blank">링크</a> · 개념 근거, 세부 방식은 내부 기준(문헌 근거 없음)</li>
+<li id="fn7"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 쉬운 말 설명, 열 이름 대응 표</li>
+</ol></section>
+
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="step-6.html">⑥ 판정</a></li><li><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></li><li><a href="run.html">실행 방법</a></li><li><a href="c-tost.html">TOST</a></li><li><a href="c-signci.html">부호검정 신뢰구간</a></li><li><a href="c-ttest-vs-tost.html">t-test와 TOST</a></li><li><a href="c-loq-judge.html">LoQ 아래 판정</a></li><li><a href="c-routes.html">ITEM 유형과 판정 길</a></li></ul></nav>

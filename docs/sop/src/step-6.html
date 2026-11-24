@@ -1,0 +1,74 @@
+<section class="easy">
+<div data-scene="verdict"></div>
+<ul class="points">
+<li>1단계: 90% 구간이 ±Δ 안이면 동등, 통째로 밖이면 차이, 걸치면 미결.</li>
+<li>2단계: LoQ 아래 ITEM만. DOE 구간이 LoQ 위로 통째로 넘지 않으면 동등.</li>
+<li>3단계: 앞 단계가 동등이 아니면 유형에 맞는 판정 길로 다시 본다.</li>
+<li>die가 10개보다 적으면 판정하지 않고 미결.</li>
+</ul>
+<div data-tracker="6"></div>
+</section>
+
+<section class="expert">
+<h2 id="stage1">1단계 · 전체 TOST (모든 ITEM)</h2>
+<div class="formula">d<sub>i</sub> = DOE<sub>i</sub> − (POR<sub>i1</sub> + … + POR<sub>iJ</sub>) / J      <span class="c">die i 의 차이</span>
+b = median(d<sub>1</sub> … d<sub>n</sub>)                       <span class="c">가운데 값</span>
+[L, U] = [d<sub>(k)</sub>, d<sub>(n−k+1)</sub>]                  <span class="c">d 를 작은 것부터 세운 k번째, n−k+1번째</span>
+k = P(W ≤ k−1) ≤ 0.05 인 가장 큰 정수, W ~ 이항(n, ½)
+Δ = r·|m| + t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub>       <span class="c">r = 0.05</span></div>
+<p>판정: −Δ ≤ L 이고 U ≤ Δ 이면 동등<sup data-ref="12"></sup>. L &gt; Δ 이거나 U &lt; −Δ 이면 차이. 그 밖은 미결이고, 반폭 (U − L)/2 ≥ Δ 이면 해상도 부족, 아니면 경계<sup data-ref="13"></sup>. 구간은 부호검정 구간이다<sup data-ref="9"></sup>. Δ의 5% 몫은 내부 기준<sup data-ref="10a"></sup>, 회차 몫은 예측 한계 꼴<sup data-ref="10b"></sup>.</p>
+<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>items.csv 열</th></tr></thead><tbody>
+<tr><td>n</td><td>판정에 쓴 die 수 (10개 미만이면 미결<sup data-ref="7"></sup>)</td><td><code>n_die</code></td></tr>
+<tr><td>m</td><td>POR 중앙값 (die별 POR 평균의 중앙값)</td><td><code>por_median</code></td></tr>
+<tr><td>b</td><td>d 의 중앙값</td><td><code>center</code></td></tr>
+<tr><td>L, U</td><td>90% 구간의 아래 끝, 위 끝</td><td><code>ci_low</code>, <code>ci_high</code></td></tr>
+<tr><td>Δ</td><td>허용폭 = 5% 몫 + 회차 몫</td><td><code>delta</code> = <code>policy_margin</code> + <code>run_margin</code></td></tr>
+<tr><td>σ<sub>run</sub></td><td>회차마다 모든 die가 함께 밀리는 크기</td><td><code>sigma_run</code></td></tr>
+<tr><td>LoQ</td><td>정량한계 = 10σ<sup data-ref="5"></sup></td><td><code>LoQ</code></td></tr>
+</tbody></table></div>
+
+<h2 id="loq">2단계 · LoQ 판정 (|m| &lt; LoQ 일 때)</h2>
+<div class="formula">DOE 구간 = [m + L, m + U]
+① 이동이 ±Δ 안 (1단계 동등)                    → 동등  <span class="c">&lt;LoQ 보고 일치</span>
+② DOE 구간이 통째로 |x| ≥ LoQ 가 아님            → 동등  <span class="c">LoQ 아래이거나 LoQ 선에 걸침</span>
+③ DOE 구간이 통째로 |x| ≥ LoQ, 이동이 ±Δ 밖     → 차이
+④ DOE 구간이 통째로 |x| ≥ LoQ, 이동이 ±Δ 에 걸침 → 미결</div>
+<p>위에서부터 처음 맞는 줄을 쓴다. '&lt;LoQ' 보고로 같다고 보는 규칙은 내부 기준이다<sup data-ref="15"></sup>.</p>
+
+<h2 id="typed">3단계 · 판정 길 (1·2단계가 동등이 아닐 때)</h2>
+<p>판정 길은 POR 값만 보고 ③에서 정한다. 표의 위에서부터 처음 맞는 길을 쓴다.</p>
+<div class="tw"><table><thead><tr><th>판정 길</th><th>조건 (분류 열)</th><th>쓰는 판정 열</th><th>verdict_basis</th></tr></thead><tbody>
+<tr><td>제외</td><td><code>cls_valid</code> ≠ 정상</td><td>없음 (앞 판정 유지)</td><td>linear · loq</td></tr>
+<tr><td>한계 비교</td><td><code>cls_shape</code> 에 한계에 걸림</td><td><code>verdict_limit</code></td><td>limit</td></tr>
+<tr><td>절대 허용폭</td><td><code>cls_level</code> = 0 중심, 또는 계단이고 정량·바닥 근처</td><td><code>verdict_abs</code> (±<code>abs_delta</code>)</td><td>abs</td></tr>
+<tr><td>LoQ 판정</td><td><code>cls_level</code> = 바닥 아래</td><td>없음 (2단계가 곧 결과)</td><td>loq</td></tr>
+<tr><td>log TOST</td><td><code>cls_scale</code> = log 이고 부호가 하나</td><td><code>verdict_log</code> (±<code>delta_log</code>)</td><td>log</td></tr>
+<tr><td>선형 TOST</td><td>나머지. 바닥 근처면 Δ' = max(Δ, 장비 정확도)</td><td>바닥 근처면 <code>verdict_with_accuracy</code>, 아니면 없음</td><td>accuracy · linear</td></tr>
+</tbody></table></div>
+<div class="formula">abs_delta = 그룹 abs_tol 값                     <span class="c">--abs-tol 파일에 그룹이 있으면</span>
+          = LoQ                                <span class="c">0 중심</span>
+          = max(Δ, 값 간격 [, 장비 정확도])      <span class="c">계단 (바닥 근처면 장비 정확도까지)</span>
+Δ<sub>log</sub> = log10(1 + r) + σ<sub>rep,log</sub>                <span class="c">L = log10|값| 에서 같은 TOST</span></div>
+
+<h2 id="final">최종 판정</h2>
+<p>1·2단계가 동등이면 그대로 확정. 아니면 판정 길의 판정이 동등 · 미결 · 차이 중 하나일 때 그것을 쓰고, 길이 판정하지 못하면 1·2단계 판정을 둔다. 판정을 정한 곳은 <code>verdict_basis</code> (linear, loq, log, accuracy, abs, limit) 에 적힌다.</p>
+
+<h2 id="rules">판정 기준표</h2>
+<div class="tw"><table class="rules"><thead><tr><th>단계</th><th><span class="v v-eq">동등</span></th><th><span class="v v-hold">미결</span></th><th><span class="v v-diff">차이</span></th></tr></thead><tbody>
+<tr><td>1 TOST</td><td>−Δ ≤ L, U ≤ Δ</td><td>구간이 ±Δ 에 걸침</td><td>L &gt; Δ 또는 U &lt; −Δ</td></tr>
+<tr><td>2 LoQ 판정</td><td>이동이 ±Δ 안, 또는 DOE 구간이 통째로 LoQ 이상이 아님</td><td>DOE 구간 통째로 LoQ 이상, 이동이 ±Δ 에 걸침</td><td>DOE 구간 통째로 LoQ 이상, 이동이 ±Δ 밖</td></tr>
+<tr><td>3 판정 길</td><td>길의 판정 열이 동등</td><td>길의 판정 열이 미결</td><td>길의 판정 열이 차이</td></tr>
+</tbody></table></div>
+
+<h2>근거와 문헌</h2>
+<div data-refs></div>
+
+<h2>코드 위치</h2>
+<ul>
+<li>1단계 판정: <code data-code="por_doe_compare.py:tost"></code>, 구간: <code data-code="por_doe_compare.py:ci_median"></code></li>
+<li>회차 몫 계수: <code data-code="por_doe_compare.py:run_factor"></code>, 1·2단계 순서: <code data-code="por_doe_compare.py:judge"></code></li>
+<li>2단계: <code data-code="por_doe_compare.py:loq_verdict"></code></li>
+<li>판정 길 표: <code data-code="classify.py:ROUTES"></code>, 길의 판정 열: <code data-code="por_doe_compare.py:route_method"></code></li>
+<li>절대 허용폭: <code data-code="classify.py:abs_delta_for"></code>, 최종 판정: <code data-code="por_doe_compare.py:final_verdict"></code></li>
+</ul>
+</section>

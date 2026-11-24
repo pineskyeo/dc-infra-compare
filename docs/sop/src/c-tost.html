@@ -1,0 +1,142 @@
+<p class="loc"><a href="concepts.html">개념 익히기</a> › TOST와 동등 · 차이 · 미결 (개념 10 / 19) · 쓰는 단계 <a href="step-6.html">⑥</a></p>
+<h1>TOST와 동등 · 차이 · 미결</h1>
+
+<section id="q"><h2>이 쪽이 답하는 질문</h2>
+<p class="q" id="def"><a class="g" href="glossary.html#tost"><abbr title="두 번의 한쪽 검정 · '차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등">두 번의 한쪽 검정(TOST, Two One-Sided Tests)</abbr></a>은 무엇을 보나 · 90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a> [0.610, 1.102]와 허용 범위 ±6.699로 동등 · 차이 · 미결을 어떻게 가르나</p></section>
+
+<section id="plain"><h2>쉬운 말로</h2>
+<ul id="why">
+<li>보통 검정(<a class="g" href="glossary.html#t-test"><abbr title="t-test · 차이의 평균이 0인지 보는 검정">t-test(짝지은 t 검정)</abbr></a>)은 '차이가 있다'를 보이는 도구. 차이를 못 찾았다고 같다는 뜻이 아님. <a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a>가 적으면 큰 차이도 놓침<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li>
+<li>반대로 die가 많으면 실무상 무시할 작은 차이도 유의차로 나옴. 예시 t-test p = 4.2e-07, <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a> 회차끼리 견줘도 3쌍 모두 유의차 <span class="from">⑥ 참고 지표, <a href="c-ttest-vs-tost.html">t-test와 TOST</a></span></li>
+<li>TOST는 같음을 직접 보임: '편향 &gt; −Δ'와 '편향 &lt; +Δ'를 한쪽 5% 검정으로 따로 확인해 둘 다 통과하면 동등<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li>
+<li>두 검정을 한 번에 보는 방법 = 90% CI가 (−Δ, +Δ) 안에 통째로 들어가는지 봄. 한쪽 5%씩 두 번이라 90%<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li>
+<li data-e="1">TOST 이름 뜻: 한쪽 검정(One-Sided Test)을 두 번(Two)<ul class="chain"><li>→ ① 편향 &gt; −Δ ② 편향 &lt; +Δ, 각각 한쪽 5%</li><li>→ 둘 다 통과 ⇔ 가운데 90% CI가 (−Δ, +Δ) 안</li><li>→ 같은 판정<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></li></ul></li>
+<li>판정은 세 갈래: 동등 · 차이 · 미결. 같음도 다름도 보이지 못하면 미결 <span class="badge-int">내부 기준(문헌 근거 없음)</span><sup class="fnref"><a href="#fn2" aria-label="출처 2">2</a></sup></li>
+
+</ul>
+<p class="s">더 자세한 쉬운 말은 아래 <a href="#plain-more">쉬운 말 더 보기</a></p>
+
+<details><summary>보충</summary><ul>
+<li><a class="g" href="glossary.html#loq"><abbr title="정량한계 · 믿고 숫자로 비교할 수 있는 가장 작은 크기">정량한계(LoQ, Limit of Quantitation)</abbr></a> 미만 ITEM은 ⑥에서 TOST에 더해 DOE 수준 구간을 LoQ와 견줘 봄(LoQ 판정). 이 갈래도 ④의 CI와 ⑤의 Δ를 씀<ul class="chain"><li>→ <a href="c-loq-judge.html">LoQ 아래 판정</a></li></ul></li>
+<li>1·2단계에서 동등이 아닌 ITEM은 ⑥ 3단계에서 유형에 맞는 판정 길(절대 허용폭, log TOST 등)로 다시 TOST<ul class="chain"><li>→ <a href="c-routes.html">ITEM 유형과 판정 길</a></li></ul></li>
+<li>미결 · 차이가 나오면 <a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></li>
+</ul></details></section>
+
+<section id="formula"><h2>수식</h2>
+<div class="formula"><div>H<sub>01</sub>: b ≤ −Δ, H<sub>02</sub>: b ≥ +Δ → 둘 다 한쪽 5%에서 기각 ⇔ 90% CI ⊂ (−Δ, +Δ)</div><div class="c">한쪽 5% 검정 두 번 = 양쪽 끝에서 5%씩 뺀 90% 구간 하나가 ±Δ 안에 있는지</div></div>
+<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
+<tr><td>b</td><td>편향. die별 차이 d의 중앙값</td><td>0.786</td></tr>
+<tr><td>Δ</td><td>허용 범위. 차이가 이 안이면 같다고 봄</td><td>6.699</td></tr>
+<tr><td>L, U</td><td>90% CI 아래 끝, 위 끝</td><td>0.610, 1.102</td></tr>
+<tr><td>(U − L)/2</td><td>CI 반폭. 구간 너비의 절반</td><td>Δ보다 작음</td></tr>
+<tr><td>H<sub>01</sub>, H<sub>02</sub></td><td>'같지 않다'는 두 가설. 둘 다 버려야 동등</td><td>—</td></tr>
+</tbody></table></div>
+<h3>판정 세 갈래</h3>
+<div class="tw"><table><thead><tr><th>판정</th><th>조건</th><th>기준</th></tr></thead><tbody>
+<tr><td><span class="pill ok">동등</span></td><td>90% CI ⊂ (−Δ, +Δ)</td><td><a href="step-6.html">⑥ 판정</a><sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></td></tr>
+<tr><td><span class="pill bad">차이</span></td><td>구간 전체가 ±Δ 밖</td><td><a href="step-6.html">⑥ 판정</a> <span class="badge-int">내부 기준(문헌 근거 없음)</span></td></tr>
+<tr><td><span class="pill hold">미결</span> 해상도 부족</td><td>CI 반폭 ≥ Δ. 구간이 ±Δ 폭보다 넓어 동등을 보일 수 없음</td><td><a href="step-6.html#stage1">⑥ 판정 · 해상도 부족</a> <span class="badge-int">내부 기준(문헌 근거 없음)</span></td></tr>
+<tr><td><span class="pill hold">미결</span> 경계</td><td>구간이 −Δ 또는 +Δ에 걸침</td><td><a href="step-6.html#stage1">⑥ 판정 · 경계</a> <span class="badge-int">내부 기준(문헌 근거 없음)</span></td></tr>
+</tbody></table></div>
+</section>
+
+<section id="figure"><h2>그림</h2>
+<figure class="cfig" id="fig-tost" data-anim="tost">
+ <svg viewBox="0 0 640 170" role="img" aria-labelledby="fig-tost-t">
+  <title id="fig-tost-t">구간 위치에 따라 판정이 동등 → 미결 → 차이로 바뀜</title>
+  <rect class="band" x="159.224" y="40.0" width="321.552" height="80.0"/>
+  <line class="okl" x1="159.224" y1="40.0" x2="159.224" y2="120.0"/>
+  <line class="okl" x1="480.776" y1="40.0" x2="480.776" y2="120.0"/>
+  <text x="159.224" y="32.0" text-anchor="middle">−Δ −6.699</text>
+  <text x="480.776" y="32.0" text-anchor="middle">+Δ 6.699</text>
+  <line class="ax" x1="80.0" y1="130.0" x2="560.0" y2="130.0"/>
+  <line class="ax" x1="80.0" y1="125.0" x2="80.0" y2="135.0"/>
+  <line class="ax" x1="200.0" y1="125.0" x2="200.0" y2="135.0"/>
+  <line class="ax" x1="320.0" y1="125.0" x2="320.0" y2="135.0"/>
+  <line class="ax" x1="440.0" y1="125.0" x2="440.0" y2="135.0"/>
+  <line class="ax" x1="560.0" y1="125.0" x2="560.0" y2="135.0"/>
+  <text x="80.0" y="150.0" text-anchor="middle">−10</text>
+  <text x="200.0" y="150.0" text-anchor="middle">−5</text>
+  <text x="320.0" y="150.0" text-anchor="middle">0</text>
+  <text x="440.0" y="150.0" text-anchor="middle">5</text>
+  <text x="560.0" y="150.0" text-anchor="middle">10</text>
+  <line id="tost-ci" class="ok" x1="334.64" y1="80.0" x2="346.448" y2="80.0" stroke-width="4"/>
+  <line id="tost-c0" class="ok" x1="334.64" y1="72.0" x2="334.64" y2="88.0"/>
+  <line id="tost-c1" class="ok" x1="346.448" y1="72.0" x2="346.448" y2="88.0"/>
+  <text id="tost-lab" x="340.544" y="66.0" text-anchor="middle">90% CI [0.610, 1.102]</text>
+ </svg>
+ <figcaption class="s">띠 = ±Δ 안(예시 ITEM Δ 6.699) · 굵은 선 = 90% 신뢰구간 · 슬라이더로 구간을 동등 · 미결 · 차이 세 자리로 옮김</figcaption>
+</figure>
+<div class="ctl" hidden><input id="tost-ctl" type="range" min="1" max="3" step="1" value="1" aria-label="판정 상태"><span class="s">동등 · 미결 · 차이</span></div>
+<p class="s" id="tost-out" aria-live="polite"><span class="pill ok">동등</span> 예시 ITEM 구간 [0.610, 1.102] 전체가 ±Δ 6.699 안</p>
+<div class="tw"><table><thead><tr><th>90% 신뢰구간</th><th>판정</th><th>이유</th></tr></thead><tbody>
+<tr><td>[0.610, 1.102] (예시 ITEM)</td><td><span class="pill ok">동등</span></td><td>구간 전체가 ±6.699 안</td></tr>
+<tr><td>+Δ에 걸친 구간</td><td><span class="pill hold">미결</span></td><td>구간이 +6.699에 걸침(경계)</td></tr>
+<tr><td>+Δ보다 통째로 위인 구간</td><td><span class="pill bad">차이</span></td><td>구간 전체가 +6.699 밖</td></tr>
+</tbody></table></div>
+<p class="look"><b>여기서 볼 것</b> · 판정은 b 한 점이 아니라 구간 전체의 자리로 정함. 구간 끝 하나라도 ±Δ 선을 넘으면 더는 동등이 아님</p>
+<p class="s">이 구간을 점 하나로 찍은 그림이 판정 지도 → <a href="c-map.html">판정 지도는 왜 삼각형인가</a> (움직이는 그림)</p>
+
+<figure class="cfig" id="ftost" data-anim="steps" data-start="3">
+<svg viewBox="0 0 640 180" role="img" aria-labelledby="ftost-t"><title id="ftost-t">비교 조건 이동 b에 따라 바뀌는 동등 · 미결 · 차이 비율 (모의실험)</title>
+<text x="0" y="18">실제 이동 b</text><text id="ftost-b" class="val" x="96" y="18">5</text><text x="400" y="18">띠 = ±Δ 중앙값 6.409</text>
+<rect class="band" x="166.184" y="30" width="307.632" height="24"/>
+<line class="ax" x1="80" y1="56" x2="560" y2="56"/>
+<line id="ftost-m" class="hi" x1="440" y1="28" x2="440" y2="56" stroke-width="3"/>
+<text x="80" y="72" text-anchor="middle">−10</text><text x="200" y="72" text-anchor="middle">−5</text><text x="320" y="72" text-anchor="middle">0</text><text x="440" y="72" text-anchor="middle">5</text><text x="560" y="72" text-anchor="middle">10</text>
+<text x="0" y="108">동등</text><svg x="96" y="96" width="416" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="ftost-ok" class="pb-ok" width="83.8" height="16"/></svg><text id="ftost-okt" class="val" x="520" y="108">83.8%</text>
+<text x="0" y="140">미결</text><svg x="96" y="128" width="416" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="ftost-hold" class="pb-hold" width="11.7" height="16"/></svg><text id="ftost-holdt" class="val" x="520" y="140">11.7%</text>
+<text x="0" y="172">차이</text><svg x="96" y="160" width="416" height="16" viewBox="0 0 100 16" preserveAspectRatio="none"><rect class="pb-bg" width="100" height="16"/><rect id="ftost-bad" class="pb-bad" width="4.5" height="16"/></svg><text id="ftost-badt" class="val" x="520" y="172">4.5%</text>
+</svg>
+<div class="ctl" hidden><label for="ftost-ctl">b</label><input id="ftost-ctl" type="range" min="0" max="7" step="1" value="3"><output for="ftost-ctl">b 5</output><button type="button" class="play" aria-pressed="false">재생</button></div>
+<div class="tw"><table class="states"><thead><tr><th>b</th><th>동등</th><th>미결</th><th>차이</th><th>Δ 중앙값</th><th>CI 폭 중앙값</th></tr></thead><tbody>
+<tr><td>0</td><td>100.0%</td><td>0.0%</td><td>0.0%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>2</td><td>100.0%</td><td>0.0%</td><td>0.0%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>4</td><td>98.0%</td><td>1.8%</td><td>0.1%</td><td>6.409</td><td>0.613</td></tr>
+<tr class="now"><td>5</td><td>83.8%</td><td>11.7%</td><td>4.5%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>6</td><td>53.3%</td><td>20.6%</td><td>26.1%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>7</td><td>22.1%</td><td>19.1%</td><td>58.9%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>8</td><td>5.1%</td><td>8.8%</td><td>86.0%</td><td>6.409</td><td>0.613</td></tr>
+<tr><td>10</td><td>0.1%</td><td>0.4%</td><td>99.6%</td><td>6.409</td><td>0.613</td></tr>
+</tbody></table></div>
+<script type="application/json" class="states">[
+{"label":"b 0","set":{"ftost-b":{"text":"0"},"ftost-m":{"x1":"320","x2":"320"},"ftost-ok":{"width":"100.0"},"ftost-okt":{"text":"100.0%"},"ftost-hold":{"width":"0.0"},"ftost-holdt":{"text":"0.0%"},"ftost-bad":{"width":"0.0"},"ftost-badt":{"text":"0.0%"}}},
+{"label":"b 2","set":{"ftost-b":{"text":"2"},"ftost-m":{"x1":"368","x2":"368"},"ftost-ok":{"width":"100.0"},"ftost-okt":{"text":"100.0%"},"ftost-hold":{"width":"0.0"},"ftost-holdt":{"text":"0.0%"},"ftost-bad":{"width":"0.0"},"ftost-badt":{"text":"0.0%"}}},
+{"label":"b 4","set":{"ftost-b":{"text":"4"},"ftost-m":{"x1":"416","x2":"416"},"ftost-ok":{"width":"98.0"},"ftost-okt":{"text":"98.0%"},"ftost-hold":{"width":"1.8"},"ftost-holdt":{"text":"1.8%"},"ftost-bad":{"width":"0.1"},"ftost-badt":{"text":"0.1%"}}},
+{"label":"b 5","set":{"ftost-b":{"text":"5"},"ftost-m":{"x1":"440","x2":"440"},"ftost-ok":{"width":"83.8"},"ftost-okt":{"text":"83.8%"},"ftost-hold":{"width":"11.7"},"ftost-holdt":{"text":"11.7%"},"ftost-bad":{"width":"4.5"},"ftost-badt":{"text":"4.5%"}}},
+{"label":"b 6","set":{"ftost-b":{"text":"6"},"ftost-m":{"x1":"464","x2":"464"},"ftost-ok":{"width":"53.3"},"ftost-okt":{"text":"53.3%"},"ftost-hold":{"width":"20.6"},"ftost-holdt":{"text":"20.6%"},"ftost-bad":{"width":"26.1"},"ftost-badt":{"text":"26.1%"}}},
+{"label":"b 7","set":{"ftost-b":{"text":"7"},"ftost-m":{"x1":"488","x2":"488"},"ftost-ok":{"width":"22.1"},"ftost-okt":{"text":"22.1%"},"ftost-hold":{"width":"19.1"},"ftost-holdt":{"text":"19.1%"},"ftost-bad":{"width":"58.9"},"ftost-badt":{"text":"58.9%"}}},
+{"label":"b 8","set":{"ftost-b":{"text":"8"},"ftost-m":{"x1":"512","x2":"512"},"ftost-ok":{"width":"5.1"},"ftost-okt":{"text":"5.1%"},"ftost-hold":{"width":"8.8"},"ftost-holdt":{"text":"8.8%"},"ftost-bad":{"width":"86.0"},"ftost-badt":{"text":"86.0%"}}},
+{"label":"b 10","set":{"ftost-b":{"text":"10"},"ftost-m":{"x1":"560","x2":"560"},"ftost-ok":{"width":"0.1"},"ftost-okt":{"text":"0.1%"},"ftost-hold":{"width":"0.4"},"ftost-holdt":{"text":"0.4%"},"ftost-bad":{"width":"99.6"},"ftost-badt":{"text":"99.6%"}}}
+]</script>
+<figcaption>모의실험(합성 예시 모형) · 참값 100, die 퍼짐 <a class="g" href="glossary.html#sd"><abbr title="표준편차 · 값이 평균 둘레로 퍼진 보통 크기">표준편차(SD, Standard Deviation)</abbr></a> 3, σ<sub>die</sub> 0.98965, σ<sub>run</sub> 0.50389, J 3, die 60개, <a class="g" href="glossary.html#cand"><abbr title="비교 조건 · 바꾸려는 조건">비교 조건(Candidate)</abbr></a> 이동 b만 바꿈, 값마다 판정 2000회 · Δ는 매번 다시 추정(중앙값 6.409), CI 폭 중앙값 0.613 · σ 두 값 = 예시 <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>의 도구 추정값 <span class="badge-int">내부 기준(문헌 근거 없음)</span></figcaption>
+</figure>
+<p class="look"><b>여기서 볼 것</b> · b 4까지는 98.0% 이상 동등. b가 Δ 중앙값 6.409 둘레(5~7)를 지날 때 미결이 가장 많고(b 6에서 20.6%), b 10이면 99.6% 차이. 미결은 '같다'와 '다르다' 사이 경계 몫</p>
+</section>
+
+<section id="plain-more"><h2>쉬운 말 더 보기</h2>
+<ul>
+<li>예시: [0.610, 1.102]가 ±6.699 안<ul class="chain"><li>→ 동등 <span class="from">0.610 · 1.102 = ④ 차이(편향)와 90% 신뢰구간 구하기, 6.699 = ⑤ 허용 범위 Δ 정하기</span></li></ul></li>
+</ul></section>
+
+<section id="example"><h2>예시 계산</h2>
+<p class="s">예시 데이터: <a href="step-2.html#ex-data">합성 예시 die 6개 표</a></p>
+<ol class="calc">
+<li>90% CI = [0.610, 1.102] <span class="from">④ 차이(편향)와 90% 신뢰구간 구하기 · <a href="c-signci.html">부호검정과 중앙값 90% 신뢰구간</a> · <a href="c-median-ci.html">중앙값의 90% 신뢰구간 구하는 법</a></span></li>
+<li>Δ = 5.0 + 1.69896 = 6.69896 ≈ 6.699 <span class="from">⑤ 허용 범위 Δ 정하기 · <a href="c-delta.html">허용 범위 Δ</a></span></li>
+<li>아래 검정: 아래 끝 0.610 &gt; −6.699 → '편향 &gt; −Δ' 통과</li>
+<li>위 검정: 위 끝 1.102 &lt; +6.699 → '편향 &lt; +Δ' 통과</li>
+<li>[0.610, 1.102] ⊂ (−6.699, +6.699) → 동등. 도구 판정도 동등, 이유 '90% 신뢰구간이 ±Δ 안'</li>
+<li>구간이 ±Δ 안에 통째로 있으니 CI 반폭도 Δ보다 작음 → 해상도 부족 미결 아님</li>
+<li>참고: t-test p = 4.2e-07 → 유의차가 있어도 판정은 동등. t-test는 판정에 안 씀<sup class="fnref"><a href="#fn3" aria-label="출처 3">3</a></sup></li>
+</ol></section>
+
+<section id="sources"><h2>출처</h2>
+<ol class="fn">
+<li id="fn1">TOST = 90% 신뢰구간이 ±Δ 안: Schuirmann (1987) J. Pharmacokinet. Biopharm. 15:657-680 · 초록 · <a href="https://link.springer.com/article/10.1007/BF01068419" rel="noopener" target="_blank">링크</a> / FDA, Statistical Approaches to Establishing Bioequivalence (2001) · IV, VI.B.1.a · <a href="https://www.gmp-compliance.org/files/guidemgr/3616fnl.pdf" rel="noopener" target="_blank">링크</a> / ASTM E2935-21 · 1.1, 1.2 · <a href="https://store.astm.org/e2935-21.html" rel="noopener" target="_blank">링크</a></li>
+<li id="fn2">동등 / 차이 / 미결 세 갈래 <span class="badge-int">내부 기준(문헌 근거 없음)</span></li>
+<li id="fn3">참고 지표 t-test: NIST/SEMATECH e-Handbook · 7.3.1.1 Analysis of paired observations · <a href="https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm" rel="noopener" target="_blank">링크</a></li>
+<li id="fn4"><span class="badge-int">내부 기준(문헌 근거 없음)</span> 쉬운 말 설명과 그림(모의실험)</li>
+</ol></section>
+
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-signci.html">부호검정과 중앙값 90% 신뢰구간</a></li><li><a href="c-median-ci.html">중앙값의 90% 신뢰구간 구하는 법</a></li><li><a href="c-delta.html">허용 범위 Δ</a></li><li><a href="c-ttest-vs-tost.html">t-test와 TOST</a></li><li><a href="step-6.html">⑥ 판정</a></li><li><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></li></ul></nav>

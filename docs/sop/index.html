@@ -1,133 +1,37 @@
-<!doctype html><html lang="ko" data-d41><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>개요 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"></head><body>
-<details class="fp-fold"><summary>흐름도 ⓪~⑦</summary>
-<nav aria-label="흐름도">
-<div class="fp">
-<ol class="fp-top">
-<li><a href="step-0.html" data-step="0">⓪ 표본 크기 정하기</a></li>
-<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
-<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
-<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
-</ol>
-<div class="fp-fork">
-<div class="fp-col"><span class="fp-lab">정량</span><ol>
-<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
-<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
-</ol></div>
-<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)"><span>④·⑤ 그대로 씀*</span></span></div>
-</div>
-<ol class="fp-join"><li><a href="step-6.html" data-step="6">⑥ 판정</a></li></ol>
-<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
-<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)</p>
-<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
-<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
-</div>
-</nav>
-</details><nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html" aria-current="page">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 구하기</a><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a><a href="step-6.html">⑥ 판정</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a><a href="concepts.html">개념 익히기</a><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></nav>
-<nav class="fp-wide" aria-label="흐름도">
-<div class="fp">
-<p class="fp-h">흐름도 ⓪~⑦</p>
-<ol class="fp-top">
-<li><a href="step-0.html" data-step="0">⓪ 표본 크기 정하기</a></li>
-<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
-<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
-<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
-</ol>
-<div class="fp-fork">
-<div class="fp-col"><span class="fp-lab">정량</span><ol>
-<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
-<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
-</ol></div>
-<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)"><span>④·⑤ 그대로 씀*</span></span></div>
-</div>
-<ol class="fp-join"><li><a href="step-6.html" data-step="6">⑥ 판정</a></li></ol>
-<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
-<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 DOE 수준 구간과 LoQ로 판정 (LoQ 판정)</p>
-<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
-<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
-</div>
-</nav><main><div class="wrap">
-<header class="hero">
-<h1>DC Test 동일성 검증</h1>
-<!-- EDIT: 정의 문장 --><p>같은 <a class="g" href="glossary.html#die"><abbr title="die · wafer 위 칩 하나">die</abbr></a>를 <a class="g" href="glossary.html#ref"><abbr title="기준 조건 · 지금 쓰는 조건">기준 조건(Reference)</abbr></a>과 <a class="g" href="glossary.html#cand"><abbr title="비교 조건 · 바꾸려는 조건">비교 조건(Candidate)</abbr></a>으로 재서, 두 조건을 같다고 볼 수 있는지 <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>마다 판정하는 절차 · 장비, <a class="g" href="glossary.html#probecard"><abbr title="프로브카드 · 바늘을 die 패드에 대어 장비와 die를 전기로 잇는 부품">프로브카드</abbr></a>, 측정 조건 중 무엇이 바뀌어도 같은 방법</p><!-- /EDIT -->
-<p class="s">약어·용어 · <a class="g" href="glossary.html#loq"><abbr title="정량한계 · 믿고 숫자로 비교할 수 있는 가장 작은 크기">정량한계(LoQ, Limit of Quantitation)</abbr></a> · <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a> · <a class="g" href="glossary.html#tost"><abbr title="두 번의 한쪽 검정 · '차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등">두 번의 한쪽 검정(TOST, Two One-Sided Tests)</abbr></a> · <a class="g" href="glossary.html#run"><abbr title="회차 · 같은 die들을 한 차례 모두 재는 것">회차(run)</abbr></a></p>
-</header>
+<!doctype html>
+<html lang="ko" data-layer="easy">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>개요 · DC Test 동일성 검증</title>
+<link rel="stylesheet" href="assets/sop.css">
+<script>try{if(localStorage.getItem('sop-layer')==='expert')document.documentElement.setAttribute('data-layer','expert');}catch(e){}</script>
+</head>
+<body data-page="index">
+<script>(function(){function f(m){var b=document.body;if(!b)return;b.setAttribute('data-sop-error','');var n=document.getElementById('sop-error');if(n){n.hidden=false;n.textContent='쪽 스크립트 오류: '+m;}}window.SOP_FAIL=f;window.addEventListener('error',function(e){var t=e.target;f(e.message||('불러오지 못함 '+((t&&(t.src||t.href))||'')));},true);window.addEventListener('unhandledrejection',function(e){f(String(e.reason));});})();</script>
+<header class="top"><a class="brand" href="index.html">DC Test 동일성 검증</a>
+<div class="layer-toggle" role="group" aria-label="보기"><button type="button" data-set-layer="easy">쉽게</button><button type="button" data-set-layer="expert">전문까지</button></div></header>
+<div id="sop-error" class="sop-error" role="alert" hidden></div>
+<nav class="side" aria-label="문서"><a href="index.html" aria-current="page">개요</a><div class="nav-group"><p class="nav-h">따라하기</p><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 나누기</a><a href="step-3.html">③ LoQ와 ITEM 유형</a><a href="step-4.html">④ 변화 구간</a><a href="step-5.html">⑤ 허용폭 Δ</a><a href="step-6.html">⑥ 판정 3단계</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="journey.html">예제 따라가기</a></div><div class="nav-group"><p class="nav-h">결과 읽기</p><a href="reading.html">결과 읽는 법</a><a href="columns.html">열 사전</a></div><div class="nav-group"><p class="nav-h">공부하기</p><a href="concepts.html">개념 익히기</a><details class="nav-more"><summary>개념 19쪽</summary><a href="c-median.html">중앙값과 평균</a><a href="c-mad.html">표준편차 σ와 MAD</a><a href="c-sigma-split.html">σ_die와 σ_run</a><a href="c-resolution.html">분해능과 √12</a><a href="c-loq.html">LoQ와 10배</a><a href="c-signci.html">부호검정과 중앙값 90% 구간</a><a href="c-median-ci.html">중앙값 90% 구간 구하기</a><a href="c-tfactor.html">회차 예측 한계 계수</a><a href="c-delta.html">허용폭 Δ</a><a href="c-tost.html">TOST와 동등 · 차이 · 미결</a><a href="c-map.html">판정 지도는 왜 삼각형인가</a><a href="c-loq-judge.html">LoQ 아래 판정</a><a href="c-routes.html">ITEM 유형과 판정 길</a><a href="c-abs-tol.html">0 근처와 절대 허용폭</a><a href="c-log-scale.html">잡음이 값에 비례하면 log</a><a href="c-efficiency.html">중앙값 효율 1.25</a><a href="c-power.html">검정력과 표본 크기</a><a href="c-ttest-vs-tost.html">t-test와 TOST</a><a href="c-precision.html">정밀도 비교 (제안)</a></details></div><div class="nav-group"><p class="nav-h">참고</p><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></div></nav>
+<main id="main">
+<article class="page">
+<header class="page-head"><p class="kicker">개요</p><h1>DC Test 동일성 검증</h1><p class="purpose">DC Test 측정 항목(ITEM)마다 바꾼 조건(DOE)이 지금 조건(POR)과 같다고 볼 수 있는지 판정하는 절차.</p></header>
+<section class="layer easy" aria-label="쉽게">
+<p class="lead">공정이나 장비를 바꿀 때, 같은 die를 지금 조건으로 여러 번, 바꾼 조건으로 한 번 잽니다. 측정은 늘 흔들리므로 바뀐 정도를 90% 구간으로 잡고, 그 구간이 미리 정한 허용폭 Δ 안에 들어오면 같다고 봅니다. 결과는 ITEM마다 동등 · 미결 · 차이 셋 중 하나입니다.</p>
 
-<section id="procedure"><h2>검증 흐름</h2>
-<figure class="flowbig">
-<figcaption>상자를 누르면 그 단계 쪽으로 이동 · 상자 아래 숫자는 합성 예시 ITEM 하나의 값 · 점선은 미결·차이일 때만</figcaption>
-<div class="fb">
-<a title="예비 측정으로 J와 die 수 확인 · 예시 J 3 · die 60개 · 최소 여유 0.6067" class="fb-box" href="step-0.html"><strong>⓪ 표본 크기 정하기</strong><span class="d">예비 측정으로 J와 die 수 확인</span><span class="n">die 60개</span></a>
-<span class="fb-ar" aria-hidden="true"></span>
-<a title="같은 die를 기준 조건 J회 + 비교 조건 1회, 매번 재터치다운 · 예시 기준 3회 + 비교 1회 × die 60개" class="fb-box" href="step-1.html"><strong>① 반복 측정</strong><span class="d">같은 die를 기준 조건 J회 + 비교 조건 1회, 매번 재터치다운</span><span class="n">기준 3회 + 비교 1회</span></a>
-<span class="fb-ar" aria-hidden="true"></span>
-<a title="반복성 σdie, 회차 이동 σrun · 예시 σdie 0.98965 · σrun 0.50389" class="fb-box" href="step-2.html"><strong>② 흔들림 구하기</strong><span class="d">반복성 σ<sub>die</sub>, 회차 이동 σ<sub>run</sub></span><span class="n">σ<sub>die</sub> 0.98965</span></a>
-<span class="fb-ar" aria-hidden="true"></span>
-<a title="정량 / LoQ 미만 · 예시 LoQ 9.8965 · 중앙값 100 → 정량" class="fb-box" href="step-3.html"><strong>③ 정량한계(LoQ)로 구간 나누기</strong><span class="d">정량 / LoQ 미만</span><span class="n">LoQ 9.8965</span></a>
-<div class="fb-r fb-rs"><span class="fb-rl">정량 (중앙값 ≥ LoQ) → ④</span></div>
-<div class="fb-r fb-rm" aria-hidden="true"></div>
-<div class="fb-r fb-rm" aria-hidden="true"></div>
-<div class="fb-r fb-rm" aria-hidden="true"></div>
-<div class="fb-r fb-rd"><span class="fb-rl" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 LoQ 판정(DOE 수준 구간을 LoQ와 비교)">정량한계 미만 → ⑥ (④ 신뢰구간 · ⑤ 허용 범위 그대로)*</span></div>
-<div class="fb-r fb-rm" aria-hidden="true"></div>
-<div class="fb-r fb-re" aria-hidden="true"></div>
-<a title="편향 b와 90% 신뢰구간 · 예시 b 0.786 · CI [0.610, 1.102]" class="fb-box fb-in" href="step-4.html"><strong>④ 차이(편향)와 90% 신뢰구간 구하기</strong><span class="d">편향 b와 90% 신뢰구간</span><span class="n">CI [0.610, 1.102]</span></a>
-<span class="fb-ar" aria-hidden="true"></span>
-<a title="실용 한계 + 회차 예측 한계 · 예시 Δ 6.699 (5.0 + 1.699)" class="fb-box" href="step-5.html"><strong>⑤ 허용 범위 Δ 정하기</strong><span class="d">실용 한계 + 회차 예측 한계</span><span class="n">Δ 6.699</span></a>
-<span class="fb-ar" aria-hidden="true"></span>
-<a title="1단계 TOST → 2단계 LoQ 판정(LoQ 미만) → 3단계 유형별 판정(동등 아닌 ITEM) → 동등 / 차이 / 미결 · 예시 CI [0.610, 1.102] ⊂ [−6.699, 6.699] → 동등" class="fb-box fb-in" href="step-6.html"><strong>⑥ 판정</strong><span class="d">1단계 TOST → 2단계 LoQ 판정 → 3단계 유형별 판정 → 동등 / 차이 / 미결</span><span class="n">동등</span></a>
-<span class="fb-ar dash" aria-hidden="true"></span>
-<a title="회차 추가, 측정 조건 점검, 사람 판정 기록 · 예시 예시는 동등이라 해당 없음" class="fb-box opt" href="step-7.html"><span class="tag">미결·차이일 때만</span><strong>⑦ 미결·차이일 때 다음 행동</strong><span class="d">회차 추가, 측정 조건 점검, 사람 판정 기록</span><span class="n">예시는 해당 없음</span></a>
+<h2>전체 흐름</h2>
+<figure class="flowchart" id="flow"><svg viewBox="-2 -2 764 350" role="img" aria-label="판정 흐름도: ⓪~⑤ 준비, ⑥ 판정 3단계, ⑦ 미결·차이일 때 다음 행동"><defs><marker id="fc-head" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z"/></marker></defs><a href="step-0.html" class="fc-link"><g class="fc-box fc-step"><rect x="0.0" y="0" width="116" height="64" rx="10"/><text x="58.0" y="27.0" class="fc-a">⓪</text><text x="58.0" y="47.0" class="fc-b">표본 크기 정하기</text></g></a><line x1="118.0" y1="32.0" x2="126.80000000000001" y2="32.0" class="fc-ar " marker-end="url(#fc-head)"/><a href="step-1.html" class="fc-link"><g class="fc-box fc-step"><rect x="128.8" y="0" width="116" height="64" rx="10"/><text x="186.8" y="27.0" class="fc-a">①</text><text x="186.8" y="47.0" class="fc-b">반복 측정</text></g></a><line x1="246.8" y1="32.0" x2="255.60000000000002" y2="32.0" class="fc-ar " marker-end="url(#fc-head)"/><a href="step-2.html" class="fc-link"><g class="fc-box fc-step"><rect x="257.6" y="0" width="116" height="64" rx="10"/><text x="315.6" y="27.0" class="fc-a">②</text><text x="315.6" y="47.0" class="fc-b">흔들림 나누기</text></g></a><line x1="375.6" y1="32.0" x2="384.40000000000003" y2="32.0" class="fc-ar " marker-end="url(#fc-head)"/><a href="step-3.html" class="fc-link"><g class="fc-box fc-step"><rect x="386.40000000000003" y="0" width="116" height="64" rx="10"/><text x="444.40000000000003" y="27.0" class="fc-a">③</text><text x="444.40000000000003" y="47.0" class="fc-b">LoQ와 ITEM 유형</text></g></a><line x1="504.40000000000003" y1="32.0" x2="513.2" y2="32.0" class="fc-ar " marker-end="url(#fc-head)"/><a href="step-4.html" class="fc-link"><g class="fc-box fc-step"><rect x="515.2" y="0" width="116" height="64" rx="10"/><text x="573.2" y="27.0" class="fc-a">④</text><text x="573.2" y="47.0" class="fc-b">변화 구간</text></g></a><line x1="633.2" y1="32.0" x2="642.0" y2="32.0" class="fc-ar " marker-end="url(#fc-head)"/><a href="step-5.html" class="fc-link"><g class="fc-box fc-step"><rect x="644.0" y="0" width="116" height="64" rx="10"/><text x="702.0" y="27.0" class="fc-a">⑤</text><text x="702.0" y="47.0" class="fc-b">허용폭 Δ</text></g></a><path d="M58 74 V84 H702 V74" class="fc-brace"/><line x1="380" y1="84" x2="380" y2="108" class="fc-ar " marker-end="url(#fc-head)"/><rect x="0" y="112" width="760" height="150" rx="14" class="fc-panel"/><a href="step-6.html" class="fc-link"><text x="20" y="140" class="fc-title">⑥ 판정 3단계</text></a><a href="step-6.html#stage1" class="fc-link"><g class="fc-box fc-stage s1"><rect x="20" y="160" width="210" height="80" rx="10"/><text x="125.0" y="195.0" class="fc-a">1 TOST</text><text x="125.0" y="215.0" class="fc-b">모든 ITEM</text></g></a><line x1="234" y1="200" x2="271" y2="200" class="fc-ar " marker-end="url(#fc-head)"/><a href="step-6.html#loq" class="fc-link"><g class="fc-box fc-stage s2"><rect x="275" y="160" width="210" height="80" rx="10"/><text x="380.0" y="195.0" class="fc-a">2 LoQ 판정</text><text x="380.0" y="215.0" class="fc-b">POR 값이 LoQ 아래일 때</text></g></a><line x1="489" y1="200" x2="526" y2="200" class="fc-ar " marker-end="url(#fc-head)"/><a href="step-6.html#typed" class="fc-link"><g class="fc-box fc-stage s3"><rect x="530" y="160" width="210" height="80" rx="10"/><text x="635.0" y="195.0" class="fc-a">3 판정 길</text><text x="635.0" y="215.0" class="fc-b">1·2단계가 동등이 아닐 때</text></g></a><line x1="140" y1="262" x2="140" y2="294" class="fc-ar " marker-end="url(#fc-head)"/><g class="fc-out"><rect x="80" y="298" width="120" height="34" rx="17" class="v-eq"/><text x="140" y="320">동등 · 기록</text></g><line x1="520" y1="262" x2="520" y2="294" class="fc-ar " marker-end="url(#fc-head)"/><g class="fc-out"><rect x="430" y="298" width="180" height="34" rx="17" class="v-hold"/><text x="520" y="320">미결 · 차이</text></g><line x1="612" y1="315" x2="636" y2="315" class="fc-ar dash" marker-end="url(#fc-head)"/><a href="step-7.html" class="fc-link"><g class="fc-box fc-opt"><rect x="640" y="288" width="120" height="56" rx="10"/><text x="700.0" y="311.0" class="fc-a">⑦ 다음 행동</text><text x="700.0" y="331.0" class="fc-b">미결·차이일 때만</text></g></a></svg><figcaption>상자를 누르면 그 단계 쪽으로 갑니다.</figcaption></figure>
+
+<h2>두 가지 읽기</h2>
+<div class="entry">
+<a href="run.html"><b>따라하기</b><span>실행 방법부터 ⓪~⑦ 단계를 차례로. 예제 ITEM 하나를 끝까지 따라갑니다.</span></a>
+<a href="concepts.html"><b>공부하기</b><span>중앙값, 90% 구간, TOST, LoQ 같은 개념을 그림으로 익힙니다.</span></a>
 </div>
-</figure>
-<p class="s fb-loqnote">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 LoQ 판정(DOE 수준 구간을 LoQ와 비교)</p>
-<details class="fb-alt"><summary>흐름을 글 목록으로 보기</summary>
-<ol>
-<li><a href="step-0.html">⓪ 표본 크기 정하기</a> · 예비 측정으로 J와 die 수 확인 → ① · 예시: J 3 · die 60개 · 최소 여유 0.6067</li>
-<li><a href="step-1.html">① 반복 측정</a> · 같은 die를 기준 조건 J회 + 비교 조건 1회, 매번 재터치다운 → ② · 예시: 기준 3회 + 비교 1회 × die 60개</li>
-<li><a href="step-2.html">② 흔들림 구하기</a> · 반복성 σ<sub>die</sub>, 회차 이동 σ<sub>run</sub> → ③ · 예시: σ<sub>die</sub> 0.98965 · σ<sub>run</sub> 0.50389</li>
-<li><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a> · 중앙값 ≥ LoQ면 정량 → ④ · 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 LoQ 판정 · 예시: LoQ 9.8965 · 중앙값 100 → 정량</li>
-<li><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a> · 편향 b와 90% 신뢰구간 → ⑤ · 예시: b 0.786 · CI [0.610, 1.102]</li>
-<li><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a> · 실용 한계 + 회차 예측 한계 → ⑥ · 예시: Δ 6.699 (5.0 + 1.699)</li>
-<li><a href="step-6.html">⑥ 판정</a> · 1단계 TOST → 2단계 LoQ 판정(LoQ 미만) → 3단계 유형별 판정(1·2단계에서 동등이 아닌 ITEM) → 동등 / 차이 / 미결 · 미결·차이일 때만 → ⑦ · 예시: CI [0.610, 1.102] ⊂ [−6.699, 6.699] → 동등</li>
-<li><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a> · 회차 추가, 측정 조건 점검, 사람 판정 기록 · 예시: 예시는 동등이라 해당 없음</li>
-</ol></details>
-<div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th></tr></thead><tbody>
-<tr><td>J</td><td>기준 조건 반복 회차 수</td></tr>
-<tr><td>σ<sub>die</sub></td><td>반복성 · 같은 die를 다시 잴 때의 흔들림</td></tr>
-<tr><td>σ<sub>run</sub></td><td>회차 이동 · 회차마다 모든 die가 함께 움직이는 크기</td></tr>
-<tr><td>d</td><td>die별 차이 = 비교 조건 − 기준 조건 J회 평균</td></tr>
-<tr><td>b</td><td>편향 · d의 중앙값</td></tr>
-<tr><td>Δ</td><td>허용 범위 · 차이가 이 안이면 같다고 보는 한계</td></tr>
-</tbody></table></div>
+
+<h2>예제 ITEM 유형</h2>
+<p>유형마다 예제 하나를 골라 모든 단계에서 같은 값을 따라갑니다. 숫자는 합성 데이터를 실제 도구로 판정한 결과입니다.</p>
+<div data-journeys="cards"></div>
 </section>
-
-<section id="result"><h2>판정 결과 세 가지</h2>
-<p class="key">기준 조건을 다시 재도 생기는 차이보다 크지 않으면 같다고 봄</p>
-<div class="row3">
-<div class="card"><p><span class="pill ok">동등</span></p><p>비교 조건을 기준 조건과 같다고 봄</p><p class="s">합성 예시 ITEM 판정 = 동등</p></div>
-<div class="card"><p><span class="pill bad">차이</span></p><p>비교 조건이 기준 조건과 다르다고 봄</p><p class="s">다음: <a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></p></div>
-<div class="card"><p><span class="pill hold">미결</span></p><p>이번 측정으로는 같다고도 다르다고도 할 수 없음</p><p class="s">다음: <a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a></p></div>
-</div>
-<ul>
-<li>정량 구간(⑥ TOST): 90% 신뢰구간이 −Δ~+Δ 안이면 동등, 완전히 밖이면 차이, 걸치면 미결</li>
-<li>LoQ 미만 구간(⑥ 2단계): DOE 수준 구간이 LoQ 아래거나 걸치면 동등('&lt;LoQ 보고 일치'), 통째로 위면 차이 · <a href="c-loq-judge.html">LoQ 아래 판정</a></li>
-<li>1·2단계에서 동등이 아니면(⑥ 3단계): ITEM 유형에 맞는 판정 길(절대 허용폭, log TOST, 한계 비교 등)로 다시 판정 · <a href="c-routes.html">ITEM 유형과 판정 길</a></li>
-<li>유효 die가 10개 미만이면 판정하지 않고 미결 · <a href="step-0.html">⓪ 표본 크기 정하기</a></li>
-<li>판정은 ITEM마다 결과표에 기록 · 읽는 법은 <a href="reading.html">결과 읽는 법</a> · 결과 파일 열마다 뜻·수식·볼 것은 <a href="columns.html">열 사전</a></li>
-</ul>
-</section>
-
-<section id="order"><h2>이 문서 읽는 순서</h2>
-<ol>
-<li><a href="run.html">실행 방법</a> · 측정·실행 방법</li>
-<li><a href="step-0.html">단계 ⓪~⑦</a> · 위 흐름도 순서대로. 쪽마다 질문 → 쉬운 말 → 수식 → 그림 → 예시 계산</li>
-<li><a href="reading.html">결과 읽는 법</a> · 결과표 열과 판정 이유 읽기</li>
-<li><a href="columns.html">열 사전</a> · 모든 결과 CSV의 열마다 쉬운 이름, 뜻, 수식, 볼 것</li>
-<li><a href="concepts.html">개념 익히기</a> · 중앙값, 신뢰구간, Δ 같은 개념을 그림으로</li>
-<li><a href="glossary.html">용어집</a> · 약어·기호 풀이</li>
-<li><a href="appendix.html">부록</a> · 근거 대조표, 미해결 항목</li>
-</ol>
-</section>
-
-<footer class="pager"><span></span><a href="run.html">다음 · 실행 방법 →</a></footer>
-</div></main></body></html>
+<footer class="pager"><span></span><a href="run.html" class="next">실행 방법 →</a></footer>
+</article></main>
+<script src="assets/journeys.stub.js"></script>
+<script src="assets/sop.js"></script>
+</body></html>

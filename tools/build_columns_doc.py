@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""열 사전 쪽(docs/sop/columns.html)을 docs/columns/*.csv 에서 만든다.
+"""열 사전 쪽의 본문 조각(docs/sop/src/columns.html)을 docs/columns/*.csv 에서 만든다.
 
-머리글과 왼쪽 목차는 docs/sop/index.html 에서 가져온다. 그래서 목차를 바꾸면 이 쪽도 다시 만들어야 한다
-(tests/test_columns_page.py 가 커밋된 쪽과 새로 만든 쪽이 같은지 본다).
+쪽 틀(목차, 앞뒤 쪽)은 tools/build_sop.py 가 씌운다. CSV 를 고치면 이 도구와 build_sop.py 를 차례로 돌린다
+(tests/test_columns_page.py 가 커밋된 조각과 새로 만든 조각이 같은지 본다).
 
-usage: python tools/build_columns_doc.py          docs/sop/columns.html 을 다시 쓴다
+usage: python tools/build_columns_doc.py          docs/sop/src/columns.html 을 다시 쓴다
 """
 from __future__ import annotations
 
@@ -20,8 +20,7 @@ import columns_doc  # noqa: E402
 from columns_doc import OUTPUTS, ColumnDoc, Output  # noqa: E402
 
 SOP_DIR = ROOT / "docs" / "sop"
-PAGE = SOP_DIR / "columns.html"
-PAGE_NAME = PAGE.name
+PAGE = SOP_DIR / "src" / "columns.html"
 TITLE = "열 사전"
 RAW_DOC = "item_raw"
 # 수식에 나오는 원데이터 입력 파일의 열 (DCNORMAL 의 DATA, --level 파일, --blank-map 파일). raw.csv 열과 함께 '원데이터'
@@ -99,17 +98,6 @@ def inline(text: str) -> str:
     return re.sub(r"`([^`]+)`", r"<code>\1</code>", html.escape(text, quote=False))
 
 
-def shell(index_html: str) -> str:
-    """index.html 의 머리글·목차를 이 쪽 것으로 (제목, 지금 쪽 표시)."""
-    head = index_html[:index_html.index('<main><div class="wrap">') + len('<main><div class="wrap">')]
-    head = re.sub(r"<title>[^<]*</title>", f"<title>{TITLE} · DC Test 동일성 검증</title>", head, count=1)
-    head = head.replace(' aria-current="page"', "")
-    link = f'<a href="{PAGE_NAME}">'
-    if link not in head:
-        raise SystemExit(f"index.html 왼쪽 목차에 {link} 가 없습니다")
-    return head.replace(link, f'<a href="{PAGE_NAME}" aria-current="page">', 1)
-
-
 def where(o: Output) -> str:
     """두 명령이 쓰는 폴더 (dcc 는 <조합>/, run_all 은 --out/)."""
     return " · ".join(f"<code>{html.escape(g)}</code>" for g in o.globs)
@@ -171,11 +159,8 @@ def render() -> str:
 </section>
 
 {chr(10).join(section(o, docs) for o in OUTPUTS)}
-
-<footer class="pager"><a href="reading.html">← 이전 · 결과 읽는 법</a><a href="concepts.html">다음 · 개념 익히기 →</a></footer>
-</div></main></body></html>
 """
-    return shell((SOP_DIR / "index.html").read_text(encoding="utf-8")) + main
+    return main.lstrip("\n")
 
 
 def main() -> int:
