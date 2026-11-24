@@ -34,9 +34,10 @@ def judged(wide: pd.DataFrame, por_cols: list[str]) -> pd.DataFrame:
                          for item, g in wide.groupby("ITEM", sort=False)])
 
 
-def run_write(tmp_path, wide, por_cols, outliers=None, group_of=None) -> dict[str, pd.DataFrame]:
+def run_write(tmp_path, wide, por_cols, outliers=None, group_of=None, level_of=None) -> dict[str, pd.DataFrame]:
     outliers = pd.DataFrame(columns=DIE_COLS + ["ITEM"]) if outliers is None else outliers
-    stability.write(tmp_path, judged(wide, por_cols), wide, por_cols, DIE_COLS, outliers, group_of)
+    stability.write(tmp_path, judged(wide, por_cols), wide, por_cols, DIE_COLS, outliers, group_of,
+                    level_of=level_of, r=0.05)
     return {p.stem: pd.read_csv(p, encoding="utf-8-sig", keep_default_na=False) for p in tmp_path.glob("*.csv")}
 
 
@@ -108,3 +109,35 @@ def test_rerun_without_groups_removes_old_groups_csv(tmp_path):
     assert (tmp_path / "groups.csv").is_file()
     run_write(tmp_path, wide, por_cols)
     assert not (tmp_path / "groups.csv").exists()
+
+
+def test_level_name_and_order():
+    from por_doe_compare import ItemInfo, level_name
+    assert [level_name(ItemInfo(L, k, None, False)) for L, k in ((1e-8, "A"), (0.1, "V"), (1e-14, "A"))] == [
+        "10nA", "100mV", "10fA"]
+    assert level_name(ItemInfo(float("nan"), "", None, True)) == ""
+    assert sorted(["100mV", "LEVEL 없음", "1uA", "10nA"], key=stability.level_order) == [
+        "10nA", "1uA", "100mV", "LEVEL 없음"]
+
+
+def test_group_levels_split_bands_and_precision_by_group_and_level(tmp_path):
+    wide, por_cols = make_wide(8, 3, seed=11)
+    items = [f"I{i:03d}" for i in range(8)]
+    level_of = dict(zip(items, ["1uA", "10nA", "1uA", "10nA", "100mV", "100mV", "1uA", ""]))
+    group_of = {it: "A" if i < 4 else "B" for i, it in enumerate(items[:6])}
+    t = run_write(tmp_path, wide, por_cols, group_of=group_of, level_of=level_of)["group_levels"]
+    assert list(zip(t["group"], t["level"], t["n_items"])) == [
+        ("A", "10nA", 2), ("A", "1uA", 2), ("B", "100mV", 2), ("미지정", "1uA", 1), ("미지정", "LEVEL 없음", 1)]
+    shares = t[["share_stable", "share_caution", "share_unstable", "share_no_band"]].astype(float).sum(axis=1)
+    assert np.allclose(shares, 1)
+    med, p90 = (t[c].astype(float) for c in ("meas_precision_pct_median", "meas_precision_pct_p90"))
+    assert (med > 0).all() and (med <= p90 + 1e-12).all()
+    assert (tmp_path / "group_levels.png").is_file()
+
+
+def test_rerun_without_level_removes_old_group_levels(tmp_path):
+    wide, por_cols = make_wide(4, 2, seed=3)
+    run_write(tmp_path, wide, por_cols, level_of={"I000": "10nA"})
+    assert (tmp_path / "group_levels.csv").is_file() and (tmp_path / "group_levels.png").is_file()
+    assert "group_levels" not in run_write(tmp_path, wide, por_cols)
+    assert not (tmp_path / "group_levels.png").exists()

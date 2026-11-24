@@ -246,6 +246,14 @@ def smu_row(kind: str, phys: float):
     return None
 
 
+def level_name(info: ItemInfo) -> str:
+    """LEVEL 을 단위 접두어로 다시 쓴 이름 ('10 nA' → '10nA'). 읽지 못한 LEVEL (변형 ITEM) 이면 빈 칸."""
+    if not np.isfinite(info.L) or info.L <= 0:
+        return ""
+    f, pre = max(((f, p) for f, p in SI if f <= info.L * 1.0001), default=(1.0, ""))
+    return f"{info.L / f:g}{pre}{info.kind}"
+
+
 def range_name(row, kind: str) -> str:
     if row is None:
         return ""
@@ -1156,7 +1164,9 @@ def main() -> None:
     n_lv = int(res.get("level_check", pd.Series(dtype=str)).astype(str).str.startswith("불일치").sum())
     if n_lv:
         print(f"\n경고: CALCVAL로 환산한 실제 값이 LEVEL 자릿수와 다른 ITEM {n_lv}개 (level_check 열)")
-    stab = stability.write(out / stability.DIR, res, wide, por_cols, die_cols, outliers, group_of, plotter)
+    level_of = {it: level_name(info) for it, info in levels.items()}
+    stab = stability.write(out / stability.DIR, res, wide, por_cols, die_cols, outliers, group_of, plotter,
+                           level_of=level_of or None, r=a.r)
     print(f"\n측정 안정도 ({out / stability.DIR}): {stability.takeaway(stab, die_cols)}")
     print(f"\n결과: {out / 'items.csv'}, {out / 'outlier_dies.csv'}  →  요약: python summarize.py {out / 'items.csv'}")
 

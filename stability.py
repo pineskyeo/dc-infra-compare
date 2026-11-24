@@ -7,6 +7,8 @@ DOE는 한 번만 재므로 반복 안정도는 POR 회차로만 본다. por_doe
   groups.csv      같은 것을 그룹마다 (--groups 를 줄 때만, 아니면 지난 실행 것을 지운다)
   dies.csv        die 위치마다: 점수 = ITEM 마다 (그 die 의 POR 회차 범위 ÷ 그 ITEM 의 중앙 범위) 의 ITEM 중앙값,
                   그 비가 3을 넘는 ITEM 비율, 흔들리는 die 표시, outlier_dies.csv 에 나온 횟수 (DOE 쪽 튐)
+  group_levels.csv  그룹 × LEVEL 마다 (--level 을 줄 때만, 아니면 지난 실행 것을 지운다): 판정력 구간 비율,
+                  측정 정밀도 % 중앙값·P90. group_levels.png 는 같은 줄로 판정력 막대와 ITEM 별 측정 정밀도 점
   runs.csv        POR 회차마다: 점수 = ITEM 마다 median_die(회차 − 다른 회차 평균) ÷ sigma_die 의 ITEM 중앙값.
                   가장 큰 |점수| 회차 하나만, 0.25 이상이고 POR 3회 이상, ITEM 100개 이상일 때 밀린 회차로 본다
   stability.png   판정력 막대, 그룹 막대, 웨이퍼별 die 점수 지도, 회차 점수 막대
@@ -23,7 +25,7 @@ import numpy as np
 import pandas as pd
 
 from por_doe_compare import (JUDGEABILITY_BANDS, NOISE_BEND, NOISE_PATTERNS, ST_FLAT, ST_NEAR_LOQ, ST_RESOLUTION,
-                             ST_RUN_JITTER, ST_UNSTABLE)
+                             ST_RUN_JITTER, ST_UNSTABLE, parse_level)
 
 DIR = "stability"
 DPI = 150
@@ -41,6 +43,10 @@ FLAG_COLS = {ST_RUN_JITTER: "n_run_jitter", ST_UNSTABLE: "n_condition_unstable",
              ST_FLAT: "n_flat", ST_NEAR_LOQ: "n_near_loq"}
 NOISE_COUNT_COLS = dict(zip(NOISE_PATTERNS, ("n_noise_unknown", "n_noise_constant", "n_noise_proportional",
                                             "n_noise_widening_up", "n_noise_widening_down", "n_noise_between")))
+LEVEL_NONE = "LEVEL 없음"
+GROUP_LEVELS_PNG = "group_levels.png"
+PRECISION = "meas_precision_pct"
+GROUP_LEVEL_COLS = ["group", "level", "n_items", *BAND_COLS.values(), f"{PRECISION}_median", f"{PRECISION}_p90"]
 COORD_RE = r"^\s*(-?\d+)\s*[_,]\s*(-?\d+)\s*$"
 MAX_MAPS = 12
 MAP_COLS = 3
@@ -123,10 +129,40 @@ def die_xy(dies: pd.DataFrame, die_cols: list[str]) -> pd.DataFrame:
     return pd.DataFrame({"wafer": wafer, "x": xy[0], "y": xy[1]})
 
 
+def level_order(level: str) -> tuple:
+    """LEVEL 이름 정렬 열쇠: 측정 종류(A, F, Hz, V) 다음 자릿수 오름차순, 읽지 못한 이름과 LEVEL 없음은 맨 끝."""
+    parsed = parse_level(level)
+    return (0, parsed[1], parsed[0], level) if parsed else (1, "", math.inf, level)
+
+
+def group_level_points(items: pd.DataFrame, group_of: dict[str, str] | None, level_of: dict[str, str]) -> pd.DataFrame:
+    """ITEM 마다 group, level, judgeability, meas_precision_pct. 그룹 파일에 없으면 UNGROUPED, LEVEL 이 없으면 LEVEL_NONE."""
+    names = items["ITEM"].astype(str).str.strip()
+    level = names.map(level_of).fillna("").astype(str)
+    return pd.DataFrame({"group": names.map(group_of or {}).fillna(UNGROUPED).to_numpy(),
+                         "level": level.where(level != "", LEVEL_NONE).to_numpy(),
+                         "judgeability": items["judgeability"].fillna("").to_numpy(),
+                         PRECISION: pd.to_numeric(items[PRECISION], errors="coerce").to_numpy()})
+
+
+def by_group_level(points: pd.DataFrame) -> pd.DataFrame:
+    """(그룹, LEVEL) 마다 ITEM 수, 판정력 구간 비율, 측정 정밀도 % 중앙값·P90. 그룹 이름순 (미지정 맨 끝), 그 안은 level_order."""
+    keys = sorted(set(zip(points["group"], points["level"])), key=lambda k: (k[0] == UNGROUPED, k[0], level_order(k[1])))
+    rows = []
+    for g, lv in keys:
+        sub = points[(points["group"] == g) & (points["level"] == lv)]
+        prec = sub[PRECISION]
+        rows.append({"group": g, "level": lv, "n_items": len(sub),
+                     **{col: float((sub["judgeability"] == name).mean()) for name, col in BAND_COLS.items()},
+                     f"{PRECISION}_median": prec.median(), f"{PRECISION}_p90": prec.quantile(0.9)})
+    return pd.DataFrame(rows, columns=GROUP_LEVEL_COLS)
+
+
 def write(out: Path, items: pd.DataFrame, wide: pd.DataFrame, por_cols: list[str], die_cols: list[str],
           outliers: pd.DataFrame, group_of: dict[str, str] | None, plotter: Plotter | None = None,
-          ) -> dict[str, pd.DataFrame]:
-    """out 폴더에 CSV 와 stability.png 를 쓰고 표들을 돌려준다. plotter 를 주면 그림은 그 프로세스가 그린다."""
+          level_of: dict[str, str] | None = None, r: float | None = None) -> dict[str, pd.DataFrame]:
+    """out 폴더에 CSV 와 stability.png 를 쓰고 표들을 돌려준다. plotter 를 주면 그림은 그 프로세스가 그린다.
+    level_of (ITEM → LEVEL 이름) 를 주면 group_levels.csv 와 group_levels.png 도 쓴다 (r = 허용폭, 정밀도 그림의 기준선)."""
     out.mkdir(parents=True, exist_ok=True)
     tables = {"overall": overall(items),
               "dies": die_scores(wide, por_cols, die_cols, outliers),
@@ -135,9 +171,16 @@ def write(out: Path, items: pd.DataFrame, wide: pd.DataFrame, por_cols: list[str
         (out / "groups.csv").unlink(missing_ok=True)       # 지난 --groups 실행의 표가 이번 결과처럼 보이지 않게
     else:
         tables["groups"] = by_group(items, group_of)
+    points = None
+    if level_of:
+        points = group_level_points(items, group_of, level_of)
+        tables["group_levels"] = by_group_level(points)
+    else:
+        for stale in ("group_levels.csv", GROUP_LEVELS_PNG):      # 지난 --level 실행의 결과가 이번 것처럼 보이지 않게
+            (out / stale).unlink(missing_ok=True)
     for name, t in tables.items():
         t.to_csv(out / f"{name}.csv", index=False, encoding="utf-8-sig")
-    job = (out / "stability.png", tables, die_cols)
+    job = (out / "stability.png", tables, die_cols, points, r)
     if plotter is None:
         plot(*job)
     else:
@@ -257,7 +300,8 @@ def _die_map(ax, dies: pd.DataFrame, norm, cmap, title: str) -> None:
     ax.set_title(f"{title} · 흔들리는 die {int(flagged.sum())}개", fontsize=9)
 
 
-def plot(path: Path, tables: dict[str, pd.DataFrame], die_cols: list[str]) -> None:
+def plot(path: Path, tables: dict[str, pd.DataFrame], die_cols: list[str], points: pd.DataFrame | None = None,
+         r: float | None = None) -> None:
     from compare_metrics import set_font        # Agg 백엔드를 정한다 (pyplot 보다 먼저)
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
@@ -311,5 +355,81 @@ def plot(path: Path, tables: dict[str, pd.DataFrame], die_cols: list[str]) -> No
         fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=fig.axes[-len(wafers):], shrink=0.6,
                      label=f"die 점수 (1 = 보통){more}")
     add_figure_note(fig, HOW_TO_READ, takeaway(tables, die_cols), dpi=DPI)
+    fig.savefig(path, dpi=DPI)
+    plt.close(fig)
+    if points is not None:
+        plot_group_levels(path.with_name(GROUP_LEVELS_PNG), tables["group_levels"], points, r)
+
+
+LEVEL_HOW_TO_READ = (
+    "한 줄이 그룹 하나의 LEVEL(level.csv 의 측정 자릿수) 하나이고 괄호는 ITEM 수다. 왼쪽 막대는 판정력 비율(신뢰구간 반폭 ÷ "
+    "허용폭: 0.5 이하 안정, 0.8 이하 주의, 그 위 불안정)이다. 오른쪽 점은 ITEM 하나의 측정 정밀도 %(log 축)이고 점 색은 "
+    "그 ITEM 의 판정력, 검은 세로 막대는 그 줄의 중앙값이다. 같은 그룹 안에서 LEVEL 이 낮을수록 정밀도 % 가 커지고 "
+    "불안정이 늘면 측정 스케일(분해능·range)이 판정력을 깎는 것이다.")
+
+
+def _level_names(table: pd.DataFrame) -> list[str]:
+    one = table["group"].nunique() == 1
+    return [lv if one else f"{g} · {lv}" for g, lv in zip(table["group"], table["level"])]
+
+
+def _pct(v: float) -> str:
+    return f"{v:,.0f}%" if v >= 100 else f"{v:.3g}%"
+
+
+def group_level_takeaway(table: pd.DataFrame, points: pd.DataFrame) -> str:
+    names, n = _level_names(table), table["n_items"].to_numpy(int)
+    worst = int(np.argmax(table["share_unstable"].to_numpy(float)))
+    text = (f"그룹 × LEVEL {len(table):,}줄. 불안정 비율이 가장 큰 줄은 {names[worst]} "
+            f"(ITEM {n[worst]:,}개 중 {table['share_unstable'].iloc[worst]:.0%}).")
+    med = table[f"{PRECISION}_median"].to_numpy(float)
+    if np.isfinite(med).any():
+        i = int(np.nanargmax(med))
+        text += f" 측정 정밀도 중앙값이 가장 큰 줄은 {names[i]} ({_pct(med[i])})."
+    x = points[PRECISION].to_numpy(float)
+    skipped = int((~(np.isfinite(x) & (x > 0))).sum())
+    return text + (f" 측정 정밀도가 0·빈 칸이라 점을 못 찍은 ITEM {skipped:,}개." if skipped else "")
+
+
+def plot_group_levels(path: Path, table: pd.DataFrame, points: pd.DataFrame, r: float | None) -> None:
+    """왼쪽 = (그룹, LEVEL) 줄마다 판정력 구간 막대, 오른쪽 = 같은 줄에 ITEM 별 측정 정밀도 % 점 (log 축) 과 중앙값."""
+    import matplotlib.pyplot as plt
+
+    from explain import add_figure_note
+
+    n = len(table)
+    fig, (ax_b, ax_p) = plt.subplots(1, 2, figsize=(13, 1.8 + 0.34 * n), sharey=True, layout="constrained",
+                                     gridspec_kw={"width_ratios": [1, 1.3]})
+    _band_bars(ax_b, table, [f"{name} ({k:,})" for name, k in zip(_level_names(table), table["n_items"])])
+    ax_b.legend(ncols=4, loc="lower center", bbox_to_anchor=(0.5, 1.0), fontsize=8, frameon=False)
+    ax_b.set_title("판정력", fontsize=10, pad=22)
+
+    row = {k: i for i, k in enumerate(zip(table["group"], table["level"]))}
+    y = np.array([row[k] for k in zip(points["group"], points["level"])], float)
+    x = points[PRECISION].to_numpy(float)
+    ok = np.isfinite(x) & (x > 0)
+    names = [name for _, name in JUDGEABILITY_BANDS]
+    color = points["judgeability"].map(dict(zip(names, BAND_COLORS))).fillna(BAND_COLORS[-1]).to_numpy()
+    jitter = np.random.default_rng(0).uniform(-0.25, 0.25, len(y))
+    if ok.any():
+        med = table[f"{PRECISION}_median"].to_numpy(float)
+        m = np.isfinite(med) & (med > 0)
+        ax_p.scatter(med[m], np.arange(n)[m], marker="|", s=300, color="black", linewidths=2, zorder=2, label="중앙값")
+        ax_p.scatter(x[ok], (y + jitter)[ok], s=18, c=color[ok], edgecolors="white", linewidths=0.4, zorder=3)
+        if r:
+            ax_p.axvline(100 * r, color="#555555", ls="--", lw=1, label=f"허용폭 r {r:.0%}")
+        ax_p.set_xscale("log")
+        ax_p.xaxis.set_major_formatter(lambda v, _: f"{v:g}%")
+        ax_p.legend(ncols=2, loc="lower center", bbox_to_anchor=(0.5, 1.0), fontsize=8, frameon=False)
+        ax_p.grid(axis="x", alpha=0.3)
+    else:
+        ax_p.text(0.5, 0.5, "측정 정밀도 값 없음", transform=ax_p.transAxes, ha="center", va="center")
+    ax_p.set_xlabel("측정 정밀도 % (σ_meas ÷ |POR 중앙값|, 작을수록 좋음)", fontsize=9)
+    ax_p.set_title("측정 정밀도 % (점 = ITEM, 색 = 판정력)", fontsize=10, pad=22)
+    for i in range(1, n):
+        if table["group"].iloc[i] != table["group"].iloc[i - 1]:
+            for ax in (ax_b, ax_p):
+                ax.axhline(i - 0.5, color="#666666", lw=0.8)
+    add_figure_note(fig, LEVEL_HOW_TO_READ, group_level_takeaway(table, points), dpi=DPI)
     fig.savefig(path, dpi=DPI)
     plt.close(fig)

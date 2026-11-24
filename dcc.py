@@ -210,13 +210,12 @@ def check_inputs(combo: Combo) -> None:
 
 
 def judge_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
-    scales: list[str] = []
-    if c.scales is not None:
-        if c.groups is None:
-            raise ConfigError(f"[{c.name}] scales 에는 groups 가 필요합니다 (조합이나 [defaults] 에 groups = ITEM,그룹 파일)")
-        scales = ["--groups", str(c.groups), "--scales", str(c.scales)]
+    if c.scales is not None and c.groups is None:
+        raise ConfigError(f"[{c.name}] scales 에는 groups 가 필요합니다 (조합이나 [defaults] 에 groups = ITEM,그룹 파일)")
+    groups = [] if c.groups is None else ["--groups", str(c.groups)]       # 그룹별 측정 안정도, scales 의 그룹
+    scales = [] if c.scales is None else ["--scales", str(c.scales)]
     return [
-        ("por_doe_compare", ["por_doe_compare.py", *c.raw_args(), *scales, "--out", str(c.out)]),
+        ("por_doe_compare", ["por_doe_compare.py", *c.raw_args(), *groups, *scales, "--out", str(c.out)]),
         ("review", ["review.py", "--input", str(c.items_csv), "--out", str(c.out), *c.raw_args()]),
         ("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(c.items_csv), "--summary",
                            "--out", str(c.out / "plots")]),
