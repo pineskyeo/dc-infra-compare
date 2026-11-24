@@ -57,7 +57,10 @@ def test_package_has_two_slides_with_their_images_and_parses(judged, tmp_path):
 def test_numbers_come_from_items_csv_and_names_stay_anonymous(judged, tmp_path):
     items = pd.read_csv(judged / "items.csv")
     first, second = slide_texts(slides.write_pptx(tmp_path / "deck.pptx", slides.build(judged, label="합성")))
-    assert "01  기존 문제" in first and "3  ITEM 유형별 판정" in first and "무엇이 바뀌나" in first
+    for h in ("01  기존 문제와 해결", "02  새 판정 흐름", "1  반복 측정", "6  판정 3단계", "03  판정 3단계",
+              "1  전체 TOST", "2  LoQ 판정", "3  ITEM 유형별 판정"):
+        assert h in first, h
+    assert "같은 데이터 미결·차이" not in first
     for h in ("03  판정 결과", "04  믿을 근거", "05  그룹별 측정 정밀도", "06  미결 분석", "다음 조치"):
         assert h in second, h
     counts = items["verdict_final"].value_counts()
@@ -123,7 +126,8 @@ def test_before_adds_old_counts(judged, tmp_path):
     old.to_csv(tmp_path / "old.csv", index=False, encoding="utf-8-sig")
     first, second = slide_texts(slides.write_pptx(tmp_path / "deck.pptx",
                                                   slides.build(judged, tmp_path / "old.csv", "합성")))
-    assert "기존 → 새 판정" in first and f"기존 {len(old):,}" in second
+    new_bad = pd.read_csv(judged / "items.csv")["verdict_final"].isin(["미결", "차이"]).sum()
+    assert f"같은 데이터 미결·차이  기존 {len(old):,} → 새 {new_bad:,}" in first and f"기존 {len(old):,}" in second
 
 
 def test_undecided_causes_take_the_first_matching_rule():

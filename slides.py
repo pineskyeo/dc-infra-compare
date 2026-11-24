@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """판정 기준 장표 2쪽 (pptx). 판정 결과 폴더를 읽어 만든다. ITEM 은 익명 ID 로만 쓴다.
 
-  1쪽  01 기존 문제 · 02 새 판정 3단계 (전체 TOST → LoQ 판정 → ITEM 유형별 판정 길)
+  1쪽  01 기존 문제와 해결 · 02 새 판정 흐름 6단계 · 03 판정 3단계 (전체 TOST → LoQ 판정 → ITEM 유형별)
   2쪽  03 판정 길별 결과 · 04 믿을 근거 (같은 조건 t-test, 차이 확인, 허용폭 ±20%)
        05 그룹 × 측정 LEVEL 측정 정밀도 · 06 미결 원인과 조치
 
@@ -292,16 +292,17 @@ def _hex(c: str) -> str:
 def _png(fig) -> bytes:
     import matplotlib.pyplot as plt
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=300, facecolor="white")
+    fig.savefig(buf, format="png", dpi=300, facecolor=fig.get_facecolor())
     plt.close(fig)
     return buf.getvalue()
 
 
-def _axes(w: float, h: float):
+def _axes(w: float, h: float, bg: str = "FFFFFF"):
     from compare_metrics import set_font
     import matplotlib.pyplot as plt
     set_font()
-    fig, ax = plt.subplots(figsize=(w, h), layout="constrained")
+    fig, ax = plt.subplots(figsize=(w, h), layout="constrained", facecolor=_hex(bg))
+    ax.set_facecolor(_hex(bg))
     for side in ("top", "right", "left"):
         ax.spines[side].set_visible(False)
     ax.spines["bottom"].set_color("#9AA3AE")
@@ -319,9 +320,9 @@ def _bars(ax, bars, label_x: float) -> None:
     ax.set_ylim(-0.7, len(bars) - 0.3)
 
 
-def stage1_png() -> bytes:
-    """1단계: 90% 신뢰구간 대 ±Δ."""
-    fig, ax = _axes(2.3, 1.3)
+def stage1_png(bg: str = "FFFFFF") -> bytes:
+    """1단계: 90% 신뢰구간 대 ±Δ. bg = 그림이 놓일 상자 색."""
+    fig, ax = _axes(2.3, 1.3, bg)
     ax.axvspan(-1, 1, color="#E3F1EA", zorder=0)
     for v in (-1, 1):
         ax.axvline(v, color=_hex(OK), lw=0.8, ls="--")
@@ -331,9 +332,9 @@ def stage1_png() -> bytes:
     return _png(fig)
 
 
-def stage2_png() -> bytes:
-    """2단계: DOE 수준 구간 대 LoQ."""
-    fig, ax = _axes(2.3, 1.3)
+def stage2_png(bg: str = "FFFFFF") -> bytes:
+    """2단계: DOE 수준 구간 대 LoQ. bg = 그림이 놓일 상자 색."""
+    fig, ax = _axes(2.3, 1.3, bg)
     ax.axvspan(0, 1, color="#ECEFF3", zorder=0)
     ax.axvline(1, color=_hex(NAVY), lw=1.1)
     ax.text(0.5, 2.55, "'<LoQ' 보고", ha="center", fontsize=7, color=_hex(MUTED))
@@ -472,12 +473,11 @@ def verdict_counts(items: pd.DataFrame) -> dict[str, int]:
 
 
 def route_table(items: pd.DataFrame) -> pd.DataFrame | None:
-    """판정 길(줄, ROUTES 순서) × 최종 판정(VERDICTS) ITEM 수. route 열이 없는 옛 결과면 None."""
+    """판정 길(줄, ROUTE_ORDER 순서) × 최종 판정(VERDICTS) ITEM 수. route 열이 없는 옛 결과면 None."""
     if "route" not in items:
         return None
     t = pd.crosstab(items["route"].astype(str), final_col(items)).reindex(columns=VERDICTS, fill_value=0)
-    order = [r for r, _ in ROUTES]
-    return t.loc[sorted(t.index, key=lambda r: order.index(r) if r in order else len(order))]
+    return t.loc[sorted(t.index, key=lambda r: ROUTE_ORDER.index(r) if r in ROUTE_ORDER else len(ROUTE_ORDER))]
 
 
 def stage3_line(items: pd.DataFrame) -> str:
@@ -588,89 +588,86 @@ def heading(s: Slide, x: float, y: float, w: float, number: str, title: str, asi
     s.add(text(x, y, w, 0.34, para(*runs), anchor="b"), Line(x, y + 0.38, x + w, y + 0.38, NAVY, 0.75))
 
 
-PROBLEMS = (
-    ("같은 조건을 다시 재도 Fail", "회차 흔들림·잡음과 실제 변화를 가르지 못함"),
-    ("LoQ·0 근처 값에서 판정이 흔들림", "DOE 중심 한 점으로 LoQ와 비교 · 값이 0에 가까우면 % 허용폭도 0"),
-    ("모든 ITEM을 같은 % 허용폭으로", "값에 비례해 흔들리는 ITEM(누설 전류 등)도 선형으로 봄"),
+ROUTE_ORDER = (R_LIMIT, R_ABS, R_LOQ, R_LOG, R_LINEAR, R_EXCLUDED)     # 2쪽 판정 길 줄 순서
+
+PROBLEMS = (    # (기존 문제, 원인, 해결)
+    ("같은 조건을 다시 재도 Fail", "회차 흔들림·잡음을 변화로 봄", "회차 흔들림 몫을 허용폭에 넣고 90% 구간으로 판정"),
+    ("LoQ·0 근처에서 판정이 흔들림", "DOE 중심 한 점을 LoQ와 비교 · 0 근처는 % 허용폭이 0",
+     "DOE 구간 전체를 LoQ와 비교 · 0 근처는 절대 허용폭"),
+    ("모든 ITEM에 같은 % 허용폭", "값에 비례해 흔들리는 ITEM(누설 전류 등)도 선형으로 봄",
+     "ITEM 유형을 자동으로 나눠 맞는 허용폭으로"),
 )
-STAGES = (
-    ("1", "전체 TOST", "모든 ITEM", ("90% 신뢰구간이 ±Δ 안 → 동등", "통째로 밖 → 차이 · 걸침 → 미결",
-                                    "Δ = 5% × |POR 중앙값| + 회차 흔들림 몫")),
-    ("2", "LoQ 판정", "POR 중앙값이 LoQ 아래인 ITEM", ("DOE 구간이 LoQ 아래·걸침 → 동등",
-                                                     "통째로 위 + 이동 밖 → 차이 · ±Δ 걸침 → 미결",
-                                                     "LoQ = 10σ (반복 흔들림·분해능·blank 중 큰 값)")),
+FLOW = (        # (단계, 한 줄, 풀이)
+    ("반복 측정", "POR J회 · DOE 1회", "같은 die 약 60개"),
+    ("흔들림 분리", "σ_die  같은 die 반복", "σ_run  회차 전체 이동"),
+    ("ITEM 유형 분류", "POR 값만 보고", "부호·수준·분해능·모양·척도"),
+    ("변화 구간", "die별 DOE − POR", "중앙값 · 90% 신뢰구간"),
+    ("허용폭 Δ · LoQ", "Δ = 5%×|POR| + 회차 몫", "LoQ = 10σ"),
+    ("판정 3단계", "동등 · 미결 · 차이", "TOST → LoQ → 유형별"),
 )
-CHANGES = (("변화 판단", "한 점", "90% 구간"), ("LoQ 아래", "DOE 중심 한 점", "DOE 구간"),
-           ("허용폭", "모두 같은 %", "ITEM 유형별"))
-ROUTES = (
-    (R_LIMIT, "측정 한계에 걸린 die가 많음 → 한계 밖 die만으로 TOST"),
-    (R_ABS, "값이 0 근처 · 계단처럼 찍힘 → ±고정 허용폭 (기본 LoQ)"),
-    (R_LOQ, "POR이 LoQ 아래 → 2단계 판정 그대로"),
-    (R_LOG, "잡음이 값에 비례 → 배율(log)로 TOST"),
-    (R_LINEAR, "나머지 → 1단계 그대로 · 바닥 근처는 장비 정확도까지"),
-    (R_EXCLUDED, "판정할 수 없는 데이터 → 1·2단계 그대로"),
+STAGES = (      # (이름, 대상, 그림, 규칙)
+    ("전체 TOST", "모든 ITEM", stage1_png, ("90% 구간이 ±Δ 안 → 동등", "통째로 밖 → 차이", "걸침 → 미결")),
+    ("LoQ 판정", "POR이 LoQ 아래인 ITEM", stage2_png,
+     ("DOE 구간이 LoQ 아래·걸침 → 동등", "통째로 위 + 이동 밖 → 차이", "그 밖 → 미결")),
 )
-AXES = (("부호", "섞임·양수·음수"), ("수준", "0 중심·바닥·정량"), ("분해능", "연속·계단"), ("모양", "한계에 걸림 등"),
-        ("척도", "잡음 ∝ 값 → log"))
+STAGE3_ROUTES = ((R_LOG, "잡음 ∝ 값 → 배율로 비교"), (R_ABS, "0 근처·계단 → ±고정값"),
+                 (R_LIMIT, "측정 한계에 걸림 → 한계 밖 die만"), ("그 밖", "1·2단계 판정 그대로"))
 
 
 def page_method(before: tuple[int, int] | None, note: str) -> Slide:
     s = Slide()
-    chrome(s, 1, 2, "DC Test 판정 기준 개선", "3단계 판정 · TOST → LoQ → ITEM 유형", note)
-    heading(s, 0.5, 1.3, 3.75, "01", "기존 문제")
-    for i, (head, sub) in enumerate(PROBLEMS):
-        y = 1.88 + i * 1.12
-        s.add(Box(0.5, y, 3.75, 0.98, fill=TINT, geom="roundRect"),
-              Box(0.5, y, 0.06, 0.98, fill=BAD),
-              text(0.7, y + 0.1, 3.45, 0.8, para(Run(f"{'①②③'[i]}  {head}", 11.5, TEXT, True), after=4),
-                   para(Run(sub, 9.5, MUTED))))
-    if before:
-        old, new = before
-        s.add(text(0.5, 5.32, 3.75, 0.95,
-                   para(Run("같은 데이터, 미결·차이 ITEM", 9.5, MUTED), after=2),
-                   para(Run(f"{old:,}", 22, BAD, True), Run("  →  ", 14, MUTED), Run(f"{new:,}", 22, NAVY, True),
-                        Run("   기존 → 새 판정", 9.5, MUTED))))
-    else:
-        s.add(text(0.5, 5.3, 3.75, 0.28, para(Run("무엇이 바뀌나", 9.5, NAVY, True))))
-        for j, (what, old, new) in enumerate(CHANGES):
-            y = 5.6 + j * 0.27
-            s.add(text(0.5, y, 1.0, 0.26, para(Run(what, 8.5, MUTED))),
-                  text(1.45, y, 2.8, 0.26, para(Run(old, 8.5, MUTED), Run("  →  ", 8.5, MUTED),
-                                                Run(new, 8.5, NAVY, True))))
+    chrome(s, 1, 2, "DC Test 판정 기준 개선", "Median shift·Sigma ratio → 90% 구간·허용폭 판정", note)
 
-    heading(s, 4.55, 1.3, 8.28, "02", "새 판정 · 3단계", "앞 단계에서 동등이면 확정, 뒤 단계는 동등이 아닌 ITEM만")
-    figures = (stage1_png(), stage2_png())
-    x = 4.55
-    for k, (num, name, who, rules) in enumerate(STAGES):
-        w = 2.55
-        s.add(Box(x, 1.88, w, 3.72, fill=TINT, geom="roundRect"),
-              text(x + 0.14, 1.96, w - 0.28, 0.55, para(Run(f"{num}  ", 13, NAVY, True), Run(name, 13, NAVY, True)),
-                   para(Run(who, 8.5, MUTED))),
-              Pic(x + 0.12, 2.62, w - 0.24, (w - 0.24) * 1.3 / 2.3, figures[k]),
-              text(x + 0.14, 4.08, w - 0.28, 1.45, *(para(Run(r, 9.2, TEXT if j < 2 else MUTED), after=3)
-                                                    for j, r in enumerate(rules))),
-              Line(x + w + 0.01, 3.74, x + w + 0.1, 3.74, MUTED, 1.0, arrow=True))
-        x += w + 0.11
-    w = 12.83 - x
-    s.add(Box(x, 1.88, w, 3.72, fill=NAVY, geom="roundRect"),
-          text(x + 0.14, 1.96, w - 0.28, 0.55, para(Run("3  ", 13, "FFFFFF", True), Run("ITEM 유형별 판정", 13, "FFFFFF", True)),
-               para(Run("1·2단계에서 동등이 아닌 ITEM만, 유형에 맞는 판정 길로", 8.5, "C9D2DE"))))
-    for j, (route, how) in enumerate(ROUTES):
-        y = 2.6 + j * 0.49
-        s.add(text(x + 0.14, y, w - 0.28, 0.46, para(Run(route, 10, "FFFFFF", True)), para(Run(how, 8.3, "C9D2DE"))))
-        if j:
-            s.add(Line(x + 0.14, y - 0.02, x + w - 0.14, y - 0.02, "56657B", 0.5))
-    s.add(Box(4.55, 5.75, 8.28, 0.62, fill="FFFFFF", line=RULE, geom="roundRect"),
-          text(4.7, 5.75, 2.1, 0.62, para(Run("ITEM 유형 자동 분류", 10.5, NAVY, True)),
-               para(Run("POR 값만 보고 · 처음 맞는 판정 길로", 8, MUTED)), anchor="ctr"))
-    for k, (name, sub) in enumerate(AXES):
-        s.add(Box(6.85 + k * 1.18, 5.83, 1.1, 0.46, (para(Run(name, 9, NAVY, True), align="ctr"),
-                                                     para(Run(sub, 7.5, MUTED), align="ctr")),
-                  fill=TINT, geom="roundRect", anchor="ctr", inset=0.02))
+    heading(s, 0.5, 1.26, 12.33, "01", "기존 문제와 해결")
+    w = (12.33 - 2 * 0.18) / 3
+    for i, (head, why, fix) in enumerate(PROBLEMS):
+        x = 0.5 + i * (w + 0.18)
+        s.add(Box(x, 1.78, w, 0.9, fill=TINT, geom="roundRect"), Box(x, 1.78, 0.06, 0.9, fill=BAD),
+              text(x + 0.2, 1.85, w - 0.3, 0.8, para(Run(f"{'①②③'[i]}  {head}", 11, TEXT, True), after=3),
+                   para(Run(why, 8.8, MUTED), after=3), para(Run(f"→ {fix}", 9, NAVY, True))))
+
+    heading(s, 0.5, 2.82, 12.33, "02", "새 판정 흐름", "반복 측정에서 판정까지")
+    gap = 0.22
+    w = (12.33 - (len(FLOW) - 1) * gap) / len(FLOW)
+    for k, (name, a, b) in enumerate(FLOW):
+        x = 0.5 + k * (w + gap)
+        last = k == len(FLOW) - 1
+        head, body, sub = ("FFFFFF", "FFFFFF", "C9D2DE") if last else (NAVY, TEXT, MUTED)
+        s.add(Box(x, 3.34, w, 0.98, fill=NAVY if last else TINT, geom="roundRect"),
+              text(x + 0.12, 3.41, w - 0.2, 0.9, para(Run(f"{k + 1}  {name}", 11, head, True), after=4),
+                   para(Run(a, 8.6, body)), para(Run(b, 8.6, sub))))
+        if not last:
+            s.add(Line(x + w + 0.03, 3.83, x + w + gap - 0.03, 3.83, MUTED, 1.0, arrow=True))
+
+    heading(s, 0.5, 4.44, 12.33, "03", "판정 3단계", "앞 단계에서 동등이면 확정 · 뒤 단계는 동등이 아닌 ITEM만")
+    gap = 0.25
+    w = (12.33 - 2 * gap) / 3
+    for k in range(3):
+        x = 0.5 + k * (w + gap)
+        s.add(Box(x, 4.94, w, 1.41, fill=TINT, geom="roundRect"))
+        if k < len(STAGES):
+            name, who, chart, rules = STAGES[k]
+            s.add(text(x + 0.14, 5.0, w - 0.28, 0.3, para(Run(f"{k + 1}  {name}", 11, NAVY, True),
+                                                           Run(f"   {who}", 8.5, MUTED))),
+                  Pic(x + 0.1, 5.3, 1.85, 1.85 * 1.3 / 2.3, chart(TINT)),
+                  text(x + 2.05, 5.4, w - 2.15, 0.9, *(para(Run(r, 8.8, TEXT), after=2) for r in rules)),
+                  Line(x + w + 0.03, 5.65, x + w + gap - 0.03, 5.65, MUTED, 1.0, arrow=True))
+        else:
+            s.add(text(x + 0.14, 5.0, w - 0.28, 0.3, para(Run("3  ITEM 유형별 판정", 11, NAVY, True),
+                                                           Run("   1·2단계에서 동등이 아닌 ITEM", 8.5, MUTED))))
+            for j, (route, how) in enumerate(STAGE3_ROUTES):
+                s.add(text(x + 0.14, 5.4 + j * 0.23, w - 0.28, 0.23,
+                           para(Run(route, 8.8, NAVY, True), Run(f"   {how}", 8.6, TEXT))))
+
     s.add(Box(0.5, 6.48, 12.33, 0.45, fill=TINT, geom="roundRect"),
           text(0.68, 6.48, 12.0, 0.45, para(Run("핵심  ", 10, NAVY, True),
                                             Run("측정 흔들림과 진짜 변화를 구간으로 가르고, 애매하면 미결로 보류, "
                                                 "ITEM 성격에 맞는 허용폭으로 판정", 10, TEXT)), anchor="ctr"))
+    if before:
+        old, new = before
+        s.add(text(8.6, 6.48, 4.1, 0.45, para(Run("같은 데이터 미결·차이  ", 9, MUTED),
+                                              Run(f"기존 {old:,} → 새 {new:,}", 10, NAVY, True), align="r"),
+                   anchor="ctr"))
     return s
 
 

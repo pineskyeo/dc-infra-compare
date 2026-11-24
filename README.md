@@ -69,7 +69,7 @@ python dcc.py slides A1                     # 판정 기준 장표 2쪽 slides.p
 | `group/plots/` | 그룹별 판정 지도 | `group` |
 | `group/compare/`, `group/summary/` | 기존·개선 비교, 그룹별 비교 요약 | `group --before`(또는 조합의 `before` 키) |
 | `classes/` | ITEM 분류 개수(`counts.csv`), 판정 길별 목록(`items_by_route.csv`), `classes.png`, `examples/<판정 길>/` | `classes` |
-| `slides.pptx` | 판정 기준 장표 2쪽. 1쪽 기존 문제와 새 판정 3단계, 2쪽 판정 길별 결과 · 믿을 근거(같은 조건 t-test, 차이 확인, 허용폭 ±20%) · 그룹 × LEVEL 측정 정밀도 · 미결 원인과 다음 조치. ITEM은 익명 번호만 | `slides` |
+| `slides.pptx` | 판정 기준 장표 2쪽. 1쪽 기존 문제와 해결 · 새 판정 흐름 6단계 · 판정 3단계, 2쪽 판정 길별 결과 · 믿을 근거(같은 조건 t-test, 차이 확인, 허용폭 ±20%) · 그룹 × LEVEL 측정 정밀도 · 미결 원인과 다음 조치. ITEM은 익명 번호만 | `slides` |
 
 `item`과 `group`은 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize)과 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
 
