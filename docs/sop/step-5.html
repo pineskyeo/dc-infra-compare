@@ -71,7 +71,7 @@
 </ul></details></section>
 
 <section id="formula"><h2>수식</h2>
-<div class="formula"><div>Δ = r·|기준 조건 중앙값| + t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub></div><div class="c">실용 한계 (r = 5%) + 회차 예측 한계</div><div>A·V ITEM이 LoQ 근처(LoQ ≤ |기준 조건 중앙값| &lt; LoQ/(10r))이고 기본 판정이 차이·미결일 때만 accuracy 옵션: Δ' = max(Δ, 장비 정확도 한계)</div><div>장비 정확도 한계 = 1.645·√((U<sub>Ref</sub><sup>2</sup> + U<sub>Cand</sub><sup>2</sup>)/3),  U = a·|값| + b·range + c</div></div>
+<div class="formula"><div>Δ = r·|기준 조건 중앙값| + t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub></div><div class="c">실용 한계 (r = 5%) + 회차 예측 한계</div><div>⑥ 3단계에서만: 판정 길 선형 TOST이고 수준 바닥 근처(LoQ ≤ |기준 조건 중앙값| &lt; LoQ/(10r))인 A·V ITEM → Δ' = max(Δ, 장비 정확도 한계)</div><div>장비 정확도 한계 = 1.645·√((U<sub>Ref</sub><sup>2</sup> + U<sub>Cand</sub><sup>2</sup>)/3),  U = a·|값| + b·range + c</div></div>
 <div class="tw"><table class="sym"><thead><tr><th>기호</th><th>뜻</th><th>예시 값</th></tr></thead><tbody>
 <tr><td>Δ</td><td>허용 범위. 차이가 ±Δ 안이면 같다고 봄</td><td>6.699</td></tr>
 <tr><td>r</td><td>실용 한계 비율<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup></td><td>5%</td></tr>
@@ -86,7 +86,14 @@
 <div class="crit" id="C5-1"><!-- EDIT C5-1 --><h3>이 단계의 기준</h3>
 <p>판정 없음 · 계산 단계</p>
 <p>실용 한계 5%<sup class="fnref"><a href="#fn1" aria-label="출처 1">1</a></sup> <span class="badge-int">내부 기준(문헌 근거 없음)</span></p>
-<p>기본 판정의 Δ는 위 두 한계의 합. 장비 정확도 한계는 LoQ 근처 A·V ITEM의 accuracy 옵션에서만 큰 쪽으로 씀</p></div>
+<p>1·2단계 판정의 Δ는 위 두 한계의 합. 장비 정확도 한계는 ⑥ 3단계의 바닥 근처 A·V ITEM에서만 큰 쪽으로 씀</p></div>
+<div class="crit" id="C5-4"><!-- EDIT C5-4 --><h3>⑥ 3단계에서 쓰는 다른 허용폭</h3>
+<div class="tw"><table><thead><tr><th>판정 길</th><th>허용폭</th></tr></thead><tbody>
+<tr><td>선형 TOST (바닥 근처)</td><td>Δ' = max(Δ, 장비 정확도 한계)</td></tr>
+<tr><td>절대 허용폭</td><td>abs_delta = abs_tol 파일의 그룹 값 · 없으면 0 중심은 그 ITEM의 LoQ, 계단은 max(Δ, 값 간격 한 칸), 계단 + 바닥 근처는 max(Δ, 값 간격 한 칸, 장비 정확도 한계) · <a href="c-abs-tol.html">절대 허용폭</a></td></tr>
+<tr><td>log TOST</td><td>Δ<sub>log</sub> = log10(1 + r) + sigma_rep_log · <a href="c-log-scale.html">잡음이 값에 비례하면 log</a></td></tr>
+</tbody></table></div>
+<p class="s">어느 ITEM이 어느 길로 가는지 → <a href="step-6.html#typed">⑥ 3단계 · 유형별 판정</a> <span class="badge-int">내부 기준(문헌 근거 없음)</span></p></div>
 <div class="crit" id="C5-2"><!-- EDIT C5-2 --><h3>다음 단계로 넘기는 것</h3>
 <ul><li>±Δ → <a href="step-6.html">⑥ 판정</a>: 90% CI ⊂ (−Δ, +Δ) · CI가 통째로 ±Δ 밖 (정량 · LoQ 미만 두 갈래 모두)</li><li>Δ와 그 구성(실용 한계 + 회차 예측 한계) → <a href="reading.html">결과 읽는 법</a></li></ul></div>
 <div class="crit" id="C5-3"><!-- EDIT C5-3 --><h3>A·V ITEM 관련 값</h3>
@@ -126,7 +133,7 @@
 
 <section id="plain-more"><h2>쉬운 말 더 보기</h2>
 <ul>
-<li>A·V <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>(ITEM 정보에 장비 사양이 있을 때): LoQ 근처(LoQ ≤ |기준 조건 중앙값| &lt; LoQ/(10r))이면 최종 판정의 accuracy 옵션이 장비 정확도 한계와 비교해 큰 쪽을 Δ'로 씀. 기본 판정의 Δ는 그대로<sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup></li>
+<li>A·V <a class="g" href="glossary.html#item"><abbr title="측정 항목 · 판정 단위">측정 항목(ITEM)</abbr></a>(ITEM 정보에 장비 사양이 있을 때): 바닥 근처(LoQ ≤ |기준 조건 중앙값| &lt; LoQ/(10r))이고 ⑥ 3단계 판정 길이 선형 TOST면 장비 정확도 한계와 비교해 큰 쪽을 Δ'로 씀(verdict_basis accuracy). 1·2단계의 Δ는 그대로 · 예전 옵션 판정(log 후보 → 장비 정확도 → log_physics)은 없어지고 ⑥ 3단계가 대신함<sup class="fnref"><a href="#fn4" aria-label="출처 4">4</a></sup></li>
 <li>Δ는 ⑥에서 ④의 90% <a class="g" href="glossary.html#ci"><abbr title="신뢰구간 · 참값이 있을 만한 범위">신뢰구간(CI, Confidence Interval)</abbr></a>과 비교</li>
 </ul></section>
 
@@ -148,7 +155,7 @@
 <li>3.3717 = t(0.95, 2) 2.919986 × √(1+1/3) 1.154701 <span class="from">J = 3이라 t의 자유도 J−1 = 2</span></li>
 <li>회차 예측 한계 = 3.3717 × σ<sub>run</sub> 0.50389 = 1.69896 <span class="from">0.50389 = ② 흔들림 구하기의 σ<sub>run</sub></span></li>
 <li>Δ = 5.0 + 1.69896 = 6.69896 ≈ 6.699</li>
-<li>장비 정확도 한계: 합성 예시에는 장비 사양 정보가 없어 비교하지 않음 → Δ = 6.699 <span class="from">큰 쪽 비교는 LoQ 근처 A·V ITEM의 accuracy 옵션일 때만</span></li>
+<li>장비 정확도 한계: 합성 예시에는 장비 사양 정보가 없어 비교하지 않음 → Δ = 6.699 <span class="from">큰 쪽 비교는 ⑥ 3단계의 바닥 근처 A·V ITEM일 때만</span></li>
 <li>→ ⑥: ±6.699를 ④의 CI [0.610, 1.102]와 비교</li>
 </ol>
 <p class="s">J별 계수와 Δ (σ<sub>run</sub> 0.50389 고정, Δ = 5.0 + 계수 × 0.50389)</p>

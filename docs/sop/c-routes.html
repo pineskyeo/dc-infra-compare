@@ -1,0 +1,314 @@
+<!doctype html><html lang="ko" data-d41><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ITEM 유형과 판정 길 · DC Test 동일성 검증</title><link rel="stylesheet" href="assets/sop.css"><script src="assets/concepts.js" defer></script></head><body>
+<details class="fp-fold"><summary>흐름도 ⓪~⑦</summary>
+<nav aria-label="흐름도">
+<div class="fp">
+<ol class="fp-top">
+<li><a href="step-0.html" data-step="0">⓪ 표본 크기 정하기</a></li>
+<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
+<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
+<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
+</ol>
+<div class="fp-fork">
+<div class="fp-col"><span class="fp-lab">정량</span><ol>
+<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
+<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
+</ol></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+</div>
+<ol class="fp-join"><li><a href="step-6.html" data-step="6" class="rel">⑥ 판정</a></li></ol>
+<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
+<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
+</div>
+</nav>
+</details><nav class="side" aria-label="문서"><div class="prod">DC Test 동일성 검증</div><a href="index.html">개요</a><a href="run.html">실행 방법</a><a href="step-0.html">⓪ 표본 크기 정하기</a><a href="step-1.html">① 반복 측정</a><a href="step-2.html">② 흔들림 구하기</a><a href="step-3.html">③ 정량한계(LoQ)로 구간 나누기</a><a href="step-4.html">④ 차이(편향)와 90% 신뢰구간 구하기</a><a href="step-5.html">⑤ 허용 범위 Δ 정하기</a><a href="step-6.html">⑥ 판정</a><a href="step-7.html">⑦ 미결·차이일 때 다음 행동</a><a href="reading.html">결과 읽는 법</a><a href="concepts.html" aria-current="true">개념 익히기</a><a href="glossary.html">용어집</a><a href="appendix.html">부록</a></nav>
+<nav class="fp-wide" aria-label="흐름도">
+<div class="fp">
+<p class="fp-h">흐름도 ⓪~⑦</p>
+<ol class="fp-top">
+<li><a href="step-0.html" data-step="0">⓪ 표본 크기 정하기</a></li>
+<li><a href="step-1.html" data-step="1">① 반복 측정</a></li>
+<li><a href="step-2.html" data-step="2">② 흔들림 구하기</a></li>
+<li><a href="step-3.html" data-step="3">③ LoQ로 구간 나누기</a></li>
+</ol>
+<div class="fp-fork">
+<div class="fp-col"><span class="fp-lab">정량</span><ol>
+<li><a href="step-4.html" data-step="4">④ 차이(편향)와 신뢰구간</a></li>
+<li><a href="step-5.html" data-step="5">⑤ 허용 범위 Δ 정하기</a></li>
+</ol></div>
+<div class="fp-col"><span class="fp-lab">정량한계 미만</span><span class="fp-pass" title="정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정"><span>④·⑤ 그대로 씀*</span></span></div>
+</div>
+<ol class="fp-join"><li><a href="step-6.html" data-step="6" class="rel">⑥ 판정</a></li></ol>
+<ol class="fp-opt"><li><span class="fp-lab">미결·차이일 때만</span><a href="step-7.html" data-step="7">⑦ 미결·차이일 때 다음 행동</a></li></ol>
+<p class="fp-key fp-loq">* 정량한계 미만 → ④ 신뢰구간과 ⑤ 허용 범위를 그대로 써서 ⑥에서 ‘&lt;LoQ 보고 일치’ 판정</p>
+<p class="fp-key">진한 상자 = 지금 쪽 · 회색 상자 = 관련 단계</p>
+<p class="fp-key"><a href="index.html#procedure">개요의 큰 흐름도</a></p>
+</div>
+</nav><main><div class="wrap">
+<p class="loc"><a href="concepts.html">개념 익히기</a> › ITEM 유형과 판정 길 (개념 13 / 19) · 쓰는 단계 <a href="step-6.html#typed">⑥</a></p>
+<h1>ITEM 유형과 판정 길</h1>
+
+<section id="q"><h2>이 쪽이 답하는 질문</h2>
+<p class="q">1·2단계에서 동등이 안 나온 ITEM은 3단계에서 어떤 방법으로 다시 판정하나 · 그 방법은 무엇으로 고르나</p></section>
+
+<section id="plain"><h2>쉬운 말로</h2>
+<ul>
+<li>1·2단계(선형 TOST · LoQ 판정)에서 <span class="pill ok">동등</span>이면 확정 · 3단계로 안 감</li>
+<li>아니면 <a class="g" href="glossary.html#item-type"><abbr title="ITEM 유형 · 기준 조건 값만 보고 정한 ITEM의 종류 (부호, 수준, 분해능, 모양, 척도 등)">ITEM 유형</abbr></a>을 봄 · 기준 조건(POR) 값만 보고 정함, 비교 조건(DOE)은 안 봄</li>
+<li>유형 → <a class="g" href="glossary.html#route"><abbr title="판정 길 · ITEM 유형에 맞춰 3단계에서 쓰는 판정 방법 (제외, 한계 비교, 절대 허용폭, LoQ 판정, log TOST, 선형 TOST)">판정 길</abbr></a> 6개 중 하나 · 위에서부터 처음 맞는 길</li>
+<li>그 길의 방법이 판정을 못 내면(판정 제외) 1·2단계 판정을 그대로 둠</li>
+</ul></section>
+
+<section id="figure"><h2>그림</h2>
+<figure class="rtf" id="fig-routes">
+<svg id="rt-svg" viewBox="0 0 680 500" role="img" aria-label="예시 ITEM이 1·2단계 동등 관문을 지나, 판정 길 여섯 줄을 위에서부터 차례로 확인하다 처음 맞는 길에 들어감"></svg>
+<figcaption class="s">합성 예시 ITEM A~H · 왼쪽 = ITEM 카드(분류 값) · 오른쪽 = 판정 길(위에서부터 처음 맞는 것) · 동그라미 = 그 길에 들어간 ITEM</figcaption>
+</figure>
+<div class="rt-ctl"><button id="rt-play" type="button">▶ 전체 재생</button><span class="rt-items" id="rt-items"></span><span class="s">글자를 누르면 그 ITEM만 다시 감</span></div>
+<div class="tw"><table class="states"><thead><tr><th>ITEM</th><th>부호</th><th>수준</th><th>분해능</th><th>모양</th><th>척도</th><th>1·2단계</th><th>판정 길</th></tr></thead><tbody>
+<tr><td>A</td><td>양수만</td><td>정량</td><td>연속</td><td>한 덩어리</td><td>linear</td><td><span class="pill ok">동등</span></td><td>확정 (3단계 안 감)</td></tr>
+<tr><td>B</td><td colspan="5">판정할 수 있나 = die 부족</td><td><span class="pill hold">미결</span></td><td>제외</td></tr>
+<tr><td>C</td><td>양수만</td><td>정량</td><td>연속</td><td>한계에 걸림</td><td>log</td><td><span class="pill bad">차이</span></td><td>한계 비교</td></tr>
+<tr><td>D</td><td>부호 섞임</td><td>0 중심</td><td>연속</td><td>한 덩어리</td><td>판별 불가</td><td><span class="pill hold">미결</span></td><td>절대 허용폭</td></tr>
+<tr><td>E</td><td>양수만</td><td>정량</td><td>계단</td><td>한 덩어리</td><td>linear</td><td><span class="pill bad">차이</span></td><td>절대 허용폭</td></tr>
+<tr><td>F</td><td>양수만</td><td>바닥 아래</td><td>연속</td><td>한 덩어리</td><td>linear</td><td><span class="pill hold">미결</span></td><td>LoQ 판정</td></tr>
+<tr><td>G</td><td>양수만</td><td>정량</td><td>연속</td><td>한 덩어리</td><td>log</td><td><span class="pill bad">차이</span></td><td>log TOST</td></tr>
+<tr><td>H</td><td>음수만</td><td>바닥 근처</td><td>연속</td><td>한 덩어리</td><td>linear</td><td><span class="pill hold">미결</span></td><td>선형 TOST (넓힌 허용폭)</td></tr>
+</tbody></table></div>
+<p class="look"><b>여기서 볼 것</b> · ① A는 1·2단계에서 동등이라 길을 고르지 않음 ② C는 척도가 log여도 '한계에 걸림'이 먼저라 한계 비교 ③ D(0 중심)와 E(계단)는 다른 이유로 같은 절대 허용폭 길 ④ 아무 길에도 안 맞으면 마지막 선형 TOST</p>
+</section>
+
+<section id="routes"><h2>판정 길 6개</h2>
+<div class="tw"><table><thead><tr><th>#</th><th>판정 길</th><th>맞는 ITEM</th><th>3단계 판정 방법</th><th>verdict_basis</th></tr></thead><tbody>
+<tr><td>1</td><td>제외</td><td>판정할 수 있나 ≠ 정상</td><td>1·2단계 판정 그대로</td><td>—</td></tr>
+<tr><td>2</td><td>한계 비교</td><td>모양에 '한계에 걸림'</td><td>한계(Open 코드, 최댓값·최솟값) 밖 die로 TOST (verdict_limit)</td><td>limit</td></tr>
+<tr><td>3</td><td>절대 허용폭</td><td>0 중심 · 또는 계단이고 정량·바닥 근처</td><td>같은 신뢰구간을 ±abs_delta로 TOST · <a href="c-abs-tol.html">절대 허용폭</a></td><td>abs</td></tr>
+<tr><td>4</td><td>LoQ 판정</td><td>바닥 아래</td><td>2단계 판정 그대로 · <a href="c-loq-judge.html">LoQ 아래 판정</a></td><td>loq</td></tr>
+<tr><td>5</td><td>log TOST</td><td>척도 log · 부호 하나(양수만 · 음수만)</td><td>log10|값|으로 TOST · <a href="c-log-scale.html">잡음이 값에 비례하면 log</a></td><td>log</td></tr>
+<tr><td>6</td><td>선형 TOST</td><td>나머지</td><td>1단계 판정 그대로 · 바닥 근처면 Δ' = max(Δ, 장비 정확도 폭)로 TOST</td><td>linear · accuracy</td></tr>
+</tbody></table></div>
+<p class="s">위에서부터 처음 맞는 길 하나 · 1·2단계 동등은 확정 · 3단계 방법이 판정 제외면 1·2단계 판정을 둠 <span class="badge-int">내부 기준(문헌 근거 없음)</span></p>
+</section>
+
+<section id="axes"><h2>분류 축 (ITEM 유형)</h2>
+<div class="tw"><table><thead><tr><th>축</th><th>열</th><th>값 (위에서부터 처음 맞는 것)</th><th>판정 길에 씀</th></tr></thead><tbody>
+<tr><td>판정할 수 있나</td><td>cls_valid</td><td>정상 / 판정 제외 원인 / die 부족</td><td>제외</td></tr>
+<tr><td>부호</td><td>cls_sign</td><td>부호 섞임 / 0 포함 / 양수만 / 음수만</td><td>log TOST</td></tr>
+<tr><td>수준</td><td>cls_level</td><td>0 중심 (부호 섞임 + |중앙값| &lt; LoQ) / 바닥 아래 (|중앙값| &lt; LoQ) / 바닥 근처 (LoQ ≤ |중앙값| &lt; LoQ/(10r), r 5%면 2·LoQ) / 정량</td><td>절대 허용폭 · LoQ 판정 · 선형 TOST</td></tr>
+<tr><td>분해능</td><td>cls_resolution</td><td>계단 (값 간격 ≥ 0.1·Δ) / 연속</td><td>절대 허용폭</td></tr>
+<tr><td>모양</td><td>cls_shape</td><td>두 덩어리 · 튀는 die · 한계에 걸림 (맞는 것 모두) / 한 덩어리</td><td>한계 비교</td></tr>
+<tr><td>척도</td><td>cls_scale</td><td>scales 표의 log · linear · 표에 없으면 분류기 (<a href="c-log-scale.html">잡음 기울기</a>) · 판별 불가</td><td>log TOST</td></tr>
+<tr><td>잡음 모양</td><td>cls_noise</td><td>잡음 크기가 값에 따라 바뀌는 모양</td><td>안 씀 (참고)</td></tr>
+<tr><td>회차</td><td>cls_run</td><td>회차 밀림 / 조건 불안정 / 회차 흔들림 / 안정</td><td>안 씀 (참고)</td></tr>
+</tbody></table></div>
+</section>
+
+<style>
+.rtf{--eq:#1A8754;--df:#D93A3A;--und:#C27C0E;--sel:#2563EB;--fg:var(--tx);--muted:var(--tx2);--axis:#9CA3AF;margin:0 0 8px}
+.rtf svg{display:block;width:100%;max-width:680px;height:auto;user-select:none;-webkit-user-select:none}
+.rtf .rt-t{font-family:var(--font-sans);fill:var(--fg)}
+.rtf .rt-m{font-family:var(--font-sans);fill:var(--muted)}
+.rt-ctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+.rt-ctl button{font:600 13px var(--font-sans);color:var(--tx);background:#FFFFFF;border:1px solid var(--bd);border-radius:999px;padding:6px 14px;cursor:pointer}
+.rt-items{display:inline-flex;gap:4px;flex-wrap:wrap}
+.rt-items button{padding:4px 10px;min-width:32px}
+.rt-items button[aria-pressed="true"]{background:var(--tx);color:#FFFFFF;border-color:var(--tx)}
+.rt-ctl button:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+</style>
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("rt-svg");
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function el(tag, attrs = {}, parent = svg) {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    parent.appendChild(e);
+    return e;
+  }
+  const txt = (x, y, s, attrs = {}, parent = svg) => { const t = el("text", { x, y, class: "rt-t", "font-size": 15, ...attrs }, parent); t.textContent = s; return t; };
+
+  const AXES = [["valid", "판정할 수 있나"], ["sign", "부호"], ["level", "수준"], ["res", "분해능"], ["shape", "모양"], ["scale", "척도"]];
+  const ROUTES = [
+    { name: "제외", when: "판정할 수 있나 ≠ 정상", how: ["1·2단계 판정 그대로"], ok: i => i.valid !== "정상" },
+    { name: "한계 비교", when: "모양에 '한계에 걸림'", how: ["한계 밖 die로 TOST"], ok: i => i.shape.includes("한계에 걸림") },
+    { name: "절대 허용폭", when: "0 중심 · 계단 + 정량·바닥 근처", how: ["같은 구간을", "±abs_delta로 TOST"],
+      ok: i => i.level === "0 중심" || (i.res === "계단" && (i.level === "정량" || i.level === "바닥 근처")) },
+    { name: "LoQ 판정", when: "바닥 아래", how: ["2단계 판정 그대로"], ok: i => i.level === "바닥 아래" },
+    { name: "log TOST", when: "척도 log + 부호 하나", how: ["log10|값|으로 TOST"], ok: i => i.scale === "log" && (i.sign === "양수만" || i.sign === "음수만") },
+    { name: "선형 TOST", when: "나머지", how: ["1단계 판정 · 바닥 근처면", "Δ' = max(Δ, 장비 정확도)"], ok: () => true },
+  ];
+  const ITEMS = [
+    { id: "A", v12: "동등", valid: "정상", sign: "양수만", level: "정량", res: "연속", shape: "한 덩어리", scale: "linear" },
+    { id: "B", v12: "미결", valid: "die 부족", sign: "양수만", level: "정량", res: "연속", shape: "한 덩어리", scale: "판별 불가" },
+    { id: "C", v12: "차이", valid: "정상", sign: "양수만", level: "정량", res: "연속", shape: "한계에 걸림", scale: "log" },
+    { id: "D", v12: "미결", valid: "정상", sign: "부호 섞임", level: "0 중심", res: "연속", shape: "한 덩어리", scale: "판별 불가" },
+    { id: "E", v12: "차이", valid: "정상", sign: "양수만", level: "정량", res: "계단", shape: "한 덩어리", scale: "linear" },
+    { id: "F", v12: "미결", valid: "정상", sign: "양수만", level: "바닥 아래", res: "연속", shape: "한 덩어리", scale: "linear" },
+    { id: "G", v12: "차이", valid: "정상", sign: "양수만", level: "정량", res: "연속", shape: "한 덩어리", scale: "log" },
+    { id: "H", v12: "미결", valid: "정상", sign: "음수만", level: "바닥 근처", res: "연속", shape: "한 덩어리", scale: "linear" },
+  ];
+  const VCOL = { "동등": "--eq", "차이": "--df", "미결": "--und" };
+  const routeOf = it => it.v12 === "동등" ? -1 : ROUTES.findIndex(r => r.ok(it));
+
+  const CX = 16, CY = 50, CW = 252, CH = 438, RX = 300, RW = 364, RY = 132, RH = 52, RS = 60, GY = 50, GH = 58, RAIL = 284;
+  txt(CX, 30, "ITEM 카드 (기준 조건 값만 봄)", { "font-weight": 600 });
+  txt(RX, 30, "판정 길 (위에서부터 처음 맞는 것)", { "font-weight": 600 });
+  el("rect", { x: CX, y: CY, width: CW, height: CH, rx: 10, style: "fill: #FFFFFF; stroke: var(--axis)" });
+  const cardTitle = txt(CX + 14, CY + 32, "", { "font-size": 19, "font-weight": 700 });
+  const axVals = AXES.map(([, lab], k) => {
+    const y = CY + 66 + k * 32;
+    txt(CX + 14, y, lab, { class: "rt-m", "font-size": 13 });
+    return txt(CX + 118, y, "", { "font-weight": 600 });
+  });
+  el("line", { x1: CX + 12, x2: CX + CW - 12, y1: CY + 258, y2: CY + 258, style: "stroke: var(--axis)" });
+  txt(CX + 14, CY + 286, "1·2단계", { class: "rt-m", "font-size": 13 });
+  const v12Val = txt(CX + 118, CY + 286, "", { "font-weight": 700 });
+  txt(CX + 14, CY + 318, "판정 길", { class: "rt-m", "font-size": 13 });
+  const routeVal = txt(CX + 118, CY + 318, "", { "font-weight": 700, style: "fill: var(--sel)" });
+  txt(CX + 14, CY + 350, "방법", { class: "rt-m", "font-size": 13 });
+  const howVals = [0, 1].map(k => txt(CX + 14, CY + 376 + k * 22, "", { "font-size": 14 }));
+
+  const gate = el("rect", { x: RX, y: GY, width: 224, height: GH, rx: 10, style: "fill: #F7F8FA; stroke: var(--axis)" });
+  txt(RX + 112, GY + 25, "1·2단계 판정이", { "text-anchor": "middle" });
+  txt(RX + 112, GY + 45, "동등인가", { "text-anchor": "middle", "font-weight": 600 });
+  const done = el("rect", { x: RX + 252, y: GY, width: RW - 252, height: GH, rx: 10, style: "fill: #E7F5EE; stroke: var(--eq)" });
+  txt(RX + 262, GY + 20, "확정 · 3단계 안 감", { "font-size": 12, style: "fill: var(--eq)", "font-weight": 600 });
+  el("line", { x1: RX + 226, x2: RX + 248, y1: GY + 29, y2: GY + 29, style: "stroke: var(--eq); stroke-width: 2" });
+  el("path", { d: `M${RX + 250} ${GY + 29} l-7 -5 v10 z`, style: "fill: var(--eq)" });
+  txt(RX + 237, GY - 4, "예", { "text-anchor": "middle", "font-size": 13, style: "fill: var(--eq)", "font-weight": 600 });
+  el("line", { x1: RX + 112, x2: RX + 112, y1: GY + GH, y2: RY - 6, style: "stroke: var(--muted); stroke-width: 2" });
+  el("path", { d: `M${RX + 112} ${RY - 3} l-5 -8 h10 z`, style: "fill: var(--muted)" });
+  txt(RX + 122, GY + GH + 17, "아니오 → 3단계", { "font-size": 13, class: "rt-m" });
+
+  const rows = ROUTES.map((r, k) => {
+    const y = RY + k * RS;
+    const bg = el("rect", { x: RX, y, width: RW, height: RH, rx: 8 });
+    txt(RX + 12, y + 22, `${k + 1} ${r.name}`, { "font-weight": 700 });
+    txt(RX + 12, y + 42, r.when, { class: "rt-m", "font-size": 13 });
+    const mark = txt(RX + RW - 10, y + 22, "", { "text-anchor": "end", "font-size": 13, "font-weight": 600 });
+    return { bg, mark, y };
+  });
+  const chipsLayer = el("g");
+  const tok = el("g", { opacity: 0 });
+  el("circle", { r: 13, style: "fill: var(--fg)" }, tok);
+  const tokT = el("text", { y: 5, "text-anchor": "middle", "font-size": 14, "font-weight": 700, class: "rt-t", style: "fill: #FFFFFF" }, tok);
+  let tx = 0, ty = 0;
+  const setTok = (x, y) => { tx = x; ty = y; tok.setAttribute("transform", `translate(${x} ${y})`); };
+
+  const landed = new Map();
+  function slot(it) {
+    const k = routeOf(it), mates = ITEMS.filter(o => routeOf(o) === k), i = mates.indexOf(it);
+    return k < 0 ? [RX + 276 + i * 26, GY + 40] : [RX + 158 + i * 28, rows[k].y + 17];
+  }
+  function drawChips() {
+    chipsLayer.replaceChildren();
+    for (const it of ITEMS) {
+      if (!landed.has(it.id)) continue;
+      const [x, y] = slot(it), g = el("g", { transform: `translate(${x} ${y})`, style: "cursor: pointer" }, chipsLayer);
+      el("circle", { r: 11, style: `fill: #FFFFFF; stroke: ${it.id === cur.id ? "var(--sel)" : "var(--fg)"}; stroke-width: ${it.id === cur.id ? 3 : 1.5}` }, g);
+      el("text", { y: 5, "text-anchor": "middle", "font-size": 13, "font-weight": 700, class: "rt-t" }, g).textContent = it.id;
+      g.addEventListener("click", () => playOne(it));
+    }
+  }
+  function setRows(upto, hit) {
+    rows.forEach((r, k) => {
+      const on = k === hit, seen = k < upto;
+      r.bg.style.fill = on ? "#EAF1FE" : "#F7F8FA";
+      r.bg.style.stroke = on ? "var(--sel)" : "transparent"; r.bg.style.strokeWidth = 2;
+      r.mark.textContent = on ? "예 ✓" : seen ? "아니오" : "";
+      r.mark.style.fill = on ? "var(--sel)" : "var(--muted)";
+    });
+    done.style.strokeWidth = hit === -1 ? 3 : 1;
+  }
+  let cur = ITEMS[ITEMS.length - 1];
+  function showCard(it, routeKnown) {
+    cur = it;
+    cardTitle.textContent = `예시 ITEM ${it.id}`;
+    AXES.forEach(([key], k) => { axVals[k].textContent = it[key]; });
+    v12Val.textContent = it.v12; v12Val.style.fill = `var(${VCOL[it.v12]})`;
+    const k = routeOf(it);
+    routeVal.textContent = !routeKnown ? "" : k < 0 ? "가지 않음 (확정)" : ROUTES[k].name;
+    const how = !routeKnown ? [] : k < 0 ? ["1·2단계 동등 그대로"] : ROUTES[k].how;
+    howVals.forEach((t, i) => { t.textContent = how[i] || ""; });
+    btns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.id === it.id)));
+  }
+
+  let run = 0;
+  const ease = p => p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+  function moveTo(x, y, d) {
+    const my = run;
+    if (reduce) { setTok(x, y); return Promise.resolve(); }
+    return new Promise(res => {
+      const fx = tx, fy = ty; let t0 = null;
+      function f(ts) {
+        if (my !== run) return;
+        if (t0 === null) t0 = ts;
+        const p = Math.min(1, (ts - t0) / d), e = ease(p);
+        setTok(fx + (x - fx) * e, fy + (y - fy) * e);
+        if (p < 1) requestAnimationFrame(f); else res();
+      }
+      requestAnimationFrame(f);
+    });
+  }
+  const wait = d => { const my = run; return reduce ? Promise.resolve() : new Promise(res => setTimeout(() => { if (my === run) res(); }, d)); };
+
+  async function travel(it) {
+    const my = run;
+    landed.delete(it.id); showCard(it, false); setRows(0, null); drawChips();
+    tokT.textContent = it.id; setTok(CX + CW - 26, CY + 26); tok.setAttribute("opacity", 1);
+    await wait(500); await moveTo(RAIL, GY + 29, 600); await wait(350);
+    const k = routeOf(it);
+    if (k < 0) {
+      await moveTo(RAIL, GY - 14, 300); await moveTo(RX + 276, GY - 14, 700);
+      const [x, y] = slot(it); await moveTo(x, y, 400);
+    } else {
+      for (let j = 0; j <= k; j++) {
+        await moveTo(RAIL, rows[j].y + RH / 2, 420);
+        if (my !== run) return;
+        setRows(j === k ? j : j + 1, j === k ? j : null); await wait(j === k ? 350 : 280);
+      }
+      const [x, y] = slot(it); await moveTo(x, y, 450);
+    }
+    if (my !== run) return;
+    tok.setAttribute("opacity", 0); landed.set(it.id, true); showCard(it, true); setRows(Math.max(k, 0), k); drawChips();
+    await wait(700);
+  }
+  function restAll() {
+    ITEMS.forEach(it => landed.set(it.id, true));
+    const it = ITEMS[ITEMS.length - 1];
+    showCard(it, true); const k = routeOf(it); setRows(Math.max(k, 0), k); drawChips(); tok.setAttribute("opacity", 0);
+  }
+  const play = document.getElementById("rt-play");
+  async function playAll() {
+    const my = ++run; landed.clear(); drawChips(); play.textContent = "❚❚ 멈춤";
+    for (const it of ITEMS) { await travel(it); if (my !== run) return; }
+    play.textContent = "▶ 전체 재생";
+  }
+  function playOne(it) {
+    ++run; play.textContent = "▶ 전체 재생";
+    ITEMS.forEach(o => landed.set(o.id, true));
+    travel(it);
+  }
+  play.addEventListener("click", () => {
+    if (play.textContent.startsWith("❚❚")) { ++run; restAll(); play.textContent = "▶ 전체 재생"; return; }
+    playAll();
+  });
+  const holder = document.getElementById("rt-items");
+  const btns = ITEMS.map(it => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = it.id; b.dataset.id = it.id; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => playOne(it));
+    holder.appendChild(b);
+    return b;
+  });
+  if (reduce) play.hidden = true;
+  restAll();
+  svg.dataset.ready = "1";
+})();
+</script>
+
+<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="c-loq-judge.html">LoQ 아래 판정</a></li><li><a href="c-abs-tol.html">0 근처와 절대 허용폭</a></li><li><a href="c-log-scale.html">잡음이 값에 비례하면 log</a></li><li><a href="step-6.html#typed">⑥ 판정 · 3단계 유형별 판정</a></li><li><a href="reading.html#final">결과 읽는 법 · 최종 판정 열</a></li></ul></nav>
+<footer class="pager"><a href="c-loq-judge.html">← 이전 · LoQ 아래 판정</a><a href="c-abs-tol.html">다음 · 0 근처와 절대 허용폭 →</a></footer>
+</div></main></body></html>

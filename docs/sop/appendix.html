@@ -99,7 +99,7 @@
 </ul>
 <div class="tw"><table><thead><tr><th>id</th><th>무엇</th><th>어디</th><th>지금 본문</th></tr></thead><tbody>
 <tr id="N1"><td>N1</td><td>경계 포함 여부 · 수식은 "90% CI ⊂ (−Δ, +Δ)", "H₁: −Δ &lt; b &lt; +Δ"(열린 구간), 판정 표 동등 조건은 "−Δ ≤ CI 아래, CI 위 ≤ +Δ"(닫힌 구간) → CI 끝이 정확히 ±Δ일 때 판정이 문서 안에서 갈림</td><td><a href="step-6.html#C6-1">⑥ 판정</a> · <a href="reading.html#verdict">결과 읽는 법</a></td><td>두 글 그대로 둠 · 합성 예시는 경계에서 멀어 판정 같음</td></tr>
-<tr id="N2"><td>N2</td><td>절댓값 표기 · ⑥ LoQ 미만 기준 수식은 "|비교 조건 중심| ≥ LoQ", 판정 흐름 d4와 판정 지도 머리글은 "비교 조건 중심 ≥ LoQ" / "&lt; LoQ"(절댓값 없음)</td><td><a href="step-6.html#C6-7">⑥ 판정</a> · <a href="reading.html#map">판정 지도</a> · <a href="reading.html#flow">판정 흐름</a></td><td>옛 글 그대로 둠</td></tr>
+<tr id="N2"><td>N2</td><td>절댓값 표기 · ⑥ LoQ 미만 기준 수식은 "|비교 조건 중심| ≥ LoQ", 판정 흐름 d4와 판정 지도 머리글은 "비교 조건 중심 ≥ LoQ" / "&lt; LoQ"(절댓값 없음)</td><td><a href="step-6.html#C6-7">⑥ 판정</a> · <a href="reading.html#map">판정 지도</a> · <a href="reading.html#flow">판정 흐름</a></td><td>해결 · 새 LoQ 판정(DOE 수준 구간)으로 바꾸며 모든 쪽을 절댓값 표기 '|x| &lt; LoQ' · '|x| ≥ LoQ'로 맞춤</td></tr>
 <tr id="N3"><td>N3</td><td>die 수 전제 · 옛 원문 "Binomial(61, 0.5)", "d(24), d(38)", "92.8%", "die 61개"는 die 61개 기준, 다른 die 수의 순위 설명이 원문에 없음 · 새 일반형 순위 규칙(k = P(B ≤ k) ≤ 5%인 가장 큰 수 = 양끝에서 떼는 개수, 구간 (k+1)번째 ~ (n−k)번째)이 도구 코드와 같은 규칙인지 → 확인함(도구 ci_median: k = binom.ppf(0.05, n, 0.5), P(B ≤ k) &gt; 5%면 k − 1 · 0부터 센 순위 k = 1부터 센 순위 k + 1 → 같은 규칙, die 60 → 24 · 37번째)</td><td><a href="step-4.html#C4-1">④ 차이(편향)와 90% 신뢰구간</a> · <a href="run.html">실행 방법</a></td><td>④는 합성 예시 die 60개(24·37번째, 90.75%) + die 수별 순위 표(30 · 45 · 60 · 90), 수식은 일반형 · 실행 방법 쪽도 die 수를 고정하지 않는 글로 정리함</td></tr>
 <tr id="N4"><td>N4</td><td>원문 예시 반올림 · 원문 실데이터 예시 하나에서 표시된 중심값이 "기준 조건 중앙값 + b" 표시값과 반올림이 맞지 않음</td><td><a href="step-6.html">⑥ 판정</a></td><td>실데이터 예시는 이 문서에서 뺌 · 원문에서 확인</td></tr>
 <tr id="N5"><td>N5</td><td>표기 · 옛 구간 표는 "|기준 조건| ≥ LoQ", 판정 흐름은 "|기준 조건 중앙값| ≥ LoQ" · 같은 뜻으로 보이나 표기가 다름</td><td><a href="step-3.html#C3-2">③ 구간 나누기</a> · <a href="reading.html#flow">판정 흐름</a></td><td>본문은 "|기준 조건 중앙값| ≥ LoQ"로 통일 · 원문 확인은 남음</td></tr>
@@ -116,6 +116,8 @@
 <tr id="N16"><td>N16</td><td>근거 위치 칸 잘림 · 출처 대조표 #3(VIM 절, ISO 5725-3 절), #5(ICH Q2(R1), MARLAP 절), #10b(Meeker 절 제목) 칸이 잘려 있음 · 옛 판 VIM은 2.20~2.23</td><td><a href="#ev-3">#3</a> · <a href="#ev-5">#5</a> · <a href="#ev-10b">#10b</a> · <a href="step-2.html#sources">②</a> · <a href="step-3.html#sources">③</a> · <a href="step-5.html#sources">⑤</a></td><td>VIM 2.20, 2.21 · ISO 5725-3은 절 없이 · ICH Q2(R1) 7.2, 7.3 · MARLAP 20.2.7, 20.4.3(옛 쪽 표기) · Meeker 4.7(목차만 확인) · references.md 원문 확인 필요</td></tr>
 <tr id="N17"><td>N17</td><td>정밀도 비교 개념 쪽 · 한 줄 설명의 원문이 없음 · 어떤 검정(#17 F 검정, #18 Levene)을 쓰는지, 판정에 쓰는지, 쓰는 단계가 ②인지 모름</td><td>개념 <a href="c-precision.html">c-precision</a></td><td>'내부 기준(문헌 근거 없음)'으로 표시</td></tr>
 <tr id="N18"><td>N18</td><td>기호 k의 뜻이 쪽마다 다름: 부호검정 쪽은 k = 아래 끝 순번(24), 중앙값 CI 쪽은 k = 양끝에서 떼는 개수(23) · ③ 쉬운 말의 'blank 흔들림'은 도구에서 σ 후보가 아니라 blank로 구한 LoQ를 직접 비교함</td><td><a href="c-signci.html">c-signci</a> · <a href="c-median-ci.html">c-median-ci</a> · <a href="step-3.html">③</a></td><td>Sec 16:58 결정으로 해결: 모든 쪽에서 k = 양끝에서 떼는 개수(23), 구간 (k+1)번째 ~ (n−k)번째 · ③ LoQ 문장을 도구 기준(σ 세 후보 중 최대, blank LoQ가 더 크면 대체)으로 고침</td></tr>
+<tr id="N19"><td>N19</td><td>verdict_basis 코드 · 판정 길 '제외'이거나 3단계 방법이 판정 제외라 1·2단계 판정을 둘 때 어느 코드(linear · loq)가 붙는지 기준 문서에 없음</td><td><a href="reading.html#final">결과 읽는 법 · 최종 판정 열</a> · <a href="step-6.html#typed">⑥ 3단계</a></td><td>표에 '—'로 둠</td></tr>
+<tr id="N20"><td>N20</td><td>log TOST 허용폭 · 판정은 Δ<sub>log</sub> = log10(1 + r) + sigma_rep_log, 고친 Δ<sub>log_run</sub>은 참고 열(verdict_final_log_run)만 · 어느 쪽을 쓸지 결정 대기</td><td><a href="c-log-scale.html#formula">잡음이 값에 비례하면 log</a></td><td>지금 방식(Δ<sub>log</sub>)으로 적음</td></tr>
 </tbody></table></div>
 </section>
 
@@ -123,7 +125,7 @@
 <ul>
 <li>새 판은 ① 반복 측정 단계가 새로 생겨 옛 ①~④ 기준 id가 한 칸씩 밀림</li>
 <li>기준 상자의 id와 EDIT 주석 이름을 함께 새 번호로 바꿈 · id는 화면에 안 보이고 이 표 링크로 찾아감</li>
-<li>⑥ 쪽 id는 C6-1~C6-9로 바꿈 → 쪽끼리 겹치는 id 없음</li>
+<li>⑥ 쪽 id는 C6-1~C6-9로 바꿈 → 쪽끼리 겹치는 id 없음 · 새 LoQ 판정과 3단계로 C6-10~C6-13 추가</li>
 </ul>
 <div class="tw"><table><thead><tr><th>옛 id</th><th>새 id</th><th>새 쪽 · 위치</th><th>그 쪽 근거 번호</th></tr></thead><tbody>
 <tr><td>C0-1</td><td>C0-1 (그대로)</td><td><a href="step-0.html#C0-1">⓪ 표본 크기 정하기 · J 선택 구간</a></td><td><a href="#ev-14c">#14c</a></td></tr>
@@ -141,6 +143,9 @@
 <tr><td>C4-3</td><td>C5-3</td><td><a href="step-5.html#C5-3">⑤ 허용 범위 Δ · 수식 · A·V ITEM 관련 값</a></td></tr>
 <tr><td>C5-1~C5-6 (옛 ⑤ 정량 구간 판정)</td><td>C6-1~C6-6</td><td><a href="step-6.html#C6-1">⑥ 판정 · 정량 구간 동등 · 차이 · 미결(해상도 부족 · 경계)</a></td><td><a href="#ev-12">#12</a> · <a href="#ev-13">#13</a></td></tr>
 <tr><td>C6-1~C6-3 (옛 ⑥ LoQ 미만 판정)</td><td>C6-7~C6-9</td><td><a href="step-6.html#C6-7">⑥ 판정 · LoQ 미만 구간</a></td><td><a href="#ev-15">#15</a> · <a href="#N2">N2</a> · <a href="#N14">N14</a></td></tr>
+<tr><td>—</td><td>C6-10, C6-11 (새 내용)</td><td><a href="step-6.html#loq">⑥ 판정 · LoQ 판정 미결 · 이동 ±Δ 안 동등</a></td><td>없음 · 내부 기준</td></tr>
+<tr><td>—</td><td>C6-12, C6-13 (새 내용)</td><td><a href="step-6.html#typed">⑥ 판정 · 3단계 최종 판정 · 참고 열</a></td><td>없음 · 내부 기준</td></tr>
+<tr><td>—</td><td>C5-4 (새 내용)</td><td><a href="step-5.html#C5-4">⑤ 허용 범위 Δ · 3단계에서 쓰는 다른 허용폭</a></td><td>없음 · 내부 기준</td></tr>
 </tbody></table></div>
 </section>
 
@@ -152,7 +157,7 @@
 <!-- EDIT: 정의 문장 --><ul><li>기준 조건 = 지금 쓰는 조건 · 비교 조건 = 바꾸려는 조건</li><li>장비, <a class="g" href="glossary.html#probecard"><abbr title="프로브카드 · 바늘을 die 패드에 대어 장비와 die를 전기로 잇는 부품">프로브카드</abbr></a>, 측정 조건 등 무엇이 바뀌었든 같은 die를 양쪽에서 재어 비교</li></ul><!-- /EDIT -->
 <div class="tw"><table class="sym"><thead><tr><th>용어</th><th>기호</th><th>뜻</th></tr></thead><tbody>
 <tr><td>기준 조건</td><td>—</td><td>J회 잼 · 회차별 값과 die별 J회 평균</td></tr>
-<tr><td>비교 조건</td><td>—</td><td>1회 잼 · LoQ 미만에서 비교 조건 중심 = 기준 조건 중앙값 + b</td></tr>
+<tr><td>비교 조건</td><td>—</td><td>1회 잼 · LoQ 미만에서 DOE 수준 구간 = 기준 조건 중앙값 + 이동 90% CI</td></tr>
 <tr><td>반복성</td><td>σ<sub>die</sub></td><td>같은 die를 다시 잴 때의 흔들림 · MAD로 구함 (옛 기호 σ<sub>r</sub>)</td></tr>
 <tr><td>회차 이동</td><td>σ<sub>run</sub></td><td>회차마다 모든 die가 함께 움직이는 크기</td></tr>
 <tr><td>정량한계</td><td>LoQ = 10σ</td><td>믿고 숫자로 비교할 수 있는 가장 작은 크기</td></tr>
@@ -178,7 +183,7 @@
 <tr><td>분해능</td><td>Δx/√12</td><td>③</td><td><a href="#ev-4">#4</a></td></tr>
 <tr><td>blank</td><td>LoQ<sub>blank</sub> = |평균| + 10·SD</td><td>③</td><td><a href="#ev-6">#6</a></td></tr>
 <tr><td>장비 정확도 한계 계수</td><td>1.645, /3</td><td>⑤</td><td><a href="#ev-11">#11</a></td></tr>
-<tr><td>LoQ 미만 두 조건의 조합</td><td>[CI가 통째로 ±Δ 밖]  AND  [|비교 조건 중심| ≥ LoQ]</td><td>⑥</td><td>설계 · <a href="#N2">N2</a> · <a href="#N14">N14</a></td></tr>
+<tr><td>LoQ 미만 판정 (2단계)</td><td>CI ⊂ ±Δ → 동등 · DOE 수준 구간 통째로 |x| &lt; LoQ → 동등 · 통째로 |x| ≥ LoQ AND CI 통째로 ±Δ 밖 → 차이 · 그 밖 미결</td><td>⑥</td><td>설계 · <a href="#N2">N2</a> · <a href="#N14">N14</a></td></tr>
 <tr><td>이상치 die</td><td>|d − median(d)| &gt; 5·robustσ(d)</td><td>참고</td><td><a href="#ev-8">#8</a></td></tr>
 <tr><td>자릿수 점검 여유</td><td>1.15배</td><td>참고</td><td><a href="reading.html#ref">결과 읽는 법</a></td></tr>
 </tbody></table></div>
