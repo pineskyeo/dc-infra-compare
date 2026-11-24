@@ -1,0 +1,8 @@
+﻿column,쉬운이름,뜻,수식,볼것
+group,그룹,그룹 이름. 이번 그룹 파일에 있는 그룹만 (미지정은 뺌).,두 결과 폴더 stability/group_levels.csv의 `group`,
+level,측정 LEVEL,level 파일의 LEVEL.,stability/group_levels.csv `level`,
+n_items_before,기존 ITEM 수,기존 결과에서 이 칸의 ITEM 수.,기존 stability/group_levels.csv `n_items`,기존 결과의 모든 ITEM으로 센다 (비교 범위와 다를 수 있음).
+n_items_after,개선 ITEM 수,개선 결과에서 이 칸의 ITEM 수.,개선 stability/group_levels.csv `n_items`,
+before,측정 정밀도 기존 (%),기존 측정 정밀도 중앙값.,기존 stability/group_levels.csv `meas_precision_pct_median`,
+after,측정 정밀도 개선 (%),개선 측정 정밀도 중앙값.,개선 stability/group_levels.csv `meas_precision_pct_median`,
+ratio,비,개선 ÷ 기존 (중앙값끼리).,`after` / `before`. `before` ≤ 0이면 빈 칸,1보다 작으면 이 그룹·LEVEL 정밀도가 좋아졌다.

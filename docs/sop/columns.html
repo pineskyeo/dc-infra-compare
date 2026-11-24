@@ -80,10 +80,13 @@
 <tr><td><a href="#items-summary-csv"><code>items/*/summary.csv</code></a></td><td>fail_evidence.py</td><td>ITEM 하나의 items.csv 행 전체. --compare를 주면 compare.csv의 같은 ITEM 열이 cmp_ 접두사로 붙는다.</td></tr>
 <tr><td><a href="#items-raw-csv"><code>items/*/raw.csv</code></a></td><td>fail_evidence.py (원데이터 인자를 줄 때)</td><td>ITEM 하나의 die별 원데이터. 원데이터 인자(--por, --doe)를 줄 때만 생긴다. 다른 파일 수식의 die별 열(<code>POR{k}</code>, <code>DOE</code>, <code>d</code>)은 이 파일의 열이다.</td></tr>
 <tr><td><a href="#item-evidence"><code>item_evidence</code></a></td><td>fail_evidence.py (원데이터 인자를 줄 때)</td><td>ITEM 하나의 판정 근거를 원데이터에서 다시 적는다. 신뢰구간을 정한 die와 그 값, 허용폭의 구성, 올라간·내려간 die 수, 튀는 die. ITEM 폴더마다 한 행이다.</td></tr>
-<tr><td><a href="#compare-csv"><code>compare.csv</code></a></td><td>compare_before_after.py compare (dcc group --before, run_all --before)</td><td>기존 결과(--before)와 이번 결과를 ITEM 이름으로 맞춰 흔들림과 판정을 견준다.</td></tr>
-<tr><td><a href="#stability-overall-csv"><code>stability_overall.csv</code></a></td><td>compare_before_after.py compare</td><td>compare.csv에서 짝이 있는 ITEM 전체의 흔들림 분포를 한 행으로 요약한다.</td></tr>
+<tr><td><a href="#compare-csv"><code>compare.csv</code></a></td><td>compare_before_after.py compare (dcc compare, dcc group --before, run_all --before)</td><td>기존 결과(--before)와 이번 결과를 ITEM 이름으로 맞춰 흔들림과 판정을 견준다. 두 결과 모두에 있는 ITEM만, 그룹 파일을 주면 그 파일에 있는 ITEM만 행이 된다.</td></tr>
+<tr><td><a href="#compare-scope-csv"><code>compare/scope.csv</code></a></td><td>compare_before_after.py compare</td><td>비교 범위 한 행. 결과마다 ITEM 수, 한쪽에만 있는 수, 그룹 파일에 없어 뺀 수, 판정 제외 수.</td></tr>
+<tr><td><a href="#compare-overview-csv"><code>compare/overview.csv</code></a></td><td>compare_before_after.py compare</td><td>요약 지표(측정 정밀도, 반복성, 회차 이동, 90% 구간 폭, 동등 아닌 ITEM 수)마다 기존·개선·비 중앙값·판단 한 행. compare/report.html 요약 표와 비교.xlsx 요약 시트가 이 파일이다.</td></tr>
+<tr><td><a href="#compare-group-levels-csv"><code>compare/group_levels.csv</code></a></td><td>compare_before_after.py compare --groups (두 결과 폴더에 stability/group_levels.csv 가 있을 때)</td><td>그룹 × LEVEL마다 기존·개선 측정 정밀도 중앙값과 비. 두 결과 폴더의 stability/group_levels.csv를 맞춘다.</td></tr>
+<tr><td><a href="#stability-overall-csv"><code>stability_overall.csv</code></a></td><td>compare_before_after.py compare</td><td>compare.csv에서 판정 제외를 뺀 ITEM 전체의 흔들림 분포를 한 행으로 요약한다.</td></tr>
 <tr><td><a href="#worst-items-csv"><code>worst_items.csv</code></a></td><td>compare_before_after.py compare</td><td>비율 지표(반복성, 회차 이동, 측정 정밀도)마다 가장 나빠진 ITEM을 적는다.</td></tr>
-<tr><td><a href="#group-summary-csv"><code>group_summary.csv</code></a></td><td>group_summary.py (dcc group --before, run_all --before --groups)</td><td>compare.csv를 ITEM 그룹별로 요약한다. 맨 위는 전체 행이다.</td></tr>
+<tr><td><a href="#group-summary-csv"><code>group_summary.csv</code></a></td><td>group_summary.py (dcc compare·group --before, run_all --before --groups)</td><td>compare.csv를 ITEM 그룹별로 요약한다. 맨 위는 전체 행이다.</td></tr>
 <tr><td><a href="#verdict-by-group-csv"><code>verdict_by_group.csv</code></a></td><td>group_summary.py</td><td>그룹마다 판정 변화(기존→개선)별 ITEM 수를 센다.</td></tr>
 <tr><td><a href="#stability-by-group-csv"><code>stability_by_group.csv</code></a></td><td>group_summary.py</td><td>그룹마다 기존·개선 흔들림 분포와 안정 순위를 적는다.</td></tr>
 <tr><td><a href="#group-dirs-csv"><code>group_dirs.csv</code></a></td><td>group_summary.py</td><td>그룹 이름과 그룹 그림 폴더 이름의 대응표.</td></tr>
@@ -449,18 +452,18 @@
 </tbody></table></div>
 </section>
 <section id="compare-csv"><h2>compare.csv</h2>
-<p>기존 결과(--before)와 이번 결과를 ITEM 이름으로 맞춰 흔들림과 판정을 견준다.</p>
-<p class="s">만드는 명령 compare_before_after.py compare (dcc group --before, run_all --before) · 위치 <code>group/compare/compare.csv</code> · <code>compare/compare.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
-<p class="s">열 35개</p>
+<p>기존 결과(--before)와 이번 결과를 ITEM 이름으로 맞춰 흔들림과 판정을 견준다. 두 결과 모두에 있는 ITEM만, 그룹 파일을 주면 그 파일에 있는 ITEM만 행이 된다.</p>
+<p class="s">만드는 명령 compare_before_after.py compare (dcc compare, dcc group --before, run_all --before) · 위치 <code>compare/compare.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
+<p class="s">열 39개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>ITEM</code></td><td>ITEM 이름</td><td>두 결과를 맞추는 키. 같은 ITEM 이름끼리 짝짓는다.</td><td>기존·개선 items.csv <code>ITEM</code></td><td></td></tr>
 <tr><td><code>ID</code></td><td>익명 번호</td><td>기존 표의 익명 번호. 기존에 없으면 개선 표의 번호.</td><td>기존 items.csv <code>ID</code>, 없으면 개선 <code>ID</code></td><td></td></tr>
-<tr><td><code>presence</code></td><td>짝 상태</td><td>그 ITEM이 두 결과에 다 있는지.</td><td>matched = 두 표에 다 있음, only_before = 기존에만, only_after = 개선에만</td><td>only_가 많으면 ITEM 이름이 바뀌었거나 측정 목록이 다르다.</td></tr>
+<tr><td><code>group</code></td><td>그룹</td><td>그룹 파일에서 찾은 이 ITEM의 그룹. --groups를 줄 때만 생긴다.</td><td>--groups 파일의 group. 이름 그대로 먼저 맞추고, 안 맞으면 앞의 'F31_' 같은 접두어를 떼고 대소문자 없이 다시 맞춤. 그래도 없는 ITEM은 compare.csv에서 빠진다</td><td>그룹 파일에 없는 ITEM은 어떤 비교 숫자에도 들어가지 않는다. 몇 개 뺐는지는 scope.csv <code>n_ungrouped</code>.</td></tr>
 <tr><td><code>misaligned</code></td><td>정렬 의심</td><td>같은 이름인데 값 크기가 크게 다른 ITEM.</td><td><code>por_median_rel_diff</code> &gt; 0.2면 True</td><td>True면 이름은 같아도 다른 측정일 수 있다. 기본은 집계에 넣고, --exclude-misaligned면 뺀다.</td></tr>
 <tr><td><code>por_median_rel_diff</code></td><td>POR 중앙값 상대차</td><td>기존과 개선의 POR 중앙값이 서로 몇 배 다른지.</td><td>|<code>por_median_before</code> − <code>por_median_after</code>| / max(|<code>por_median_before</code>|, |<code>por_median_after</code>|). 둘 다 0이면 0</td><td>0.2를 넘으면 정렬 의심이다.</td></tr>
 <tr><td><code>verdict_before</code></td><td>기존 판정</td><td>기존 items.csv의 최종 판정.</td><td>기존 items.csv <code>verdict_final</code> 그대로 (그 열이 없는 옛 items.csv면 <code>verdict</code>)</td><td>group_summary.py의 '동등 아님' 집계도 이 값을 쓴다.</td></tr>
 <tr><td><code>verdict_after</code></td><td>개선 판정</td><td>개선 items.csv의 최종 판정.</td><td>개선 items.csv <code>verdict_final</code> 그대로 (그 열이 없는 옛 items.csv면 <code>verdict</code>)</td><td></td></tr>
-<tr><td><code>verdict_transition</code></td><td>판정 변화</td><td>기존 판정에서 개선 판정으로 어떻게 바뀌었는지. 짝이 있는 ITEM만.</td><td><code>verdict_before</code> + '→' + <code>verdict_after</code></td><td>동등→차이처럼 나빠진 ITEM을 먼저 본다.</td></tr>
+<tr><td><code>verdict_transition</code></td><td>판정 변화</td><td>기존 판정에서 개선 판정으로 어떻게 바뀌었는지.</td><td><code>verdict_before</code> + '→' + <code>verdict_after</code></td><td>동등→차이처럼 나빠진 ITEM을 먼저 본다.</td></tr>
 <tr><td><code>sigma_die_pct_before</code></td><td>기존 반복성 %</td><td>기존 반복성을 POR 중앙값 대비 %로 본 것.</td><td>100 × <code>sigma_die_before</code> / |<code>por_median_before</code>|. 중앙값 0이면 빈 칸</td><td>낮을수록 안정적이다.</td></tr>
 <tr><td><code>sigma_die_pct_after</code></td><td>개선 반복성 %</td><td>개선 반복성을 POR 중앙값 대비 %로 본 것.</td><td>100 × <code>sigma_die_after</code> / |<code>por_median_after</code>|. 중앙값 0이면 빈 칸</td><td>낮을수록 안정적이다.</td></tr>
 <tr><td><code>sigma_die_pct_change</code></td><td>반복성 % 변화</td><td>개선 값에서 기존 값을 뺀 것. 단위 %p.</td><td><code>sigma_die_pct_after</code> − <code>sigma_die_pct_before</code>. 한쪽이 비면 빈 칸</td><td>음수면 개선 쪽이 낮다. 반복성·회차 이동·정밀도는 낮을수록 좋다.</td></tr>
@@ -479,7 +482,7 @@
 <tr><td><code>ci_width_pct_before</code></td><td>기존 범위 폭 %</td><td>기존 신뢰구간 폭을 POR 중앙값 대비 %로 본 것.</td><td>100 × (<code>ci_high</code> − <code>ci_low</code>) / |<code>por_median</code>| (기존 items.csv)</td><td>좁을수록 판정이 촘촘하다.</td></tr>
 <tr><td><code>ci_width_pct_after</code></td><td>개선 범위 폭 %</td><td>개선 신뢰구간 폭을 POR 중앙값 대비 %로 본 것.</td><td>100 × (<code>ci_high</code> − <code>ci_low</code>) / |<code>por_median</code>| (개선 items.csv)</td><td>좁을수록 판정이 촘촘하다.</td></tr>
 <tr><td><code>ci_width_pct_change</code></td><td>범위 폭 % 변화</td><td>개선 값에서 기존 값을 뺀 것. 단위 %p.</td><td><code>ci_width_pct_after</code> − <code>ci_width_pct_before</code>. 한쪽이 비면 빈 칸</td><td>음수면 개선 쪽이 낮다.</td></tr>
-<tr><td><code>both_lower</code></td><td>두 흔들림 모두 낮아짐</td><td>반복성과 회차 이동이 둘 다 줄었는지. 짝이 있는 ITEM만 채운다.</td><td><code>sigma_die_status</code> lower이고 <code>sigma_run_status</code> lower면 yes, <code>sigma_die_status</code> lower이고 <code>sigma_run_status</code> same 0이면 same 0, 그 밖은 no. --exclude-misaligned면 정렬 의심 행은 빈 칸</td><td>yes가 많으면 개선 조건이 측정을 안정시킨 것이다.</td></tr>
+<tr><td><code>both_lower</code></td><td>두 흔들림 모두 낮아짐</td><td>반복성과 회차 이동이 둘 다 줄었는지.</td><td><code>sigma_die_status</code> lower이고 <code>sigma_run_status</code> lower면 yes, <code>sigma_die_status</code> lower이고 <code>sigma_run_status</code> same 0이면 same 0, 그 밖은 no. --exclude-misaligned면 정렬 의심 행은 빈 칸</td><td>yes가 많으면 개선 조건이 측정을 안정시킨 것이다.</td></tr>
 <tr><td><code>por_median_before</code></td><td>기존 POR 중앙값</td><td>기존 결과의 POR 중앙값.</td><td>기존 items.csv <code>por_median</code> 그대로</td><td></td></tr>
 <tr><td><code>por_median_after</code></td><td>개선 POR 중앙값</td><td>개선 결과의 POR 중앙값.</td><td>개선 items.csv <code>por_median</code> 그대로</td><td></td></tr>
 <tr><td><code>sigma_die_before</code></td><td>기존 반복성</td><td>기존 결과의 σ_die.</td><td>기존 items.csv <code>sigma_die</code> 그대로</td><td></td></tr>
@@ -488,11 +491,65 @@
 <tr><td><code>sigma_run_after</code></td><td>개선 회차 이동</td><td>개선 결과의 σ_run.</td><td>개선 items.csv <code>sigma_run</code> 그대로</td><td></td></tr>
 <tr><td><code>center_delta_before</code></td><td>기존 이동량 / 허용 범위</td><td>기존 이동량이 Δ의 몇 배인지.</td><td><code>center</code> / <code>delta</code> (기존 items.csv). <code>delta</code> ≤ 0이면 빈 칸</td><td>±1 밖이면 허용 범위보다 크게 움직였다.</td></tr>
 <tr><td><code>center_delta_after</code></td><td>개선 이동량 / 허용 범위</td><td>개선 이동량이 Δ의 몇 배인지.</td><td><code>center</code> / <code>delta</code> (개선 items.csv). <code>delta</code> ≤ 0이면 빈 칸</td><td>±1 밖이면 허용 범위보다 크게 움직였다.</td></tr>
+<tr><td><code>meas_precision_ratio</code></td><td>측정 정밀도 비</td><td>개선 측정 정밀도가 기존의 몇 배인지.</td><td><code>meas_precision_pct_after</code> / <code>meas_precision_pct_before</code>. 기존이 0 이하이거나 어느 쪽이든 비면 빈 칸</td><td>0.9 미만이면 이 ITEM은 좋아짐, 1.1 초과면 나빠짐. overview.csv 비 중앙값의 재료다.</td></tr>
+<tr><td><code>sigma_die_ratio</code></td><td>반복성 비</td><td>개선 반복성(σ_die)이 기존의 몇 배인지.</td><td><code>sigma_die_after</code> / <code>sigma_die_before</code>. 기존이 0 이하이거나 어느 쪽이든 비면 빈 칸</td><td>1보다 작으면 반복성이 좋아졌다.</td></tr>
+<tr><td><code>sigma_run_ratio</code></td><td>회차 이동 비</td><td>개선 회차 이동(σ_run)이 기존의 몇 배인지.</td><td><code>sigma_run_after</code> / <code>sigma_run_before</code>. 기존이 0 이하이거나 어느 쪽이든 비면 빈 칸</td><td>기존 σ_run이 0인 ITEM이 많아 빈 칸이 흔하다.</td></tr>
+<tr><td><code>ci_width_ratio</code></td><td>90% 구간 폭 비</td><td>개선 신뢰구간 폭이 기존의 몇 배인지.</td><td><code>ci_width_pct_after</code> / <code>ci_width_pct_before</code>. 기존이 0 이하이거나 어느 쪽이든 비면 빈 칸</td><td>1보다 작으면 판정이 더 촘촘해졌다.</td></tr>
+</tbody></table></div>
+</section>
+<section id="compare-scope-csv"><h2>compare/scope.csv</h2>
+<p>비교 범위 한 행. 결과마다 ITEM 수, 한쪽에만 있는 수, 그룹 파일에 없어 뺀 수, 판정 제외 수.</p>
+<p class="s">만드는 명령 compare_before_after.py compare · 위치 <code>compare/scope.csv</code> · 수식의 다른 열 <a href="#compare-csv">compare.csv</a> 열</p>
+<p class="s">열 12개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>n_before</code></td><td>기존 ITEM 수</td><td>기존 결과(items.csv)의 ITEM 수.</td><td></td><td></td></tr>
+<tr><td><code>n_after</code></td><td>개선 ITEM 수</td><td>개선 결과의 ITEM 수.</td><td></td><td></td></tr>
+<tr><td><code>n_matched</code></td><td>둘 다 있는 ITEM</td><td>두 결과 모두에 있는 ITEM 수 (ITEM 이름으로 맞춤).</td><td></td><td></td></tr>
+<tr><td><code>n_only_before</code></td><td>기존에만</td><td>기존에만 있어 비교에서 뺀 ITEM 수.</td><td></td><td>많으면 ITEM 이름이 바뀌었거나 측정 목록이 다르다.</td></tr>
+<tr><td><code>n_only_after</code></td><td>개선에만</td><td>개선에만 있어 비교에서 뺀 ITEM 수.</td><td></td><td></td></tr>
+<tr><td><code>grouped</code></td><td>그룹 파일로 비교</td><td>--groups를 줬는지. True면 그룹 파일에 있는 ITEM만 비교한다.</td><td></td><td></td></tr>
+<tr><td><code>n_ungrouped</code></td><td>그룹 파일에 없어 뺀 ITEM</td><td>둘 다 있지만 그룹 파일에 없어 비교에서 뺀 ITEM 수. --groups가 없으면 0.</td><td></td><td>리포트 요약의 범위 줄에 '그룹 파일에 없는 ITEM n개는 비교에서 뺌'으로 나온다.</td></tr>
+<tr><td><code>n_compared</code></td><td>비교한 ITEM</td><td>compare.csv 행 수.</td><td><code>n_matched</code> − <code>n_ungrouped</code></td><td></td></tr>
+<tr><td><code>n_misaligned</code></td><td>정렬 의심</td><td>비교한 ITEM 중 정렬 의심 수.</td><td>compare.csv <code>misaligned</code> True인 수</td><td></td></tr>
+<tr><td><code>misaligned_included</code></td><td>정렬 의심 포함</td><td>정렬 의심을 지표에 넣었는지 (--exclude-misaligned면 False).</td><td></td><td></td></tr>
+<tr><td><code>n_verdict_excluded</code></td><td>판정 제외</td><td>기존 또는 개선이 판정 제외라 흔들림 지표에서 뺀 ITEM 수. 판정 변화 표에는 남는다.</td><td></td><td></td></tr>
+<tr><td><code>n_used</code></td><td>지표에 쓴 ITEM</td><td>overview.csv 지표를 계산한 ITEM 수.</td><td><code>n_compared</code> − <code>n_verdict_excluded</code> (정렬 의심을 빼면 그것도 뺌)</td><td></td></tr>
+</tbody></table></div>
+</section>
+<section id="compare-overview-csv"><h2>compare/overview.csv</h2>
+<p>요약 지표(측정 정밀도, 반복성, 회차 이동, 90% 구간 폭, 동등 아닌 ITEM 수)마다 기존·개선·비 중앙값·판단 한 행. compare/report.html 요약 표와 비교.xlsx 요약 시트가 이 파일이다.</p>
+<p class="s">만드는 명령 compare_before_after.py compare · 위치 <code>compare/overview.csv</code> · 수식의 다른 열 <a href="#compare-csv">compare.csv</a> 열</p>
+<p class="s">열 10개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>kpi</code></td><td>지표 키</td><td>지표 이름표: meas_precision, sigma_die, sigma_run, ci_width, not_equivalent.</td><td></td><td></td></tr>
+<tr><td><code>name</code></td><td>지표</td><td>지표의 쉬운 이름.</td><td></td><td></td></tr>
+<tr><td><code>before</code></td><td>기존</td><td>기존 값. 흔들림 지표는 ITEM % 값의 중앙값, not_equivalent는 동등 아닌 ITEM 수.</td><td>흔들림 지표는 compare.csv 값의 중앙값: 측정 정밀도 median(<code>meas_precision_pct_before</code>), 반복성 <code>sigma_die_pct_before</code>, 회차 이동 <code>sigma_run_pct_before</code>, 90% 구간 폭 <code>ci_width_pct_before</code>. not_equivalent는 <code>verdict_before</code>가 동등이 아닌 수. 판정 제외 ITEM은 뺀다</td><td></td></tr>
+<tr><td><code>after</code></td><td>개선</td><td>개선 값. 뜻은 <code>before</code>와 같다.</td><td><code>before</code>와 같은 규칙으로 _after 열</td><td></td></tr>
+<tr><td><code>change</code></td><td>변화</td><td>개선 − 기존. 흔들림 지표는 %p.</td><td><code>after</code> − <code>before</code></td><td>음수면 낮아졌다.</td></tr>
+<tr><td><code>ratio_median</code></td><td>비 중앙값</td><td>ITEM마다 개선÷기존을 구한 비의 중앙값. not_equivalent는 빈 칸.</td><td>median(<code>meas_precision_ratio</code>), median(<code>sigma_die_ratio</code>), median(<code>sigma_run_ratio</code>), median(<code>ci_width_ratio</code>). 빈 칸 뺌</td><td>판단의 기준.</td></tr>
+<tr><td><code>improved_pct</code></td><td>좋아진 ITEM %</td><td>비가 0.9 미만인 ITEM 비율. not_equivalent는 기존에 동등이 아니던 ITEM 중 개선에서 동등이 된 비율.</td><td>100 × (비 &lt; 0.9인 ITEM 수) / <code>n_ratio</code>. not_equivalent는 100 × (<code>verdict_before</code> 동등 아님이고 <code>verdict_after</code> 동등인 수) / <code>before</code></td><td></td></tr>
+<tr><td><code>n_ratio</code></td><td>비에 쓴 ITEM</td><td>비를 계산한 ITEM 수. not_equivalent는 센 ITEM 수.</td><td></td><td></td></tr>
+<tr><td><code>n_skipped</code></td><td>비에서 뺀 ITEM</td><td>기존 값이 0 이하이거나 어느 쪽이든 비어 비를 못 구한 ITEM 수.</td><td>scope.csv n_used − <code>n_ratio</code></td><td>회차 이동은 기존 σ_run이 0인 ITEM이 많아 크게 나온다.</td></tr>
+<tr><td><code>trend</code></td><td>판단</td><td>좋아짐 · 비슷 · 나빠짐.</td><td>흔들림 지표: <code>ratio_median</code> &lt; 0.9면 좋아짐, &gt; 1.1이면 나빠짐, 그 사이 비슷. not_equivalent: <code>after</code> &lt; <code>before</code>면 좋아짐, 크면 나빠짐, 같으면 비슷</td><td>동등 아닌 수는 하나만 줄어도 좋아짐이다. 개수 차이를 같이 본다.</td></tr>
+</tbody></table></div>
+</section>
+<section id="compare-group-levels-csv"><h2>compare/group_levels.csv</h2>
+<p>그룹 × LEVEL마다 기존·개선 측정 정밀도 중앙값과 비. 두 결과 폴더의 stability/group_levels.csv를 맞춘다.</p>
+<p class="s">만드는 명령 compare_before_after.py compare --groups (두 결과 폴더에 stability/group_levels.csv 가 있을 때) · 위치 <code>compare/group_levels.csv</code> · 수식의 다른 열 <a href="#stability-group-levels-csv">stability/group_levels.csv</a> 열</p>
+<p class="s">열 7개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>group</code></td><td>그룹</td><td>그룹 이름. 이번 그룹 파일에 있는 그룹만 (미지정은 뺌).</td><td>두 결과 폴더 stability/group_levels.csv의 <code>group</code></td><td></td></tr>
+<tr><td><code>level</code></td><td>측정 LEVEL</td><td>level 파일의 LEVEL.</td><td>stability/group_levels.csv <code>level</code></td><td></td></tr>
+<tr><td><code>n_items_before</code></td><td>기존 ITEM 수</td><td>기존 결과에서 이 칸의 ITEM 수.</td><td>기존 stability/group_levels.csv <code>n_items</code></td><td>기존 결과의 모든 ITEM으로 센다 (비교 범위와 다를 수 있음).</td></tr>
+<tr><td><code>n_items_after</code></td><td>개선 ITEM 수</td><td>개선 결과에서 이 칸의 ITEM 수.</td><td>개선 stability/group_levels.csv <code>n_items</code></td><td></td></tr>
+<tr><td><code>before</code></td><td>측정 정밀도 기존 (%)</td><td>기존 측정 정밀도 중앙값.</td><td>기존 stability/group_levels.csv <code>meas_precision_pct_median</code></td><td></td></tr>
+<tr><td><code>after</code></td><td>측정 정밀도 개선 (%)</td><td>개선 측정 정밀도 중앙값.</td><td>개선 stability/group_levels.csv <code>meas_precision_pct_median</code></td><td></td></tr>
+<tr><td><code>ratio</code></td><td>비</td><td>개선 ÷ 기존 (중앙값끼리).</td><td><code>after</code> / <code>before</code>. <code>before</code> ≤ 0이면 빈 칸</td><td>1보다 작으면 이 그룹·LEVEL 정밀도가 좋아졌다.</td></tr>
 </tbody></table></div>
 </section>
 <section id="stability-overall-csv"><h2>stability_overall.csv</h2>
-<p>compare.csv에서 짝이 있는 ITEM 전체의 흔들림 분포를 한 행으로 요약한다.</p>
-<p class="s">만드는 명령 compare_before_after.py compare · 위치 <code>group/compare/stability_overall.csv</code> · <code>compare/stability_overall.csv</code> · 수식의 다른 열 <a href="#compare-csv">compare.csv</a> 열</p>
+<p>compare.csv에서 판정 제외를 뺀 ITEM 전체의 흔들림 분포를 한 행으로 요약한다.</p>
+<p class="s">만드는 명령 compare_before_after.py compare · 위치 <code>compare/stability_overall.csv</code> · 수식의 다른 열 <a href="#compare-csv">compare.csv</a> 열</p>
 <p class="s">열 18개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>그룹</code></td><td>그룹</td><td>항상 '전체' 한 행이다.</td><td>'전체'</td><td></td></tr>
@@ -517,7 +574,7 @@
 </section>
 <section id="worst-items-csv"><h2>worst_items.csv</h2>
 <p>비율 지표(반복성, 회차 이동, 측정 정밀도)마다 가장 나빠진 ITEM을 적는다.</p>
-<p class="s">만드는 명령 compare_before_after.py compare · 위치 <code>group/compare/worst_items.csv</code> · <code>compare/worst_items.csv</code> · 수식의 다른 열 <a href="#compare-csv">compare.csv</a> 열</p>
+<p class="s">만드는 명령 compare_before_after.py compare · 위치 <code>compare/worst_items.csv</code> · 수식의 다른 열 <a href="#compare-csv">compare.csv</a> 열</p>
 <p class="s">열 5개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>metric</code></td><td>지표</td><td>어느 비율 지표의 악화 목록인지.</td><td>sigma_die_ratio, sigma_run_ratio, meas_precision_ratio 중 하나</td><td></td></tr>
@@ -529,12 +586,20 @@
 </section>
 <section id="group-summary-csv"><h2>group_summary.csv</h2>
 <p>compare.csv를 ITEM 그룹별로 요약한다. 맨 위는 전체 행이다.</p>
-<p class="s">만드는 명령 group_summary.py (dcc group --before, run_all --before --groups) · 위치 <code>group/summary/group_summary.csv</code> · <code>groups/group_summary.csv</code> · 수식의 다른 열 <a href="#compare-csv">compare.csv</a> 열</p>
-<p class="s">열 13개</p>
+<p class="s">만드는 명령 group_summary.py (dcc compare·group --before, run_all --before --groups) · 위치 <code>compare/groups/group_summary.csv</code> · 수식의 다른 열 <a href="#compare-csv">compare.csv</a> 열</p>
+<p class="s">열 20개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
-<tr><td><code>그룹</code></td><td>그룹</td><td>그룹 이름. 맨 위 '전체' 다음 이름 순, 미지정은 맨 뒤.</td><td>--groups 파일의 group (이름이 안 맞으면 앞의 'F31_' 같은 접두어를 떼고 다시 맞춤). 없으면 미지정</td><td></td></tr>
-<tr><td><code>ITEM 수</code></td><td>ITEM 수</td><td>집계에 쓴 ITEM 수.</td><td><code>presence</code> matched이고 <code>verdict_before</code>, <code>verdict_after</code> 둘 다 판정 제외가 아닌 ITEM 수 (--exclude-misaligned면 <code>misaligned</code>도 뺌)</td><td></td></tr>
-<tr><td><code>σ_die 비 중앙값(개선/기존)</code></td><td>반복성 비 중앙값</td><td>개선 반복성이 기존의 몇 배인지를 ITEM마다 구한 비의 중앙값.</td><td>median(<code>sigma_die_after</code> / <code>sigma_die_before</code>), <code>sigma_die_before</code> &gt; 0인 ITEM만, 소수 셋째 자리</td><td>1보다 작으면 개선 쪽 반복성이 좋아졌다.</td></tr>
+<tr><td><code>그룹</code></td><td>그룹</td><td>그룹 이름. 맨 위 '전체' 다음 이름 순.</td><td>compare.csv <code>group</code></td><td></td></tr>
+<tr><td><code>ITEM 수</code></td><td>ITEM 수</td><td>집계에 쓴 ITEM 수.</td><td>compare.csv 행 중 <code>verdict_before</code>, <code>verdict_after</code> 둘 다 판정 제외가 아닌 ITEM 수 (--exclude-misaligned면 <code>misaligned</code>도 뺌)</td><td></td></tr>
+<tr><td><code>측정 정밀도% 기존 중앙값</code></td><td>측정 정밀도 기존 중앙값 (%)</td><td>기존 측정 정밀도 %의 중앙값.</td><td>median(<code>meas_precision_pct_before</code>), 소수 셋째 자리</td><td></td></tr>
+<tr><td><code>측정 정밀도% 개선 중앙값</code></td><td>측정 정밀도 개선 중앙값 (%)</td><td>개선 측정 정밀도 %의 중앙값.</td><td>median(<code>meas_precision_pct_after</code>), 소수 셋째 자리</td><td></td></tr>
+<tr><td><code>측정 정밀도 비 중앙값(개선/기존)</code></td><td>측정 정밀도 비 중앙값</td><td>ITEM마다 개선÷기존을 구한 측정 정밀도 비의 중앙값. 그룹 판단의 기준.</td><td>median(<code>meas_precision_ratio</code>), 빈 칸 뺌, 소수 셋째 자리</td><td>0.9 미만이면 좋아짐, 1.1 초과면 나빠짐.</td></tr>
+<tr><td><code>측정 정밀도 좋아진 %</code></td><td>측정 정밀도 좋아진 ITEM 비율</td><td>측정 정밀도 비가 0.9 미만인 ITEM 비율.</td><td>100 × (<code>meas_precision_ratio</code> &lt; 0.9인 ITEM 수) / (비가 있는 ITEM 수), 소수 첫째 자리</td><td></td></tr>
+<tr><td><code>σ_die 비 중앙값(개선/기존)</code></td><td>반복성 비 중앙값</td><td>개선 반복성이 기존의 몇 배인지를 ITEM마다 구한 비의 중앙값.</td><td>median(<code>sigma_die_ratio</code>), 빈 칸 뺌, 소수 셋째 자리. overview.csv sigma_die 행 ratio_median과 같은 규칙</td><td>1보다 작으면 개선 쪽 반복성이 좋아졌다.</td></tr>
+<tr><td><code>σ_run 비 중앙값(개선/기존)</code></td><td>회차 이동 비 중앙값</td><td>ITEM마다 개선÷기존을 구한 σ_run 비의 중앙값.</td><td>median(<code>sigma_run_ratio</code>), 빈 칸 뺌 (기존 σ_run 0인 ITEM 포함), 소수 셋째 자리</td><td></td></tr>
+<tr><td><code>90% 구간 폭 비 중앙값(개선/기존)</code></td><td>90% 구간 폭 비 중앙값</td><td>ITEM마다 개선÷기존을 구한 신뢰구간 폭 비의 중앙값.</td><td>median(<code>ci_width_ratio</code>), 빈 칸 뺌, 소수 셋째 자리</td><td></td></tr>
+<tr><td><code>판단</code></td><td>판단</td><td>이 그룹 측정 정밀도가 좋아졌는지.</td><td><code>측정 정밀도 비 중앙값(개선/기존)</code> &lt; 0.9면 좋아짐, &gt; 1.1이면 나빠짐, 그 사이는 비슷. 비가 없으면 빈 칸</td><td>compare/report.html 그룹별 표의 색과 같다.</td></tr>
+<tr><td><code>가장 좋아진 것</code></td><td>가장 좋아진 지표</td><td>네 흔들림 지표(측정 정밀도, 반복성, 회차 이동, 90% 구간 폭) 중 비 중앙값이 가장 작은 것과 그 비.</td><td>비 중앙값이 가장 작은 지표의 '이름 0.52배'. 그 비가 0.9 이상이면 빈 칸</td><td></td></tr>
 <tr><td><code>σ_die 감소 %</code></td><td>반복성 줄어든 비율</td><td>반복성이 줄어든 ITEM 비율.</td><td>100 × (<code>sigma_die_after</code> &lt; <code>sigma_die_before</code>인 ITEM 수) / <code>ITEM 수</code>, 소수 첫째 자리</td><td>50%보다 크면 줄어든 ITEM이 더 많다.</td></tr>
 <tr><td><code>σ_run 감소 %(비교 가능 중)</code></td><td>회차 이동 줄어든 비율</td><td>둘 다 0인 ITEM을 뺀 ITEM 중 회차 이동이 줄어든 비율.</td><td>100 × (<code>sigma_run_after</code> &lt; <code>sigma_run_before</code>인 수) / (둘 다 0이 아니고 둘 다 있는 ITEM 수), 소수 첫째 자리</td><td></td></tr>
 <tr><td><code>σ_run 증가 건수</code></td><td>회차 이동 늘어난 수</td><td>회차 이동이 늘어난 ITEM 수.</td><td><code>sigma_run_after</code> &gt; <code>sigma_run_before</code>인 ITEM 수</td><td>많으면 개선 조건의 회차 안정성을 의심한다.</td></tr>
@@ -542,26 +607,25 @@
 <tr><td><code>둘 다 감소 건수</code></td><td>둘 다 줄어든 수</td><td>반복성과 회차 이동이 둘 다 줄어든 ITEM 수.</td><td><code>sigma_die_after</code> &lt; <code>sigma_die_before</code>이고 <code>sigma_run_after</code> &lt; <code>sigma_run_before</code>인 ITEM 수</td><td></td></tr>
 <tr><td><code>기존 동등 아님</code></td><td>기존 동등 아님</td><td>기존 판정이 동등이 아닌 ITEM 수.</td><td><code>verdict_before</code>가 동등이 아닌 ITEM 수</td><td><code>verdict_before</code>는 최종 판정이다 (옛 items.csv면 기본 판정).</td></tr>
 <tr><td><code>개선 동등 아님</code></td><td>개선 동등 아님</td><td>개선 판정이 동등이 아닌 ITEM 수.</td><td><code>verdict_after</code>가 동등이 아닌 ITEM 수</td><td>기존보다 크면 개선 조건에서 동등이 줄었다.</td></tr>
-<tr><td><code>제외(짝 없음)</code></td><td>뺀 ITEM (짝 없음)</td><td>한쪽 결과에만 있어 뺀 ITEM 수.</td><td><code>presence</code>가 matched가 아닌 ITEM 수</td><td></td></tr>
-<tr><td><code>제외(짝 없음, 정렬 의심)</code></td><td>뺀 ITEM (짝 없음, 정렬 의심)</td><td>--exclude-misaligned를 줄 때 이 이름으로 나온다.</td><td><code>presence</code>가 matched가 아니거나 <code>misaligned</code>가 True인 ITEM 수</td><td></td></tr>
 <tr><td><code>판정 제외</code></td><td>뺀 ITEM (판정 제외)</td><td>기존 또는 개선이 판정 제외라 뺀 ITEM 수. 그런 ITEM이 있을 때만 열이 생긴다.</td><td>짝이 있고 <code>verdict_before</code> 또는 <code>verdict_after</code>가 판정 제외인 ITEM 수</td><td></td></tr>
+<tr><td><code>제외(정렬 의심)</code></td><td>뺀 ITEM (정렬 의심)</td><td>--exclude-misaligned를 줄 때만 생긴다. 정렬 의심이라 뺀 ITEM 수.</td><td><code>misaligned</code>가 True인 ITEM 수</td><td></td></tr>
 </tbody></table></div>
 </section>
 <section id="verdict-by-group-csv"><h2>verdict_by_group.csv</h2>
 <p>그룹마다 판정 변화(기존→개선)별 ITEM 수를 센다.</p>
-<p class="s">만드는 명령 group_summary.py · 위치 <code>group/summary/verdict_by_group.csv</code> · <code>groups/verdict_by_group.csv</code> · 수식의 다른 열 <a href="#compare-csv">compare.csv</a> 열</p>
+<p class="s">만드는 명령 group_summary.py · 위치 <code>compare/groups/verdict_by_group.csv</code> · 수식의 다른 열 <a href="#compare-csv">compare.csv</a> 열</p>
 <p class="s">열 2개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
-<tr><td><code>group</code></td><td>그룹</td><td>그룹 이름. 맨 아래는 '전체' 합계 행.</td><td>--groups 파일의 group, 없으면 미지정</td><td></td></tr>
+<tr><td><code>group</code></td><td>그룹</td><td>그룹 이름. 맨 아래는 '전체' 합계 행.</td><td>compare.csv <code>group</code> (그룹 파일에 없는 ITEM은 compare 단계에서 빠짐)</td><td></td></tr>
 <tr><td><code>{verdict}→{verdict}</code></td><td>판정 변화별 ITEM 수</td><td>기존 판정에서 개선 판정으로 바뀐 모양마다 ITEM 수. 나온 모양만 열이 생긴다.</td><td>짝이 있는 ITEM(판정 제외 포함) 중 <code>verdict_before</code> → <code>verdict_after</code>가 그 모양인 수</td><td>동등→차이 같은 나빠진 변화가 어느 그룹에 몰리는지 본다.</td></tr>
 </tbody></table></div>
 </section>
 <section id="stability-by-group-csv"><h2>stability_by_group.csv</h2>
 <p>그룹마다 기존·개선 흔들림 분포와 안정 순위를 적는다.</p>
-<p class="s">만드는 명령 group_summary.py · 위치 <code>group/summary/stability_by_group.csv</code> · <code>groups/stability_by_group.csv</code> · 수식의 다른 열 <a href="#compare-csv">compare.csv</a> 열</p>
+<p class="s">만드는 명령 group_summary.py · 위치 <code>compare/groups/stability_by_group.csv</code> · 수식의 다른 열 <a href="#compare-csv">compare.csv</a> 열</p>
 <p class="s">열 20개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
-<tr><td><code>그룹</code></td><td>그룹</td><td>그룹 이름. 맨 위는 '전체'.</td><td>--groups 파일의 group. 그룹 파일에 없는 ITEM은 미지정</td><td></td></tr>
+<tr><td><code>그룹</code></td><td>그룹</td><td>그룹 이름. 맨 위는 '전체'.</td><td>compare.csv <code>group</code> (그룹 파일에 없는 ITEM은 compare 단계에서 빠짐)</td><td></td></tr>
 <tr><td><code>ITEM 수</code></td><td>ITEM 수</td><td>집계에 쓴 ITEM 수.</td><td>짝이 있고 기존·개선 어느 쪽도 판정 제외가 아닌 ITEM. 정렬 의심은 기본 포함, --exclude-misaligned면 뺌</td><td>적으면 분위수가 흔들린다.</td></tr>
 <tr><td><code>기존 σ_die% 중앙값</code></td><td>기존 반복성 % 중앙값</td><td>기존 반복성 %의 median.</td><td>median(<code>sigma_die_pct_before</code>), 빈 칸은 뺌, 소수 셋째 자리 반올림</td><td>낮을수록 안정적이다.</td></tr>
 <tr><td><code>기존 σ_die% 25%</code></td><td>기존 반복성 % 25%</td><td>기존 반복성 %의 25% 분위수.</td><td>25% 분위수(<code>sigma_die_pct_before</code>), 빈 칸은 뺌, 소수 셋째 자리 반올림</td><td></td></tr>
@@ -585,7 +649,7 @@
 </section>
 <section id="group-dirs-csv"><h2>group_dirs.csv</h2>
 <p>그룹 이름과 그룹 그림 폴더 이름의 대응표.</p>
-<p class="s">만드는 명령 group_summary.py · 위치 <code>group/summary/group_dirs.csv</code> · <code>groups/group_dirs.csv</code> · 수식의 다른 열 <a href="#group-summary-csv">group_summary.csv</a> 열</p>
+<p class="s">만드는 명령 group_summary.py · 위치 <code>compare/groups/group_dirs.csv</code> · 수식의 다른 열 <a href="#group-summary-csv">group_summary.csv</a> 열</p>
 <p class="s">열 2개</p>
 <div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
 <tr><td><code>그룹</code></td><td>그룹</td><td>그룹 이름.</td><td>group_summary.csv의 <code>그룹</code>과 같은 이름 ('전체' 제외)</td><td></td></tr>

@@ -34,20 +34,17 @@ BEFORE_PREC = [
 
 def _compare_csv(tmp_path: Path) -> Path:
     out = tmp_path / "cmp"
-    assert compare_main(["compare", str(BEFORE), str(AFTER), "-o", str(out)]) == 0
-    return out / "compare.csv"
-
-
-def _run_group_summary(monkeypatch, compare_csv: Path, out: Path) -> pd.DataFrame:
-    groups = compare_csv.parent / "groups.csv"
+    groups = tmp_path / "groups.csv"
     groups.write_text(
         "ITEM,group\nSYNTH_A1,G1\nSYNTH_A2,G1\nSYNTH_A3,G2\nSYNTH_A4,G2\nSYNTH_A5,G2\n",
         encoding="utf-8",
     )
-    monkeypatch.setattr(sys, "argv", [
-        "group_summary.py", "--compare", str(compare_csv), "--groups", str(groups), "--out", str(out),
-    ])
-    group_summary.main()
+    assert compare_main(["compare", str(BEFORE), str(AFTER), "-o", str(out), "--groups", str(groups)]) == 0
+    return out / "compare.csv"
+
+
+def _run_group_summary(monkeypatch, compare_csv: Path, out: Path) -> pd.DataFrame:
+    group_summary.main(["--compare", str(compare_csv), "--out", str(out)])
     return pd.read_csv(out / "stability_by_group.csv", encoding="utf-8-sig").set_index("그룹")
 
 

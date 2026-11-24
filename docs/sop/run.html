@@ -108,7 +108,7 @@ doe = data/A/DOE</div>
 <tr><td>groups</td><td>ITEM,group 두 열 파일 · 그룹별 측정 안정도와 group 명령에 씀</td></tr>
 <tr><td>scales</td><td>group,scale 파일 (log · linear · auto) · ITEM 유형의 척도(cls_scale)에 씀 · log · linear로 적은 그룹은 그 값, 그 밖은 잡음 기울기로 정함 · groups 필요</td></tr>
 <tr><td>abs_tol</td><td>group,abs_delta 파일 (ITEM 단위) · 판정 길 절대 허용폭의 허용폭 · 없으면 기본값 · groups 필요 · <a href="c-abs-tol.html">절대 허용폭</a></td></tr>
-<tr><td>before</td><td>이전 결과 items.csv · group 명령의 기존 · 개선 비교</td></tr>
+<tr><td>before</td><td>이전 결과 items.csv · compare 명령(과 group)의 기존 · 개선 비교</td></tr>
 <tr><td>out</td><td>출력 폴더 · 조합 결과는 &lt;out&gt;/&lt;조합 이름&gt;/</td></tr>
 </tbody></table></div>
 <h3>명령</h3>
@@ -117,7 +117,8 @@ doe = data/A/DOE</div>
 <tr><td><code>python dcc.py judge A1</code></td><td>판정 → LoQ · log 재확인(review/) → 판정 지도 · <code>judge all</code> = 모든 조합(하나가 실패해도 계속)</td></tr>
 <tr><td><code>python dcc.py judge A1 --detail</code></td><td>+ 최종 판정이 차이 · 미결인 ITEM 전부 item 분석</td></tr>
 <tr><td><code>python dcc.py item A1 ITEM1,ITEM2</code></td><td>고른 ITEM만 Fail 근거(item_view.png, evidence.csv) · <code>--items-file</code> 목록 파일 · <code>--plots</code> 상세 그림(느림)</td></tr>
-<tr><td><code>python dcc.py group A1 [--before 이전/items.csv]</code></td><td>그룹별 판정 지도 (+ 기존 · 개선 비교, 그룹 요약) · groups 필요</td></tr>
+<tr><td><code>python dcc.py group A1 [--before 이전/items.csv]</code></td><td>그룹별 판정 지도 · groups 필요 · --before 면 compare 와 같은 비교도</td></tr>
+<tr><td><code>python dcc.py compare A1 [--before 이전/items.csv]</code></td><td>기존 결과와 비교: 전체로 얼마나 좋아졌나 · 그룹별로 무엇이 좋아졌나 · 판정 변화 · 나빠진 ITEM (compare/report.html, compare/비교.xlsx) · 두 결과 모두에 있는 ITEM만, groups 가 있으면 그룹 파일에 있는 ITEM만 비교 · 기존 결과는 --before 나 조합의 before 키</td></tr>
 <tr><td><code>python dcc.py report A1 [--anon]</code></td><td>리포트만 다시 · <code>--anon</code> = ITEM 이름 대신 익명 ID만 (report_anon.html, 밖으로 보낼 때)</td></tr>
 <tr><td><code>python dcc.py classes A1</code></td><td>ITEM 유형과 판정 길: 개수, 목록, 그림, 길마다 예시 ITEM (classes/) · <a href="c-routes.html">ITEM 유형과 판정 길</a></td></tr>
 <tr><td><code>python dcc.py slides A1</code></td><td>판정 기준 장표 2쪽 (slides.pptx): 기존 문제 · 새 판정 3단계 · 판정 결과 · 그룹별 측정 정밀도 · 미결 원인과 다음 조치 · ITEM은 익명 번호 · 기존 판정과 견주려면 <code>--before 이전/items.csv</code></td></tr>
@@ -125,12 +126,13 @@ doe = data/A/DOE</div>
 <h3>조합 결과 폴더 &lt;out&gt;/&lt;이름&gt;/</h3>
 <div class="tw"><table><thead><tr><th>경로</th><th>내용</th><th>명령</th></tr></thead><tbody>
 <tr><td>items.csv, outlier_dies.csv</td><td>판정 결과 · 열 뜻은 <a href="columns.html">열 사전</a></td><td>judge</td></tr>
-<tr><td>report.html</td><td>판정별 개수, 판정 지도, 차이 · 미결 표, 재확인, 측정 안정도를 한 쪽에 · 인터넷 없이 열림</td><td>judge · item · group · report</td></tr>
+<tr><td>report.html</td><td>판정별 개수, 판정 지도, 차이 · 미결 표, 재확인, 측정 안정도를 한 쪽에 · 인터넷 없이 열림</td><td>judge · item · group · compare · report</td></tr>
 <tr><td>stability/</td><td>측정 안정도 (참고, 판정에 안 씀)</td><td>judge</td></tr>
 <tr><td>review/</td><td>LoQ · log 재확인 (참고) · ITEM 그림은 재확인마다 근거가 센 순서로 100장까지</td><td>judge</td></tr>
 <tr><td>plots/</td><td>판정 지도 summary.png, LoQ 아래 ITEM 그림 summary_loq.png</td><td>judge</td></tr>
 <tr><td>item/</td><td>고른 ITEM의 Fail 근거</td><td>item · judge --detail</td></tr>
-<tr><td>group/</td><td>그룹별 판정 지도, 기존 · 개선 비교</td><td>group</td></tr>
+<tr><td>group/</td><td>그룹별 판정 지도</td><td>group</td></tr>
+<tr><td>compare/</td><td>기존 · 개선 비교 전부: report.html(요약 · 그룹별 · 판정 변화 · 그룹 × LEVEL · 나빠진 ITEM · 그림), 비교.xlsx(같은 표를 시트로), compare.csv · overview.csv · scope.csv, groups/(그룹별 요약)</td><td>compare · group --before</td></tr>
 <tr><td>classes/</td><td>ITEM 유형 개수 · 판정 길별 목록 · 그림 · 길마다 예시</td><td>classes</td></tr>
 </tbody></table></div>
 <h3>속도 조절</h3>

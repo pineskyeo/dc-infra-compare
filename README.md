@@ -49,7 +49,8 @@ python dcc.py item A1 VT_SAME,VT_SHIFT      # 그 ITEM만 Fail 근거 (원데이
 python dcc.py item A1 --items-file 볼항목.txt  # ITEM 목록 파일 (한 줄에 하나, # 뒤는 주석, 또는 ITEM·ID 열이 있는 CSV)
 python dcc.py item A1 VT_SAME --plots       # + ITEM 상세 그림 (원데이터 전체를 읽어 느림)
 python dcc.py group A1                      # 그룹별 판정 지도 (groups 필요)
-python dcc.py group A1 --before 이전/items.csv  # + 기존·개선 비교와 그룹별 비교 요약
+python dcc.py group A1 --before 이전/items.csv  # + compare 와 같은 기존·개선 비교
+python dcc.py compare A1 --before 이전/items.csv  # 기존 결과와 비교: compare/report.html 과 compare/비교.xlsx
 python dcc.py report A1 --anon                # 리포트만 다시. --anon 은 익명 ID 만 (report_anon.html)
 python dcc.py classes A1                    # ITEM 분류와 판정 길 (참고, 판정 불변): 개수, 목록, 그림, 길마다 예시 ITEM
 python dcc.py slides A1                     # 판정 기준 장표 2쪽 slides.pptx (기존 판정과 견주려면 --before 이전/items.csv)
@@ -67,11 +68,11 @@ python dcc.py slides A1                     # 판정 기준 장표 2쪽 slides.p
 | `plots/` | 판정 지도 `summary.png`, LoQ 아래 ITEM 그림 `summary_loq.png` | `judge` |
 | `item/` | 고른 ITEM의 Fail 근거(`fail_evidence.py --only`), `item/plots/`는 `--plots` 상세 그림 | `item`, `judge --detail` |
 | `group/plots/` | 그룹별 판정 지도 | `group` |
-| `group/compare/`, `group/summary/` | 기존·개선 비교, 그룹별 비교 요약 | `group --before`(또는 조합의 `before` 키) |
+| `compare/` | 기존·개선 비교 전부: `report.html`, `비교.xlsx`, `compare.csv`, `overview.csv`, `scope.csv`, 그룹별 요약 `groups/` ([아래](#기존-결과와-비교-dcc-compare)) | `compare`, `group --before`(기존 결과는 `--before`나 조합의 `before` 키) |
 | `classes/` | ITEM 분류 개수(`counts.csv`), 판정 길별 목록(`items_by_route.csv`), `classes.png`, `examples/<판정 길>/` | `classes` |
 | `slides.pptx` | 판정 기준 장표 2쪽. 1쪽 기존 문제와 새 판정 3단계, 2쪽 판정 결과·그룹 × LEVEL 측정 정밀도·미결 원인과 다음 조치. ITEM은 익명 번호만 | `slides` |
 
-`item`과 `group`은 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize)과 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
+`item`, `group`, `compare`는 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize)과 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
 
 ### run_all.py로 한 번에
 
@@ -83,7 +84,7 @@ python run_all.py --por POR1/ --por POR2/ --por POR3/ --doe DOE/ \
 ```
 
 - `--before 이전결과/items.csv`: 기존·개선 비교(`compare_before_after.py compare`)를 추가해 `결과/compare/`에 둡니다.
-- `--groups groups.csv`: ITEM,그룹 두 열 파일입니다. 그룹마다 판정 지도 `결과/plots/summary_group_<이름>.png`를 그립니다. `--before`도 함께 주면 그룹별 비교 요약(`group_summary.py`)을 추가해 `결과/groups/`에 둡니다.
+- `--groups groups.csv`: ITEM,그룹 두 열 파일입니다. 그룹마다 판정 지도 `결과/plots/summary_group_<이름>.png`를 그립니다. `--before`도 함께 주면 비교를 그룹 파일에 있는 ITEM으로 좁히고 그룹별 비교 요약(`group_summary.py`)을 추가해 `결과/compare/groups/`에 둡니다.
 
 어느 단계든 실패하면 `[실패] 단계 N/M <이름>: <명령>`, `rc=…`, 그 단계 오류 끝 20줄을 보여 주고 멈춥니다. 출력 형태 예시(실제 실행값이 아님):
 
@@ -114,11 +115,11 @@ items.csv  ITEM별 판정·상태
 | `fail_evidence/` | `fail_evidence.csv`(Fail 근거), `forest.png`(전체 그림), `items_index.csv`, `items/<유형>_<ITEM>/`(`item_view.png`, `evidence.csv` 등) | `fail_evidence.py` (항상) |
 | `plots/` | `summary.png`(판정 지도), `summary_loq.png`(LoQ 아래 ITEM) | `plot_verdicts.py` (항상) |
 | `plots/` | `summary_group_<이름>.png`(그룹 수만큼) | `plot_verdicts.py`, `--groups` |
-| `compare/` | `compare.csv`, `summary.txt`, `stability_overall.csv`, `worst_items.csv`, 지표 그림 6장 | `compare_before_after.py compare`, `--before` (`--groups` 없어도 생김) |
-| `groups/` | `group_summary.csv`, `verdict_by_group.csv`, `stability_by_group.csv`, `group_dirs.csv`, 지표 그림 6장(그룹 비교) | `group_summary.py`, `--before`와 `--groups` 둘 다 |
-| `groups/<그룹>/` | 지표 그림 6장(그 그룹만) | `group_summary.py`, `--before`와 `--groups` 둘 다 |
+| `compare/` | `compare.csv`, `scope.csv`, `overview.csv`, `summary.txt`, `stability_overall.csv`, `worst_items.csv`, 지표 그림 6장, `group_levels.csv`(`--groups`이고 두 결과에 그룹 × LEVEL이 있을 때) | `compare_before_after.py compare`, `--before` (`--groups` 없어도 생김) |
+| `compare/groups/` | `group_summary.csv`, `verdict_by_group.csv`, `stability_by_group.csv`, `group_dirs.csv`, 지표 그림 6장(그룹 비교) | `group_summary.py`, `--before`와 `--groups` 둘 다 |
+| `compare/groups/<그룹>/` | 지표 그림 6장(그 그룹만) | `group_summary.py`, `--before`와 `--groups` 둘 다 |
 
-모든 ITEM을 장으로 나눈 `summary_001.png …`는 `plot_verdicts.py --full`로 따로 돌릴 때만 생깁니다. `compare/`·`groups/` 파일 설명은 아래 [기존·개선 비교](#기존개선-비교-compare_before_afterpy)와 [그룹별 요약](#그룹별-요약-group_summarypy)에 있습니다.
+모든 ITEM을 장으로 나눈 `summary_001.png …`는 `plot_verdicts.py --full`로 따로 돌릴 때만 생깁니다. `compare/` 파일 설명은 아래 [기존·개선 비교](#기존개선-비교-compare_before_afterpy)와 [그룹별 요약](#그룹별-요약-group_summarypy)에 있습니다.
 
 환경변수 `RUN_ALL_FAIL_STEP=<단계 이름>`은 테스트용입니다(그 단계를 일부러 실패시킴).
 
@@ -447,12 +448,23 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 
 ### 리포트 (`report.html`)
 
-- `judge`, `item`, `group`이 끝나면 조합 폴더에 `report.html`이 생깁니다. `item/`, `group/`이 있으면 그 안에도 `report.html`이 생깁니다. 웹브라우저로 엽니다.
+- `judge`, `item`, `group`, `compare`가 끝나면 조합 폴더에 `report.html`이 생깁니다. `item/`, `group/`, `compare/`가 있으면 그 안에도 `report.html`이 생깁니다. 웹브라우저로 엽니다.
 - 판정별 개수, 판정 지도, 차이·미결 표, 판정 제외 표, LoQ·log 확인 필요, 측정 안정도, log 허용폭 두 방식이 한 쪽에 있습니다. 그림이 파일 안에 들어 있어 인터넷 없이 열리고 메일로 보내도 됩니다.
 - 주제마다 접는 칸입니다. 처음에는 한눈에·판정 지도·차이·미결만 펼쳐 둡니다. 맨 위 목차를 누르면 그 칸이 펼쳐집니다. 접힌 제목 옆 숫자는 그 칸의 ITEM 수입니다.
 - 화면에는 짧은 이름과 숫자만 둡니다. 설명은 제목·그림 옆 i, 표 머리글, 점선 밑줄 칸에 마우스를 올리면(키보드는 Tab) 나옵니다. 차이·미결 표의 정규화 변화량(신뢰구간 가운데 ÷ 허용폭)과 정규화 불확실성(신뢰구간 반폭 ÷ 허용폭)은 판정 지도의 두 축이고, 칸에 마우스를 올리면 원래 값과 단위가 나옵니다. 판정 칸에는 판정 이유가 뜹니다.
-- `item/report.html`은 ITEM마다 접는 카드(판정, 이유, 한 장 그림, 근거 숫자)이고, `group/report.html`은 그룹별 표, 그룹 × LEVEL 측정 정밀도, 그룹 그림, 기존·개선 비교입니다.
+- `item/report.html`은 ITEM마다 접는 카드(판정, 이유, 한 장 그림, 근거 숫자)이고, `group/report.html`은 그룹별 표, 그룹 × LEVEL 측정 정밀도, 그룹 그림입니다. 기존·개선 비교는 `compare/report.html`입니다([아래](#기존-결과와-비교-dcc-compare)).
 - 밖으로 보낼 때는 `python dcc.py report A1 --anon`으로 `report_anon.html`을 만듭니다. ITEM 이름 대신 익명 ID만 쓰고, ITEM 이름이 그려진 그림은 뺍니다. 실명 `report.html`은 그대로 둡니다.
+
+### 기존 결과와 비교 (`dcc compare`)
+
+`python dcc.py compare A1 --before 이전/items.csv`는 예전 판정 결과(`items.csv`)와 이번 결과를 견줘 "전체로 얼마나 좋아졌나, 그룹마다 무엇이 좋아졌나"를 한 쪽과 엑셀 한 파일로 냅니다. `--before`를 안 주면 조합의 `before` 키를 씁니다. 둘 다 없거나 파일이 없으면 아무것도 돌리지 않고 알려 줍니다. `group A1 --before ...`도 같은 비교를 같은 폴더에 씁니다.
+
+- 무엇을 비교하나: 두 결과 모두에 있는 ITEM만 비교합니다. 조합에 `groups`가 있으면 그룹 파일에 있는 ITEM만 비교하고, 그룹 파일에 없는 ITEM은 '전체'를 포함한 어떤 숫자·표·그림·시트에도 넣지 않습니다. 몇 개 뺐는지는 요약 첫 줄에 한 번 적습니다("그룹 파일에 없는 ITEM n개는 비교에서 뺌"). 그룹 파일 ITEM 이름은 그대로 먼저 맞추고, 안 맞으면 앞의 `F31_` 같은 접두어를 떼고 다시 맞춥니다. `groups`가 없으면 둘 다 있는 ITEM 전부를 비교하고 그룹 칸은 만들지 않습니다. 판정 제외 ITEM은 흔들림 지표에서 빼고 판정 변화 표에만 셉니다.
+- 요약 지표: 측정 정밀도 %, 반복성 σ_die %, 회차 이동 σ_run %, 90% 구간 폭 %의 중앙값(기존·개선)과 동등 아닌 ITEM 수입니다. 흔들림 지표는 ITEM마다 개선÷기존(비)을 구해 그 중앙값으로 판단합니다. 0.9 미만이면 좋아짐, 1.1 초과면 나빠짐, 그 사이는 비슷(±10%)입니다. 기존 값이 0이거나 빈 ITEM은 비에서 빼고 그 수를 적습니다. 동등 아닌 ITEM 수는 줄면 좋아짐입니다. 좋아진 ITEM %는 비가 0.9 미만인 ITEM 비율입니다. 그룹의 판단은 측정 정밀도 비로 정합니다.
+- `compare/report.html`: 맨 위 한 줄 결론(예: "측정 정밀도 41% 좋아짐 · 그룹 6개 중 2개 좋아짐 (가장 큰 VT 0.59배) · 나빠짐 ION · 동등 아님 96→95개"), 범위 한 줄, 요약 표(판단 색: 초록 좋아짐, 회색 비슷, 빨강 나빠짐). 그 아래 그룹별(많이 좋아진 그룹부터), 판정 변화(전체와 그룹마다), 그룹 × LEVEL, 나빠진 ITEM, 그림, 열 뜻이 접혀 있습니다. `report --anon`이면 `report_anon.html`과 `비교_anon.xlsx`에 ITEM 이름 대신 익명 ID만 씁니다.
+- `compare/비교.xlsx`: 리포트와 같은 표를 시트로 담습니다. 요약(아래에 결론·범위·판단 규칙), 그룹별, 판정 변화, ITEM별(비교한 ITEM 전부와 그룹), 나빠진 ITEM(측정 정밀도 비가 1.1 넘는 ITEM 전부), 그룹×LEVEL입니다. 엑셀 없이 표준 라이브러리로 쓰므로 추가 설치가 필요 없습니다.
+- 그룹 × LEVEL은 기존·개선 결과 폴더 둘 다 `stability/group_levels.csv`가 있을 때만 만듭니다(판정할 때 level과 groups 파일을 준 결과). 기존 폴더는 `--before` 파일이 있는 폴더입니다. 칸마다 그 결과의 모든 ITEM으로 낸 측정 정밀도 중앙값이라 비교 범위와 조금 다를 수 있습니다.
+- 숫자 파일: `compare.csv`(ITEM마다 한 행, ITEM별 비 `*_ratio` 열 포함), `overview.csv`(요약 지표), `scope.csv`(범위), `group_levels.csv`, `groups/group_summary.csv`(그룹마다 같은 지표). 열 뜻은 [열 사전](docs/sop/columns.html)에 있습니다.
 
 ### 판정 지도 (`summary.png`)
 
@@ -531,7 +543,7 @@ verdict가 '판정 제외'인 행은 근거 대상이 아니며, '계산 불가'
 
 ## 기존·개선 비교 (`compare_before_after.py`)
 
-`python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더>` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. `ITEM` 열을 비교 키로 읽고(`ITEM` 열이 없는 탭 구분 표는 `ID` 열), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`(`center_delta_before`·`center_delta_after` 열 포함), `summary.txt`, `stability_overall.csv`(전체 안정성 한 행, group_summary.py 결과의 '전체' 행과 같은 값), `worst_items.csv`(비율 지표별 악화 상위 N ITEM), 지표 그림 6장(`sigma_die_ratio.png`, `sigma_run_ratio.png`, `meas_precision_ratio.png`, `stability_sigma_die_pct.png`, `stability_meas_precision_pct.png`, `verdict_center_delta.png`)으로 냅니다. run_all.py에서는 `--before`만 주면(`--groups` 없이도) `결과/compare/`에 생깁니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 실제 `ITEM` 이름이고, 입력에 summarize.py의 익명 `ID` 열이 같이 있으면 그 옆에 `ID` 열로 붙습니다. 비교 키는 항상 실제 ITEM입니다. 한쪽에만 있는 ITEM은 따로 표시하고 σ 집계에서 뺍니다. 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 `misaligned` 열에 표시만 하고 기본으로 σ 집계에 포함합니다. 빼려면 `--exclude-misaligned`를 붙입니다. `compare.csv`에는 측정 정밀도 열 `meas_precision_pct_before`·`meas_precision_pct_after`·`meas_precision_pct_change`(개선−기존)와 `meas_precision_status`(`sigma_die_status`와 같은 규칙: lower/higher/same, 낮을수록 좋음)도 붙습니다. 입력 items.csv에 `meas_precision_pct` 열이 없으면(예전 결과) 100 × √(σ_die² + σ_run²) / |por_median|으로 계산합니다. `evidence <items.csv> -o <폴더>` 모드도 있고, 그 `evidence.csv`에도 같은 방식의 `meas_precision_pct` 열이 붙습니다. `evidence.csv`의 group은 fail_evidence.py와 같이 '차이'/'미결' 둘뿐입니다. `judgment` 바로 앞의 `status` 열에는 items.csv `status` 값을 그대로 옮기고(열이 없는 옛 items.csv면 빈 칸), status가 '정상'이 아니면 `judgment` 끝에 `원인(status): <status>`를 덧붙입니다. `evidence.csv`의 `por_gap_over_delta`(참고용, 판단에 쓰지 않음)도 fail_evidence.py와 같은 규칙입니다. items.csv의 짝지은 회차 차를 쓰고(`por_gap_def` = '짝지은 회차 차'), 열이 없는 옛 items.csv면 회차 평균의 max − min으로 계산하며(`por_gap_def` = '옛 정의(회차 평균 차)'), 그런 행이 있으면 `summary.txt`에 `por_gap: 옛 정의(회차 평균 차) n행 (items.csv에 짝지은 회차 차 열 없음)` 줄이 붙습니다.
+`python compare_before_after.py compare <기존_items.csv> <개선_items.csv> -o <폴더> [--groups 그룹.csv]` — 입력은 `por_doe_compare.py --out 폴더`의 `items.csv` 두 개(기존 실행, 개선 실행)입니다. `ITEM` 열을 비교 키로 읽고(`ITEM` 열이 없는 탭 구분 표는 `ID` 열), 회차 평균 열 `<이름>_mean`은 나온 순서대로 POR1, POR2로 읽습니다. 두 표를 ITEM으로 맞춰 ITEM별 σ_die·σ_run·Δ·CI 폭(|por_median| 대비 %)과 판정 변화를 `compare.csv`(`center_delta_before`·`center_delta_after` 열 포함), `summary.txt`, `stability_overall.csv`(전체 안정성 한 행, group_summary.py 결과의 '전체' 행과 같은 값), `worst_items.csv`(비율 지표별 악화 상위 N ITEM), 지표 그림 6장(`sigma_die_ratio.png`, `sigma_run_ratio.png`, `meas_precision_ratio.png`, `stability_sigma_die_pct.png`, `stability_meas_precision_pct.png`, `verdict_center_delta.png`)으로 냅니다. run_all.py에서는 `--before`만 주면(`--groups` 없이도) `결과/compare/`에 생깁니다. 출력 `compare.csv`와 `evidence.csv`의 첫 열은 실제 `ITEM` 이름이고, 입력에 summarize.py의 익명 `ID` 열이 같이 있으면 그 옆에 `ID` 열로 붙습니다. 비교 키는 항상 실제 ITEM입니다. 두 결과 모두에 있는 ITEM만 `compare.csv` 행이 되고, 한쪽에만 있는 ITEM은 `summary.txt`와 `scope.csv`에 개수만 적습니다. `--groups`를 주면 그룹 파일에 있는 ITEM만 남기고 `group` 열을 붙입니다(그룹 파일에 없는 수는 `scope.csv` `n_ungrouped`). 요약 지표는 `overview.csv`, ITEM별 비는 `compare.csv`의 `meas_precision_ratio`·`sigma_die_ratio`·`sigma_run_ratio`·`ci_width_ratio` 열입니다. 정렬 의심 행(같은 ITEM인데 por_median 상대차 > 20%, 내부 기준)은 `misaligned` 열에 표시만 하고 기본으로 σ 집계에 포함합니다. 빼려면 `--exclude-misaligned`를 붙입니다. `compare.csv`에는 측정 정밀도 열 `meas_precision_pct_before`·`meas_precision_pct_after`·`meas_precision_pct_change`(개선−기존)와 `meas_precision_status`(`sigma_die_status`와 같은 규칙: lower/higher/same, 낮을수록 좋음)도 붙습니다. 입력 items.csv에 `meas_precision_pct` 열이 없으면(예전 결과) 100 × √(σ_die² + σ_run²) / |por_median|으로 계산합니다. `evidence <items.csv> -o <폴더>` 모드도 있고, 그 `evidence.csv`에도 같은 방식의 `meas_precision_pct` 열이 붙습니다. `evidence.csv`의 group은 fail_evidence.py와 같이 '차이'/'미결' 둘뿐입니다. `judgment` 바로 앞의 `status` 열에는 items.csv `status` 값을 그대로 옮기고(열이 없는 옛 items.csv면 빈 칸), status가 '정상'이 아니면 `judgment` 끝에 `원인(status): <status>`를 덧붙입니다. `evidence.csv`의 `por_gap_over_delta`(참고용, 판단에 쓰지 않음)도 fail_evidence.py와 같은 규칙입니다. items.csv의 짝지은 회차 차를 쓰고(`por_gap_def` = '짝지은 회차 차'), 열이 없는 옛 items.csv면 회차 평균의 max − min으로 계산하며(`por_gap_def` = '옛 정의(회차 평균 차)'), 그런 행이 있으면 `summary.txt`에 `por_gap: 옛 정의(회차 평균 차) n행 (items.csv에 짝지은 회차 차 열 없음)` 줄이 붙습니다.
 
 `--plot-top N`(기본 10, 1 이상)은 각 비율 지표 그림 아래 악화 상위 표와 `worst_items.csv`에 넣을 ITEM 수입니다. 그림 자체는 모든 ITEM의 분포를 그립니다. `run_all.py --plot-top N`으로도 넘길 수 있습니다.
 
@@ -543,7 +555,7 @@ verdict가 '판정 제외'인 행은 근거 대상이 아니며, '계산 불가'
 
 ## 그룹별 요약 (`group_summary.py`)
 
-`python group_summary.py --compare compare.csv --groups 그룹.csv --out group_out` — `compare_before_after.py compare`가 만든 `compare.csv`를 ITEM 그룹별로 요약합니다. 그룹 파일은 첫 열 ITEM, 둘째 열 그룹(쉼표 또는 탭, 헤더는 있어도 없어도 됨)이고, 그룹 파일 ITEM은 이름 그대로 먼저 맞추고, 안 맞으면 앞의 `F<숫자>_` 접두어를 떼고 다시 맞춥니다. 그래도 없는 ITEM은 '미지정'으로 묶습니다. presence=matched인 행을 씁니다. 정렬 의심 행도 기본으로 포함하고, `--exclude-misaligned`를 주면 뺍니다(제외 열 이름은 기본 '제외(짝 없음)', 옵션을 주면 '제외(짝 없음, 정렬 의심)'). 출력은 `group_summary.csv`(맨 위 '전체' 행), `verdict_by_group.csv`(그룹별 판정 변화), `stability_by_group.csv`(그룹별 안정성: 기존끼리·개선끼리 σ_die%·σ_run% 중앙값과 사분위, 측정정밀도% 중앙값·25%·75%, σ_run=0 비율, 안정 순위), `group_dirs.csv`(그룹 이름 → 폴더 이름 변환표), compare와 같은 이름의 지표 그림 6장(그룹 비교: 가로 배치, 그룹별 분포와 전체 기준선), 그리고 그룹마다 `<폴더 이름>/` 안에 같은 6장(그 그룹 ITEM만)입니다. 그림 규칙은 위 compare 지표 그림과 같습니다. 안정성은 compare.csv의 `sigma_*_pct_*`·`meas_precision_pct_*` 열을 쓰고, 없으면 σ와 `por_median_*`로 계산하며, 둘 다 없으면 그림을 건너뜁니다.
+`python group_summary.py --compare compare.csv --out compare/groups` — `compare_before_after.py compare --groups 그룹.csv`가 만든 `compare.csv`(그룹 열 `group`이 있음)를 ITEM 그룹별로 요약합니다. 그룹 파일에 없는 ITEM은 compare 단계에서 이미 빠져 있어 '미지정' 묶음이 없습니다. `group_summary.csv`의 측정 정밀도·비·판단·가장 좋아진 것 열은 `overview.csv`와 같은 규칙(`compare_metrics.kpi_table`)이라 '전체' 행이 요약과 같습니다. 정렬 의심 행도 기본으로 포함하고, `--exclude-misaligned`를 주면 빼고 '제외(정렬 의심)' 열을 붙입니다. 출력은 `group_summary.csv`(맨 위 '전체' 행), `verdict_by_group.csv`(그룹별 판정 변화), `stability_by_group.csv`(그룹별 안정성: 기존끼리·개선끼리 σ_die%·σ_run% 중앙값과 사분위, 측정정밀도% 중앙값·25%·75%, σ_run=0 비율, 안정 순위), `group_dirs.csv`(그룹 이름 → 폴더 이름 변환표), compare와 같은 이름의 지표 그림 6장(그룹 비교: 가로 배치, 그룹별 분포와 전체 기준선), 그리고 그룹마다 `<폴더 이름>/` 안에 같은 6장(그 그룹 ITEM만)입니다. 그림 규칙은 위 compare 지표 그림과 같습니다. 안정성은 compare.csv의 `sigma_*_pct_*`·`meas_precision_pct_*` 열을 쓰고, 없으면 σ와 `por_median_*`로 계산하며, 둘 다 없으면 그림을 건너뜁니다.
 
 그룹 폴더 이름(`compare_metrics.safe_group_name`): 한글·영문·숫자·`-`·`_`만 남기고 나머지는 `_`로 바꾸며, 빈 이름은 `_`입니다. 바꾼 이름이 겹치면 뒤에 `_2`, `_3`…을 붙입니다. 실제 대응은 `group_dirs.csv`에서 확인합니다.
 

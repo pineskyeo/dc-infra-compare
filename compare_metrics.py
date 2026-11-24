@@ -8,6 +8,7 @@ numpy / pandas / matplotlib 만 쓴다 (scipy 없이 import 되어야 함).
   stability_sigma_die_pct, stability_meas_precision_pct    기존·개선 각각의 분포 (낮을수록 안정)
   verdict_center_delta                                     center/Δ 분포 (열이 없으면 건너뜀)
 """
+from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 import re
@@ -159,6 +160,89 @@ def worst_items(df, metric, top=10):
     t = pd.DataFrame({"ID": ids, "before": b, "after": a, "ratio": r})
     t = t[t["ratio"] > 1].sort_values("ratio", ascending=False, kind="mergesort")
     return t.head(top).reset_index(drop=True)
+
+
+# ---------------------------------------------------------------- 좋아졌나 (요약 지표)
+
+BETTER, SAME, WORSE = "좋아짐", "비슷", "나빠짐"
+TREND_BAND = 0.10      # 비 중앙값이 1 ± 이 값 안이면 비슷
+EQUIV = "동등"
+
+
+@dataclass(frozen=True)
+class Kpi:
+    """요약 지표 하나. value 는 기존·개선 중앙값을 내는 열 줄기(<value>_before/_after, with_pct 뒤),
+    ratio 는 ITEM 별 비(개선/기존)를 내는 열 줄기, compare.csv 에는 <key>_ratio 열로 쓴다. 둘 다 낮을수록 좋다."""
+    key: str
+    name: str
+    value: str
+    ratio: str
+
+
+RATIO_KPIS = (
+    Kpi("meas_precision", "측정 정밀도", "meas_precision_pct", "meas_precision_pct"),
+    Kpi("sigma_die", "반복성 σ_die", "sigma_die_pct", "sigma_die"),
+    Kpi("sigma_run", "회차 이동 σ_run", "sigma_run_pct", "sigma_run"),
+    Kpi("ci_width", "90% 구간 폭", "ci_width_pct", "ci_width_pct"),
+)
+NOT_EQUIV = "not_equivalent"
+NOT_EQUIV_NAME = "동등 아닌 ITEM 수"
+OVERVIEW_COLS = ["kpi", "name", "before", "after", "change", "ratio_median", "improved_pct", "n_ratio",
+                 "n_skipped", "trend"]
+
+
+def item_ratio(df, kpi):
+    """ITEM 별 개선/기존. 기존이 0 이하이거나 어느 쪽이든 비면 NaN (비 계산에서 뺌)."""
+    b, a = _num(df, f"{kpi.ratio}_before"), _num(df, f"{kpi.ratio}_after")
+    return (a / b).where((b > 0) & a.notna())
+
+
+def with_ratios(df):
+    """compare 표에 <key>_ratio 열 (RATIO_KPIS 마다) 을 더한 복사본."""
+    return df.assign(**{f"{k.key}_ratio": item_ratio(df, k) for k in RATIO_KPIS})
+
+
+def trend(ratio_median):
+    """비 중앙값 → 좋아짐(< 1 − TREND_BAND) / 나빠짐(> 1 + TREND_BAND) / 비슷. 계산할 수 없으면 빈 글자."""
+    if not np.isfinite(ratio_median):
+        return ""
+    return BETTER if ratio_median < 1 - TREND_BAND else WORSE if ratio_median > 1 + TREND_BAND else SAME
+
+
+def _median(s):
+    s = s.dropna()
+    return float(s.median()) if len(s) else np.nan
+
+
+def kpi_table(d):
+    """요약 지표 표 (OVERVIEW_COLS, 지표 한 행). d 는 with_pct 를 거친 compare 행 (판정 제외는 이미 뺀 것).
+    improved_pct 는 비가 1 − TREND_BAND 미만인 ITEM 비율 (%), 동등 아닌 수는 기존 동등 아님 중 동등이 된 비율."""
+    rows = []
+    for k in RATIO_KPIS:
+        r = item_ratio(d, k).dropna()
+        before, after = _median(d[f"{k.value}_before"]), _median(d[f"{k.value}_after"])
+        med = _median(r)
+        rows.append({"kpi": k.key, "name": k.name, "before": before, "after": after, "change": after - before,
+                     "ratio_median": med,
+                     "improved_pct": 100 * float((r < 1 - TREND_BAND).mean()) if len(r) else np.nan,
+                     "n_ratio": len(r), "n_skipped": len(d) - len(r), "trend": trend(med)})
+    vb, va = d["verdict_before"].astype(str), d["verdict_after"].astype(str)
+    nb, na = int((vb != EQUIV).sum()), int((va != EQUIV).sum())
+    fixed = int(((vb != EQUIV) & (va == EQUIV)).sum())
+    rows.append({"kpi": NOT_EQUIV, "name": NOT_EQUIV_NAME, "before": nb, "after": na, "change": na - nb,
+                 "ratio_median": np.nan, "improved_pct": 100 * fixed / nb if nb else np.nan,
+                 "n_ratio": len(d), "n_skipped": 0,
+                 "trend": BETTER if na < nb else WORSE if na > nb else SAME})
+    return pd.DataFrame(rows, columns=OVERVIEW_COLS)
+
+
+def best_kpi(table):
+    """비 중앙값이 가장 작은 지표의 '이름 0.52배'. 그 비도 좋아짐 기준(1 − TREND_BAND) 이상이면 빈 글자."""
+    t = table.dropna(subset=["ratio_median"])
+    if t.empty or t["ratio_median"].min() >= 1 - TREND_BAND:
+        return ""
+    row = t.loc[t["ratio_median"].idxmin()]
+    return f"{row['name']} {row['ratio_median']:.2f}배"
 
 
 def safe_group_name(name):

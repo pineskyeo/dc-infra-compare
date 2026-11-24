@@ -216,13 +216,43 @@ def test_plan_item_and_group_run_judge_only_without_items_csv(cfg: Path):
     assert _plan(cfg, "group", "A1") == [group_plot]
     before = base / "A" / "before.csv"
     make_paths(base, "A/before.csv")
-    assert _plan(cfg, "group", "A1", "--before", str(before)) == [
-        group_plot,
-        ("compare_before_after", ["compare_before_after.py", "compare", str(before), items,
-                                  "-o", str(out / "group" / "compare")]),
-        ("group_summary", ["group_summary.py", "--compare", str(out / "group" / "compare" / "compare.csv"),
-                           "--groups", groups, "--out", str(out / "group" / "summary")]),
+    compare = [
+        ("compare_before_after", ["compare_before_after.py", "compare", str(before), items, "--groups", groups,
+                                  "-o", str(out / "compare")]),
+        ("group_summary", ["group_summary.py", "--compare", str(out / "compare" / "compare.csv"),
+                           "--out", str(out / "compare" / "groups")]),
     ]
+    assert _plan(cfg, "group", "A1", "--before", str(before)) == [group_plot, *compare]
+    assert _plan(cfg, "compare", "A1", "--before", str(before)) == compare
+
+
+def test_plan_compare_before_from_flag_or_combo_key(cfg: Path, capsys):
+    base = cfg.parent.resolve()
+    out = base / "결과" / "A1"
+    make_paths(out, "items.csv")
+    make_paths(base, "old/items.csv", "flag/items.csv")
+    assert dcc.main(["compare", "A1", "--config", str(cfg)]) == 2
+    assert "기존 결과가 없습니다: --before" in capsys.readouterr().err
+    assert dcc.main(["compare", "A1", "--before", str(base / "none.csv"), "--config", str(cfg)]) == 2
+    assert "기존 결과 파일이 없습니다" in capsys.readouterr().err
+
+    cfg.write_text(cfg.read_text(encoding="utf-8").replace("doe = A/DOE\n", "doe = A/DOE\nbefore = old/items.csv\n"),
+                   encoding="utf-8")
+    steps = _plan(cfg, "compare", "A1")
+    assert steps[0][1][1:3] == ["compare", str(base / "old" / "items.csv")]
+    assert _plan(cfg, "compare", "A1", "--before", str(base / "flag" / "items.csv"))[0][1][2] == \
+        str(base / "flag" / "items.csv")
+    assert [n for n, _ in _plan(cfg, "group", "A1")] == ["plot_verdicts", "compare_before_after", "group_summary"]
+
+
+def test_plan_compare_without_groups_skips_group_summary(tmp_path: Path):
+    make_paths(tmp_path, "p1", "p2", "d", "old.csv", "out/A1/items.csv")
+    path = write_config(tmp_path, "[A1]\npor = p1\n  p2\ndoe = d\nout = out\nbefore = old.csv\n")
+    a = dcc.build_parser().parse_args(["compare", "A1", "--config", str(path)])
+    steps = dcc.plan("compare", dcc.load_config(path)["A1"], a)
+    assert steps == [("compare_before_after", ["compare_before_after.py", "compare", str(tmp_path / "old.csv"),
+                                               str(tmp_path / "out" / "A1" / "items.csv"),
+                                               "-o", str(tmp_path / "out" / "A1" / "compare")])]
 
 
 @pytest.fixture(scope="module")
@@ -289,8 +319,14 @@ blank_map = {por3_data / "blank_map.csv"}
     assert "[단계 3/3] group_summary" in proc.stdout
     assert sorted(p.name for p in (out / "group" / "plots").glob("summary_group_*.png"))[:2] == [
         "summary_group_A.png", "summary_group_B.png"]
-    assert (out / "group" / "compare" / "compare.csv").is_file()
-    assert (out / "group" / "summary" / "group_summary.csv").is_file()
+    assert (out / "compare" / "compare.csv").is_file()
+    assert (out / "compare" / "groups" / "group_summary.csv").is_file()
+    assert (out / "compare" / "report.html").is_file() and (out / "compare" / "비교.xlsx").is_file()
+    assert sorted(p.name for p in (out / "group").iterdir()) == ["plots", "report.html"]
+
+    proc = run_dcc("compare", "A1", "--before", before, "--config", path)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "[단계 2/2] group_summary" in proc.stdout and "[단계 1/1] report" in proc.stdout
     assert "그룹 파일(--groups)을 주지 않아" not in (out / "group" / "report.html").read_text(encoding="utf-8")
 
     named = (out / "report.html").read_text(encoding="utf-8")

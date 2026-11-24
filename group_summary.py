@@ -2,20 +2,20 @@
 """compare.csv(기존 vs 개선)를 ITEM 그룹별로 요약한다.
 
 사용법:
-  python group_summary.py --compare <compare.csv> --groups <그룹.csv> --out <폴더>
+  python group_summary.py --compare <compare.csv> --out <폴더>
 
-그룹 파일: 첫 열 ITEM, 둘째 열 그룹 (쉼표 또는 탭, 헤더 있어도 없어도 됨)
-그룹 파일에 없는 ITEM은 '미지정' 그룹으로 들어간다.
+compare.csv 는 compare_before_after.py compare --groups 가 만든 것 (group 열이 있어야 한다).
+그룹 파일에 없는 ITEM 은 compare 단계에서 이미 빠져 있다.
 
 출력:
-  group_summary.csv   그룹별 표 (맨 위 '전체' 행)
+  group_summary.csv   그룹별 표 (맨 위 '전체' 행). 요약 지표 열은 compare 의 overview.csv 와 같은 규칙
   verdict_by_group.csv 그룹별 판정 변화 표
   stability_by_group.csv 그룹별 안정성 (기존끼리·개선끼리 σ%, 측정정밀도%, 순위)
   <지표>.png          지표마다 그룹 비교 (가로 상자그림, 점선=전체 중앙값)
   <그룹 폴더>/<지표>.png 그룹마다 compare 와 같은 지표별 그림
   group_dirs.csv      그룹 이름 → 폴더 이름 (같은 폴더 이름이 겹치면 _2, _3)
 지표 이름은 compare_metrics.METRICS.
-사용하는 행: presence=matched 인 행 전부 (정렬 의심 포함). --exclude-misaligned 를 주면 정렬 의심은 뺀다.
+사용하는 행: compare.csv 전부 (정렬 의심 포함). --exclude-misaligned 를 주면 정렬 의심은 뺀다.
 """
 import argparse
 import sys
@@ -25,15 +25,15 @@ import numpy as np
 import pandas as pd
 
 import compare_metrics
-from infra_compare import read_groups
 
-UNGROUPED = "미지정"
+OUT_DIR = "groups"          # compare 폴더 안의 그룹 요약 폴더 (dcc compare, run_all)
 V_EXCLUDED = "판정 제외"  # por_doe_compare.V_EXCLUDED와 같은 값 (scipy 의존 없이 단독 실행되게 로컬로 둠)
+TABLES = ("group_summary.csv", "verdict_by_group.csv", "stability_by_group.csv", "group_dirs.csv")
 # 실행 시작 때 지우는 자기 출력(--out 기준 glob). 건너뛴 그림이나 없어진 그룹 폴더의 그림이 남지 않게 한다.
 OWN_OUTPUTS = (
     "ratio_hist.png", "density_die.png", "group_panel.png", "stability_panel.png",  # 예전 이름
     *(f"{m}.png" for m in compare_metrics.METRICS),
-    "group_dirs.csv",
+    *TABLES,
     *(f"*/{m}.png" for m in compare_metrics.METRICS),
 )
 
@@ -76,90 +76,79 @@ def as_bool(s):
 
 
 def summarize(d):
-    die_ok = d["sigma_die_before"].gt(0) & d["sigma_die_after"].notna()
-    ratio = (d["sigma_die_after"] / d["sigma_die_before"])[die_ok]
+    """그룹 한 행. 요약 지표는 compare_metrics.kpi_table (overview.csv 와 같은 규칙), 나머지는 σ 증감 개수."""
+    k = compare_metrics.kpi_table(d).set_index("kpi")
     run_both0 = d["sigma_run_before"].eq(0) & d["sigma_run_after"].eq(0)
     run_cmp = ~run_both0 & d["sigma_run_before"].notna() & d["sigma_run_after"].notna()
     die_down = d["sigma_die_after"] < d["sigma_die_before"]
     run_down = d["sigma_run_after"] < d["sigma_run_before"]
     run_up = d["sigma_run_after"] > d["sigma_run_before"]
     n = len(d)
-    nb = int((d["verdict_before"] != "동등").sum())
-    na = int((d["verdict_after"] != "동등").sum())
+
+    def r3(v):
+        return round(float(v), 3) if np.isfinite(v) else np.nan
+    prec = k.loc["meas_precision"]
     return {
         "ITEM 수": n,
-        "σ_die 비 중앙값(개선/기존)": round(float(ratio.median()), 3) if len(ratio) else np.nan,
+        "측정 정밀도% 기존 중앙값": r3(prec["before"]),
+        "측정 정밀도% 개선 중앙값": r3(prec["after"]),
+        "측정 정밀도 비 중앙값(개선/기존)": r3(prec["ratio_median"]),
+        "측정 정밀도 좋아진 %": round(prec["improved_pct"], 1) if np.isfinite(prec["improved_pct"]) else np.nan,
+        "σ_die 비 중앙값(개선/기존)": r3(k.loc["sigma_die", "ratio_median"]),
+        "σ_run 비 중앙값(개선/기존)": r3(k.loc["sigma_run", "ratio_median"]),
+        "90% 구간 폭 비 중앙값(개선/기존)": r3(k.loc["ci_width", "ratio_median"]),
+        "판단": prec["trend"],
+        "가장 좋아진 것": compare_metrics.best_kpi(k.reset_index()),
         "σ_die 감소 %": round(100 * die_down.mean(), 1) if n else np.nan,
         "σ_run 감소 %(비교 가능 중)": round(100 * run_down[run_cmp].mean(), 1) if run_cmp.any() else np.nan,
         "σ_run 증가 건수": int(run_up.sum()),
         "σ_run 둘 다 0 건수": int(run_both0.sum()),
         "둘 다 감소 건수": int((die_down & run_down).sum()),
-        "기존 동등 아님": nb,
-        "개선 동등 아님": na,
+        "기존 동등 아님": int(k.loc[compare_metrics.NOT_EQUIV, "before"]),
+        "개선 동등 아님": int(k.loc[compare_metrics.NOT_EQUIV, "after"]),
     }
 
 
-def main():
+def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--compare", required=True, help="compare_before_after.py compare가 만든 compare.csv")
-    ap.add_argument("--groups", required=True, help="ITEM,그룹 두 열 파일")
+    ap.add_argument("--compare", required=True, help="compare_before_after.py compare --groups 가 만든 compare.csv")
     ap.add_argument("--out", default="group_out", help="출력 폴더")
     ap.add_argument("--exclude-misaligned", action="store_true",
                     help="정렬 의심(POR 중앙값 상대차 > 20%%) ITEM을 뺀다 (기본: 포함)")
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
 
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     remove_own_outputs(out, OWN_OUTPUTS)
 
     c = read_table(a.compare)
-    if "ITEM" not in c.columns and "ID" in c.columns:
-        c = c.rename(columns={"ID": "ITEM"})
-    need = ["ITEM", "presence", "misaligned", "sigma_die_before", "sigma_die_after",
+    need = ["ITEM", "group", "misaligned", "sigma_die_before", "sigma_die_after",
             "sigma_run_before", "sigma_run_after", "verdict_before", "verdict_after"]
     miss = [k for k in need if k not in c.columns]
     if miss:
-        sys.exit(f"compare.csv에 열이 없습니다: {miss}")
+        sys.exit(f"compare.csv에 열이 없습니다: {miss} (group 열은 compare_before_after.py compare --groups 가 붙인다)")
     c["ITEM"] = c["ITEM"].astype(str).str.strip()
+    c["group"] = c["group"].astype(str)
     for k in need[3:7]:
         c[k] = pd.to_numeric(c[k], errors="coerce")
     for k in ("verdict_before", "verdict_after"):
         c[k] = c[k].fillna("").astype(str).str.strip()
 
-    g = read_groups(a.groups)
-    total = len(c)
-    # ITEM 이름 맞추기: 그대로 먼저, 안 맞으면 앞의 'F31_' 같은 접두어를 떼고 다시
-    def bare(x):
-        return x.str.replace(r"^F\d+_", "", regex=True).str.upper()
-    exact = dict(zip(g["ITEM"], g["group"]))
-    loose = dict(zip(bare(g["ITEM"]), g["group"]))
-    c["group"] = c["ITEM"].map(exact)
-    miss_mask = c["group"].isna()
-    c.loc[miss_mask, "group"] = bare(c.loc[miss_mask, "ITEM"]).map(loose)
-    n_exact = int((~miss_mask).sum()); n_loose = int(c["group"].notna().sum()) - n_exact
-    print(f"그룹 매칭: 이름 그대로 {n_exact}개, 접두어(F..._) 떼고 {n_loose}개, 못 찾음 {int(c['group'].isna().sum())}개")
-    if c["group"].isna().all():
-        print("예) compare.csv ITEM:", list(c["ITEM"].head(3)), " / 그룹 파일 ITEM:", list(g["ITEM"].head(3)))
-    c["group"] = c["group"].fillna(UNGROUPED)
-    keep = c["presence"].astype(str).str.strip() == "matched"
-    if a.exclude_misaligned:
-        keep &= ~as_bool(c["misaligned"])
+    keep = ~as_bool(c["misaligned"]) if a.exclude_misaligned else pd.Series(True, index=c.index)
     scoped = c[keep].copy()  # 판정 전이 표용 (판정 제외 포함)
     is_excl = scoped["verdict_before"].eq(V_EXCLUDED) | scoped["verdict_after"].eq(V_EXCLUDED)
-    used = scoped[~is_excl].copy()  # σ 집계용: 기존 또는 개선이 판정 제외면 뺌
+    used = compare_metrics.with_pct(scoped[~is_excl])  # σ 집계용: 기존 또는 개선이 판정 제외면 뺌
     verdict_excl = scoped[is_excl].groupby("group").size()
     n_verdict_excl = int(is_excl.sum())
     print(f"분석 ITEM: {len(used)}개 (정렬 의심 {'제외' if a.exclude_misaligned else '포함'})"
           + (f", {V_EXCLUDED} {n_verdict_excl}개 뺌" if n_verdict_excl else ""))
 
-    # 그룹별 표
-    rows = [{"그룹": "전체", **summarize(used)}]
-    order = sorted(used["group"].unique(), key=lambda x: (x == UNGROUPED, x))
-    for name in order:
-        rows.append({"그룹": name, **summarize(used[used["group"] == name])})
-    excluded = c[~keep].groupby("group").size()
-    tab = pd.DataFrame(rows)
-    tab["제외(짝 없음"+(", 정렬 의심" if a.exclude_misaligned else "")+")"] = tab["그룹"].map(lambda x: int(excluded.sum()) if x == "전체" else int(excluded.get(x, 0)))
+    order = sorted(used["group"].unique())
+    tab = pd.DataFrame([{"그룹": "전체", **summarize(used)},
+                        *({"그룹": name, **summarize(used[used["group"] == name])} for name in order)])
+    if a.exclude_misaligned:
+        dropped = c[~keep].groupby("group").size()
+        tab["제외(정렬 의심)"] = tab["그룹"].map(lambda x: int(dropped.sum()) if x == "전체" else int(dropped.get(x, 0)))
     if n_verdict_excl:
         tab[V_EXCLUDED] = tab["그룹"].map(lambda x: n_verdict_excl if x == "전체" else int(verdict_excl.get(x, 0)))
     tab.to_csv(out / "group_summary.csv", index=False, encoding="utf-8-sig")
@@ -169,7 +158,6 @@ def main():
     vt.to_csv(out / "verdict_by_group.csv", encoding="utf-8-sig")
 
     # 안정성 비교: 기존끼리, 개선끼리 (중앙값 대비 σ %, 측정정밀도 %)
-    used = compare_metrics.with_pct(used)
     stab = compare_metrics.stability_row
     srows = [{"그룹": "전체", **stab(used)}] + [{"그룹": n, **stab(used[used["group"] == n])} for n in order]
     st = pd.DataFrame(srows)
@@ -189,8 +177,7 @@ def main():
         d = used[used["group"] == name]
         compare_metrics.draw_all(d.assign(ID=d["ITEM"]), out / sub, top=10)
 
-    print(f"전체 {total}행 중 사용 {len(used)}행, 그룹 {len(order)}개")
-    print(f"그룹 파일에 없는 ITEM: {int((used['group'] == UNGROUPED).sum())}개 → '{UNGROUPED}'")
+    print(f"전체 {len(c)}행 중 사용 {len(used)}행, 그룹 {len(order)}개")
     print(tab.to_string(index=False))
     print("\n안정성 (σ / |중앙값| %)")
     print(st.to_string(index=False))

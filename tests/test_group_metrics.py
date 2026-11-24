@@ -28,18 +28,15 @@ GROUPS = {"SYNTH_A1": "G1", "SYNTH_A2": "G1", "SYNTH_A3": "G2", "SYNTH_A4": "G2"
 
 @pytest.fixture
 def cmp_dir(tmp_path):
-    out = tmp_path / "cmp"
-    assert compare_main(["compare", str(BEFORE), str(AFTER), "-o", str(out)]) == 0
-    return out
+    return tmp_path / "cmp"
 
 
 def _run(monkeypatch, cmp_dir: Path, out: Path, groups: dict) -> Path:
+    """그룹 파일로 compare 를 다시 돌리고 (그룹은 compare.csv 의 group 열) group_summary 를 out 에 쓴다."""
     gfile = out.parent / f"{out.name}_groups.csv"
     gfile.write_text("ITEM,group\n" + "".join(f"{k},{v}\n" for k, v in groups.items()), encoding="utf-8")
-    monkeypatch.setattr(sys, "argv", [
-        "group_summary.py", "--compare", str(cmp_dir / "compare.csv"), "--groups", str(gfile), "--out", str(out),
-    ])
-    group_summary.main()
+    assert compare_main(["compare", str(BEFORE), str(AFTER), "-o", str(cmp_dir), "--groups", str(gfile)]) == 0
+    group_summary.main(["--compare", str(cmp_dir / "compare.csv"), "--out", str(out)])
     return out
 
 

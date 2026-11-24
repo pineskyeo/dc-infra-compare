@@ -1,5 +1,5 @@
 ﻿column,쉬운이름,뜻,수식,볼것
-그룹,그룹,그룹 이름. 맨 위는 '전체'.,--groups 파일의 group. 그룹 파일에 없는 ITEM은 미지정,
+그룹,그룹,그룹 이름. 맨 위는 '전체'.,compare.csv `group` (그룹 파일에 없는 ITEM은 compare 단계에서 빠짐),
 ITEM 수,ITEM 수,집계에 쓴 ITEM 수.,"짝이 있고 기존·개선 어느 쪽도 판정 제외가 아닌 ITEM. 정렬 의심은 기본 포함, --exclude-misaligned면 뺌",적으면 분위수가 흔들린다.
 기존 σ_die% 중앙값,기존 반복성 % 중앙값,기존 반복성 %의 median.,"median(`sigma_die_pct_before`), 빈 칸은 뺌, 소수 셋째 자리 반올림",낮을수록 안정적이다.
 기존 σ_die% 25%,기존 반복성 % 25%,기존 반복성 %의 25% 분위수.,"25% 분위수(`sigma_die_pct_before`), 빈 칸은 뺌, 소수 셋째 자리 반올림",

@@ -199,7 +199,6 @@ def test_compare_excluded_left_out_of_sigma_counts(tmp_path):
     # compare.csv 행은 그대로
     df = pd.read_csv(out / "compare.csv", encoding="utf-8-sig").set_index("ITEM")
     assert df.loc["SYNTH_A2", "verdict_after"] == V_EXCLUDED
-    assert df.loc["SYNTH_A2", "presence"] == "matched"
 
 
 def test_compare_without_excluded_has_no_line(tmp_path):
@@ -216,32 +215,31 @@ def test_compare_excluded_id_list_truncated():
     assert _id_list(ids[:2]) == "X0, X1"
 
 
-def _group_summary(monkeypatch, cmp_dir: Path, name: str) -> Path:
+def _group_summary(tmp_path, after: Path, name: str) -> Path:
+    from compare_before_after import main as compare_main
     import group_summary
-    groups = cmp_dir / "groups.csv"
+    groups = tmp_path / f"{name}_groups.csv"
     groups.write_text(
         "ITEM,group\nSYNTH_A1,G1\nSYNTH_A2,G1\nSYNTH_A3,G2\nSYNTH_A4,G2\nSYNTH_A5,G2\n",
         encoding="utf-8",
     )
-    out = cmp_dir.parent / name
-    monkeypatch.setattr(sys, "argv", [
-        "group_summary.py", "--compare", str(cmp_dir / "compare.csv"), "--groups", str(groups), "--out", str(out),
-    ])
-    group_summary.main()
+    cmp_dir = tmp_path / f"{name}_cmp"
+    assert compare_main(["compare", str(CMP_BEFORE), str(after), "-o", str(cmp_dir), "--groups", str(groups)]) == 0
+    out = tmp_path / name
+    group_summary.main(["--compare", str(cmp_dir / "compare.csv"), "--out", str(out)])
     return out
 
 
 def test_group_summary_excluded_column(tmp_path, monkeypatch, capsys):
-    cmp_dir = _compare(tmp_path, _after_with_a2_excluded(tmp_path), "cmp_excl")
+    after = _after_with_a2_excluded(tmp_path)
     capsys.readouterr()
-    out = _group_summary(monkeypatch, cmp_dir, "gs_excl")
+    out = _group_summary(tmp_path, after, "gs_excl")
     printed = capsys.readouterr().out
     assert f"분석 ITEM: 4개 (정렬 의심 포함), {V_EXCLUDED} 1개 뺌" in printed
     tab = pd.read_csv(out / "group_summary.csv", encoding="utf-8-sig").set_index("그룹")
     assert tab.loc["전체", V_EXCLUDED] == 1
     assert tab.loc["G1", V_EXCLUDED] == 1 and tab.loc["G2", V_EXCLUDED] == 0
     assert tab.loc["G1", "ITEM 수"] == 1 and tab.loc["전체", "ITEM 수"] == 4
-    assert tab.loc["전체", "제외(짝 없음)"] == 2     # B1·C1만, 판정 제외는 따로
     vt = pd.read_csv(out / "verdict_by_group.csv", encoding="utf-8-sig", index_col=0)
     assert vt.loc["G1", f"미결→{V_EXCLUDED}"] == 1
     st = pd.read_csv(out / "stability_by_group.csv", encoding="utf-8-sig").set_index("그룹")
@@ -249,9 +247,7 @@ def test_group_summary_excluded_column(tmp_path, monkeypatch, capsys):
 
 
 def test_group_summary_without_excluded_has_no_column(tmp_path, monkeypatch, capsys):
-    cmp_dir = _compare(tmp_path, CMP_AFTER, "cmp_plain")
-    capsys.readouterr()
-    out = _group_summary(monkeypatch, cmp_dir, "gs_plain")
+    out = _group_summary(tmp_path, CMP_AFTER, "gs_plain")
     printed = capsys.readouterr().out
     assert "분석 ITEM: 5개 (정렬 의심 포함)\n" in printed
     tab = pd.read_csv(out / "group_summary.csv", encoding="utf-8-sig")

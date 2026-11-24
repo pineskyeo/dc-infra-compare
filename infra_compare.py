@@ -116,8 +116,21 @@ def read_pairs(path, names: tuple[str, str]) -> pd.DataFrame:
 
 
 def read_groups(path) -> pd.DataFrame:
-    """ITEM,group 파일 (plot_verdicts·group_summary·por_doe_compare --groups)."""
+    """ITEM,group 파일 (plot_verdicts·compare_before_after·por_doe_compare --groups)."""
     return read_pairs(path, ("ITEM", "group"))
+
+
+def _bare_item(names: pd.Series) -> pd.Series:
+    return names.str.replace(r"^F\d+_", "", regex=True).str.upper()
+
+
+def group_lookup(names: pd.Series, groups: pd.DataFrame) -> pd.Series:
+    """ITEM 이름 → 그룹 (못 찾으면 NaN). 이름 그대로 먼저, 안 맞으면 앞의 'F31_' 같은 접두어를 떼고 대소문자 무시."""
+    names = names.astype(str).str.strip()
+    found = names.map(dict(zip(groups["ITEM"], groups["group"])))
+    miss = found.isna()
+    found[miss] = _bare_item(names[miss]).map(dict(zip(_bare_item(groups["ITEM"]), groups["group"])))
+    return found
 
 ITEM_POS = MEASURE_COLS.index("ITEM")
 N_SEP = len(MEASURE_COLS) - 1

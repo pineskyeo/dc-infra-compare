@@ -22,7 +22,7 @@ def run(*args, cwd: Path = ROOT) -> None:
 
 
 def make_outputs(base: Path) -> list[Path]:
-    """합성 데이터로 dcc judge·item·group --before 와 run_all --before --groups 를 돌린다. 출력 폴더 목록."""
+    """합성 데이터로 dcc judge·item·classes·group --before 와 run_all --before --groups 를 돌린다. 출력 폴더 목록."""
     data = base / "por3"
     run(ROOT / "examples" / "make_por3_data.py", data)
     (data / "groups.csv").write_text("ITEM,group\nVT_SAME,VT\nVT_SHIFT,VT\nVT_NOISY_DOE,VT\nRON_CONTACT,RON\n"
@@ -45,8 +45,8 @@ out = {base / "dcc"}
     run(ROOT / "dcc.py", "judge", "A1", *config)
     run(ROOT / "dcc.py", "item", "A1", "VT_SHIFT,VT_SAME,IOFF_LEAK,VT_NOISY_DOE", *config)
     run(ROOT / "dcc.py", "classes", "A1", *config)
-    before = base / "before.csv"
-    shutil.copy(base / "dcc" / "A1" / "items.csv", before)
+    shutil.copytree(base / "dcc" / "A1", base / "before_run")     # stability/group_levels.csv 도 같이 (그룹 × LEVEL)
+    before = base / "before_run" / "items.csv"
     run(ROOT / "dcc.py", "group", "A1", "--before", before, *config)
     run(ROOT / "review.py", "--input", base / "dcc" / "A1" / "items.csv", "--out", base / "dcc" / "A1",
         *(a for i in (1, 2, 3) for a in ("--por", data / f"por_run{i}")), "--doe", data / "doe")

@@ -3,7 +3,14 @@
 
 사용:
   python3 compare_before_after.py evidence RESULT.tsv -o OUTDIR
-  python3 compare_before_after.py compare BEFORE.tsv AFTER.tsv -o OUTDIR
+  python3 compare_before_after.py compare BEFORE.tsv AFTER.tsv -o OUTDIR [--groups ITEM,그룹 파일]
+
+compare 는 두 결과 모두에 있는 ITEM 만 비교한다. --groups 를 주면 그룹 파일에 있는 ITEM 만 (나머지는 개수만 센다).
+  compare.csv          비교한 ITEM 마다 한 행 (--groups 면 group 열)
+  scope.csv            무엇을 비교했나: 결과마다 ITEM 수, 한쪽에만 있는 수, 그룹 파일에 없어 뺀 수 등 한 행
+  overview.csv         요약 지표 (측정 정밀도, 반복성, 회차 이동, 90% 구간 폭, 동등 아닌 수) 마다 기존·개선·비·판단
+  group_levels.csv     --groups 이고 두 결과 폴더에 stability/group_levels.csv 가 있을 때: 그룹 × LEVEL 측정 정밀도
+  summary.txt, stability_overall.csv, worst_items.csv, 지표 그림 (compare_metrics.METRICS)
 
 입력은 탭 또는 쉼표 구분. 헤더는 ID로 시작하는 줄. reason 열은 없어도 되고, 추가 열은 무시한다.
 """
@@ -11,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import io
+from dataclasses import asdict, dataclass
 import math
 import re
 import sys
@@ -26,7 +34,9 @@ from matplotlib import font_manager as fm  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 
 import compare_metrics  # noqa: E402
+import group_summary  # noqa: E402
 from fail_evidence import J_DIFF, J_PEND, remove_own_outputs  # noqa: E402  (fail_evidence와 같은 차이/미결 이름)
+from infra_compare import group_lookup, read_groups  # noqa: E402
 from por_doe_compare import V_EXCLUDED  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -84,7 +94,7 @@ OWN_OUTPUTS = {
     "evidence": ("forest.png", "strip_*.png"),
     "compare": (
         *(f"{name}.png" for name in compare_metrics.METRICS),
-        "stability_overall.csv", "worst_items.csv",
+        "stability_overall.csv", "worst_items.csv", "overview.csv", "scope.csv", "group_levels.csv",
         # 예전 이름: 재실행 때 옛 결과도 지운다
         "sigma_die_paired.png", "sigma_run_paired.png", "scatter_before_after.png",
     ),
@@ -552,14 +562,50 @@ def _scope_label() -> str:
     return "공통 전체, 정렬 의심 포함" if INCLUDE_MISALIGNED else "공통·정렬 정상"
 
 
-def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> str:
-    matched = cmp_df[cmp_df["presence"] == "matched"]
+@dataclass(frozen=True)
+class Scope:
+    """무엇을 비교했나 (scope.csv 한 행). 비교 = 두 결과 모두에 있고, 그룹 파일을 주면 거기에도 있는 ITEM."""
+    n_before: int
+    n_after: int
+    n_matched: int
+    n_only_before: int
+    n_only_after: int
+    grouped: bool
+    n_ungrouped: int
+    n_compared: int
+    n_misaligned: int
+    misaligned_included: bool
+    n_verdict_excluded: int
+    n_used: int
+
+
+def scope_rows(cmp_df: pd.DataFrame, groups: pd.DataFrame | None) -> tuple[pd.DataFrame, Scope]:
+    """비교할 행만 (공통 ITEM, 그룹 파일을 주면 그룹이 있는 ITEM) 과 그 범위. 그룹이 있으면 group 열을 붙인다."""
+    presence = cmp_df["presence"]
+    rows = cmp_df[presence == "matched"].copy()
+    n_matched = len(rows)
+    if groups is not None:
+        rows["group"] = group_lookup(rows["ID"], groups)
+        rows = rows[rows["group"].notna()].copy()
+    scope_m = _scope_matched(rows)
+    excluded = int(_is_excluded(scope_m).sum())
+    return rows, Scope(
+        n_before=int((presence != "only_after").sum()), n_after=int((presence != "only_before").sum()),
+        n_matched=n_matched, n_only_before=int((presence == "only_before").sum()),
+        n_only_after=int((presence == "only_after").sum()), grouped=groups is not None,
+        n_ungrouped=n_matched - len(rows), n_compared=len(rows), n_misaligned=int(rows["misaligned"].sum()),
+        misaligned_included=INCLUDE_MISALIGNED, n_verdict_excluded=excluded, n_used=len(scope_m) - excluded)
+
+
+def compare_summary(cmp_df: pd.DataFrame, rows: pd.DataFrame, scope: Scope, before_path: str,
+                    after_path: str) -> str:
+    """cmp_df 는 두 결과를 맞춘 전체 표 (한쪽에만 있는 ITEM 이름용), rows 는 scope_rows 가 고른 비교 행."""
     only_b = cmp_df[cmp_df["presence"] == "only_before"]
     only_a = cmp_df[cmp_df["presence"] == "only_after"]
-    suspect = matched[matched["misaligned"]]
-    scope = _scope_matched(cmp_df)
-    excluded = scope[_is_excluded(scope)]
-    ok = _valid_matched(cmp_df)
+    suspect = rows[rows["misaligned"]]
+    in_scope = _scope_matched(rows)
+    excluded = in_scope[_is_excluded(in_scope)]
+    ok = _valid_matched(rows)
     n_ok = len(ok)
 
     def n_status(col: str, status: str) -> int:
@@ -584,9 +630,11 @@ def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> 
         f"개선: {after_path}",
         "",
         "건수",
-        f"- 공통 ID: {len(matched)}",
-        f"- 기존에만: {len(only_b)}" + (f"  ({', '.join(only_b.ID)})" if len(only_b) else ""),
-        f"- 개선에만: {len(only_a)}" + (f"  ({', '.join(only_a.ID)})" if len(only_a) else ""),
+        f"- 공통 ID: {scope.n_matched}",
+        f"- 기존에만: {len(only_b)}" + (f"  ({_id_list(only_b.ID)})" if len(only_b) else ""),
+        f"- 개선에만: {len(only_a)}" + (f"  ({_id_list(only_a.ID)})" if len(only_a) else ""),
+        *([f"- 그룹 파일에 없음 (비교에서 뺌): {scope.n_ungrouped}", f"- 비교: {scope.n_compared}"]
+          if scope.grouped else []),
         (
             f"- 정렬 의심 (por_median 상대차 > {MEDIAN_MISALIGN:.0%}): {len(suspect)}"
             + (f"  ({', '.join(suspect.ID)})" if len(suspect) else "")
@@ -609,8 +657,8 @@ def compare_summary(cmp_df: pd.DataFrame, before_path: str, after_path: str) -> 
         "",
         f"판정 전이 ({_scope_label()})",
     ]
-    if len(scope):  # 판정 제외도 남겨 '동등→판정 제외' 같은 전이가 보이게
-        trans = pd.crosstab(scope["verdict_before"], scope["verdict_after"], margins=True, margins_name="합계")
+    if len(in_scope):  # 판정 제외도 남겨 '동등→판정 제외' 같은 전이가 보이게
+        trans = pd.crosstab(in_scope["verdict_before"], in_scope["verdict_after"], margins=True, margins_name="합계")
         lines.append(trans.to_string())
     else:
         lines.append("(해당 없음)")
@@ -653,20 +701,56 @@ def _with_anon(df: pd.DataFrame, *sources: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def run_compare(before_path: str, after_path: str, out_dir: str, plot_top: int = 10) -> pd.DataFrame:
+def group_levels(before_path: str | Path, after_path: str | Path, groups: pd.DataFrame) -> pd.DataFrame | None:
+    """두 결과 폴더의 stability/group_levels.csv 를 (그룹, LEVEL) 로 맞춘 측정 정밀도 중앙값 표.
+    둘 중 하나라도 없으면 None. 그룹 파일에 없는 그룹(미지정 포함)은 뺀다."""
+    paths = [Path(p).parent / "stability" / "group_levels.csv" for p in (before_path, after_path)]
+    if not all(p.is_file() for p in paths):
+        return None
+    col = "meas_precision_pct_median"
+    b, a = (pd.read_csv(p, encoding="utf-8-sig", dtype={"group": str, "level": str})[["group", "level", "n_items", col]]
+            for p in paths)
+    t = b.merge(a, on=["group", "level"], suffixes=("_before", "_after"))
+    t = t[t["group"].isin(set(groups["group"]))]
+    t = t.rename(columns={f"{col}_before": "before", f"{col}_after": "after"})
+    t["ratio"] = (t["after"] / t["before"]).where(t["before"] > 0)
+    return t[["group", "level", "n_items_before", "n_items_after", "before", "after", "ratio"]].reset_index(drop=True)
+
+
+def run_compare(before_path: str, after_path: str, out_dir: str, plot_top: int = 10,
+                groups_path: str | None = None) -> pd.DataFrame:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     remove_own_outputs(out, OWN_OUTPUTS["compare"])
     configure_font()
-    cmp_df = compare_tables(read_result(before_path), read_result(after_path))
-    _with_anon(cmp_df, read_result(before_path), read_result(after_path)).to_csv(
-        out / "compare.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
-    text = compare_summary(cmp_df, before_path, after_path)
+    groups = read_groups(groups_path) if groups_path else None
+    if groups is None:      # 지난 실행의 그룹 요약이 이번 결과처럼 보이지 않게
+        stale = out / group_summary.OUT_DIR
+        group_summary.remove_own_outputs(stale, group_summary.OWN_OUTPUTS)
+        if stale.is_dir() and not any(stale.iterdir()):
+            stale.rmdir()
+    before, after = read_result(before_path), read_result(after_path)
+    cmp_df = compare_tables(before, after)
+    rows, scope = scope_rows(cmp_df, groups)
+    rows = compare_metrics.with_ratios(rows)
+    table = _with_anon(rows.drop(columns="presence"), before, after)
+    if groups is not None:
+        table.insert(2 if "ID" in table.columns[:2] else 1, "group", table.pop("group"))
+    table.to_csv(out / "compare.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
+    pd.DataFrame([asdict(scope)]).to_csv(out / "scope.csv", index=False, encoding="utf-8-sig")
+    text = compare_summary(cmp_df, rows, scope, before_path, after_path)
     (out / "summary.txt").write_text(text, encoding="utf-8")
     print(text)
-    d = compare_metrics.with_pct(_valid_matched(cmp_df))
+    d = compare_metrics.with_pct(_valid_matched(rows))
+    compare_metrics.kpi_table(d).to_csv(out / "overview.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
     compare_metrics.draw_all(d, out, top=plot_top)
     _write_metric_tables(d, out, plot_top)
+    if groups is not None:
+        levels = group_levels(before_path, after_path, groups)
+        if levels is None:
+            print("group_levels.csv 건너뜀: 기존·개선 결과 폴더 둘 다 stability/group_levels.csv 가 있어야 함")
+        else:
+            levels.to_csv(out / "group_levels.csv", index=False, encoding="utf-8-sig", float_format="%.10g")
     return cmp_df
 
 
@@ -688,6 +772,7 @@ def main(argv: list[str] | None = None) -> int:
                        help="정렬 의심(POR 중앙값 상대차 > 20%%) ITEM을 비교에서 뺀다 (기본: 포함)")
     p_cmp.add_argument("--plot-top", type=int, default=10,
                        help="지표별 그림의 악화 상위 표에 ITEM N개 (기본 10)")
+    p_cmp.add_argument("--groups", help="ITEM,그룹 파일. 주면 그룹 파일에 있는 ITEM 만 비교하고 compare.csv 에 group 열")
 
     args = parser.parse_args(argv)
     if args.cmd == "compare" and args.plot_top < 1:
@@ -697,7 +782,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "evidence":
         run_evidence(args.result, args.out)
     else:
-        run_compare(args.before, args.after, args.out, plot_top=args.plot_top)
+        run_compare(args.before, args.after, args.out, plot_top=args.plot_top, groups_path=args.groups)
     return 0
 
 

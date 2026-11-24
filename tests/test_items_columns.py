@@ -119,4 +119,4 @@ def test_compare_before_after_matches_old_with_new(judged: Path, tmp_path: Path)
     items = pd.read_csv(judged, dtype=str, keep_default_na=False)
     assert sorted(c["ITEM"]) == sorted(items["ITEM"])
     assert dict(zip(c["ITEM"], c["ID"])) == dict(zip(items["ITEM"], items["ID"]))
-    assert set(c["presence"]) == {"matched"}
+    assert "presence" not in c

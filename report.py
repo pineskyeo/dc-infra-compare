@@ -5,7 +5,9 @@
 
   <폴더>/report.html         판정: 한눈에, 판정 지도, 차이·미결, 판정 제외, LoQ·log 확인 필요, 측정 안정도, log 허용폭 두 방식
   <폴더>/item/report.html    item/ 이 있으면: ITEM 별 변화량, ITEM 마다 카드 (판정, 이유, 한 장 그림, 근거 숫자)
-  <폴더>/group/report.html   group/ 이 있으면: 그룹별 표, 그룹 × LEVEL 측정 정밀도, 그룹 그림, 기존·개선 비교
+  <폴더>/group/report.html   group/ 이 있으면: 그룹별 표, 그룹 × LEVEL 측정 정밀도, 그룹 그림
+  <폴더>/compare/report.html compare/ 가 있으면: 기존·개선 비교 요약, 그룹별, 판정 변화, 나빠진 ITEM, 그림.
+                             같은 표를 compare/비교.xlsx 로도 쓴다 (--anon 이면 비교_anon.xlsx)
 
 주제마다 접는 칸(<details>)이고 첫 화면 칸만 펼쳐 둔다. 화면에는 짧은 이름과 숫자만 두고 설명(읽는 법, 열 뜻, 원래 값과
 단위)은 마우스를 올리거나 키보드로 고르면 뜨는 풍선(ⓘ, 표 칸의 title)에 둔다.
@@ -30,7 +32,9 @@ from pathlib import Path
 import pandas as pd
 
 import columns_doc
+import compare_book
 import explain
+import simple_xlsx
 from explain import BASIS_NAMES, LOQ_ZONES, V_EXCLUDED, fmt, pct
 from item_view import basis_numbers
 from plot_verdicts import LOQ_HOW_TO_READ, MAP_HOW_TO_READ, map_points
@@ -126,6 +130,7 @@ class Col:
     item_name: bool = False      # 실제 ITEM 이름 열 (익명이면 뺀다)
     tip: Callable[[Mapping], str] | None = None
     head_tip: str = ""
+    cls: Callable[[Mapping], str] | None = None      # 칸 class (색)
 
     def cell(self, row: Mapping) -> str:
         return self.get(row) if self.get else plain_num(row.get(self.column))
@@ -220,7 +225,8 @@ class Page:
 
         def td(c: Col, r: Mapping) -> str:
             tip = c.tip(r) if c.tip else ""
-            attr = f' title="{self.namer.text(tip)}"' if tip else ""
+            cls = c.cls(r) if c.cls else ""
+            attr = (f' title="{self.namer.text(tip)}"' if tip else "") + (f' class="{self.namer.text(cls)}"' if cls else "")
             return f"<td{attr}>{self.namer.text(c.cell(r))}</td>"
         body = "".join("<tr>" + "".join(td(c, r) for c in cols) + "</tr>" for r in rows)
         self.add(f'<div class="wrap"><table><thead><tr>{heads}</tr></thead><tbody>{body}</tbody></table></div>')
@@ -264,6 +270,9 @@ class Page:
                        for (name, _), d in sorted(self.used.items()))
         self.add('<details class="sub"><summary>이 리포트의 표에 쓴 열</summary><div class="wrap"><table><thead><tr>'
                  f"<th>열</th><th>뜻</th><th>볼 것</th></tr></thead><tbody>{rows}</tbody></table></div></details>")
+
+    def link(self, text: str, href: str) -> None:
+        self.add(f'<p class="note"><a href="{html.escape(href)}">{self.namer.text(text)}</a></p>')
 
     def columns_link(self) -> None:
         try:
@@ -336,6 +345,8 @@ details.item[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10p
 .dot.차이{background:var(--차이)}.dot.미결{background:var(--미결)}.dot.동등{background:var(--동등)}
 details.sub{margin:10px 0}details.sub>summary{cursor:pointer;color:var(--muted);font-size:13px}
 ul.lines{margin:6px 0;padding-left:18px;color:var(--muted)}
+.headline{font-size:17px;font-weight:650;margin:2px 0 8px}
+td.좋아짐{color:var(--동등);font-weight:650}td.나빠짐{color:var(--차이);font-weight:650}td.비슷{color:var(--faint)}
 @media print{nav{display:none}.wrap{overflow:visible}figure{break-inside:avoid}}
 """
 
@@ -809,56 +820,14 @@ def group_table_cols() -> list[Col]:
                 head_tip="차이·미결 중 신뢰구간 끝이 허용폭을 많이 넘는 순으로 셋")]
 
 
-GROUP_SUMMARY_FIGURES = {          # compare_metrics 그림: 파일 → (제목, ITEM 이름이 그려짐)
-    "verdict_center_delta.png": ("이동량 ÷ 허용폭 분포: 기존 대 개선", False),
-    "stability_meas_precision_pct.png": ("측정 정밀도 % 분포: 기존 대 개선", False),
-    "stability_sigma_die_pct.png": ("die 산포 % 분포: 기존 대 개선", False),
-    "sigma_die_ratio.png": ("die 산포 비 (개선/기존)", True),
-    "sigma_run_ratio.png": ("회차 흔들림 비 (개선/기존)", True),
-    "meas_precision_ratio.png": ("측정 정밀도 비 (개선/기존)", True),
-}
-
-COMPARE_TABLES = (    # (폴더 안 경로, 열 사전 종류, 제목, 실제 ITEM 이름이 든 열)
-    ("summary/group_summary.csv", "group_summary.csv", "그룹 요약 (기존 대 개선)", ()),
-    ("summary/verdict_by_group.csv", "verdict_by_group.csv", "그룹별 판정 변화", ()),
-    ("summary/stability_by_group.csv", "stability_by_group.csv", "그룹별 측정 안정도 (기존 대 개선)", ()),
-    ("compare/stability_overall.csv", "stability_overall.csv", "전체 측정 안정도 (기존 대 개선)", ()),
-    ("compare/worst_items.csv", "worst_items.csv", "가장 나빠진 ITEM", ("ID", "ITEM")),
-)
-
-
-def compare_tables(page: Page, group_dir: Path) -> None:
-    shown = 0
-    for rel, kind, title, name_cols in COMPARE_TABLES:
-        path = group_dir / rel
-        if not path.is_file():
-            continue
-        t = read_csv(path)
-        page.h3(title)
-        cols = [Col(kind, c, (lambda r, c=c: page.namer.label(r[c])) if c in name_cols else None) for c in t.columns]
-        page.table(cols, t.to_dict("records"))
-        shown += 1
-    changed = group_dir / "compare" / "compare.csv"
-    if changed.is_file():
-        t = read_csv(changed)
-        moved = t[t["verdict_before"] != t["verdict_after"]] if {"verdict_before", "verdict_after"} <= set(t) else t[:0]
-        page.h3("판정이 바뀐 ITEM")
-        page.lede(f"짝이 있는 ITEM {len(t):,}개 중 {len(moved):,}개.")
-        if not moved.empty:
-            kind = "compare.csv"
-            page.table([*id_cols(kind), *csv_cols(kind, ("verdict_before", "verdict_after", "center_delta_before",
-                                         "center_delta_after"))], moved.to_dict("records"))
-        shown += 1
-    if not shown:
-        page.skipped("기존·개선 비교 결과 (dcc group --before 로 만든다)")
-
-
 def group_report(folder: Path, items: pd.DataFrame, namer: Namer, groups: Path | None) -> Path | None:
     group_dir = folder / "group"
     if not group_dir.is_dir():
         return None
     page = Page(f"그룹 리포트 · {folder.name}", namer, group_dir / namer.report_file,
                 subtitle=f"ITEM {len(items):,}개")
+    if (folder / "compare" / namer.report_file).is_file():
+        page.link("기존·개선 비교는 compare 리포트에 있다", f"../compare/{namer.report_file}")
     with page.section("groups", "그룹별 표", "그룹마다 판정 개수, 측정 정밀도 중앙값, 가장 나쁜 ITEM.", open=True):
         if groups is not None and groups.is_file():
             from infra_compare import read_groups
@@ -874,29 +843,114 @@ def group_report(folder: Path, items: pd.DataFrame, namer: Namer, groups: Path |
     with page.section("levels", "그룹 × LEVEL 측정 정밀도", open=True):
         level_section(page, folder)
     with page.section("figures", "그룹 그림"):
-        page.figures([*(Figure(p, f"그룹 {p.stem.removeprefix('summary_group_')}", names=True, how=MAP_HOW_TO_READ)
-                        for p in sorted((group_dir / "plots").glob("summary_group_*.png"))),
-                      *(Figure(group_dir / "summary" / f, t, n) for f, (t, n) in GROUP_SUMMARY_FIGURES.items())])
-    with page.section("compare", "기존·개선 비교", "dcc group --before 로 기존 결과와 견준 표."):
-        compare_tables(page, group_dir)
+        page.figures([Figure(p, f"그룹 {p.stem.removeprefix('summary_group_')}", names=True, how=MAP_HOW_TO_READ)
+                      for p in sorted((group_dir / "plots").glob("summary_group_*.png"))])
     with page.section("how", "열 뜻"):
         page.columns_link()
         page.glossary()
     return page.write()
 
 
+# ── 기존·개선 비교 리포트 ─────────────────────────────────────────────────────
+
+COMPARE_FIGURES = {          # compare_metrics 그림: 파일 → (제목, ITEM 이름이 그려짐)
+    "meas_precision_ratio.png": ("측정 정밀도 비 (개선/기존)", True),
+    "sigma_die_ratio.png": ("반복성 σ_die 비 (개선/기존)", True),
+    "sigma_run_ratio.png": ("회차 이동 σ_run 비 (개선/기존)", True),
+    "stability_meas_precision_pct.png": ("측정 정밀도 % 분포: 기존 대 개선", False),
+    "stability_sigma_die_pct.png": ("반복성 % 분포: 기존 대 개선", False),
+    "verdict_center_delta.png": ("이동량 ÷ 허용폭 분포: 기존 대 개선", False),
+}
+WORSENED_SHOWN = 30
+
+
+def frame_cols(table: pd.DataFrame) -> list[Col]:
+    """compare_book 시트 표의 열. 머리글 풍선은 compare_book.TIPS, 판단 칸은 색."""
+    def col(c: str) -> Col:
+        tip = compare_book.TIPS.get(c) or next((t for k, t in compare_book.TIPS.items() if c.endswith(" " + k)), "")
+        trend = c == "판단"
+        return Col("", c, lambda r, c=c: plain_num(r.get(c)) if not isinstance(r.get(c), str) else r.get(c),
+                   item_name=c == "ITEM", head_tip=tip, cls=(lambda r: str(r.get("판단") or "")) if trend else None)
+    return [col(c) for c in table.columns]
+
+
+def frame(page: Page, table: pd.DataFrame, limit: int | None = None) -> None:
+    rows = table.to_dict("records")
+    page.table(frame_cols(table), rows[:limit] if limit else rows)
+
+
+def compare_report(folder: Path, namer: Namer) -> Path | None:
+    """compare/report.html 과 compare/비교.xlsx (익명이면 report_anon.html, 비교_anon.xlsx)."""
+    cdir = folder / "compare"
+    if not (cdir / "scope.csv").is_file():
+        return None
+    c = compare_book.load(cdir)
+    sheets = compare_book.sheets(c, lambda item: namer.id_of.get(str(item), "ID 없음"), names=not namer.anon)
+    book = simple_xlsx.write(cdir / (compare_book.WORKBOOK_ANON if namer.anon else compare_book.WORKBOOK), sheets)
+    tables = {name: table for name, table, _ in sheets}
+    page = Page(f"기존·개선 비교 · {folder.name}", namer, cdir / namer.report_file,
+                subtitle=f"ITEM {int(c.scope['n_compared']):,}개 비교 · 같은 표는 {book.name}")
+    with page.section("summary", "요약", compare_book.RULE, open=True):
+        page.add(f'<p class="headline">{namer.text(compare_book.conclusion(c))}</p>')
+        page.lede(compare_book.scope_line(c.scope))
+        frame(page, tables[compare_book.SUMMARY])
+        page.p(compare_book.RULE, "note")
+    if compare_book.GROUPS in tables:
+        with page.section("groups", "그룹별", "측정 정밀도 비가 작은(많이 좋아진) 그룹부터. 맨 위는 전체.", open=True):
+            frame(page, tables[compare_book.GROUPS])
+    with page.section("verdicts", "판정 변화", "기존 판정 → 개선 판정 ITEM 수. 판정 제외도 센다.") as sec:
+        verdicts = tables[compare_book.VERDICTS]
+        moved = verdicts[verdicts["변화 종류"] != compare_book.SHIFTS[-1]]
+        sec.badge = f"바뀜 {int(moved[compare_book.TOTAL].sum()):,}"
+        frame(page, verdicts)
+        items = tables[compare_book.ITEMS]
+        changed = items[items["기존 판정"] != items["개선 판정"]]
+        if len(changed):
+            with page.fold(f"판정이 바뀐 ITEM {len(changed):,}개"):
+                frame(page, changed[[k for k in changed.columns if k in ("ID", "ITEM", "그룹", "기존 판정", "개선 판정")
+                                     or k.startswith("측정 정밀도")]])
+    if c.grouped:
+        with page.section("levels", "그룹 × LEVEL", compare_book.LEVELS_SOURCE):
+            if compare_book.LEVELS in tables:
+                frame(page, tables[compare_book.LEVELS])
+            else:
+                page.p(compare_book.LEVELS_NOTE, "note")
+    with page.section("worse", "나빠진 ITEM", f"측정 정밀도 비가 {1 + compare_book.TREND_BAND:.1f} 넘는 ITEM, "
+                      "비 큰 순.") as sec:
+        worse = tables[compare_book.WORSENED]
+        sec.badge = f"{len(worse):,}"
+        if worse.empty:
+            page.p("측정 정밀도가 나빠진 ITEM 이 없다.", "note")
+        else:
+            frame(page, worse, WORSENED_SHOWN)
+            if len(worse) > WORSENED_SHOWN:
+                page.p(f"비 큰 {WORSENED_SHOWN}개만 싣는다. 전부는 {book.name} 의 {compare_book.WORSENED} 시트.", "note")
+    with page.section("figures", "그림"):
+        groups_dir = cdir / "groups"
+        page.figures([*(Figure(cdir / f, t, n) for f, (t, n) in COMPARE_FIGURES.items()),
+                      *(Figure(groups_dir / f, f"그룹별 {t}", False) for f, (t, _) in COMPARE_FIGURES.items()
+                        if c.grouped)])
+    with page.section("how", "열 뜻"):
+        page.link(f"같은 표 엑셀: {book.name}", book.name)
+        used = sorted({k for t in tables.values() for k in t.columns if k in compare_book.TIPS})
+        page.table([Col("", "열", lambda r: r["k"]), Col("", "뜻", lambda r: r["v"])],
+                   [{"k": k, "v": compare_book.TIPS[k]} for k in used])
+        page.columns_link()
+    return page.write()
+
+
 # ── 진입점 ─────────────────────────────────────────────────────────────────
 
 def write_reports(folder, anon: bool = False, groups=None) -> list[Path]:
-    """folder (<out>/<이름>) 의 결과 파일로 report.html, item/report.html, group/report.html 을 쓴다.
-    item/·group/ 이 없으면 그 리포트는 건너뛴다. 쓴 파일 목록을 돌려준다."""
+    """folder (<out>/<이름>) 의 결과 파일로 report.html, item/report.html, compare/report.html(+ 비교.xlsx),
+    group/report.html 을 쓴다. item/·compare/·group/ 이 없으면 그 리포트는 건너뛴다. 쓴 리포트 목록을 돌려준다."""
     folder = Path(folder)
     items_csv = folder / "items.csv"
     if not items_csv.is_file():
         raise FileNotFoundError(f"{items_csv} 가 없습니다 (먼저 dcc.py judge 로 판정하세요)")
     items = read_csv(items_csv)
     namer = Namer(items, anon)
-    written = [judge_report(folder, items, namer), item_report(folder, namer),
+    written = [judge_report(folder, items, namer), item_report(folder, namer), compare_report(folder, namer),
                group_report(folder, items, namer, Path(groups) if groups else None)]
     return [p for p in written if p is not None]
 

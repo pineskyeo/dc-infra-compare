@@ -1,0 +1,11 @@
+﻿column,쉬운이름,뜻,수식,볼것
+kpi,지표 키,"지표 이름표: meas_precision, sigma_die, sigma_run, ci_width, not_equivalent.",,
+name,지표,지표의 쉬운 이름.,,
+before,기존,"기존 값. 흔들림 지표는 ITEM % 값의 중앙값, not_equivalent는 동등 아닌 ITEM 수.","흔들림 지표는 compare.csv 값의 중앙값: 측정 정밀도 median(`meas_precision_pct_before`), 반복성 `sigma_die_pct_before`, 회차 이동 `sigma_run_pct_before`, 90% 구간 폭 `ci_width_pct_before`. not_equivalent는 `verdict_before`가 동등이 아닌 수. 판정 제외 ITEM은 뺀다",
+after,개선,개선 값. 뜻은 `before`와 같다.,`before`와 같은 규칙으로 _after 열,
+change,변화,개선 − 기존. 흔들림 지표는 %p.,`after` − `before`,음수면 낮아졌다.
+ratio_median,비 중앙값,ITEM마다 개선÷기존을 구한 비의 중앙값. not_equivalent는 빈 칸.,"median(`meas_precision_ratio`), median(`sigma_die_ratio`), median(`sigma_run_ratio`), median(`ci_width_ratio`). 빈 칸 뺌",판단의 기준.
+improved_pct,좋아진 ITEM %,비가 0.9 미만인 ITEM 비율. not_equivalent는 기존에 동등이 아니던 ITEM 중 개선에서 동등이 된 비율.,100 × (비 < 0.9인 ITEM 수) / `n_ratio`. not_equivalent는 100 × (`verdict_before` 동등 아님이고 `verdict_after` 동등인 수) / `before`,
+n_ratio,비에 쓴 ITEM,비를 계산한 ITEM 수. not_equivalent는 센 ITEM 수.,,
+n_skipped,비에서 뺀 ITEM,기존 값이 0 이하이거나 어느 쪽이든 비어 비를 못 구한 ITEM 수.,scope.csv n_used − `n_ratio`,회차 이동은 기존 σ_run이 0인 ITEM이 많아 크게 나온다.
+trend,판단,좋아짐 · 비슷 · 나빠짐.,"흔들림 지표: `ratio_median` < 0.9면 좋아짐, > 1.1이면 나빠짐, 그 사이 비슷. not_equivalent: `after` < `before`면 좋아짐, 크면 나빠짐, 같으면 비슷",동등 아닌 수는 하나만 줄어도 좋아짐이다. 개수 차이를 같이 본다.
