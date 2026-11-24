@@ -234,3 +234,4 @@ main{margin-left:0;padding:20px 16px 64px}
 @media print{.top,.side,.strip,.scene-ctl,.layer-toggle{display:none} main{margin:0;padding:0} details.expert{break-inside:avoid}}
 
 [data-journeys="list"]{margin-top:28px}
+.fc-final rect{fill:var(--paper);stroke:var(--por);stroke-width:1.5}

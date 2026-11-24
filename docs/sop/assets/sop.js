@@ -282,7 +282,7 @@
         const c = TRACK[step](t);
         const list = rows => h('dl', { class: 'kv' }, rows.flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)]));
         const next = host.dataset.nextHref ? h('a', { class: 'tracker-next', href: host.dataset.nextHref },
-          `다음 단계 → ${host.dataset.nextTitle}`) : null;
+          `${host.dataset.nextLabel || '다음 단계'} → ${host.dataset.nextTitle}`) : null;
         host.replaceChildren(h('div', { class: 'card' }, [
           h('p', { class: 'card-h' }, [`${MARKS[step]} 이 예제에서는 · `, h('b', {}, t.name)]),
           h('div', { class: 'flow3' }, [
@@ -363,123 +363,6 @@
   }
 
   // 판정 3단계: 행마다 한 단계. 1단계 TOST → (LoQ 아래면) 2단계 → (1·2단계가 동등이 아니면) 3단계 → 최종.
-  const W = 720, X0 = 176, X1 = 700, RH = 112;
-  function shiftRow(y, r, b) {
-    const [d0, d1] = domain([-r.tol, r.tol, r.lo, r.hi, 0], 0.12);
-    const x = scale(d0, d1, X0, X1);
-    const near = v => Math.abs(x(v) - x(0)) < 34;
-    const mid = (x(r.lo) + x(r.hi)) / 2;
-    const lab = Math.max(X0 + 40, Math.min(X1 - 40, mid));
-    return s('g', { 'data-b': b }, [
-      s('line', { x1: X0, x2: X1, y1: y + 61, y2: y + 61, class: 'sc-axis' }),
-      s('rect', { x: x(-r.tol), y: y + 30, width: x(r.tol) - x(-r.tol), height: 52, rx: 8, class: 'sc-band grow' }),
-      s('line', { x1: x(-r.tol), x2: x(-r.tol), y1: y + 26, y2: y + 86, class: 'sc-edge' }),
-      s('line', { x1: x(r.tol), x2: x(r.tol), y1: y + 26, y2: y + 86, class: 'sc-edge' }),
-      s('text', { x: x(-r.tol), y: y + 20, class: 'sc-t eq mid' }, `−${r.tolName}`),
-      s('text', { x: x(r.tol), y: y + 20, class: 'sc-t eq mid' }, `+${r.tolName}`),
-      s('text', { x: x(-r.tol), y: y + 102, class: 'sc-t mid' }, fmt(-r.tol, false, r.unit)),
-      s('text', { x: x(r.tol), y: y + 102, class: 'sc-t mid' }, fmt(r.tol, true, r.unit)),
-      near(-r.tol) || near(r.tol) ? null : s('text', { x: x(0), y: y + 102, class: 'sc-t mid' }, '0'),
-      s('line', { x1: x(0), x2: x(0), y1: y + 52, y2: y + 70, class: 'sc-zero' }),
-      s('g', { class: 'late' }, [
-        s('rect', { x: Math.min(x(r.lo), x(r.hi) - 4), y: y + 56, width: Math.max(4, x(r.hi) - x(r.lo)), height: 10, rx: 5, class: 'sc-ci' }),
-        s('circle', { cx: x(r.c), cy: y + 61, r: 4.5, class: 'sc-c' }),
-        s('text', { x: lab, y: y + 47, class: 'sc-t doe mid' }, `${r.ciName} ${fmt(r.lo, true, r.unit)} ~ ${fmt(r.hi, true, r.unit)}`)])
-    ]);
-  }
-  function loqRow(y, r, b) {
-    const a = r.m + r.lo, z = r.m + r.hi;
-    const vals = [r.m, a, z, r.loq, 0];
-    if (Math.min(r.m, a) < 0) vals.push(-r.loq);
-    const [d0, d1] = domain(vals, 0.12);
-    const x = scale(d0, d1, X0, X1);
-    const left = Math.max(x(-r.loq), X0);
-    const right = Math.min(x(r.loq), X1);
-    const lines = [r.loq, -r.loq].filter(v => x(v) >= X0 && x(v) <= X1);
-    return s('g', { 'data-b': b }, [
-      s('line', { x1: X0, x2: X1, y1: y + 61, y2: y + 61, class: 'sc-axis' }),
-      s('rect', { x: left, y: y + 30, width: Math.max(0, right - left), height: 52, rx: 6, class: 'sc-below' }),
-      s('text', { x: left + 8, y: y + 78, class: 'sc-t muted' }, "'<LoQ' 로 보고하는 곳"),
-      ...lines.map(v => s('line', { x1: x(v), x2: x(v), y1: y + 24, y2: y + 88, class: 'sc-loq' })),
-      ...lines.map(v => s('text', { x: x(v), y: y + 18, class: 'sc-t por mid' }, `${v < 0 ? '−' : ''}LoQ ${fmt(r.loq)}`)),
-      s('circle', { cx: x(r.m), cy: y + 61, r: 5, class: 'sc-por' }),
-      s('text', { x: x(r.m), y: y + 102, class: 'sc-t por mid' }, `POR 중앙값 ${fmt(r.m)}`),
-      s('g', { class: 'late' }, [
-        s('rect', { x: x(a), y: y + 40, width: Math.max(4, x(z) - x(a)), height: 10, rx: 5, class: 'sc-ci' }),
-        s('path', { d: `M${x(r.m + r.c)} ${y + 36}l8 9l-8 9l-8 -9z`, class: 'sc-doe' }),
-        s('text', { x: Math.max(X0 + 60, Math.min(X1 - 60, (x(a) + x(z)) / 2)), y: y + 32, class: 'sc-t doe mid' },
-          `DOE 구간 ${fmt(a)} ~ ${fmt(z)}`)])
-    ]);
-  }
-  function noteRow(y, text, b) {
-    return s('g', { 'data-b': b }, [s('text', { x: X0, y: y + 60, class: 'sc-t note' }, text)]);
-  }
-  function rowHead(y, title, sub, verdict, b, bv) {
-    return s('g', {}, [
-      s('g', { 'data-b': b }, [s('text', { x: 0, y: y + 28, class: 'sc-h' }, title), s('text', { x: 0, y: y + 47, class: 'sc-sub' }, sub)]),
-      s('g', { 'data-b': bv, class: 'pop' }, [
-        s('rect', { x: 0, y: y + 60, width: 76, height: 28, rx: 14, class: `sc-pill ${VCLASS[verdict] || 'skip'}` }),
-        s('text', { x: 38, y: y + 79, class: 'sc-pill-t mid' }, verdict || '없음')])
-    ]);
-  }
-  const S1_CAP = {
-    '동등': '구간이 ±Δ 띠 안에 통째로 → 1단계 동등',
-    '차이': '구간이 ±Δ 띠 밖에 통째로 → 1단계 차이',
-    '미결': '구간이 ±Δ 띠 경계에 걸침 → 1단계 미결'
-  };
-  function s2Cap(st) {
-    const why = st.reason || '';
-    if (why.includes('LoQ 미만')) return "DOE 구간도 LoQ 아래 → 둘 다 '<LoQ' 보고 → 동등";
-    if (why.includes('LoQ에 걸침')) return "DOE 구간이 LoQ 선에 걸침 → '<LoQ'와 같다고 봄";
-    if (why.includes('±Δ 안')) return '이동이 ±Δ 안 → 2단계 동등';
-    if (st.verdict === '차이') return 'DOE 구간이 통째로 LoQ 위, 이동은 띠 밖 → 차이';
-    return 'DOE 구간은 LoQ 위, 이동이 띠에 걸침 → 미결';
-  }
-  function stage3Row(t) {
-    const st = t.step6.stage3, basis = st.basis, iv = t.step4, p = t.step5;
-    if (basis === 'log' && iv.log) {
-      return { kind: 'shift', lo: iv.log.ci_low, hi: iv.log.ci_high, c: iv.log.center, tol: p.delta_log, tolName: 'Δlog', ciName: 'log 구간', unit: '' };
-    }
-    const tol = { abs: p.abs_delta, accuracy: p.used && p.used.value }[basis];
-    const name = { abs: '절대폭', accuracy: "Δ'" }[basis];
-    if (tol) return { kind: 'shift', lo: iv.ci_low, hi: iv.ci_high, c: iv.center, tol, tolName: name, ciName: '90% 구간' };
-    return { kind: 'note' };
-  }
-
-  defineScene('verdict', t => {
-    const st = t.step6, iv = t.step4;
-    const rows = [];
-    const beats = ['die별 차이 d의 90% 구간(파란 막대)과 ±Δ 띠(초록)', S1_CAP[st.stage1.verdict] || st.stage1.reason];
-    rows.push(rowHead(0, '1단계 · TOST', '모든 ITEM', st.stage1.verdict, 0, 1));
-    rows.push(shiftRow(0, { lo: iv.ci_low, hi: iv.ci_high, c: iv.center, tol: t.step5.delta, tolName: 'Δ', ciName: '90% 구간' }, 0));
-    let y = RH;
-    if (st.stage2) {
-      const b = beats.length;
-      beats.push(s2Cap(st.stage2));
-      rows.push(rowHead(y, '2단계 · LoQ 판정', 'POR 값이 LoQ 아래', st.stage2.verdict, b, b));
-      rows.push(loqRow(y, { m: t.step3.por_median, lo: iv.ci_low, hi: iv.ci_high, c: iv.center, loq: t.step3.LoQ }, b));
-      y += RH;
-    }
-    if (st.stage3) {
-      const b = beats.length;
-      const r = stage3Row(t);
-      const v = st.stage3.verdict;
-      beats.push(v ? `동등이 아님 → 판정 길 '${st.stage3.route}'에서 다시 봄 → ${v}`
-        : `판정 길 '${st.stage3.route}'는 따로 판정하지 않음 → 앞 판정 유지`);
-      rows.push(rowHead(y, '3단계 · 판정 길', st.stage3.route, v, b, b));
-      rows.push(r.kind === 'shift' ? shiftRow(y, r, b) : noteRow(y, '이 길은 따로 판정하지 않아 1·2단계 판정을 그대로 둔다', b));
-      y += RH;
-    }
-    const last = beats.length;
-    beats.push(`최종 판정 ${st.final.verdict} · ${BASIS[st.final.basis] || st.final.basis}`);
-    const svg = s('svg', { viewBox: `0 0 ${W} ${y}`, class: 'scene-svg', role: 'img', 'aria-label': `${t.name} 예제의 판정 3단계` }, rows);
-    const result = h('div', { class: 'scene-result', 'data-b': last }, [
-      pill(st.final.verdict, 'big'),
-      h('div', {}, [h('p', { class: 'res-basis' }, `최종 판정 · ${BASIS[st.final.basis] || st.final.basis}`),
-        h('p', { class: 'res-why' }, t.final.why)])
-    ]);
-    return { nodes: [svg, result], beats };
-  });
 
   // ---------- 예제 유형 카드·목록 ----------
   function initJourneys() {

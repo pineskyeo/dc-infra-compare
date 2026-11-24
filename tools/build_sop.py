@@ -14,7 +14,7 @@
   <div data-refs></div>                       각주 목록 자리 (없으면 쪽 끝에 접힌 전문 영역으로 붙임)
   <code data-code="파일.py:이름"></code>      코드 위치. 파일에 그 이름의 def·대입이 없으면 실패
 
-쪽을 새로 쓰거나 더할 때: SITE 에 행을 두고, docs/sop/src/<slug>.html 에 본문만 쓰고 (옛 본문이면 첫 줄 <!-- legacy --> 를 지운다),
+쪽을 새로 쓰거나 더할 때: SITE 에 행을 두고, docs/sop/src/<slug>.html 에 본문만 쓰고,
 이 도구를 돌린다. 쉽게 영역의 숫자는 assets/journeys.js 에서만 온다 (data-scene, data-tracker 로 그린다).
 assets/journeys.js 가 생기면 stub 대신 그것을 싣도록 쪽이 바뀌므로 다시 돌려야 --check 가 통과한다.
 
@@ -83,7 +83,6 @@ STEPS = {p.step: p for p in SITE if p.step is not None}
 JS = SOP / "assets" / "sop.js"
 DATA_FILE = "assets/journeys.js"
 SCENE_FILES = ('assets/scenes/steps-a', 'assets/scenes/steps-b', 'assets/scenes/guide', 'assets/scenes/concepts')   # 맡은 사람마다 .js·.css 하나 (쪽마다 같은 목록)
-LEGACY_MARK = "<!-- legacy -->"       # 옛 쪽을 그대로 옮긴 본문의 첫 줄. 새로 쓰면 지운다
 
 
 class BuildError(Exception):
@@ -195,8 +194,10 @@ def expand_mounts(text: str, page: Page) -> str:
         step = int(m[1]) if m[1].isdigit() else -1
         if step not in STEPS:
             raise BuildError(f"{page.file}: data-tracker=\"{m[1]}\" 는 0~7 이어야 합니다")
-        nxt = STEPS.get(step + 1)
-        attrs = f' data-next-href="{nxt.file}" data-next-title="{html.escape(nxt.title)}"' if nxt else ""
+        # 단계 쪽은 다음 단계로, 개념·안내 쪽은 그 단계 쪽으로 잇는다
+        nxt, label = (STEPS.get(step + 1), "다음 단계") if page.step is not None else (STEPS[step], "이 단계 쪽")
+        attrs = (f' data-next-href="{nxt.file}" data-next-title="{html.escape(nxt.title)}"'
+                 f' data-next-label="{label}"') if nxt else ""
         return f'<div class="tracker" data-tracker="{step}"{attrs}></div>'
     text = re.sub(r'<div data-tracker="([^"]*)"></div>', tracker, text)
     steps = html.escape(json.dumps([[p.file, p.title] for p in STEPS.values()], ensure_ascii=False))
@@ -257,7 +258,7 @@ def _arrow(x1: float, y1: float, x2: float, y2: float, cls: str = "") -> str:
 
 
 def flowchart() -> str:
-    """⓪~⑤ 한 줄, ⑥ 판정 3단계 판, 결과와 ⑦. 상자를 누르면 그 단계로."""
+    """⓪~⑤ 한 줄 → ⑥ 판정 3단계 판 → 판 전체에서 최종 판정 하나 → 동등·기록 또는 미결·차이 → ⑦."""
     w, gap, h = 116, 12.8, 64
     parts = []
     for k in range(6):
@@ -271,28 +272,32 @@ def flowchart() -> str:
     parts.append('<rect x="0" y="112" width="760" height="150" rx="14" class="fc-panel"/>')
     parts.append(f'<a href="{STEPS[6].file}" class="fc-link"><text x="20" y="140" class="fc-title">'
                  f'{html.escape(STEPS[6].title)}</text></a>')
-    stages = (("stage1", "1 TOST", "모든 ITEM"), ("loq", "2 LoQ 판정", "POR 값이 LoQ 아래일 때"),
-              ("typed", "3 판정 길", "1·2단계가 동등이 아닐 때"))
+    stages = (("1 TOST", "모든 ITEM"), ("2 LoQ 판정", "POR 값이 LoQ 아래일 때"), ("3 판정 길", "1·2단계가 동등이 아닐 때"))
     sw, sg = 210, 45
-    for k, (anchor, a, b) in enumerate(stages):
+    for k, (a, b) in enumerate(stages):
         x = 20 + k * (sw + sg)
-        parts.append(_box(x, 160, sw, 80, f"{STEPS[6].file}#{anchor}", (a, b), f"fc-stage s{k + 1}"))
+        parts.append(_box(x, 160, sw, 80, STEPS[6].file, (a, b), f"fc-stage s{k + 1}"))
         if k < 2:
             parts.append(_arrow(x + sw + 4, 200, x + sw + sg - 4, 200))
-    parts.append(_arrow(140, 262, 140, 294))
-    parts.append('<g class="fc-out"><rect x="80" y="298" width="120" height="34" rx="17" class="v-eq"/>'
-                 '<text x="140" y="320">동등 · 기록</text></g>')
-    parts.append(_arrow(520, 262, 520, 294))
-    parts.append('<g class="fc-out"><rect x="430" y="298" width="180" height="34" rx="17" class="v-hold"/>'
-                 '<text x="520" y="320">미결 · 차이</text></g>')
-    parts.append(_arrow(612, 315, 636, 315, "dash"))
+    parts.append('<path d="M20 268 V278 H740 V268" class="fc-brace"/>')
+    parts.append(_arrow(380, 278, 380, 292))
+    parts.append('<g class="fc-out fc-final"><rect x="320" y="294" width="120" height="34" rx="8"/>'
+                 '<text x="380" y="316">최종 판정</text></g>')
+    parts.append(_arrow(318, 311, 268, 311))
+    parts.append('<g class="fc-out"><rect x="124" y="294" width="140" height="34" rx="17" class="v-eq"/>'
+                 '<text x="194" y="316">동등 · 기록</text></g>')
+    parts.append(_arrow(442, 311, 474, 311))
+    parts.append('<g class="fc-out"><rect x="478" y="294" width="134" height="34" rx="17" class="v-hold"/>'
+                 '<text x="545" y="316">미결 · 차이</text></g>')
+    parts.append(_arrow(614, 311, 636, 311, "dash"))
     p7 = STEPS[7]
-    parts.append(_box(640, 288, 120, 56, p7.file, (STEP_MARKS[7] + " 다음 행동", "미결·차이일 때만"), "fc-opt"))
-    return ('<figure class="flowchart" id="flow"><svg viewBox="-2 -2 764 350" role="img" '
-            'aria-label="판정 흐름도: ⓪~⑤ 준비, ⑥ 판정 3단계, ⑦ 미결·차이일 때 다음 행동">'
+    parts.append(_box(640, 283, 120, 56, p7.file, (STEP_MARKS[7] + " 다음 행동", "미결·차이일 때만"), "fc-opt"))
+    return ('<figure class="flowchart" id="flow"><svg viewBox="-2 -2 764 345" role="img" '
+            'aria-label="판정 흐름도: ⓪~⑤ 준비, ⑥ 판정 3단계에서 최종 판정 하나, 동등이면 기록, 미결·차이면 ⑦ 다음 행동">'
             '<defs><marker id="fc-head" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" '
             'orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z"/></marker></defs>'
-            + "".join(parts) + "</svg><figcaption>상자를 누르면 그 단계 쪽으로 갑니다.</figcaption></figure>")
+            + "".join(parts) + "</svg><figcaption>상자를 누르면 그 단계 쪽으로 갑니다. 판정 3단계를 다 거친 뒤 최종 판정 하나가 나옵니다.</figcaption></figure>")
+
 
 
 # ---------- 틀 ----------
@@ -349,18 +354,14 @@ LAYER_BOOT = ("<script>try{if(localStorage.getItem('sop-layer')==='expert')"
 def render(page: Page, fragment: str, refs: dict[str, Ref]) -> str:
     body = expand_refs(expand_code(expand_mounts(expand_layers(fragment), page), page), page, refs)
     needs_data = any(f"data-{k}" in body for k in ("scene", "tracker", "journeys"))
-    legacy = fragment.startswith(LEGACY_MARK)
     css = '<link rel="stylesheet" href="assets/sop.css">' + "".join(
         f'<link rel="stylesheet" href="{f}.css">' for f in SCENE_FILES)
     scripts = []
-    if legacy:
-        css += '<link rel="stylesheet" href="assets/legacy.css">'
-        scripts.append('<script src="assets/concepts.js"></script>')
     if needs_data:
         scripts.append(f'<script src="{DATA_FILE}"></script>')
     scripts.append('<script src="assets/sop.js"></script>')
     scripts += [f'<script src="{f}.js"></script>' for f in SCENE_FILES]
-    head = "" if legacy else (
+    head = (
         f'<header class="page-head"><p class="kicker">{html.escape(page.section)}</p>'
         f'<h1>{html.escape(SITE_NAME if page.slug == "index" else page.title)}</h1><p class="purpose">{html.escape(page.purpose)}</p></header>\n')
     step = f' data-step="{page.step}"' if page.step is not None else ""
@@ -378,7 +379,7 @@ def render(page: Page, fragment: str, refs: dict[str, Ref]) -> str:
 <div id="sop-error" class="sop-error" role="alert" hidden></div>
 {nav(page)}
 <main id="main">{"" if page.slug == "index" else strip(page)}
-<article class="page{" legacy" if legacy else ""}">
+<article class="page">
 {head}{body.strip()}
 {pager(page)}
 </article></main>

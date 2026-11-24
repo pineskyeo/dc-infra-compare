@@ -21,7 +21,6 @@ from columns_doc import OUTPUTS, ColumnDoc, Output  # noqa: E402
 
 SOP_DIR = ROOT / "docs" / "sop"
 PAGE = SOP_DIR / "src" / "columns.html"
-TITLE = "열 사전"
 RAW_DOC = "item_raw"
 # 수식에 나오는 원데이터 입력 파일의 열 (DCNORMAL 의 DATA, --level 파일, --blank-map 파일). raw.csv 열과 함께 '원데이터'
 RAW_FILE_COLUMNS = ("DATA", "CALCVAL", "LEVEL", "BLANK_ITEM")
@@ -138,14 +137,8 @@ def render() -> str:
         f"<td>{html.escape(o.made_by)}</td><td>{inline(PURPOSE[o.kind])}</td></tr>" for o in OUTPUTS)
     how = "\n".join(f"<li>{inline(t)}</li>" for t in HOW_TO_READ)
     main = f"""
-<!-- legacy -->
-<p class="loc"><a href="index.html">개요</a> › {TITLE} · 관련 <a href="reading.html">결과 읽는 법</a></p>
-<h1>결과 파일 {TITLE}</h1>
-
-<section id="q"><h2>이 쪽이 답하는 질문</h2>
-<p class="q">결과 CSV의 열마다 무슨 뜻이고, 어떻게 계산하고, 무엇을 보면 되나</p>
-<p class="s">이 쪽은 docs/columns/*.csv에서 tools/build_columns_doc.py로 만든다. 고칠 때는 CSV를 고치고 다시 만든다.</p>
-</section>
+<p class="s">결과 파일마다 열의 쉬운 이름, 뜻, 계산, 볼 것을 적는다. 판정을 읽는 순서는 <a href="reading.html">결과 읽는 법</a>.
+이 쪽은 docs/columns/*.csv에서 tools/build_columns_doc.py로 만든다. 고칠 때는 CSV를 고치고 다시 만든다.</p>
 
 <section id="how"><h2>수식 읽는 법</h2>
 <ul>

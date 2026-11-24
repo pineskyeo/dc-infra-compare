@@ -8,7 +8,6 @@
 .gt.eq{fill:var(--eq);font-weight:700}.gt.doe{fill:var(--doe);font-weight:700}.gt.por{fill:var(--por);font-weight:700}
 
 /* 개요 흐름도: ⑥ 판 전체에서 나오는 최종 판정 */
-.fc-final rect{fill:var(--paper);stroke:var(--por);stroke-width:1.5}
 
 /* 예제 따라가기: 단계 띠 + 한 단계 판 + 앞뒤 */
 [data-scene="journey"] .scene{padding:18px 20px 18px}
