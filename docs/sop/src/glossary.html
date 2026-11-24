@@ -1,93 +1,117 @@
-<!-- legacy -->
-<p class="loc"><a href="index.html">개요</a> › 용어집</p>
-<h1>용어집</h1>
-<p class="key">이 문서에 나오는 약어·용어·기호 풀이. 항목마다 쉬운 말 한 줄, 관련 쪽, 출처(있는 것만)</p>
+<section class="easy">
+<p class="lead">자주 나오는 말을 한 줄로 풉니다. '전문까지' 를 켜면 말마다 식, items.csv 열, 근거가 붙습니다.</p>
+<nav class="gl-index" aria-label="용어 묶음"><a href="#g-core">자주 나오는 말</a><a href="#g-stat">통계 용어</a><a href="#g-meas">측정·데이터</a><a href="#g-detail">판정 세부</a><a href="#g-status">데이터 상태</a><a href="#g-org">기관·문헌</a><a href="#g-sym">기호</a></nav>
 
-<section id="g-stat"><h2>통계 용어</h2><dl class="gl">
-<dt id="loq">정량한계 (LoQ, Limit of Quantitation)</dt><dd>믿고 숫자로 비교할 수 있는 가장 작은 크기. 이 문서는 LoQ = 10σ<br><span class="s">관련 <a href="c-loq.html">LoQ</a> · <a href="step-3.html">③</a> · <a href="step-6.html">⑥</a> · 출처 Eurachem Guide "Fitness for Purpose of Analytical Methods" 2판 (2014) · 6.2.4 Estimating LOQ · <a href="https://www.eurachem.org/images/stories/Guides/pdf/MV_guide_2nd_ed_EN.pdf" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="rsd">상대표준편차 (RSD, Relative Standard Deviation)</dt><dd>흔들림 σ를 값의 크기로 나눈 비율. RSD = σ ÷ 값. 변동계수(CV, Coefficient of Variation)와 같은 뜻. LoQ는 RSD가 10%가 되는 값<br><span class="s">관련 <a href="c-loq.html#derive">LoQ와 10배</a> · 출처 IUPAC 권고 (Currie 1995) · 3.7.7 · <a href="https://old.iupac.org/publications/pac/1995/pdf/6710x1699.pdf" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="meas-precision">측정 정밀도</dt><dd>σ<sub>die</sub>와 σ<sub>run</sub>을 합친 측정 산포를 POR 중앙값 대비 %로 나타낸 값(상대표준편차). 측정 정밀도(%) = 100 × √(σ<sub>die</sub>² + σ<sub>run</sub>²) / |POR 중앙값|. 낮을수록 좋음<br><span class="s">관련 <a href="c-sigma-split.html#meas-precision">측정 정밀도</a> · 출처 JCGM 100:2008 (GUM) · 5.1.2 · <a href="https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf" rel="noopener" target="_blank">링크</a> · NIST/SEMATECH e-Handbook · 2.1.1.4 · <a href="https://www.itl.nist.gov/div898/handbook/mpc/section1/mpc114.htm" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="lod">검출한계 (LoD, Limit of Detection)</dt><dd>0이 아니라고 말할 수 있는 가장 작은 크기. 이 문서는 LoD = 3.29σ<br><span class="s">관련 <a href="c-loq.html">LoQ</a> · 출처 Eurachem Guide 2판 (2014) · Annex B Statistical basis of limit of detection calculations · <a href="https://www.eurachem.org/images/stories/Guides/pdf/MV_guide_2nd_ed_EN.pdf" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="tost">두 번의 한쪽 검정 (TOST, Two One-Sided Tests)</dt><dd>'차이가 +Δ보다 작다'와 '−Δ보다 크다'를 따로 확인해 둘 다 맞으면 동등. 이 문서는 90% 신뢰구간 ⊂ (−Δ, +Δ)로 판정<br><span class="s">관련 <a href="c-tost.html">TOST</a> · <a href="step-6.html">⑥</a> · <a href="c-tost.html">t-test와 TOST</a> · 출처 Schuirmann (1987) J. Pharmacokinet. Biopharm. 15:657-680 · 초록 · <a href="https://link.springer.com/article/10.1007/BF01068419" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="ci">신뢰구간 (CI, Confidence Interval)</dt><dd>참값이 있을 만한 범위. 90% = 같은 실험을 100번 반복하면 약 90번은 구간이 모르는 참값을 덮는다는 뜻(참값은 고정, 구간이 움직임). 판정은 하지 않음 · 판정은 TOST가 함. 이 문서는 부호검정으로 구한 90% 구간<br><span class="s">관련 <a href="c-median-ci.html#meaning">90%의 뜻</a> · <a href="c-median-ci.html">부호검정 신뢰구간</a> · <a href="c-median-ci.html">중앙값의 90% 신뢰구간 구하는 법</a> · <a href="step-4.html">④</a> · 출처 NIST Dataplot Reference Manual · MEDIAN CONFIDENCE LIMITS · <a href="https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/mediancl.htm" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="mad">중앙값 절대편차 (MAD, Median Absolute Deviation)</dt><dd>중앙값에서 떨어진 거리들의 중앙값. 튀는 값에 덜 흔들리는 퍼짐 크기<br><span class="s">관련 <a href="c-sigma-split.html">MAD</a> · <a href="step-2.html">②</a> · 출처 NIST/SEMATECH e-Handbook · 1.3.5.6 Measures of Scale · <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda356.htm" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="sd">표준편차 (SD, Standard Deviation)</dt><dd>값이 평균 둘레로 퍼진 보통 크기<br><span class="s">관련 <a href="c-sigma-split.html">σ 나누기</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="df">자유도 (df, degrees of freedom)</dt><dd>t 값을 고를 때 쓰는 수. 이 문서는 J−1<br><span class="s">관련 <a href="c-delta.html">회차 예측 한계 계수</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="sign-test">부호검정</dt><dd>차이가 +인 die와 −인 die 수만 세어 중앙값을 따지는 방법<br><span class="s">관련 <a href="c-median-ci.html">부호검정 신뢰구간</a> · <a href="step-4.html">④</a> · 출처 NIST Dataplot Reference Manual · SIGN TEST · <a href="https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/signtest.htm" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="t-test">t-test (짝지은 t 검정)</dt><dd>차이의 평균이 0인지 보는 검정. 이 문서에서는 판정에 쓰지 않는 참고 값<br><span class="s">관련 <a href="c-tost.html">t-test와 TOST</a> · 출처 NIST/SEMATECH e-Handbook · 7.3.1.1 Analysis of paired observations · <a href="https://www.itl.nist.gov/div898/handbook/prc/section3/prc311.htm" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="f-test">F 검정</dt><dd>두 조건의 분산이 같은지 비로 보는 검정<br><span class="s">관련 <a href="c-sigma-split.html">정밀도 비교</a> · 출처 NIST/SEMATECH e-Handbook · 1.3.5.9 F-Test for Equality of Two Variances · <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda359.htm" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="levene">Levene / Brown-Forsythe 검정</dt><dd>분산이 같은지 보는 검정. 튀는 값에 F 검정보다 덜 흔들림<br><span class="s">관련 <a href="c-sigma-split.html">정밀도 비교</a> · 출처 NIST/SEMATECH e-Handbook · 1.3.5.10 Levene Test for Equality of Variances · <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda35a.htm" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="ccc">일치 상관계수 (CCC, Concordance Correlation Coefficient)</dt><dd>두 조건 값이 y = x 선에 얼마나 붙어 있는지. 1이면 완전히 일치<br><span class="s">관련 <a href="reading.html">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="r2">결정계수 (R²)</dt><dd>한 조건 값이 다른 조건 값의 변화를 얼마나 따라가는지의 비율<br><span class="s">관련 <a href="reading.html">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-</dl></section>
+<h2 id="g-core" class="gl-h">자주 나오는 말</h2>
+<dl class="gl">
+<dt id="item">ITEM (측정 항목)</dt><dd><span class="gl-plain">판정 단위. 판정은 ITEM마다 따로 한다.</span><span class="gl-more">items.csv 한 줄 = ITEM 하나. 열 <code>ITEM</code>, 익명 번호 <code>ID</code>.</span></dd>
+<dt id="die">die</dt><dd><span class="gl-plain">wafer 위 칩 하나. 판정의 표본 하나.</span><span class="gl-more">짝짓기 키 WAFERID, COORD_X_Y, ITEM 으로 POR·DOE 의 같은 die 를 맞춘다. 열 <code>n_die</code>.</span></dd>
+<dt id="ref">POR (기준 조건)</dt><dd><span class="gl-plain">지금 쓰는 조건. 같은 die를 J번 잰다.</span><span class="gl-more">옛 판의 기준 조건(Reference, Ref). 열 <code>POR1_mean</code> …, <code>por_median</code>.</span></dd>
+<dt id="cand">DOE (비교 조건)</dt><dd><span class="gl-plain">바꾸려는 조건. 같은 die를 1번 잰다.</span><span class="gl-more">옛 판의 비교 조건(Candidate, Cand). 열 <code>DOE_mean</code>.</span></dd>
+<dt id="run">회차 (run)</dt><dd><span class="gl-plain">같은 die들을 한 차례 모두 재는 것.</span><span class="gl-more">POR 회차마다 <code>--por</code> 하나 (combos.ini 의 por 한 줄).</span></dd>
+<dt id="d">d (die별 차이)</dt><dd><span class="gl-plain">die 하나의 DOE 값 − 그 die의 POR J번 평균.</span><span class="gl-more">d<sub>i</sub> = DOE<sub>i</sub> − (POR<sub>i1</sub> + … + POR<sub>iJ</sub>) / J<sup data-ref="1"></sup>.</span></dd>
+<dt id="b">이동 (shift, b)</dt><dd><span class="gl-plain">d 들의 가운데 값. ITEM이 얼마나 바뀌었나.</span><span class="gl-more">b = median(d). 열 <code>center</code>. 옛 판 이름 '편향'.</span></dd>
+<dt id="ci">90% 구간</dt><dd><span class="gl-plain">이동이 있을 만한 범위. 판정은 이 구간 전체로 본다.</span><span class="gl-more">부호검정 구간 [d<sub>(k)</sub>, d<sub>(n−k+1)</sub>], k = P(W ≤ k−1) ≤ 0.05 인 가장 큰 정수, W ~ 이항(n, ½)<sup data-ref="9"></sup>. 열 <code>ci_low</code>, <code>ci_high</code>. 옛 판 이름 신뢰구간(CI).</span></dd>
+<dt id="delta">허용폭 Δ</dt><dd><span class="gl-plain">이동이 이 안이면 같다고 보는 폭.</span><span class="gl-more">Δ = r·|POR 중앙값| + t<sub>0.95, J−1</sub>·√(1 + 1/J)·σ<sub>run</sub>, r = 0.05. 앞은 5% 몫(내부 기준)<sup data-ref="10a"></sup>, 뒤는 회차 몫<sup data-ref="10b"></sup>. 열 <code>delta</code> = <code>policy_margin</code> + <code>run_margin</code>.</span></dd>
+<dt id="tost">TOST</dt><dd><span class="gl-plain">같음을 직접 보이는 검정. 90% 구간이 ±Δ 안이면 동등.</span><span class="gl-more">두 번의 한쪽 검정(Two One-Sided Tests). −Δ ≤ L, U ≤ Δ → 동등, L &gt; Δ 또는 U &lt; −Δ → 차이, 걸침 → 미결<sup data-ref="12"></sup><sup data-ref="13"></sup>.</span></dd>
+<dt id="loq">LoQ (정량한계)</dt><dd><span class="gl-plain">숫자로 믿고 비교할 수 있는 가장 작은 크기.</span><span class="gl-more">LoQ = 10σ, σ = max(σ<sub>die</sub>, 데이터 분해능/√12, 장비 분해능/√12), blank LoQ 가 더 크면 그것<sup data-ref="5"></sup>. 열 <code>LoQ</code>, <code>limit_source</code>.</span></dd>
+<dt id="sigma-die">σ<sub>die</sub> (반복성)</dt><dd><span class="gl-plain">같은 die를 다시 잴 때의 흔들림.</span><span class="gl-more">1.4826 × MAD(이웃 회차 차이) / √2<sup data-ref="2"></sup>. 열 <code>sigma_die</code>.</span></dd>
+<dt id="sigma-run">σ<sub>run</sub> (회차 이동)</dt><dd><span class="gl-plain">회차마다 모든 die가 다 같이 밀리는 크기.</span><span class="gl-more">√(회차 중앙값들의 분산 − (π/2)·σ<sub>die</sub>²/n), 안이 0보다 작으면 0<sup data-ref="3"></sup>. 열 <code>sigma_run</code>.</span></dd>
+<dt id="meas-precision">측정 정밀도</dt><dd><span class="gl-plain">측정 흔들림을 값 크기 대비 %로. 낮을수록 좋다.</span><span class="gl-more">100 × √(σ<sub>die</sub>² + σ<sub>run</sub>²) / |POR 중앙값|<sup data-ref="17"></sup>. 열 <code>meas_precision_pct</code>, <code>sigma_meas</code>. compare 의 요약 지표.</span></dd>
+<dt id="item-type">ITEM 유형</dt><dd><span class="gl-plain">POR 값만 보고 정한 ITEM의 종류. DOE는 안 본다.</span><span class="gl-more">8축 <code>cls_valid</code> · <code>cls_sign</code> · <code>cls_level</code> (0 중심 · 바닥 아래 · 바닥 근처 · 정량) · <code>cls_resolution</code> (계단 · 연속) · <code>cls_shape</code> · <code>cls_noise</code> · <code>cls_scale</code> (log · linear · 판별 불가) · <code>cls_run</code>.</span></dd>
+<dt id="route">판정 길 (route)</dt><dd><span class="gl-plain">ITEM 유형에 맞춰 3단계에서 다시 보는 방법.</span><span class="gl-more">위에서부터 처음 맞는 길: 제외 → 한계 비교 → 절대 허용폭 → LoQ 판정 → log TOST → 선형 TOST. 열 <code>route</code>, <code>route_note</code>.</span></dd>
+<dt id="verdict-final">최종 판정 (verdict_final)</dt><dd><span class="gl-plain">ITEM의 판정 하나. 동등 · 미결 · 차이 · 판정 제외.</span><span class="gl-more">1·2단계 판정(<code>verdict</code>)이 동등이면 그대로. 아니면 판정 길의 판정이 동등·차이·미결일 때 그것, 아니면 1·2단계 판정. 집계와 차이·미결 목록은 이 열 기준.</span></dd>
+<dt id="verdict-basis">판정을 정한 곳 (verdict_basis)</dt><dd><span class="gl-plain">최종 판정이 어느 단계·방법에서 나왔나.</span><span class="gl-more">linear (1단계 TOST) · loq (2단계 LoQ 판정) · log (log TOST) · abs (절대 허용폭) · accuracy (장비 정확도 폭) · limit (한계 비교).</span></dd>
+<dt id="abs-tol">절대 허용폭 (abs_delta)</dt><dd><span class="gl-plain">값 크기와 상관없는 고정 허용폭. 0 근처·계단 값에 쓴다.</span><span class="gl-more">같은 90% 구간을 ±abs_delta 로 TOST (<code>verdict_abs</code>). 그룹 abs_tol 파일(group,abs_delta) 값, 없으면 0 중심은 LoQ, 계단은 max(Δ, 값 간격), 계단이고 바닥 근처면 장비 정확도 폭까지.</span></dd>
+<dt id="loq-report">'&lt;LoQ 보고 일치'</dt><dd><span class="gl-plain">POR도 DOE도 LoQ 아래라 둘 다 '&lt;LoQ'로 적히니 같다고 본다.</span><span class="gl-more">2단계 LoQ 판정. DOE 구간 = POR 중앙값 + [L, U] 이 통째로 LoQ 이상이 아니면 (아래이거나 LoQ 선에 걸침) 동등. reason 에 '&lt;LoQ 보고 일치'. 내부 기준<sup data-ref="15"></sup>.</span></dd>
+<dt id="excluded">판정 제외</dt><dd><span class="gl-plain">판정할 것이 없는 ITEM. 예: 값이 모두 같음.</span><span class="gl-more">원인 (1) 중심·구간 NaN·inf (2) 회차 0값 (3) 모든 값 같음 (4) die 산포 0 (정량 구간, 값 간격 ≥ 0.1·Δ 일 때만) (5) POR 중앙값 0 이고 σ<sub>run</sub> 0 (정량 구간만). 맞는 원인을 모두 이 순서로 reason 에. die 수 부족은 판정 제외가 아니라 미결.</span></dd>
+<dt id="compare-rule">compare 판단 기준</dt><dd><span class="gl-plain">예전보다 10% 넘게 줄면 좋아짐, 10% 넘게 늘면 나빠짐.</span><span class="gl-more">ITEM마다 개선 ÷ 기존 비, 그 중앙값이 0.9 미만 좋아짐, 1.1 초과 나빠짐, 사이 비슷 (TREND_BAND = 0.10). 지표: 측정 정밀도 %, σ<sub>die</sub> %, σ<sub>run</sub> %, 90% 구간 폭 %, 동등 아닌 ITEM 수.</span></dd>
+</dl>
+</section>
 
-<section id="g-meas"><h2>측정·데이터</h2><dl class="gl">
-<dt id="item">측정 항목 (ITEM)</dt><dd>판정 단위. 판정은 ITEM마다 따로<br><span class="s">관련 <a href="index.html">개요</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="die">die</dt><dd>wafer 위 칩 하나. 이 문서의 표본 하나<br><span class="s">관련 <a href="step-0.html">⓪</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="wafer">wafer</dt><dd>die가 여러 개 만들어진 원판<br><span class="s">관련 <a href="step-0.html">⓪</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="probecard">프로브카드</dt><dd>바늘을 die 패드에 대어 장비와 die를 전기로 잇는 부품<br><span class="s">관련 <a href="step-0.html">⓪</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="retouch">재터치다운</dt><dd>프로브카드 바늘을 die에서 떼었다가 다시 대는 것. 회차마다 다시 대야 회차 이동이 데이터에 들어감<br><span class="s">관련 <a href="step-1.html">①</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="smu">전원·측정 장치 (SMU, Source/Measure Unit)</dt><dd>장비의 전압·전류 측정부<br><span class="s">관련 <a href="c-loq.html">분해능</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="calcval">CALCVAL</dt><dd>파일 값 = 원측정값 × CALCVAL인 환산 배율(level.csv 열)<br><span class="s">관련 <a href="reading.html">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="min-die">최소 die 수 (MIN_DIE)</dt><dd>최소 die 수 10(도구 상수). 유효 die가 이보다 적으면 미결<br><span class="s">관련 <a href="step-0.html">⓪</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="excluded">판정 제외</dt><dd>판정할 것이 없는 ITEM. 원인 표(EXCLUSION_CAUSES) (1)~(5)를 모두 보고, 맞는 원인을 모두 이 순서대로 '; '로 이어 사유(reason)에 적음('판정 제외: '는 첫 원인 앞에만). 예: '판정 제외: 모든 값 같음; die 산포 0 (σ_die=0)'. (1) 중심·CI 아래·CI 위 중 하나가 NaN·inf → 중심·신뢰구간 계산 불가, (2) 회차 0값: POR 회차 하나나 DOE가 die 절반 넘게 정확히 0인데 다른 회차·DOE 중 하나라도 절반 넘게 0이 아님 → '회차 0값 (POR2, DOE)'처럼 이름을 적음, (3) POR·DOE 값이 모두 같음 → 모든 값 같음, (4) die 산포 0(σ<sub>die</sub> = 0 또는 고정값 비율 &gt; 50%, <a href="#flat">산포 0</a>): 정량 zone이고 분해능 step ≥ 0.1·Δ(분해능 부족과 같은 검사)일 때만, (5) POR 중앙값 0이고 σ<sub>run</sub> = 0: 정량 zone일 때만(LoQ가 0이거나 유효하지 않을 때). LoQ 미만이면 (4)(5)는 보지 않고 LoQ 판정. 정량 zone은 최종 Δ가 0 이하·NaN이어도 판정 제외. die 수 부족은 미결<br><span class="s">관련 <a href="step-6.html">⑥</a> · <a href="reading.html">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="flat">산포 0</dt><dd>σ<sub>die</sub> = 0이거나, R(POR die별 회차 평균)이나 z(DOE die 값)에서 가장 흔한 값의 die 비율이 50%를 넘는 ITEM의 데이터 상태. 정량 zone이고 분해능이 Δ에 비해 거칠 때(step ≥ 0.1·Δ)만 <a href="#excluded">판정 제외</a>, 그 밖은 그대로 판정<br><span class="s">관련 <a href="reading.html">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="run-jitter">회차 흔들림</dt><dd>die가 회차마다 다 같이 움직이는 ITEM의 데이터 상태(판정과 별개). die별 기준 조건 회차 범위의 중앙값 ÷ Δ(run_jitter_over_delta) ≥ 1.0(RUN_JITTER_OVER_DELTA, 도구 상수)이면 표시<br><span class="s">관련 <a href="reading.html">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="cond-unstable">조건 불안정</dt><dd>기준 조건 회차끼리 값이 옮겨 간 ITEM의 데이터 상태(판정과 별개). 짝지은 회차 차(die별 회차 평균을 뺀 값의 회차별 중앙값 max − min) ≥ Δ 이고 ≥ 3·se(POR_GAP_NOISE_K, 도구 상수)이면 표시. die 잡음만으로는 붙지 않음<br><span class="s">관련 <a href="reading.html">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="size-jitter">작을수록 흔들림</dt><dd>값이 작은 die일수록 회차 흔들림(log 범위)이 큰 데이터 상태(판정과 별개). Spearman ρ(spearman_size_jitter) ≤ −0.5(SIZE_JITTER_RHO)이고 유효 die ≥ 10(SIZE_JITTER_MIN_DIE)이면 표시. 반대 방향은 <a href="#size-jitter-pos">클수록 흔들림</a>. 이 상태가 붙은 ITEM은 <a href="#log-target">log 진단 대상</a><br><span class="s">관련 <a href="reading.html">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="size-jitter-pos">클수록 흔들림</dt><dd>값이 큰 die일수록 회차 흔들림(log 범위)이 큰 데이터 상태(판정과 별개). Spearman ρ(spearman_size_jitter) ≥ +0.5(SIZE_JITTER_RHO_POS)이고 유효 die ≥ 10(SIZE_JITTER_MIN_DIE)이면 표시. 반대 방향은 <a href="#size-jitter">작을수록 흔들림</a>. 이 상태가 붙은 ITEM은 <a href="#log-target">log 진단 대상</a><br><span class="s">관련 <a href="reading.html">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="status-metrics">상태 지표 열 (8개)</dt><dd>데이터 상태(status)를 정할 때 쓴 값. items.csv의 데이터 상태 묶음 8열(METRIC_COLS): por_gap_over_delta, por_gap_over_noise, run_jitter_pct, run_jitter_over_delta, spearman_size_jitter, resolution_step, resolution_over_delta, fixed_share. 상태와 상관없이 계산할 수 있으면 채우고 못 하면 빈 칸. resolution_step = 기준 조건 전 회차·비교 조건 값의 서로 다른 값 사이 최소 간격, resolution_over_delta = resolution_step ÷ Δ(≥ 0.1이면 분해능 부족), fixed_share = R·z 각각의 최빈값 die 비율 중 큰 쪽(&gt; 50%면 <a href="#flat">산포 0</a>)<br><span class="s">관련 <a href="reading.html#columns">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="shape-cols">분포 모양 열 (5개)</dt><dd>R(기준 조건 die별 회차 평균, 유한한 값만)의 모양. items.csv에서 상태 지표 열 뒤 5열(SHAPE_COLS): <a href="#decades">decades</a>, <a href="#skew">skew_lin · skew_log</a>, <a href="#log-fit">log_fit</a>, <a href="#bimodality-log">bimodality_log</a>. R에 0이 있거나 부호가 섞이면 skew_lin 말고는 빈 칸. skew_lin · skew_log는 Bowley 사분위 왜도 (Q3 + Q1 − 2·Q2) ÷ (Q3 − Q1)(−1~1, IQR 0이면 빈 칸), decades = log10(P99|R| ÷ P1|R|), |R| ≥ 1E+90(<a href="#open-code">Open 코드</a>)인 die는 이 계산에서 뺌<br><span class="s">관련 <a href="reading.html#columns">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="decades">decades</dt><dd>값이 몇 자릿수에 걸쳐 있는지. decades = log10(P99|R| ÷ P1|R|). |R| ≥ 1E+90(<a href="#open-code">Open 코드</a>)인 die는 빼고 계산<br><span class="s">관련 <a href="#log-candidate">log 후보</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="skew">skew_lin · skew_log</dt><dd>Bowley 사분위 왜도 (Q3 + Q1 − 2·Q2) ÷ (Q3 − Q1), 범위 −1~1. skew_lin = R의 왜도, skew_log = log10|R|의 왜도. die &lt; 3이거나 IQR(Q3 − Q1)이 0이면 빈 칸. |R| ≥ 1E+90(<a href="#open-code">Open 코드</a>)인 die는 빼고 계산<br><span class="s">관련 <a href="#log-fit">log_fit</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="log-fit">log_fit</dt><dd>log를 취하면 더 대칭이 되는지. log_fit = |skew_lin| − |skew_log|. 양수면 log 쪽이 더 대칭<br><span class="s">관련 <a href="#log-candidate">log 후보</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="bimodality-log">bimodality_log</dt><dd>log10|R|의 bimodality coefficient. BC = (g² + 1) ÷ (k + 3(n−1)² ÷ ((n−2)(n−3))), g = 표본 왜도, k = 표본 초과 첨도. 균일분포의 BC가 5/9. die &lt; 4이거나 값이 모두 같으면 빈 칸<br><span class="s">관련 <a href="#bimodal">두 덩어리</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="log-candidate">log 후보</dt><dd>값이 여러 자릿수에 걸쳐 있고 log 쪽이 더 대칭인 ITEM의 데이터 상태. decades ≥ 1.0(LOG_DECADES_MIN)이고 log_fit &gt; 0.1(LOG_FIT_MIN)이면 표시. 예전에는 이 상태가 log 옵션 대상을 정했으나 옵션 판정은 없어짐 · 지금 log 판정 대상은 <a href="#item-type">ITEM 유형</a>의 척도(cls_scale)가 정함<br><span class="s">관련 <a href="c-log-scale.html">잡음이 값에 비례하면 log</a> · <a href="reading.html#columns">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="bimodal">두 덩어리</dt><dd>log10|R| 분포가 두 덩어리로 갈린 ITEM의 데이터 상태(판정과 별개). bimodality_log &gt; 5/9 ≈ 0.556(BIMODAL_BC_MIN)이고 R이 유한한 die ≥ 10(BIMODAL_MIN_DIE)이면 표시<br><span class="s">관련 <a href="reading.html#columns">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="log-verdict">log 판정 (verdict_log)</dt><dd>log형 ITEM의 판정. 같은 판정을 L = log10|값| 공간에서 한 번 더 함. 선형 판정(verdict)·사유(reason)는 그대로 둠. 결과는 items.csv의 verdict_log, log_reason(판정 묶음)과 center_log, ci_low_log, ci_high_log, delta_log, ci_half_over_delta_log(log 판정 숫자 묶음). 허용 범위는 <a href="#delta-log">Δ<sub>log</sub></a>. LoQ 판정은 하지 않고 TOST만 함(log 값이 0 근처라는 것은 그 단위에서 1 근처라는 뜻일 뿐이라서). blank·장비 사양은 원측정값 단위라 쓰지 않음<br><span class="s">관련 <a href="#log-scope">log 판정 대상</a> · <a href="reading.html#columns">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="verdict-final">verdict_final · verdict_basis</dt><dd>최종 판정과 그것을 정한 방법 코드. 1·2단계 판정(verdict)이 동등이면 그대로, 아니면 ⑥ 3단계 <a href="#route">판정 길</a>의 판정(그 판정이 판정 제외면 verdict). 코드: linear(선형 TOST) · loq(<a href="#loq-judge">LoQ 판정</a>) · log(log TOST) · accuracy(장비 정확도로 넓힌 허용폭) · abs(<a href="#abs-tol">절대 허용폭</a>) · limit(한계 비교). 예전 옵션 판정(log 후보 → 장비 정확도 → log_physics 순서)은 없어지고 3단계가 대신함. 판정 집계와 차이·미결 선택은 verdict_final 기준<br><span class="s">관련 <a href="step-6.html#typed">⑥ 3단계</a> · <a href="reading.html#final">결과 읽는 법 · 최종 판정 열</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="near-loq">바닥 근처 (LoQ 근처)</dt><dd>LoQ ≤ |POR 중앙값| &lt; LoQ / (10 r)인 ITEM(r = 5%면 LoQ의 1~2배). ITEM 유형 수준 축(cls_level)의 값 하나. LoQ = 10σ라 이 구간에서는 1회 측정 잡음이 실용 한계 r·|POR|보다 큼 → 판정 길이 선형 TOST면 Δ' = max(Δ, 장비 정확도 폭), 계단이면 절대 허용폭에 장비 정확도 폭까지 넣음<br><span class="s">관련 <a href="#item-type">ITEM 유형</a> · <a href="step-5.html#C5-4">⑤ 3단계 허용폭</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="doe-level">DOE 수준 구간</dt><dd>비교 조건 값이 있을 만한 범위 = 기준 조건 중앙값 + 이동의 90% 신뢰구간. LoQ 판정에서 이 구간이 LoQ 아래 · 걸침 · 위인지 봄<br><span class="s">관련 <a href="c-loq.html">LoQ 아래 판정</a> · <a href="step-6.html#loq">⑥</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="loq-judge">LoQ 판정</dt><dd>|POR 중앙값| &lt; LoQ인 ITEM의 2단계 판정. 이동 CI ⊂ ±Δ → 동등 · DOE 수준 구간이 통째로 LoQ 아래 → 동등(&lt;LoQ 보고 일치) · 통째로 LoQ 이상이고 CI 통째로 ±Δ 밖 → 차이 · 그 밖 → 미결. 예전 규칙(DOE 중심 한 점)을 바꿈<br><span class="s">관련 <a href="c-loq.html">LoQ 아래 판정</a> · <a href="step-6.html#loq">⑥</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="item-type">ITEM 유형 (cls_*)</dt><dd>POR 값만 보고 정한 ITEM의 종류. 분류 축 cls_valid(판정할 수 있나) · cls_sign(부호) · cls_level(수준: 0 중심 · 바닥 아래 · 바닥 근처 · 정량) · cls_resolution(계단 · 연속) · cls_shape(두 덩어리 · 튀는 die · 한계에 걸림 · 한 덩어리) · cls_noise(잡음 모양) · cls_scale(log · linear · 판별 불가) · cls_run(회차). DOE는 안 봄<br><span class="s">관련 <a href="c-routes.html#axes">분류 축</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="route">판정 길 (route)</dt><dd>1·2단계에서 동등이 아닌 ITEM을 3단계에서 다시 판정하는 방법. 위에서부터 처음 맞는 것: 제외 → 한계 비교 → 절대 허용폭 → LoQ 판정 → log TOST → 선형 TOST<br><span class="s">관련 <a href="c-routes.html">ITEM 유형과 판정 길</a> · <a href="step-6.html#typed">⑥ 3단계</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="abs-tol">절대 허용폭 (abs_delta)</dt><dd>값 크기와 상관없는 고정 허용폭(ITEM 단위). 판정 길 절대 허용폭(0 중심, 또는 계단이고 정량·바닥 근처)에서 같은 신뢰구간을 ±abs_delta로 TOST. abs_tol 파일(group,abs_delta)의 그룹 값, 없으면 0 중심은 그 ITEM의 LoQ, 계단은 max(Δ, 값 간격 한 칸), 계단 + 바닥 근처는 max(Δ, 값 간격 한 칸, 장비 정확도 폭)<br><span class="s">관련 <a href="c-abs-tol.html">0 근처와 절대 허용폭</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="noise-slope">noise_slope · spread_robust</dt><dd>noise_slope = die별 log10(POR 회차 표준편차)를 log10(POR 회차 평균)에 맞춘 기울기(Theil-Sen). 0 근처면 잡음 일정(linear), 1 근처면 잡음이 값에 비례(log). spread_robust = 3.45 × IQR(log10|die 평균|), 값이 걸친 자릿수. 척도 분류기: spread_robust ≥ 0.3이고 noise_slope ≥ 0.7 → log, spread_robust &lt; 0.3이거나 기울기를 못 구하면 판별 불가, 그 밖 linear<br><span class="s">관련 <a href="c-log-scale.html">잡음이 값에 비례하면 log</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="norm-shift">정규화 변화량</dt><dd>판정 지도 가로축. 이동 ÷ 허용폭. 0이면 그대로, ±1이면 허용폭만큼 변함. 허용폭은 그 ITEM의 최종 판정 방법의 것<br><span class="s">관련 <a href="c-tost.html">판정 지도는 왜 삼각형인가</a> · <a href="reading.html#map">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="norm-unc">정규화 불확실성</dt><dd>판정 지도 세로축. 90% 신뢰구간 반폭 ÷ 허용폭. 0에 가까울수록 확실, 1 이상이면 동등이 될 수 없음(해상도 부족)<br><span class="s">관련 <a href="c-tost.html">판정 지도는 왜 삼각형인가</a> · <a href="reading.html#map">결과 읽는 법</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="log-scope">log 판정 대상</dt><dd>데이터 상태와 무관하게, 기준·비교 조건 값에 0이 없고 부호가 하나인 ITEM 전부. 0이 있거나 부호가 섞이면 verdict_log = <a href="#excluded">판정 제외</a>, log_reason에 '0값 있음'·'부호 섞임', log 숫자 열은 빈 칸<br><span class="s">관련 <a href="#log-verdict">log 판정</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="delta-log">Δ<sub>log</sub> (log 판정 허용 범위)</dt><dd>Δ<sub>log</sub> = log10(1 + r) + sigma_rep_log. 정책 항 log10(1 + r)은 선형의 r × |기준 조건 중앙값|이 log 공간에서 더하는 폭, 회차 항은 <a href="#sigma-rep-log">sigma_rep_log</a>. t(0.95, J−1) × √(1 + 1/J) 배수는 없음. 고친 방식 Δ<sub>log_run</sub> = log10(1 + r) + t(0.95, J−1)·√(1 + 1/J)·σ<sub>run_log</sub>은 참고 열 verdict_final_log_run에만 씀(결정 대기)<br><span class="s">관련 <a href="#log-verdict">log 판정</a> · <a href="c-delta.html">Δ</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="sigma-rep-log">sigma_rep_log</dt><dd>log 판정의 회차 항. die마다 L 회차값의 표준편차(ddof=1)를 구하고 그 die 중앙값. 유효한 회차값이 2개 미만인 die는 빼고, 남는 die가 없으면 빈 칸. items.csv 맨 끝 열<br><span class="s">관련 <a href="#delta-log">Δ<sub>log</sub></a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="sigma-die-log">sigma_die_log</dt><dd>L에서 구한 σ<sub>die</sub>. 분석용이며 판정에 안 씀. verdict_log가 판정 제외면 빈 칸<br><span class="s">관련 <a href="#sigma-die">σ<sub>die</sub></a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="sigma-run-log">sigma_run_log</dt><dd>L에서 구한 σ<sub>run</sub>(웨이퍼 공통 회차 이동). 분석용이며 판정에 안 씀(Δ<sub>log</sub>에 안 들어감). verdict_log가 판정 제외면 빈 칸<br><span class="s">관련 <a href="#sigma-run">σ<sub>run</sub></a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="log-target">log 진단 대상</dt><dd>fail_evidence.py가 log 진단 그림(log_diag.png)을 그리는 ITEM(is_log_target). 데이터 상태에 <a href="#size-jitter">작을수록 흔들림</a>이나 <a href="#size-jitter-pos">클수록 흔들림</a>이 있거나, verdict와 verdict_log가 둘 다 값이 있고 다른 ITEM(verdict_log가 판정 제외면 다르다고 보지 않음). <a href="#log-scope">log 판정 대상</a>과 다름<br><span class="s">관련 <a href="#log-verdict">log 판정</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="open-code">Open 코드 값</dt><dd>측정 대신 찍힌 큰 숫자(예: 1E+97). 처리 방식: 미결(처리 방식 정해지지 않음). 판정 값 '미결'과는 다른 뜻<br><span class="s"><span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="dcnormal">DCNORMAL</dt><dd>측정 파일 형식<br><span class="s">관련 <a href="run.html">실행 방법</a></span></dd>
-<dt id="run">회차 (run)</dt><dd>같은 die들을 한 차례 모두 재는 것<br><span class="s">관련 <a href="c-sigma-split.html">σ 나누기</a> · <a href="step-2.html">②</a> · <span class="badge-int">내부 기준(문헌 근거 없음)</span></span></dd>
-<dt id="ref">기준 조건 (Reference)</dt><dd>지금 쓰는 조건. J회 반복 측정. 식 안 약자 Ref<br><span class="s">관련 <a href="step-4.html">④</a></span></dd>
-<dt id="cand">비교 조건 (Candidate)</dt><dd>바꾸려는 조건. 1회 측정. 식 안 약자 Cand<br><span class="s">관련 <a href="step-4.html">④</a></span></dd>
-</dl></section>
+<section class="expert" data-title="나머지 용어 · 기관 · 기호 · 근거" id="g-more">
+<h2 id="g-stat">통계 용어</h2>
+<dl class="gl">
+<dt id="lod">LoD (검출한계)</dt><dd><span class="gl-plain">0이 아니라고 말할 수 있는 가장 작은 크기. LoD = 3.29σ<sup data-ref="5"></sup>. 열 <code>LoD</code>.</span></dd>
+<dt id="rsd">상대표준편차 (RSD)</dt><dd><span class="gl-plain">흔들림 σ ÷ 값. 변동계수(CV)와 같은 뜻. LoQ 는 RSD 가 10% 가 되는 값.</span></dd>
+<dt id="sign-test">부호검정</dt><dd><span class="gl-plain">차이가 + 인 die와 − 인 die 수만 세어 중앙값을 따지는 방법. 90% 구간을 이것으로 구한다<sup data-ref="9"></sup>.</span></dd>
+<dt id="mad">MAD (중앙값 절대편차)</dt><dd><span class="gl-plain">중앙값에서 떨어진 거리들의 중앙값. 튀는 값에 덜 흔들리는 퍼짐 크기. robust σ = 1.4826 × MAD<sup data-ref="2"></sup>.</span></dd>
+<dt id="sd">표준편차 (SD)</dt><dd><span class="gl-plain">값이 평균 둘레로 퍼진 보통 크기.</span></dd>
+<dt id="df">자유도 (df)</dt><dd><span class="gl-plain">t 값을 고를 때 쓰는 수. 회차 몫은 J − 1.</span></dd>
+<dt id="t-test">t-test (짝지은 t 검정)</dt><dd><span class="gl-plain">차이의 평균이 0인지 보는 검정. 판정에 쓰지 않는 참고 값 (<code>ttest</code>, <code>ttest_p</code>)<sup data-ref="16"></sup>.</span></dd>
+<dt id="f-test">F 검정</dt><dd><span class="gl-plain">두 조건의 분산이 같은지 비로 보는 검정. 지금 도구는 쓰지 않음 (옛 판 용어).</span></dd>
+<dt id="levene">Levene / Brown-Forsythe 검정</dt><dd><span class="gl-plain">분산이 같은지 보는 검정. 지금 도구는 쓰지 않음 (옛 판 용어).</span></dd>
+<dt id="ccc">일치 상관계수 (CCC)</dt><dd><span class="gl-plain">두 조건 값이 y = x 선에 얼마나 붙어 있는지. 지금 도구는 쓰지 않음 (옛 판 용어).</span></dd>
+<dt id="r2">결정계수 (R²)</dt><dd><span class="gl-plain">한 조건 값이 다른 조건 값의 변화를 얼마나 따라가는지. 지금 도구는 쓰지 않음 (옛 판 용어).</span></dd>
+</dl>
 
-<section id="g-org"><h2>기관·문헌</h2><dl class="gl">
-<dt id="nist">NIST (National Institute of Standards and Technology)</dt><dd>미국 국립표준기술연구소. 이 문서가 주로 인용하는 NIST/SEMATECH e-Handbook of Statistical Methods를 펴냄</dd>
-<dt id="gum">GUM (Guide to the Expression of Uncertainty in Measurement)</dt><dd>측정 불확도 표현 지침(JCGM 100:2008)<br><span class="s"><a href="https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="vim">VIM (International Vocabulary of Metrology)</dt><dd>국제 계량 용어집(JCGM 200:2012)<br><span class="s"><a href="https://www.bipm.org/documents/20126/2071204/JCGM_200_2012.pdf" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="iupac">IUPAC (International Union of Pure and Applied Chemistry)</dt><dd>국제 순수·응용 화학 연합<br><span class="s">관련 <a href="step-6.html">⑥</a></span></dd>
-<dt id="iso">ISO (International Organization for Standardization)</dt><dd>국제표준화기구. 이 문서는 ISO 5725-3 인용<br><span class="s"><a href="https://www.iso.org/standard/69420.html" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="astm">ASTM (ASTM International)</dt><dd>미국 시험·재료 표준 기구. 이 문서는 ASTM E2935-21 인용<br><span class="s"><a href="https://store.astm.org/e2935-21.html" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="ich">ICH (International Council for Harmonisation of Technical Requirements for Pharmaceuticals for Human Use)</dt><dd>의약품 국제 조화 위원회. 이 문서는 ICH Q2(R2) 인용<br><span class="s"><a href="https://database.ich.org/sites/default/files/ICH_Q2%28R2%29_Guideline_2023_1130.pdf" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="marlap">MARLAP (Multi-Agency Radiological Laboratory Analytical Protocols)</dt><dd>미국 여러 기관이 함께 낸 방사능 분석 실험실 지침. 이 문서는 EPA MARLAP Manual Vol. III 인용<br><span class="s">관련 <a href="step-6.html">⑥</a> · <a href="https://www.epa.gov/sites/default/files/2015-05/documents/402-b-04-001c-20_final.pdf" rel="noopener" target="_blank">링크</a></span></dd>
-<dt id="fda">FDA (U.S. Food and Drug Administration)</dt><dd>미국 식품의약국. 이 문서는 "Statistical Approaches to Establishing Bioequivalence" (2001) 인용<br><span class="s"><a href="https://www.gmp-compliance.org/files/guidemgr/3616fnl.pdf" rel="noopener" target="_blank">링크</a></span></dd>
-</dl></section>
+<h2 id="g-meas">측정·데이터</h2>
+<dl class="gl">
+<dt id="wafer">wafer</dt><dd><span class="gl-plain">die가 여러 개 만들어진 원판.</span></dd>
+<dt id="probecard">프로브카드</dt><dd><span class="gl-plain">바늘을 die 패드에 대어 장비와 die를 전기로 잇는 부품.</span></dd>
+<dt id="retouch">재터치다운</dt><dd><span class="gl-plain">바늘을 die에서 떼었다가 다시 대는 것. 회차마다 다시 대야 회차 이동이 데이터에 들어간다.</span></dd>
+<dt id="smu">SMU (전원·측정 장치)</dt><dd><span class="gl-plain">장비의 전압·전류 측정부. 장비 분해능·정확도 표는 <code>I_RANGES</code>, <code>V_RANGES</code>.</span></dd>
+<dt id="calcval">CALCVAL</dt><dd><span class="gl-plain">파일 값 = 원측정값 × CALCVAL 인 환산 배율 (ITEM 정보 표 열).</span></dd>
+<dt id="dcnormal">DCNORMAL</dt><dd><span class="gl-plain">측정 결과 파일 형식. POR 회차마다, DOE 마다 한 벌.</span></dd>
+<dt id="min-die">최소 die 수 (MIN_DIE)</dt><dd><span class="gl-plain">10. 유효 die가 이보다 적으면 미결 (내부 기준)<sup data-ref="7"></sup>.</span></dd>
+<dt id="open-code">Open 코드 값</dt><dd><span class="gl-plain">측정 대신 찍힌 큰 숫자 (예: 1E+97). 처리 방식은 정해지지 않음. 판정 값 '미결' 과는 다른 뜻.</span></dd>
+</dl>
 
-<section id="g-sym"><h2>기호</h2><dl class="gl">
-<dt id="sigma-die">σ<sub>die</sub> (반복성)</dt><dd>같은 die를 다시 잴 때의 흔들림. 합성 예시 0.990<br><span class="s">관련 <a href="c-sigma-split.html">σ 나누기</a> · <a href="step-2.html">②</a></span></dd>
-<dt id="sigma-run">σ<sub>run</sub> (회차 이동)</dt><dd>회차마다 모든 die가 함께 움직이는 크기. 회차 중앙값 분산에서 die 잡음 몫을 뺀 값이 0보다 작으면 0. 합성 예시 0.504<br><span class="s">관련 <a href="c-sigma-split.html">σ 나누기</a> · <a href="step-2.html">②</a> · <a href="step-5.html">⑤</a></span></dd>
-<dt id="delta">Δ (허용 범위)</dt><dd>차이가 이 안이면 같다고 보는 한계. 합성 예시 6.699<br><span class="s">관련 <a href="c-delta.html">Δ</a> · <a href="step-5.html">⑤</a></span></dd>
-<dt id="j">J</dt><dd>기준 조건 반복 회차 수. 합성 예시 3<br><span class="s">관련 <a href="step-0.html">⓪</a> · <a href="c-delta.html">회차 예측 한계 계수</a></span></dd>
-<dt id="n">n</dt><dd>die 수. 합성 예시 60<br><span class="s">관련 <a href="step-0.html">⓪</a> · <a href="c-power.html">미결 확률</a></span></dd>
-<dt id="b">b (편향)</dt><dd>d의 중앙값. 합성 예시 0.786<br><span class="s">관련 <a href="step-4.html">④</a> · <a href="c-median-ci.html">중앙값</a></span></dd>
-<dt id="d">d</dt><dd>die별 차이 = 비교 조건 − 기준 조건 J회 평균<br><span class="s">관련 <a href="step-4.html">④</a></span></dd>
-</dl></section>
+<h2 id="g-detail">판정 세부</h2>
+<dl class="gl">
+<dt id="doe-level">DOE 구간 (DOE 수준 구간)</dt><dd><span class="gl-plain">DOE 값이 있을 만한 범위 = POR 중앙값 + 90% 구간. 2단계 LoQ 판정이 이 구간을 LoQ 와 견준다 (<code>doe_center</code>).</span></dd>
+<dt id="loq-judge">LoQ 판정 (2단계)</dt><dd><span class="gl-plain">|POR 중앙값| &lt; LoQ 인 ITEM. 이동이 ±Δ 안 → 동등. DOE 구간이 통째로 LoQ 이상이 아니면 → 동등 ('&lt;LoQ 보고 일치'). 통째로 LoQ 이상이고 이동이 ±Δ 밖 → 차이, 걸침 → 미결.</span></dd>
+<dt id="near-loq">바닥 근처 (LoQ 근처)</dt><dd><span class="gl-plain">LoQ ≤ |POR 중앙값| &lt; LoQ / (10 r), r = 5% 면 LoQ 의 1~2배. 1회 측정 잡음이 5% 몫보다 커서, 선형 TOST 길이면 Δ' = max(Δ, 장비 정확도 폭) 으로 본다 (<code>cls_level</code> 바닥 근처, status 'LoQ 근처').</span></dd>
+<dt id="log-verdict">log 판정 (verdict_log)</dt><dd><span class="gl-plain">같은 TOST 를 L = log10|값| 에서 한 번 더 한 것. 판정 길 log TOST 의 3단계. 열 <code>verdict_log</code>, <code>log_reason</code>, <code>center_log</code>, <code>ci_low_log</code>, <code>ci_high_log</code>.</span></dd>
+<dt id="log-scope">log 판정 대상</dt><dd><span class="gl-plain">POR·DOE 값에 0이 없고 부호가 하나인 ITEM. 0이 있거나 부호가 섞이면 verdict_log 는 판정 제외.</span></dd>
+<dt id="delta-log">Δ<sub>log</sub> (log 허용폭)</dt><dd><span class="gl-plain">Δ<sub>log</sub> = log10(1 + r) + sigma_rep_log. 회차 몫을 넣은 Δ<sub>log_run</sub> = log10(1 + r) + t·√(1 + 1/J)·σ<sub>run_log</sub> 은 참고 열 <code>verdict_final_log_run</code> 에만 (결정 대기, <a href="appendix.html">부록</a>).</span></dd>
+<dt id="sigma-rep-log">sigma_rep_log</dt><dd><span class="gl-plain">die마다 L 회차값의 표준편차를 구한 뒤 그 die 중앙값. Δ<sub>log</sub> 의 회차 항.</span></dd>
+<dt id="sigma-die-log">sigma_die_log</dt><dd><span class="gl-plain">L 에서 구한 σ<sub>die</sub>. 분석용, 판정에 안 씀.</span></dd>
+<dt id="sigma-run-log">sigma_run_log</dt><dd><span class="gl-plain">L 에서 구한 σ<sub>run</sub>. 분석용, Δ<sub>log</sub> 에 안 들어감.</span></dd>
+<dt id="log-target">log 진단 대상</dt><dd><span class="gl-plain">Fail 근거 도구가 log 진단 그림을 그리는 ITEM: 작을수록·클수록 흔들림이 있거나 verdict 와 verdict_log 가 다른 ITEM.</span></dd>
+<dt id="noise-slope">noise_slope · spread_robust</dt><dd><span class="gl-plain">die별 log(회차 표준편차) 를 log(회차 평균) 에 맞춘 기울기. 0 근처면 잡음 일정, 1 근처면 잡음이 값에 비례. spread_robust ≥ 0.3 이고 기울기 ≥ 0.7 이면 <code>cls_scale</code> log.</span></dd>
+<dt id="norm-shift">정규화 변화량</dt><dd><span class="gl-plain">판정 지도 가로축. 구간 가운데 ÷ 허용폭. ±1 이면 허용폭만큼 변함.</span></dd>
+<dt id="norm-unc">정규화 불확실성</dt><dd><span class="gl-plain">판정 지도 세로축. 구간 반폭 ÷ 허용폭. 1 이상이면 동등이 될 수 없음 (해상도 부족).</span></dd>
+</dl>
 
-<nav class="rel" aria-label="관련 쪽"><h2>관련 쪽</h2><ul><li><a href="concepts.html">개념 익히기</a></li><li><a href="appendix.html">부록</a></li></ul></nav>
+<h2 id="g-status">데이터 상태 (status, 판정과 별개)</h2>
+<dl class="gl">
+<dt id="flat">산포 0</dt><dd><span class="gl-plain">σ<sub>die</sub> = 0 이거나 같은 값 die 가 50% 넘음 (<code>fixed_share</code>). 정량 구간이고 값 간격이 Δ 에 비해 거칠 때만 판정 제외.</span></dd>
+<dt id="run-jitter">회차 흔들림</dt><dd><span class="gl-plain">die별 POR 회차 범위의 중앙값 ≥ Δ (<code>run_jitter_over_delta</code> ≥ 1).</span></dd>
+<dt id="cond-unstable">조건 불안정</dt><dd><span class="gl-plain">POR 회차끼리 값이 옮겨 감: 회차 차 gap ≥ Δ 이고 ≥ 3 × 표준오차 (<code>por_gap_over_delta</code>, <code>por_gap_over_noise</code>). die 잡음만으로는 붙지 않음.</span></dd>
+<dt id="size-jitter">작을수록 흔들림</dt><dd><span class="gl-plain">값이 작은 die 일수록 회차 흔들림(log 범위)이 큼: ρ ≤ −0.5, 유효 die ≥ 10 (<code>spearman_size_jitter</code>).</span></dd>
+<dt id="size-jitter-pos">클수록 흔들림</dt><dd><span class="gl-plain">값이 큰 die 일수록 회차 흔들림이 큼: ρ ≥ +0.5, 유효 die ≥ 10.</span></dd>
+<dt id="status-metrics">상태 지표 열 (8개)</dt><dd><span class="gl-plain">status 를 정할 때 쓴 값: por_gap_over_delta, por_gap_over_noise, run_jitter_pct, run_jitter_over_delta, spearman_size_jitter, resolution_step, resolution_over_delta (≥ 0.1 이면 분해능 부족), fixed_share.</span></dd>
+<dt id="shape-cols">분포 모양 열 (5개)</dt><dd><span class="gl-plain">die별 POR 회차 평균 R 의 모양: decades, skew_lin, skew_log, log_fit, bimodality_log. |R| ≥ 1E+90 (Open 코드) die 는 뺌.</span></dd>
+<dt id="decades">decades</dt><dd><span class="gl-plain">값이 몇 자릿수에 걸쳐 있나: log10(P99|R| ÷ P1|R|).</span></dd>
+<dt id="skew">skew_lin · skew_log</dt><dd><span class="gl-plain">Bowley 사분위 왜도 (Q3 + Q1 − 2·Q2) ÷ (Q3 − Q1), −1~1. R 과 log10|R| 각각.</span></dd>
+<dt id="log-fit">log_fit</dt><dd><span class="gl-plain">log 를 취하면 더 대칭이 되나: |skew_lin| − |skew_log|. 양수면 log 쪽이 더 대칭.</span></dd>
+<dt id="bimodality-log">bimodality_log</dt><dd><span class="gl-plain">log10|R| 의 bimodality coefficient. 균일분포가 5/9.</span></dd>
+<dt id="log-candidate">log 후보</dt><dd><span class="gl-plain">decades ≥ 1 이고 log_fit &gt; 0.1. 표시만 하고 판정 길은 <code>cls_scale</code> 이 정한다.</span></dd>
+<dt id="bimodal">두 덩어리</dt><dd><span class="gl-plain">bimodality_log &gt; 5/9 이고 die ≥ 10.</span></dd>
+</dl>
+
+<h2 id="g-org">기관·문헌</h2>
+<dl class="gl">
+<dt id="nist">NIST</dt><dd><span class="gl-plain">미국 국립표준기술연구소. NIST/SEMATECH e-Handbook of Statistical Methods 를 펴냄.</span></dd>
+<dt id="gum">GUM</dt><dd><span class="gl-plain">측정 불확도 표현 지침 (JCGM 100:2008).</span></dd>
+<dt id="vim">VIM</dt><dd><span class="gl-plain">국제 계량 용어집 (JCGM 200:2012).</span></dd>
+<dt id="iupac">IUPAC</dt><dd><span class="gl-plain">국제 순수·응용 화학 연합.</span></dd>
+<dt id="iso">ISO</dt><dd><span class="gl-plain">국제표준화기구. ISO 5725-3 인용.</span></dd>
+<dt id="astm">ASTM</dt><dd><span class="gl-plain">미국 시험·재료 표준 기구. ASTM E2935-21 인용.</span></dd>
+<dt id="ich">ICH</dt><dd><span class="gl-plain">의약품 국제 조화 위원회. ICH Q2(R2) 인용.</span></dd>
+<dt id="marlap">MARLAP</dt><dd><span class="gl-plain">미국 여러 기관이 함께 낸 방사능 분석 실험실 지침. EPA MARLAP Manual Vol. III 인용.</span></dd>
+<dt id="fda">FDA</dt><dd><span class="gl-plain">미국 식품의약국. "Statistical Approaches to Establishing Bioequivalence" (2001) 인용.</span></dd>
+</dl>
+
+<h2 id="g-sym">기호</h2>
+<dl class="gl">
+<dt id="j">J</dt><dd><span class="gl-plain">POR 회차 수 (보통 3).</span></dd>
+<dt id="n">n</dt><dd><span class="gl-plain">판정에 쓴 die 수 (<code>n_die</code>).</span></dd>
+<dt id="r">r</dt><dd><span class="gl-plain">허용폭의 5% 몫 비율. 기본 0.05 (<code>--r</code>).</span></dd>
+<dt id="lu">L, U</dt><dd><span class="gl-plain">90% 구간의 아래 끝, 위 끝 (<code>ci_low</code>, <code>ci_high</code>).</span></dd>
+</dl>
+
+<h2>근거와 문헌</h2>
+<div data-refs></div>
+</section>
