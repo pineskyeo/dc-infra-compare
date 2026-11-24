@@ -62,6 +62,12 @@ PURPOSE = {
     "classes/counts.csv": "ITEM 분류 축(cls_*)과 판정 길(route)의 값마다 ITEM 수. 전체, --groups를 주면 그룹마다. "
                           "참고용이고 판정은 바꾸지 않는다.",
     "classes/items_by_route.csv": "ITEM마다 판정 길, 최종 판정과 근거, 그 길의 판정 결과, 분류 값을 판정 길 순서로 적는다.",
+    "loq/loq_items.csv": "LoQ 아래 ITEM마다 동등이 된 이유, 보통 TOST였다면의 판정, 실제 재확인, POR 회차로 만든 비교에서 "
+                         "어느 수준부터 잡히는지를 적는다. 판정은 바꾸지 않는다.",
+    "loq/loq_levels.csv": "만든 DOE 수준(LoQ의 몇 배)마다 판정·2단계만·보통 TOST·재확인이 잡은 비율과 ITEM을 다시 뽑은 "
+                          "90% 범위. loq/report.html 시험 표와 LoQ.xlsx 시험(수준별) 시트가 이 파일이다.",
+    "loq/loq_trials.csv": "만든 비교 하나(ITEM × DOE 자리 회차 × 수준)마다 한 행. 변화 없음과 머리 수준만 적어 숫자를 "
+                          "다시 셀 수 있게 한다.",
     "log_review.csv": "log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보고, 선형 차이가 log로 동등이 된 ITEM과 꼬리가 바뀐 ITEM에 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.",
 }
 
@@ -77,6 +83,7 @@ INPUTS = {
     "measure_stability_dies": ("items",), "measure_stability_runs": ("items",), "item_evidence": ("items",),
     "classes_counts": ("items",), "classes_items_by_route": ("items",),
     "measure_stability_group_levels": ("items",),
+    "loq_items": ("items", "loq_review"), "loq_levels": ("loq_trials",), "loq_trials": ("items",),
 }
 
 HOW_TO_READ = (

@@ -47,6 +47,10 @@ LoQ<sub>blank</sub> 가 더 크면 LoQ = LoQ<sub>blank</sub></div>
 <p class="ref-note">그림용 예: POR 중앙값 3, LoQ 10, Δ 2.</p>
 <p>'&lt;LoQ'로 보고해 같다고 보는 규칙은 내부 기준이다. 결과를 있는 그대로 보고하라는 반대 방향 권고도 있다<sup data-ref="15"></sup>. ITEM 유형의 '바닥 아래'(<code>cls_level</code>)는 POR 값만으로 다시 구한 LoQ로 정하므로, DOE 값까지 본 판정의 LoQ와 조금 다를 수 있다.</p>
 
+<h2 id="check">이 규칙을 내 데이터로 점검하기</h2>
+<p>'DOE 구간이 LoQ를 통째로 넘어야 차이'는 LoQ 아래 변화를 일부러 보지 않는 규칙이다. 그래서 한계 영역을 그냥 다 통과시키는 것은 아닌지 데이터로 보여야 한다. <code>dcc.py judge</code>가 재확인 다음에 도는 LoQ 점검(<code>loq/</code>, 다시 볼 때 <code>dcc.py loq</code>)은 판정을 바꾸지 않고 두 가지를 낸다. 하나는 LoQ 아래 ITEM이 어떻게 동등이 됐는지다 (이동이 허용폭 안 / DOE 구간도 LoQ 아래 / DOE 구간이 LoQ에 걸침 / 3단계 판정 길). 다른 하나는 답을 아는 비교다. POR 회차 하나를 DOE 자리에 두면 '변화 없음'이고, 그 회차에 알려진 양을 더해 참 DOE 수준을 LoQ의 0.1~3배로 옮기면 '변화 있음'이다. 이 비교를 판정 코드에 그대로 넣어 수준마다 차이·미결로 잡힌 비율을 보통 TOST, 재확인과 나란히 그린다. 회차 하나와 나머지 J − 1 회차 평균의 차에는 √((1 + 1/J) / (1 + 1/(J − 1)))를 곱해 실제 DOE − J 회차 평균과 흔들림을 맞춘다. 부호검정 구간은 평행이동을 그대로 따라가므로 변화를 더한 구간을 다시 계산하지 않는다.</p>
+<p>치우침의 방향: 같은 조건 회차에는 lot·조건 차이가 없어 실제 오경보는 측정값 이상일 수 있다. Δ와 LoQ를 판정 값으로 고정해 LoQ 1배 근처는 실제보다 좋게 나온다. 모든 die가 같이 움직이는 변화만 넣으므로 일부 die만 바뀌는 변화의 잡힘은 이보다 낮고, 그것은 재확인의 꼬리 검사가 본다 <span class="st st-int">내부 기준</span>.</p>
+
 <h2>근거와 문헌</h2>
 <div data-refs></div>
 
@@ -55,5 +59,6 @@ LoQ<sub>blank</sub> 가 더 크면 LoQ = LoQ<sub>blank</sub></div>
 <li>배수 3.29 · 10: <code data-code="por_doe_compare.py:K_LOD"></code>, σ 후보: <code data-code="por_doe_compare.py:limit_sigma"></code></li>
 <li>2단계: <code data-code="por_doe_compare.py:loq_verdict"></code>, 구간과 LoQ: <code data-code="por_doe_compare.py:loq_side"></code></li>
 <li>POR 값만 본 LoQ: <code data-code="classify.py:por_loq"></code></li>
+<li>LoQ 점검의 만든 비교: <code data-code="loq_check.py:item_trials"></code>, 동등이 된 이유: <code data-code="loq_check.py:pass_kind"></code></li>
 </ul>
 </section>

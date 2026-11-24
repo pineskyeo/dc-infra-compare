@@ -1,0 +1,20 @@
+﻿column,쉬운이름,뜻,수식,볼것
+level,수준,만든 DOE 의 참 수준 ÷ LoQ (0.1~3.0). 0 은 변화 없음 (회차 하나를 그대로 DOE 로 둠),,
+level_name,수준 이름,변화 없음 또는 u×LoQ,,
+n_items,ITEM 수,시험한 ITEM 수 (비율의 분모 단위),,
+n_comparisons,비교 수,ITEM 수 × POR 회차 수,,
+caught_final,판정 잡힘,최종 판정이 차이·미결인 비율. ITEM 마다 회차 비교 중 비율을 내고 ITEM 끼리 평균,mean over ITEM (#{`verdict_final` ∈ 차이·미결} / J),"변화 없음은 오경보, 1 위는 잡아야 하는 변화"
+caught_final_lo,판정 잡힘 하한,ITEM 을 2000번 다시 뽑은 90% 범위 하한 (seed 0),,
+caught_final_hi,판정 잡힘 상한,같은 범위 상한,,
+caught_rule,2단계만 잡힘,3단계 판정 길 없이 2단계 LoQ 판정만 본 잡힌 비율,"같은 꼴, `verdict_rule`",
+caught_rule_lo,2단계만 하한,90% 범위 하한,,
+caught_rule_hi,2단계만 상한,90% 범위 상한,,
+caught_tost,보통 TOST 잡힘,LoQ 규칙 없는 보통 TOST 의 차이·미결 비율,"같은 꼴, `verdict_tost`",변화 없음에서 판정보다 크면 LoQ 규칙이 막은 오경보
+caught_tost_lo,보통 TOST 하한,90% 범위 하한,,
+caught_tost_hi,보통 TOST 상한,90% 범위 상한,,
+caught_review,재확인 잡힘,"재확인 방향 기준 (같은 수준·회차의 ITEM 끼리 BH q < 0.05, 배수 1/1.3~1.3 밖) 에 걸린 비율. 변화 없음과 0.5·0.8·1.2·1.5·2.0 만","같은 꼴, `review_flag`",LoQ 아래 수준에서 판정 대신 보는 곳
+caught_review_lo,재확인 하한,90% 범위 하한,,
+caught_review_hi,재확인 상한,90% 범위 상한,,
+diff_final,판정 차이만,최종 판정이 차이인 비율 (미결 뺌),,
+diff_final_lo,판정 차이만 하한,90% 범위 하한,,
+diff_final_hi,판정 차이만 상한,90% 범위 상한,,

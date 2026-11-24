@@ -42,7 +42,7 @@ doe = data/A/DOE
 
 ```bash
 python dcc.py list                          # 조합 이름, POR 회차 수, DOE, 출력 폴더
-python dcc.py judge A1                      # 판정(por_doe_compare) → LoQ·log 재확인(review) → 판정 지도(plot_verdicts)
+python dcc.py judge A1                      # 판정(por_doe_compare) → LoQ·log 재확인(review) → LoQ 점검(loq_check) → 판정 지도(plot_verdicts)
 python dcc.py judge A1 --detail             # + 최종 판정이 차이·미결인 ITEM 전부 item 분석
 python dcc.py judge all                     # 모든 조합을 파일 순서대로. 실패한 조합이 있어도 계속하고 끝에 조합별 결과 한 줄
 python dcc.py item A1 VT_SAME,VT_SHIFT      # 그 ITEM만 Fail 근거 (원데이터 포함: item_view.png, evidence.csv)
@@ -52,6 +52,7 @@ python dcc.py group A1                      # 그룹별 판정 지도 (groups �
 python dcc.py group A1 --before 이전/items.csv  # + compare 와 같은 기존·개선 비교
 python dcc.py compare A1 --before 이전/items.csv  # 기존 결과와 비교: compare/report.html 과 compare/비교.xlsx
 python dcc.py report A1 --anon                # 리포트만 다시. --anon 은 익명 ID 만 (report_anon.html)
+python dcc.py loq A1                        # LoQ 아래 ITEM 만 본 리포트 loq/report.html 과 loq/LoQ.xlsx (--anon 이면 익명)
 python dcc.py classes A1                    # ITEM 분류와 판정 길 (참고, 판정 불변): 개수, 목록, 그림, 길마다 예시 ITEM
 python dcc.py slides A1                     # 판정 기준 장표 2쪽 slides.pptx (기존 판정과 견주려면 --before 이전/items.csv)
 ```
@@ -65,6 +66,7 @@ python dcc.py slides A1                     # 판정 기준 장표 2쪽 slides.p
 | `items.csv`, `outlier_dies.csv` | 판정 결과 | `judge` |
 | `stability/` | 측정 안정도 ([아래](#측정-안정도-stability)) | `judge` |
 | `review/` | LoQ·log 판정 재확인 ([아래](#loqlog-판정-재확인-review)) | `judge` |
+| `loq/` | LoQ 점검: `loq_items.csv`, `loq_levels.csv`, `loq_trials.csv`, `loq_curve.png`, `loq_reasons.png`, `report.html`, `LoQ.xlsx` ([아래](#loq-점검-loq)) | `judge`, `loq` |
 | `plots/` | 판정 지도 `summary.png`, LoQ 아래 ITEM 그림 `summary_loq.png` | `judge` |
 | `item/` | 고른 ITEM의 Fail 근거(`fail_evidence.py --only`), `item/plots/`는 `--plots` 상세 그림 | `item`, `judge --detail` |
 | `group/plots/` | 그룹별 판정 지도 | `group` |
@@ -72,7 +74,7 @@ python dcc.py slides A1                     # 판정 기준 장표 2쪽 slides.p
 | `classes/` | ITEM 분류 개수(`counts.csv`), 판정 길별 목록(`items_by_route.csv`), `classes.png`, `examples/<판정 길>/` | `classes` |
 | `slides.pptx` | 판정 기준 장표 2쪽. 1쪽 기존 문제와 해결 · 새 판정 흐름 6단계 · 판정 3단계, 2쪽 판정 길별 결과 · 믿을 근거(같은 조건 t-test, 차이 확인, 허용폭 ±20%) · 그룹 × LEVEL 측정 정밀도 · 미결 원인과 다음 조치. ITEM은 익명 번호만 | `slides` |
 
-`item`, `group`, `compare`는 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize)과 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
+`item`, `group`, `compare`, `loq`는 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize)과 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
 
 ### run_all.py로 한 번에
 
@@ -482,6 +484,17 @@ python plot_verdicts.py --items-csv p3/out/items.csv --out p3/out/plots \
 - **log 재확인** (`log_review.csv`, `log_review.png`): log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보여 줍니다. 선형으로는 차이인데 log로 동등이 된 ITEM과, log 값에서 꼬리가 유의한 ITEM이 "확인 필요"입니다.
 - `items/<ITEM>.png`: 확인 필요 ITEM마다 정사각형 네 칸을 한 줄로 그립니다. 왼쪽부터 회차별 die 값, die별 변화량(DOE − POR 평균, 작은 순), 같은 die의 POR1 대 DOE 선형 축, 같은 것의 log 축입니다. 오른쪽 두 칸은 가로가 POR1로 고정이고, 세로에 DOE(검정)와 다른 POR 회차(회색, 기준)를 함께 찍습니다. 두 축 범위가 같아 y = x가 45° 대각선입니다. 회색이 대각선에 붙어 있으면 측정이 안정적이고, 검정이 회색보다 멀수록 DOE가 변한 것입니다. 범례는 제목 아래 한 줄입니다. 두 표는 확인 필요 행을 근거가 센 순서(log가 차이를 동등으로 바꾼 ITEM, 걸린 규칙의 q가 작은 ITEM, 꼬리 die 비율이 큰 ITEM)로 맨 앞에 두고, 그림은 재확인마다 그 순서로 100장까지만 그립니다(`review.py --max-figures N`, 0이면 전부). 그림은 여러 프로세스로 나눠 그립니다(`DC_JOBS`, 기본 CPU 수). 리포트에는 재확인마다 앞의 20장만 싣습니다. 끝에 `걸린 시간: 원데이터 …초, 지표 …초, 요약 그림 …초, ITEM 그림 …초`를 찍습니다.
 - "확인 필요"는 다시 볼 ITEM 목록입니다. 판정에 넣을지는 결과를 보고 정합니다.
+
+### LoQ 점검 (`loq/`)
+
+LoQ 아래 ITEM은 "DOE 구간이 LoQ를 통째로 넘어야 차이"라는 2단계 규칙으로 판정합니다. `loq_check.py`는 이 규칙이 한계 영역을 그냥 다 통과시키는지, 정말 바뀐 것만 걸러내는지를 사용자 데이터로 보여 줍니다. 판정은 바꾸지 않습니다. `dcc.py judge`가 재확인 다음에 돌리고, `python dcc.py loq A1`은 점검과 리포트만 다시 합니다(`--anon`이면 `loq/report_anon.html`, `loq/LoQ_anon.xlsx`). 따로 돌리려면 `python loq_check.py --input <items.csv> --out <폴더> --por ... --doe ...`입니다.
+
+- **동등이 된 이유** (`items.csv`만): LoQ 아래 ITEM(zone 검출한계 이하·검출~정량)마다 이동이 허용폭 안(LoQ 규칙 없이도 동등), DOE 구간도 LoQ 아래, DOE 구간이 LoQ에 걸침(둘은 LoQ 규칙으로 동등), 판정 길(2단계는 차이·미결인데 절대 허용폭 같은 3단계 길이 동등)로 셉니다. LoQ 규칙 없이 보통 TOST였다면 차이·미결이었을 ITEM 수와, 그중 재확인이 확인 필요로 본 수를 같이 적습니다.
+- **만든 비교** (원데이터): POR 회차 하나를 DOE 자리에, 나머지 회차를 POR 자리에 둡니다. 같은 조건을 다시 잰 것이라 '변화 없음'의 답을 압니다. 그 회차에 알려진 양을 더해 DOE의 참 수준을 LoQ의 0.1~3배로 옮기면 '변화 있음'의 답을 압니다. 판정은 그 ITEM의 `items.csv` 행에서 신뢰구간만 바꿔 판정 코드(`rescaled_verdicts`)로 냅니다. 허용폭 Δ, LoQ, POR 중앙값, 판정 길은 판정 값 그대로입니다. 같은 비교에 보통 TOST와 재확인(방향, 같은 수준·회차의 ITEM끼리 BH)도 나란히 돌립니다. 한계 비교·log TOST 길처럼 3단계를 원데이터로 다시 계산해야 하는 ITEM은 '시험 못 함'으로 이유와 함께 셉니다.
+- 잡힘은 최종 판정이 차이나 미결인 것입니다. ITEM마다 회차 비교 중 잡힌 비율을 내고 ITEM끼리 평균합니다. 표와 엑셀에는 ITEM을 2000번 다시 뽑은 90% 범위를 붙입니다. 모든 비율에 분모(비교 수)를 같이 씁니다.
+- `report.html` 한눈에 칸 아래 **LoQ 요약**: LoQ 아래 ITEM 수와 최종 판정, 동등이 된 이유, LoQ 규칙 효과 한 줄, 시험 한 줄(변화 없음 오경보, 0.8×LoQ에서 판정과 재확인, 1.5×LoQ에서 판정), `loq/report.html` 링크입니다. 점검을 아직 안 돌렸으면 "시험은 아직 없음"이라고 적습니다.
+- `loq/report.html`: 한 줄 답(세 질문: 전부 통과시켰나, 놓치나, 안 변한 것을 거나), 동등이 된 이유(`loq_reasons.png`), 시험 결과(`loq_curve.png`와 수준별 표), LoQ 규칙으로 동등이 된 ITEM(재확인 확인 필요 먼저), LoQ 확인 필요, 방법과 한계입니다. `loq/LoQ.xlsx`는 같은 표(요약, 동등 이유, 시험(수준별), ITEM별)입니다.
+- 숫자의 치우침: POR 회차 하나에는 lot·조건 차이가 없어 실제 오경보는 측정값 이상일 수 있습니다. Δ와 LoQ를 고정해 1×LoQ 근처는 실제보다 좋게 나옵니다. 모든 die가 같이 움직이는 변화가 가장 잡기 쉬워 일부 die만 바뀌는 변화는 더 못 잡습니다(재확인의 꼬리 검사가 봅니다). DOE 잡음 비(`doe_noise_ratio`)가 1보다 큰 ITEM은 그 ITEM의 잡힘 숫자가 실제보다 좋게 나옵니다.
 
 ### 측정 안정도 (`stability/`)
 

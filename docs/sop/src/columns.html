@@ -39,6 +39,9 @@
 <tr><td><a href="#group-dirs-csv"><code>group_dirs.csv</code></a></td><td>group_summary.py</td><td>그룹 이름과 그룹 그림 폴더 이름의 대응표.</td></tr>
 <tr><td><a href="#loq-review-csv"><code>loq_review.csv</code></a></td><td>review.py (참고용 LoQ 재확인)</td><td>LoQ 아래·LoQ 근처 ITEM을 LoQ 규칙과 무관한 근거(방향 일관성, 배수, 검출률, 꼬리)로 다시 보고 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.</td></tr>
 <tr><td><a href="#log-review-csv"><code>log_review.csv</code></a></td><td>review.py (참고용 log 재확인)</td><td>log로 판정했거나 log 대상인 ITEM을 선형과 log로 나란히 보고, 선형 차이가 log로 동등이 된 ITEM과 꼬리가 바뀐 ITEM에 '확인 필요'를 표시한다. 판정은 바꾸지 않는다.</td></tr>
+<tr><td><a href="#loq-loq-items-csv"><code>loq/loq_items.csv</code></a></td><td>loq_check.py (dcc judge, dcc loq)</td><td>LoQ 아래 ITEM마다 동등이 된 이유, 보통 TOST였다면의 판정, 실제 재확인, POR 회차로 만든 비교에서 어느 수준부터 잡히는지를 적는다. 판정은 바꾸지 않는다.</td></tr>
+<tr><td><a href="#loq-loq-levels-csv"><code>loq/loq_levels.csv</code></a></td><td>loq_check.py (dcc judge, dcc loq)</td><td>만든 DOE 수준(LoQ의 몇 배)마다 판정·2단계만·보통 TOST·재확인이 잡은 비율과 ITEM을 다시 뽑은 90% 범위. loq/report.html 시험 표와 LoQ.xlsx 시험(수준별) 시트가 이 파일이다.</td></tr>
+<tr><td><a href="#loq-loq-trials-csv"><code>loq/loq_trials.csv</code></a></td><td>loq_check.py (dcc judge, dcc loq)</td><td>만든 비교 하나(ITEM × DOE 자리 회차 × 수준)마다 한 행. 변화 없음과 머리 수준만 적어 숫자를 다시 셀 수 있게 한다.</td></tr>
 <tr><td><a href="#classes-counts-csv"><code>classes/counts.csv</code></a></td><td>classes.py (dcc classes)</td><td>ITEM 분류 축(cls_*)과 판정 길(route)의 값마다 ITEM 수. 전체, --groups를 주면 그룹마다. 참고용이고 판정은 바꾸지 않는다.</td></tr>
 <tr><td><a href="#classes-items-by-route-csv"><code>classes/items_by_route.csv</code></a></td><td>classes.py (dcc classes)</td><td>ITEM마다 판정 길, 최종 판정과 근거, 그 길의 판정 결과, 분류 값을 판정 길 순서로 적는다.</td></tr>
 </tbody></table></div>
@@ -681,6 +684,76 @@
 <tr><td><code>flag_tail</code></td><td>꼬리 확인 필요</td><td>log10|값| 에서 tail_q &lt; 0.05 이고 tail_frac ≥ 5%</td><td></td><td></td></tr>
 <tr><td><code>flag</code></td><td>확인 필요</td><td>확인 필요 표시. 판정은 바꾸지 않는다</td><td></td><td>True 인 ITEM 은 review/items/&lt;ITEM&gt;.png 를 볼 것</td></tr>
 <tr><td><code>why</code></td><td>쉬운 설명</td><td>이 행을 한 문장으로 (확인 필요면 이유 먼저)</td><td></td><td></td></tr>
+</tbody></table></div>
+</section>
+<section id="loq-loq-items-csv"><h2>loq/loq_items.csv</h2>
+<p>LoQ 아래 ITEM마다 동등이 된 이유, 보통 TOST였다면의 판정, 실제 재확인, POR 회차로 만든 비교에서 어느 수준부터 잡히는지를 적는다. 판정은 바꾸지 않는다.</p>
+<p class="s">만드는 명령 loq_check.py (dcc judge, dcc loq) · 위치 <code>loq/loq_items.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a>, <a href="#loq-review-csv">loq_review.csv</a> 열</p>
+<p class="s">열 19개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>ITEM</code></td><td>ITEM</td><td>ITEM 이름</td><td></td><td></td></tr>
+<tr><td><code>UNIT</code></td><td>단위</td><td>원데이터 UNIT 열. 표시용</td><td></td><td></td></tr>
+<tr><td><code>zone</code></td><td>구간</td><td>검출한계 이하 · 검출~정량. LoQ 아래 ITEM 만 행이 된다 (LoQ 근처 정량 ITEM 은 빠짐)</td><td></td><td></td></tr>
+<tr><td><code>verdict_final</code></td><td>최종 판정</td><td>items.csv 최종 판정 그대로. 동등 · 미결 · 차이 (판정 제외는 행이 아님)</td><td></td><td></td></tr>
+<tr><td><code>pass_kind</code></td><td>동등 이유</td><td>동등이 된 이유. 이동이 허용폭 안 (LoQ 규칙 없이도 동등) · DOE 구간도 LoQ 아래 · DOE 구간이 LoQ에 걸침 (둘은 LoQ 규칙으로 동등) · 판정 길 (2단계는 차이·미결인데 3단계 판정 길이 동등). 동등이 아니면 최종 판정</td><td><code>verdict</code> 가 동등이면 <code>reason</code> (2단계 사유 상수), 아니면 판정 길</td><td>LoQ 규칙·판정 길로 동등인 ITEM 이 보통 TOST 였다면 걸렸을 ITEM</td></tr>
+<tr><td><code>route</code></td><td>판정 길</td><td>items.csv 의 판정 길 (classify)</td><td></td><td></td></tr>
+<tr><td><code>verdict_tost</code></td><td>보통 TOST</td><td>LoQ 규칙 없이 같은 신뢰구간을 ±Δ 로 TOST 한 판정</td><td>tost(<code>center</code>, <code>ci_low</code>, <code>ci_high</code>, <code>delta</code>)</td><td>LoQ 규칙으로 동등이면 늘 차이·미결</td></tr>
+<tr><td><code>por_loq</code></td><td>POR ×LoQ</td><td>POR 중앙값 ÷ LoQ (부호 그대로)</td><td><code>por_median</code> / <code>LoQ</code></td><td></td></tr>
+<tr><td><code>doe_lo_loq</code></td><td>DOE 구간 하한 ×LoQ</td><td>DOE 수준 구간 하한 ÷ LoQ</td><td>(<code>por_median</code> + <code>ci_low</code>) / <code>LoQ</code></td><td></td></tr>
+<tr><td><code>doe_hi_loq</code></td><td>DOE 구간 상한 ×LoQ</td><td>DOE 수준 구간 상한 ÷ LoQ</td><td>(<code>por_median</code> + <code>ci_high</code>) / <code>LoQ</code></td><td>−1~1 안이면 DOE 구간도 LoQ 아래</td></tr>
+<tr><td><code>review_flag</code></td><td>재확인 확인 필요</td><td>실제 LoQ 재확인 (review/loq_review.csv) 의 확인 필요. 재확인이 없으면 빈 칸</td><td><code>flag</code></td><td>True 인 LoQ 규칙 동등 ITEM 부터 볼 것</td></tr>
+<tr><td><code>review_ratio</code></td><td>재확인 배수</td><td>실제 LoQ 재확인의 DOE ÷ POR 배수 중앙값</td><td><code>ratio</code></td><td></td></tr>
+<tr><td><code>null_caught</code></td><td>변화 없음 잡힘</td><td>변화를 넣지 않은 회차 비교 중 최종 판정이 차이·미결인 수</td><td></td><td>0 이 보통. 많으면 이 ITEM 은 같은 조건도 걸림</td></tr>
+<tr><td><code>n_runs</code></td><td>회차 비교 수</td><td>POR 회차 수 J (회차 하나씩 DOE 자리에 둔 비교 수)</td><td></td><td></td></tr>
+<tr><td><code>catch_level</code></td><td>잡히는 수준 ×LoQ</td><td>이 수준 이상 (0.1 간격, 3배까지) 모든 수준에서 회차 비교 J번이 모두 잡히는 가장 작은 참 DOE 수준. 3배까지 아니면 inf</td><td></td><td>1 근처면 LoQ 를 넘자마자 잡힘. inf 면 허용폭이 LoQ 보다 훨씬 큰지 볼 것</td></tr>
+<tr><td><code>catch_ratio</code></td><td>잡히는 수준 ×POR</td><td>잡히는 수준을 POR 중앙값의 배수로. |POR 중앙값| 이 LoD 아래면 빈 칸</td><td><code>catch_level</code> × <code>LoQ</code> / |<code>por_median</code>|</td><td>DOE 가 POR 의 몇 배가 되어야 잡히나</td></tr>
+<tr><td><code>doe_noise_ratio</code></td><td>DOE 잡음 비</td><td>실제 DOE − POR 회차 평균의 die 흔들림 ÷ 회차 비교의 die 흔들림 (회차마다 중앙값을 빼고 모음). 둘 다 1.4826 × MAD</td><td>robust σ(DOE − POR 평균) / robust σ(회차 비교 차)</td><td>1 보다 크면 실제 DOE 가 더 흔들려 이 ITEM 의 잡힘 숫자가 실제보다 좋게 나옴</td></tr>
+<tr><td><code>tested</code></td><td>시험</td><td>예, 또는 시험하지 못한 이유 (원데이터 없음, POR 회차 1개, die 부족, 판정 길이 원데이터 재계산을 요구, 판정 길 열을 다시 낼 수 없음)</td><td></td><td>시험 못 한 ITEM 은 숫자가 빈 칸</td></tr>
+<tr><td><code>why</code></td><td>설명</td><td>이 ITEM 을 쉬운 말로: 어떻게 동등이 됐나, 시험에서 어디부터 잡히나, 재확인</td><td></td><td></td></tr>
+</tbody></table></div>
+</section>
+<section id="loq-loq-levels-csv"><h2>loq/loq_levels.csv</h2>
+<p>만든 DOE 수준(LoQ의 몇 배)마다 판정·2단계만·보통 TOST·재확인이 잡은 비율과 ITEM을 다시 뽑은 90% 범위. loq/report.html 시험 표와 LoQ.xlsx 시험(수준별) 시트가 이 파일이다.</p>
+<p class="s">만드는 명령 loq_check.py (dcc judge, dcc loq) · 위치 <code>loq/loq_levels.csv</code> · 수식의 다른 열 <a href="#loq-loq-trials-csv">loq/loq_trials.csv</a> 열</p>
+<p class="s">열 19개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>level</code></td><td>수준</td><td>만든 DOE 의 참 수준 ÷ LoQ (0.1~3.0). 0 은 변화 없음 (회차 하나를 그대로 DOE 로 둠)</td><td></td><td></td></tr>
+<tr><td><code>level_name</code></td><td>수준 이름</td><td>변화 없음 또는 u×LoQ</td><td></td><td></td></tr>
+<tr><td><code>n_items</code></td><td>ITEM 수</td><td>시험한 ITEM 수 (비율의 분모 단위)</td><td></td><td></td></tr>
+<tr><td><code>n_comparisons</code></td><td>비교 수</td><td>ITEM 수 × POR 회차 수</td><td></td><td></td></tr>
+<tr><td><code>caught_final</code></td><td>판정 잡힘</td><td>최종 판정이 차이·미결인 비율. ITEM 마다 회차 비교 중 비율을 내고 ITEM 끼리 평균</td><td>mean over ITEM (#{<code>verdict_final</code> ∈ 차이·미결} / J)</td><td>변화 없음은 오경보, 1 위는 잡아야 하는 변화</td></tr>
+<tr><td><code>caught_final_lo</code></td><td>판정 잡힘 하한</td><td>ITEM 을 2000번 다시 뽑은 90% 범위 하한 (seed 0)</td><td></td><td></td></tr>
+<tr><td><code>caught_final_hi</code></td><td>판정 잡힘 상한</td><td>같은 범위 상한</td><td></td><td></td></tr>
+<tr><td><code>caught_rule</code></td><td>2단계만 잡힘</td><td>3단계 판정 길 없이 2단계 LoQ 판정만 본 잡힌 비율</td><td>같은 꼴, <code>verdict_rule</code></td><td></td></tr>
+<tr><td><code>caught_rule_lo</code></td><td>2단계만 하한</td><td>90% 범위 하한</td><td></td><td></td></tr>
+<tr><td><code>caught_rule_hi</code></td><td>2단계만 상한</td><td>90% 범위 상한</td><td></td><td></td></tr>
+<tr><td><code>caught_tost</code></td><td>보통 TOST 잡힘</td><td>LoQ 규칙 없는 보통 TOST 의 차이·미결 비율</td><td>같은 꼴, <code>verdict_tost</code></td><td>변화 없음에서 판정보다 크면 LoQ 규칙이 막은 오경보</td></tr>
+<tr><td><code>caught_tost_lo</code></td><td>보통 TOST 하한</td><td>90% 범위 하한</td><td></td><td></td></tr>
+<tr><td><code>caught_tost_hi</code></td><td>보통 TOST 상한</td><td>90% 범위 상한</td><td></td><td></td></tr>
+<tr><td><code>caught_review</code></td><td>재확인 잡힘</td><td>재확인 방향 기준 (같은 수준·회차의 ITEM 끼리 BH q &lt; 0.05, 배수 1/1.3~1.3 밖) 에 걸린 비율. 변화 없음과 0.5·0.8·1.2·1.5·2.0 만</td><td>같은 꼴, <code>review_flag</code></td><td>LoQ 아래 수준에서 판정 대신 보는 곳</td></tr>
+<tr><td><code>caught_review_lo</code></td><td>재확인 하한</td><td>90% 범위 하한</td><td></td><td></td></tr>
+<tr><td><code>caught_review_hi</code></td><td>재확인 상한</td><td>90% 범위 상한</td><td></td><td></td></tr>
+<tr><td><code>diff_final</code></td><td>판정 차이만</td><td>최종 판정이 차이인 비율 (미결 뺌)</td><td></td><td></td></tr>
+<tr><td><code>diff_final_lo</code></td><td>판정 차이만 하한</td><td>90% 범위 하한</td><td></td><td></td></tr>
+<tr><td><code>diff_final_hi</code></td><td>판정 차이만 상한</td><td>90% 범위 상한</td><td></td><td></td></tr>
+</tbody></table></div>
+</section>
+<section id="loq-loq-trials-csv"><h2>loq/loq_trials.csv</h2>
+<p>만든 비교 하나(ITEM × DOE 자리 회차 × 수준)마다 한 행. 변화 없음과 머리 수준만 적어 숫자를 다시 셀 수 있게 한다.</p>
+<p class="s">만드는 명령 loq_check.py (dcc judge, dcc loq) · 위치 <code>loq/loq_trials.csv</code> · 수식의 다른 열 <a href="#items-csv">items.csv</a> 열</p>
+<p class="s">열 11개</p>
+<div class="tw"><table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>수식</th><th>볼 것</th></tr></thead><tbody>
+<tr><td><code>ITEM</code></td><td>ITEM</td><td>ITEM 이름</td><td></td><td></td></tr>
+<tr><td><code>run</code></td><td>DOE 자리 회차</td><td>DOE 자리에 둔 POR 회차 번호 (1부터). 나머지 회차가 POR 자리</td><td></td><td></td></tr>
+<tr><td><code>level</code></td><td>수준</td><td>만든 DOE 의 참 수준 ÷ LoQ. 0 은 변화 없음. 변화 없음과 0.5·0.8·1.2·1.5·2.0 만 적는다</td><td></td><td></td></tr>
+<tr><td><code>shift</code></td><td>넣은 변화</td><td>회차 값에 더한 알려진 변화 (ITEM 단위). 계단 ITEM 은 값 간격의 정수배</td><td>sgn × <code>level</code> × <code>LoQ</code> − <code>por_median</code>, 변화 없음은 0</td><td></td></tr>
+<tr><td><code>center</code></td><td>편향</td><td>만든 비교의 die별 차 중앙값 + 넣은 변화</td><td>median(√((1 + 1/J)/(1 + 1/(J−1))) × (회차 − 나머지 평균)) + <code>shift</code></td><td></td></tr>
+<tr><td><code>ci_low</code></td><td>편향 하한</td><td>부호검정 90% 신뢰구간 하한 + 넣은 변화</td><td></td><td></td></tr>
+<tr><td><code>ci_high</code></td><td>편향 상한</td><td>부호검정 90% 신뢰구간 상한 + 넣은 변화</td><td></td><td></td></tr>
+<tr><td><code>verdict_final</code></td><td>최종 판정</td><td>items.csv 의 이 ITEM 행에서 편향·구간만 바꿔 rescaled_verdicts(·, 1.0) 로 낸 최종 판정</td><td></td><td></td></tr>
+<tr><td><code>verdict_rule</code></td><td>2단계 판정</td><td>같은 구간의 2단계 LoQ 판정만</td><td>loq_verdict(<code>center</code>, <code>ci_low</code>, <code>ci_high</code>, <code>delta</code>, <code>por_median</code>, <code>LoQ</code>)</td><td></td></tr>
+<tr><td><code>verdict_tost</code></td><td>보통 TOST</td><td>같은 구간을 ±Δ 로 TOST</td><td>tost(<code>center</code>, <code>ci_low</code>, <code>ci_high</code>, <code>delta</code>)</td><td></td></tr>
+<tr><td><code>review_flag</code></td><td>재확인 (방향)</td><td>회차 + 넣은 변화를 DOE 로 본 재확인 방향 기준. 같은 (수준, 회차) 의 ITEM 끼리 BH</td><td></td><td></td></tr>
 </tbody></table></div>
 </section>
 <section id="classes-counts-csv"><h2>classes/counts.csv</h2>

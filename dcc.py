@@ -1,7 +1,8 @@
 """이름 붙인 POR/DOE 조합(combos.ini)으로 판정·ITEM 근거·그룹 요약을 한 명령으로 실행한다.
 
   python dcc.py list                              조합 이름, POR 회차 수, DOE, 출력 폴더
-  python dcc.py judge A1                          판정(por_doe_compare) + LoQ·log 재확인(review) + 판정 지도
+  python dcc.py judge A1                          판정(por_doe_compare) + LoQ·log 재확인(review) + LoQ 점검(loq_check)
+                                                  + 판정 지도
   python dcc.py judge all                         파일 순서대로 모든 조합 (하나가 실패해도 계속)
   python dcc.py judge A1 --detail                 판정 뒤 차이·미결 ITEM 전부 item 분석까지
   python dcc.py item A1 VT_SAME,VT_SHIFT [--plots]  그 ITEM 만 Fail 근거 (+ 상세 그림)
@@ -9,15 +10,17 @@
   python dcc.py group A1 [--before 이전/items.csv]  그룹별 요약 그림 (+ --before 면 compare 와 같은 비교)
   python dcc.py compare A1 [--before 이전/items.csv]  기존 결과와 비교: 요약·그룹별 리포트와 엑셀 (compare/)
   python dcc.py report A1 [--anon]                리포트만 다시 (--anon: 익명 ID 만, report_anon.html)
+  python dcc.py loq A1 [--anon]                   LoQ 아래 ITEM 만 본 리포트 (<out>/<이름>/loq/report.html, LoQ.xlsx)
   python dcc.py classes A1                        ITEM 분류와 판정 길 (참고, 판정 불변): 개수, 목록, 그림, 길마다 예시 ITEM
   python dcc.py slides A1 [--before 이전/items.csv]  판정 기준 장표 2쪽 (<out>/<이름>/slides.pptx, ITEM 은 익명 번호)
 
 설정 파일은 기본으로 현재 폴더의 combos.ini (--config 로 바꿈). 형식은 combos.example.ini.
-조합 하나의 산출물은 <out>/<이름>/ 에 둔다: items.csv, stability/, review/, plots/, item/, group/, compare/, classes/.
+조합 하나의 산출물은 <out>/<이름>/ 에 둔다: items.csv, stability/, review/, loq/, plots/, item/, group/, compare/,
+classes/.
 judge, item, group, compare 가 끝나면 report.html (+ item/, group/, compare/ 의 report.html) 을 다시 쓴다.
 compare 의 기존 결과는 --before 나 조합의 before 키. 두 결과 모두에 있는 ITEM 만, groups 가 있으면 그룹 파일에 있는
 ITEM 만 비교한다. 결과는 모두 compare/ 에 둔다 (compare.csv, overview.csv, groups/, report.html, 비교.xlsx).
-item, group, compare, classes 는 <out>/<이름>/items.csv 를 다시 쓰고, 없을 때만 judge 단계를 먼저 실행한다.
+item, group, compare, classes, loq 는 <out>/<이름>/items.csv 를 다시 쓰고, 없을 때만 judge 단계를 먼저 실행한다.
 """
 from __future__ import annotations
 
@@ -227,9 +230,18 @@ def judge_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
     return [
         ("por_doe_compare", ["por_doe_compare.py", *c.raw_args(), *extra, "--out", str(c.out)]),
         ("review", ["review.py", "--input", str(c.items_csv), "--out", str(c.out), *c.raw_args()]),
+        loq_step(c),
         ("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(c.items_csv), "--summary",
                            "--out", str(c.out / "plots")]),
     ]
+
+
+def loq_step(c: Combo) -> Step:
+    return ("loq_check", ["loq_check.py", "--input", str(c.items_csv), "--out", str(c.out), *c.raw_args()])
+
+
+def loq_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
+    return [loq_step(c), report_step(c, a.anon)]
 
 
 def item_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
@@ -305,14 +317,16 @@ def slides_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
 
 
 MODES = {"judge": judge_steps, "item": item_steps, "group": group_steps, "compare": compare_mode_steps,
-         "report": report_steps, "classes": classes_steps, "slides": slides_steps}
+         "report": report_steps, "classes": classes_steps, "slides": slides_steps, "loq": loq_steps}
+OWN_REPORT = ("report", "slides", "loq")     # 이 모드는 끝에 리포트를 다시 쓰지 않는다 (loq 는 --anon 을 아는 자기 단계)
 
 
 def plan(mode: str, c: Combo, a: argparse.Namespace) -> list[Step]:
     """모드의 단계 목록. judge 밖의 모드는 items.csv 가 없으면 judge 단계를 앞에 붙인다."""
     steps = MODES[mode](c, a)
     if mode != "judge" and not c.items_csv.is_file():
-        steps = judge_steps(c, a) + steps
+        judge = judge_steps(c, a)
+        steps = judge + [s for s in steps if s not in judge]
     return steps
 
 
@@ -341,7 +355,7 @@ def run_target(c: Combo, a: argparse.Namespace, steps: list[Step]) -> tuple[str,
             failed = run_combo(c, "item", evidence_steps(c, names, plots=False))
         else:
             print(f"[{c.name}] 차이·미결 ITEM 이 없어 item 분석을 건너뜁니다", flush=True)
-    if failed is not None or a.cmd in ("report", "slides"):
+    if failed is not None or a.cmd in OWN_REPORT:
         return failed
     return run_combo(c, "report", [report_step(c)])
 
@@ -362,7 +376,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--config", default="combos.ini", help="조합 설정 파일 (기본: 현재 폴더의 combos.ini)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("list", parents=[common], help="조합 목록")
-    p = sub.add_parser("judge", parents=[common], help="판정 + LoQ·log 재확인 + 판정 지도")
+    p = sub.add_parser("judge", parents=[common], help="판정 + LoQ·log 재확인 + LoQ 점검 + 판정 지도")
     p.add_argument("name", help=f"조합 이름, 또는 {ALL} (모든 조합)")
     p.add_argument("--detail", action="store_true",
                    help="판정 뒤 verdict_final 이 차이·미결인 ITEM 을 모두 item 분석 (<out>/<이름>/item/)")
@@ -384,6 +398,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("report", parents=[common], help="리포트만 다시 쓰기 (report.html, item/, group/, compare/)")
     p.add_argument("name", help="조합 이름")
     p.add_argument("--anon", action="store_true", help="ITEM 이름 대신 익명 ID 만 (report_anon.html, 밖으로 공유할 때)")
+    p = sub.add_parser("loq", parents=[common],
+                       help="LoQ 아래 ITEM 점검과 그 리포트 (<out>/<이름>/loq/report.html, LoQ.xlsx)")
+    p.add_argument("name", help="조합 이름")
+    p.add_argument("--anon", action="store_true", help="ITEM 이름 대신 익명 ID 만 (loq/report_anon.html, LoQ_anon.xlsx)")
     p = sub.add_parser("classes", parents=[common], help="ITEM 분류와 판정 길, 참고 (<out>/<이름>/classes/)")
     p.add_argument("name", help="조합 이름")
     p = sub.add_parser("slides", parents=[common], help="판정 기준 장표 2쪽 (<out>/<이름>/slides.pptx)")

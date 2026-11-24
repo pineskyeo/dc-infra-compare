@@ -12,13 +12,12 @@
   알려진 변화 s = sgn · u · LoQ − POR 중앙값            참 DOE 수준이 LoQ 의 u 배 (계단 ITEM 은 값 간격의 정수배)
   신뢰구간 = ci_median(d0) + s                           부호검정 구간은 평행이동을 그대로 따라간다
 판정은 items.csv 의 그 ITEM 행에서 center·ci_low·ci_high 만 바꿔 por_doe_compare.rescaled_verdicts(·, 1.0) 로 낸다
-(Δ, LoQ, POR 중앙값, 판정 길은 그대로). 이 폴더는 실행마다 지우고 다시 쓴다. 리포트(report.py)는 load() 로만 읽는다.
+(Δ, LoQ, POR 중앙값, 판정 길은 그대로). 실행마다 OWN_FILES 를 지우고 다시 쓴다. 리포트(report.py)는 load() 로만 읽는다.
 """
 from __future__ import annotations
 
 import argparse
 import math
-import shutil
 import sys
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -46,6 +45,7 @@ LOQ_DIR = "loq"
 ITEMS_CSV, LEVELS_CSV, TRIALS_CSV = "loq_items.csv", "loq_levels.csv", "loq_trials.csv"
 CURVE_PNG, REASONS_PNG = "loq_curve.png", "loq_reasons.png"
 WORKBOOK, WORKBOOK_ANON = "LoQ.xlsx", "LoQ_anon.xlsx"
+OWN_FILES = (ITEMS_CSV, LEVELS_CSV, TRIALS_CSV, CURVE_PNG, REASONS_PNG)   # 리포트·엑셀은 report.py 가 다시 쓴다
 
 NO_CHANGE = 0.0                                          # 수준 열에서 '변화 없음' (s = 0). 격자에 0 은 없다
 GRID = tuple(round(0.1 * i, 1) for i in range(1, 31))    # 참 DOE 수준 ÷ LoQ
@@ -211,7 +211,7 @@ def untested_reason(row: Mapping, raw: tuple[np.ndarray, np.ndarray] | None) -> 
         return f"판정 길 '{route or '없음'}' 은 3단계를 원데이터로 다시 계산해야 해 시험하지 않음"
     nums = [_f(row.get(k)) for k in ("delta", "LoQ", "por_median")]
     if not (np.isfinite(nums).all() and nums[0] > 0 and nums[1] > 0) or _text(row.get("verdict")) not in JUDGED:
-        return "판정 숫자 (Δ·LoQ) 가 없어 다시 판정할 수 없음"
+        return "Δ 나 LoQ 가 0 이거나 없어 판정 코드가 다시 판정하지 않음"
     return ""
 
 
@@ -339,7 +339,7 @@ def item_table(ledger: pd.DataFrame, trials: pd.DataFrame, extras: Mapping[str, 
                        catch_ratio=level * loq / abs(base) if abs(base) >= lod else math.nan,
                        doe_noise_ratio=ex["doe_noise_ratio"])
         rows.append(out)
-    t = pd.DataFrame(rows).reindex(columns=[*ITEM_COLS, "verdict"])
+    t = pd.DataFrame(rows).reindex(columns=[*ITEM_COLS, "verdict", "delta", "LoQ"])
     t["why"] = [why(r) for r in t.to_dict("records")]
     rule = t["pass_kind"].isin(RULE_PASSES)
     flagged = t["review_flag"].map(_yes)
@@ -369,7 +369,8 @@ def why(r: Mapping) -> str:
     else:
         level, ratio, J = _f(r.get("catch_level")), _f(r.get("catch_ratio")), int(_f(r.get("n_runs")))
         if math.isinf(level):
-            parts.append(f"시험에서 DOE 가 LoQ 의 3배까지 올라가도 회차 비교 {J}번이 다 잡히지는 않음")
+            parts.append(f"시험에서 DOE 가 LoQ 의 3배까지 올라가도 회차 비교 {J}번이 다 잡히지는 않음 "
+                         f"(허용폭 Δ 가 LoQ 의 {_x(_f(r.get('delta')) / _f(r.get('LoQ')))}배)")
         else:
             times = f" (POR 의 {_x(ratio)}배)" if math.isfinite(ratio) else ""
             parts.append(f"시험에서 DOE 가 LoQ 의 {level:.1f}배{times} 이상이면 회차 비교 {J}번이 모두 잡힘")
@@ -410,7 +411,7 @@ def simulate(ledger: pd.DataFrame, raw: review.Raw) -> tuple[pd.DataFrame, dict,
 
 
 def run(items_csv: str | Path, raw_args: argparse.Namespace, out: str | Path) -> None:
-    """<out>/loq/ 를 지우고 다시 쓴다. items.csv 와 판정 열은 읽기만 한다. 원데이터는 LoQ 아래 ITEM 만 읽는다."""
+    """<out>/loq/ 의 OWN_FILES 를 지우고 다시 쓴다. items.csv 와 판정 열은 읽기만 한다. 원데이터는 LoQ 아래 ITEM 만 읽는다."""
     items = review.read_items(items_csv)
     wanted = [str(r["ITEM"]) for r in items.to_dict("records") if in_zone(r)]
     build(out, items, review.load_raw(raw_args, wanted))
@@ -424,8 +425,9 @@ def build(out: str | Path, items: pd.DataFrame, raw: review.Raw) -> None:
     table = item_table(ledger, trials, extras, untested)
     levels = levels_table(trials)
     folder = out / LOQ_DIR
-    shutil.rmtree(folder, ignore_errors=True)
-    folder.mkdir(parents=True)
+    folder.mkdir(parents=True, exist_ok=True)
+    for name in OWN_FILES:
+        (folder / name).unlink(missing_ok=True)
     table.to_csv(folder / ITEMS_CSV, index=False, encoding="utf-8-sig")
     levels.to_csv(folder / LEVELS_CSV, index=False, encoding="utf-8-sig")
     trials[trials["level"].isin(REVIEW_LEVELS)].to_csv(folder / TRIALS_CSV, index=False, encoding="utf-8-sig")
@@ -779,7 +781,7 @@ def _save(fig, path: Path) -> Path:
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="LoQ 아래 ITEM 점검 (참고용, 판정은 그대로).")
     p.add_argument("--input", required=True, help="por_doe_compare.py 결과 items.csv")
-    p.add_argument("--out", required=True, help="출력 폴더 (그 아래 loq/ 를 지우고 다시 씀)")
+    p.add_argument("--out", required=True, help="출력 폴더 (그 아래 loq/ 에 씀)")
     add_raw_args(p.add_argument_group("원데이터 (por_doe_compare.py 와 같은 인자)"))
     return p.parse_args(argv)
 

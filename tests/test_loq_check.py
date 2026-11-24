@@ -1,5 +1,12 @@
 """loq_check.py: LoQ 아래 ITEM 점검. 합성 ITEM 으로 동등이 된 이유, 답을 아는 비교의 잡힘, 판정 불변, 시험 못 함."""
 import hashlib
+import html
+import os
+import re
+import shutil
+import subprocess
+import sys
+import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -7,8 +14,10 @@ import pandas as pd
 import pytest
 
 import loq_check
+import report
 from por_doe_compare import add_final_verdict, judge_item, loq_verdict, tost
 
+ROOT = Path(__file__).resolve().parents[1]
 POR = ["POR1", "POR2", "POR3"]
 
 
@@ -202,3 +211,81 @@ def test_abs_route_trials_use_abs_tolerance(tmp_path):
     t = pd.read_csv(tmp_path / "A1" / "loq" / loq_check.TRIALS_CSV, encoding="utf-8-sig")
     at = t[np.isclose(t["level"], 1.2)]
     assert (at["verdict_rule"] == "차이").all() and (at["verdict_final"] == "동등").all()
+
+
+def visible(path: Path) -> str:
+    return re.sub(r"data:image/png;base64,[A-Za-z0-9+/=]+", "", path.read_text(encoding="utf-8"))
+
+
+def xlsx_text(path: Path) -> tuple[list[str], str]:
+    with zipfile.ZipFile(path) as z:
+        sheets = re.findall(r'<sheet name="([^"]+)"', z.read("xl/workbook.xml").decode())
+        body = "".join(z.read(n).decode() for n in z.namelist() if n.startswith("xl/worksheets/"))
+    return sheets, body
+
+
+def test_reports_render_the_same_book(population, tmp_path):
+    book, folder = population
+    out = tmp_path / "A1"
+    shutil.copytree(folder, out)
+    written = report.write_reports(out)
+    assert out / "loq" / "report.html" in written
+    judge = visible(out / "report.html").split('id="kpi"')[1].split("</details>")[0]
+    assert "LoQ 요약" in judge and book.headline_lines()[0] in judge and 'href="loq/report.html"' in judge
+    page = visible(out / "loq" / "report.html")
+    for title in ("한 줄 답", "동등이 된 이유", "시험 결과 (POR 회차로 만든 비교)", "LoQ 규칙으로 동등이 된 ITEM",
+                  "LoQ 확인 필요", "방법과 한계", "한계 영역을 전부 통과시켰나?"):
+        assert title in page, title
+    assert html.escape(book.headline_lines()[2]) in page
+    rule = book.items.loc[book.items["pass_kind"].isin(loq_check.RULE_PASSES), "ITEM"]
+    assert len(rule) and all(f"<td>{item}</td>" in page for item in rule)
+    sheets, body = xlsx_text(out / "loq" / loq_check.WORKBOOK)
+    assert sheets == [loq_check.SUMMARY, loq_check.REASONS, loq_check.LEVELS_SHEET, loq_check.ITEMS_SHEET]
+    assert all(item in body for item in book.items["ITEM"])
+
+
+def test_anonymous_loq_report_has_no_item_names(population, tmp_path):
+    _, folder = population
+    out = tmp_path / "A1"
+    shutil.copytree(folder, out)
+    assert report.main([str(out), "--anon"]) == 0
+    page = visible(out / "loq" / "report_anon.html")
+    assert re.search(r"<td>ITEM\d{4}</td>", page)
+    assert not re.search(r"(SAME|LOW)_\d\d", page)
+    assert not re.search(r"(SAME|LOW)_\d\d", visible(out / "report_anon.html"))
+    _, body = xlsx_text(out / "loq" / loq_check.WORKBOOK_ANON)
+    assert not re.search(r"(SAME|LOW)_\d\d", body)
+
+
+def test_judge_block_says_check_has_not_run(tmp_path):
+    rows = [hand_row("P_BELOW", 2.5, 5.5)]
+    folder = tmp_path / "B7"
+    folder.mkdir()
+    add_final_verdict(pd.DataFrame(rows)).to_csv(folder / "items.csv", index=False, encoding="utf-8-sig")
+    written = report.write_reports(folder)
+    assert written == [folder / "report.html"]
+    assert "시험은 아직 없음 (dcc.py loq B7)" in visible(folder / "report.html")
+
+
+def test_dcc_loq_runs_check_once_and_writes_both_reports(tmp_path):
+    data = tmp_path / "por3"
+    run_py(ROOT / "examples" / "make_por3_data.py", data)
+    por = "\n      ".join(str(data / f"por_run{k}") for k in (1, 2, 3))
+    cfg = tmp_path / "combos.ini"
+    cfg.write_text(f"[A1]\npor = {por}\ndoe = {data / 'doe'}\nout = {tmp_path / 'out'}\n", encoding="utf-8")
+    proc = run_py(ROOT / "dcc.py", "loq", "A1", "--anon", "--config", cfg)
+    assert proc.stdout.count("] loq_check") == 1, proc.stdout
+    loq = tmp_path / "out" / "A1" / "loq"
+    assert (loq / "report_anon.html").is_file() and (loq / loq_check.WORKBOOK_ANON).is_file()
+    proc = run_py(ROOT / "dcc.py", "loq", "A1", "--config", cfg)
+    assert "por_doe_compare" not in proc.stdout
+    assert (loq / "report.html").is_file() and (loq / "report_anon.html").is_file()
+    assert {p.name for p in loq.glob("*.csv")} == {loq_check.ITEMS_CSV, loq_check.LEVELS_CSV, loq_check.TRIALS_CSV}
+
+
+def run_py(*args) -> subprocess.CompletedProcess:
+    env = {**os.environ, "PYTHONPATH": str(ROOT)}
+    proc = subprocess.run([sys.executable, *map(str, args)], cwd=ROOT, env=env, capture_output=True, text=True,
+                          encoding="utf-8")
+    assert proc.returncode == 0, proc.stdout[-3000:] + proc.stderr[-3000:]
+    return proc

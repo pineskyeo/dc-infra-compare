@@ -3,7 +3,10 @@
 
   python report.py <out>/<이름> [--anon] [--groups ITEM,그룹 파일]
 
-  <폴더>/report.html         판정: 한눈에, 판정 지도, 차이·미결, 판정 제외, LoQ·log 확인 필요, 측정 안정도, log 허용폭 두 방식
+  <폴더>/report.html         판정: 한눈에 (LoQ 요약 포함), 판정 지도, 차이·미결, 판정 제외, LoQ·log 확인 필요, 측정 안정도,
+                             log 허용폭 두 방식
+  <폴더>/loq/report.html     loq/ 가 있으면 (dcc.py loq): LoQ 아래 ITEM 만. 한 줄 답, 동등이 된 이유, 만든 비교의 시험,
+                             LoQ 규칙으로 동등이 된 ITEM, LoQ 확인 필요, 방법과 한계. 같은 표를 loq/LoQ.xlsx 로도 쓴다
   <폴더>/item/report.html    item/ 이 있으면: ITEM 별 변화량, ITEM 마다 카드 (판정, 이유, 한 장 그림, 근거 숫자)
   <폴더>/group/report.html   group/ 이 있으면: 그룹별 표, 그룹 × LEVEL 측정 정밀도, 그룹 그림
   <폴더>/compare/report.html compare/ 가 있으면: 기존·개선 비교 요약, 그룹별, 판정 변화, 나빠진 ITEM, 그림.
@@ -34,6 +37,7 @@ import pandas as pd
 import columns_doc
 import compare_book
 import explain
+import loq_check
 import simple_xlsx
 from explain import BASIS_NAMES, LOQ_ZONES, V_EXCLUDED, fmt, pct
 from item_view import basis_numbers
@@ -458,6 +462,7 @@ HOW_TO_READ = (
     "최종 판정은 ITEM 유형에 맞는 방법(판정 방법 열)으로 정한다. 정규화 변화량·불확실성은 그 방법의 허용폭으로 나눈 값이다.",
     "판정력은 신뢰구간 반폭 ÷ 허용폭이다. 0.5 이하면 안정, 0.8 이하면 주의, 그 위는 불안정이다. 불안정 ITEM 의 미결은 측정 탓일 수 있다.",
     "LoQ·log 확인 필요는 참고 표시다. 판정은 바꾸지 않는다. 확인 필요 ITEM 은 상세 그림을 보고 원데이터를 다시 확인한다.",
+    "LoQ 요약은 LoQ 아래 ITEM 만 따로 센 것이다. 시험은 POR 회차 하나를 DOE 자리에 둔, 답을 아는 비교다 (loq/report.html).",
     "제목 옆 i, 표 머리글, 밑줄 친 칸에 마우스를 올리면 설명과 원래 값이 나온다.",
 )
 
@@ -470,6 +475,27 @@ def kpi(page: Page, items: pd.DataFrame) -> None:
     basis = items["verdict_basis"].fillna("linear").value_counts() if "verdict_basis" in items else pd.Series(dtype=int)
     chips(page, "판정 방법", [(BASIS_NAMES.get(b, b), f"{int(c):,}") for b, c in basis.items()],
           "최종 판정을 정한 방법별 ITEM 수")
+
+
+LOQ_BLOCK_TIP = ("LoQ 아래 ITEM (zone 검출한계 이하·검출~정량) 만 따로 센 것. 동등이 된 이유와, POR 회차 하나를 DOE "
+                 "자리에 두고 알려진 변화를 넣어 판정 코드를 그대로 돌린 시험의 잡힌 비율이다. 판정은 그대로다.")
+PASS_TIP = ("이동이 허용폭 안 = LoQ 규칙 없이도 동등. DOE 구간도 LoQ 아래·DOE 구간이 LoQ에 걸침 = LoQ 규칙으로 동등. "
+            "판정 길 = 2단계는 차이·미결인데 3단계 판정 길 (괄호 안) 이 동등.")
+
+
+def loq_block(page: Page, book: loq_check.LoqBook) -> None:
+    """한눈에 칸의 LoQ 요약: ITEM 수, 동등이 된 이유, LoQ 규칙 효과, 시험 한 줄, LoQ 리포트 링크."""
+    page.h3("LoQ 요약", LOQ_BLOCK_TIP)
+    if not book.summary.ledger.n_zone:
+        page.p("LoQ 아래 ITEM 이 없다.", "note")
+        return
+    first, *rest = book.headline_lines()
+    page.p(first)
+    chips(page, "동등이 된 이유", [(k, f"{n:,}") for k, n in book.summary.ledger.passes.items()], PASS_TIP)
+    for line in rest:
+        page.p(line)
+    if book.check is not None:
+        page.link("LoQ만 본 리포트 → loq/report.html", f"{loq_check.LOQ_DIR}/{page.namer.report_file}")
 
 
 def problems(page: Page, items: pd.DataFrame, sec: Section) -> None:
@@ -680,11 +706,12 @@ def how_to_read(page: Page) -> None:
     page.glossary()
 
 
-def judge_report(folder: Path, items: pd.DataFrame, namer: Namer) -> Path:
+def judge_report(folder: Path, items: pd.DataFrame, namer: Namer, book: loq_check.LoqBook) -> Path:
     page = Page(f"판정 리포트 · {folder.name}", namer, folder / namer.report_file,
                 subtitle=f"ITEM {len(items):,}개 · POR 대 DOE")
     with page.section("kpi", "한눈에", HOW_TO_READ[0], open=True):
         kpi(page, items)
+        loq_block(page, book)
     with page.section("map", "판정 지도", open=True):
         hidden = page.hidden_figures
         if not page.figure(Figure(folder / "plots" / "summary.png", "정규화 변화량 × 정규화 불확실성", names=True,
@@ -864,19 +891,20 @@ COMPARE_FIGURES = {          # compare_metrics 그림: 파일 → (제목, ITEM 
 WORSENED_SHOWN = 30
 
 
-def frame_cols(table: pd.DataFrame) -> list[Col]:
-    """compare_book 시트 표의 열. 머리글 풍선은 compare_book.TIPS, 판단 칸은 색."""
+def frame_cols(table: pd.DataFrame, tips: Mapping[str, str] = compare_book.TIPS) -> list[Col]:
+    """시트 표 (compare_book, loq_check) 의 열. 머리글 풍선은 tips, 판단 칸은 색."""
     def col(c: str) -> Col:
-        tip = compare_book.TIPS.get(c) or next((t for k, t in compare_book.TIPS.items() if c.endswith(" " + k)), "")
+        tip = tips.get(c) or next((t for k, t in tips.items() if c.endswith(" " + k)), "")
         trend = c == "판단"
         return Col("", c, lambda r, c=c: plain_num(r.get(c)) if not isinstance(r.get(c), str) else r.get(c),
                    item_name=c == "ITEM", head_tip=tip, cls=(lambda r: str(r.get("판단") or "")) if trend else None)
     return [col(c) for c in table.columns]
 
 
-def frame(page: Page, table: pd.DataFrame, limit: int | None = None) -> None:
+def frame(page: Page, table: pd.DataFrame, limit: int | None = None,
+          tips: Mapping[str, str] = compare_book.TIPS) -> None:
     rows = table.to_dict("records")
-    page.table(frame_cols(table), rows[:limit] if limit else rows)
+    page.table(frame_cols(table, tips), rows[:limit] if limit else rows)
 
 
 def compare_report(folder: Path, namer: Namer) -> Path | None:
@@ -939,19 +967,96 @@ def compare_report(folder: Path, namer: Namer) -> Path | None:
     return page.write()
 
 
+# ── LoQ 리포트 ──────────────────────────────────────────────────────────────
+
+LOQ_ITEMS_SHOWN = 100
+
+
+def loq_report(folder: Path, namer: Namer, book: loq_check.LoqBook) -> Path | None:
+    """loq/report.html 과 loq/LoQ.xlsx (익명이면 report_anon.html, LoQ_anon.xlsx). loq/ 가 없으면 None."""
+    if book.check is None:
+        return None
+    ldir = folder / loq_check.LOQ_DIR
+    sheets = book.sheets(lambda item: namer.id_of.get(str(item), "ID 없음"), names=not namer.anon)
+    xlsx = simple_xlsx.write(ldir / (loq_check.WORKBOOK_ANON if namer.anon else loq_check.WORKBOOK), sheets)
+    tables = {name: table for name, table, _ in sheets}
+    g, c = book.summary.ledger, book.check
+    page = Page(f"LoQ 리포트 · {folder.name}", namer, ldir / namer.report_file,
+                subtitle=f"LoQ 아래 ITEM {g.n_zone:,}개 · 판정은 그대로 · 같은 표는 {xlsx.name}")
+    lines = book.headline_lines()
+    items = tables[loq_check.ITEMS_SHEET]
+    with page.section("answer", "한 줄 답", LOQ_BLOCK_TIP, open=True):
+        null, high = c.at("final", loq_check.NO_CHANGE), c.at("final", 1.5)
+        cards(page, [("LoQ 아래 ITEM", f"{g.n_zone:,}", f"전체 {g.n_total:,}개 중"),
+                     ("LoQ 규칙·판정 길로 동등", f"{g.rule_pass:,}", "보통 TOST 였다면 차이·미결"),
+                     ("변화 없음에서 잡힘", share(null.rate), f"비교 {null.n:,}번"),
+                     ("DOE 1.5×LoQ 에서 잡힘", share(high.rate), f"비교 {high.n:,}번")])
+        page.add('<ul class="lines">' + "".join(f"<li>{namer.text(s)}</li>" for s in lines) + "</ul>")
+        for question, answer in book.answers():
+            page.h3(question)
+            page.p(answer)
+    with page.section("reasons", "동등이 된 이유", "한계 영역을 전부 통과시켰나? LoQ 아래 ITEM 이 어떻게 동등이 됐나.",
+                      open=True):
+        page.lede(lines[1])
+        if page.figure(Figure(book.reasons, "동등이 된 이유 (구간별)", names=False, how=loq_check.REASONS_HOW_TO_READ)):
+            page.p(loq_check.REASONS_HOW_TO_READ, "note")
+        frame(page, tables[loq_check.REASONS], tips=loq_check.TIPS)
+    with page.section("trials", "시험 결과 (POR 회차로 만든 비교)",
+                      "진짜 변한 것을 놓치나? 안 변한 것을 걸리게 하나? 답을 아는 비교로 본다.", open=True):
+        if c.n_items:
+            page.lede(loq_check.curve_note(c))
+        if page.figure(Figure(book.curve, "DOE 수준별 잡힌 비율", names=False, how=loq_check.CURVE_HOW_TO_READ)):
+            page.p(loq_check.CURVE_HOW_TO_READ, "note")
+        levels = tables[loq_check.LEVELS_SHEET]
+        shown = book.levels["level"].isin(loq_check.REVIEW_LEVELS).to_numpy()
+        frame(page, levels[shown], tips=loq_check.TIPS)
+        page.p(f"0.1~3배 모든 수준은 {xlsx.name} 의 {loq_check.LEVELS_SHEET} 시트, 비교 하나하나는 "
+               f"loq/{loq_check.TRIALS_CSV} (변화 없음과 위 수준).", "note")
+        never = items[items["잡히는 수준 ×LoQ"] == "inf"]
+        if len(never):
+            with page.fold(f"DOE 를 LoQ 의 3배까지 올려도 회차 비교가 다 잡히지는 않는 ITEM {len(never):,}개"):
+                frame(page, never, LOQ_ITEMS_SHOWN, tips=loq_check.TIPS)
+    with page.section("items", "LoQ 규칙으로 동등이 된 ITEM",
+                      "LoQ 규칙이나 판정 길로 동등이 된 ITEM. 재확인 확인 필요 먼저, 그다음 잡히는 수준이 POR 의 몇 배인지 "
+                      "큰 순.") as sec:
+        rule = items[items["동등 이유"].isin(loq_check.RULE_PASSES)]
+        sec.badge = f"{len(rule):,}"
+        if rule.empty:
+            page.p("LoQ 규칙이나 판정 길로 동등이 된 ITEM 이 없다.", "note")
+        else:
+            frame(page, rule, LOQ_ITEMS_SHOWN, tips=loq_check.TIPS)
+            if len(rule) > LOQ_ITEMS_SHOWN:
+                page.p(f"앞의 {LOQ_ITEMS_SHOWN}개만 싣는다. 전부는 {xlsx.name} 의 {loq_check.ITEMS_SHEET} 시트.", "note")
+    with page.section("loq", "LoQ 확인 필요", REVIEWS["loq"].tip) as sec:
+        review_section(page, folder, "loq", sec)
+    with page.section("method", "방법과 한계"):
+        page.h3("만든 비교")
+        page.add('<ul class="lines">' + "".join(f"<li>{namer.text(s)}</li>" for s in loq_check.METHOD_LINES) + "</ul>")
+        page.h3("치우침과 그 방향")
+        page.add('<ul class="lines">' + "".join(f"<li>{namer.text(s)}</li>" for s in loq_check.BIAS_LINES) + "</ul>")
+        if c.untested:
+            page.p("시험 못 한 ITEM: " + ", ".join(f"{k} {n:,}개" for k, n in c.untested.items()) + ".", "note")
+        page.link(f"같은 표 엑셀: {xlsx.name}", xlsx.name)
+        page.columns_link()
+        page.glossary()
+    return page.write()
+
+
 # ── 진입점 ─────────────────────────────────────────────────────────────────
 
 def write_reports(folder, anon: bool = False, groups=None) -> list[Path]:
     """folder (<out>/<이름>) 의 결과 파일로 report.html, item/report.html, compare/report.html(+ 비교.xlsx),
-    group/report.html 을 쓴다. item/·compare/·group/ 이 없으면 그 리포트는 건너뛴다. 쓴 리포트 목록을 돌려준다."""
+    group/report.html, loq/report.html(+ LoQ.xlsx) 을 쓴다. item/·compare/·group/·loq/ 이 없으면 그 리포트는 건너뛴다.
+    쓴 리포트 목록을 돌려준다."""
     folder = Path(folder)
     items_csv = folder / "items.csv"
     if not items_csv.is_file():
         raise FileNotFoundError(f"{items_csv} 가 없습니다 (먼저 dcc.py judge 로 판정하세요)")
     items = read_csv(items_csv)
     namer = Namer(items, anon)
-    written = [judge_report(folder, items, namer), item_report(folder, namer), compare_report(folder, namer),
-               group_report(folder, items, namer, Path(groups) if groups else None)]
+    book = loq_check.load(folder)
+    written = [judge_report(folder, items, namer, book), item_report(folder, namer), compare_report(folder, namer),
+               group_report(folder, items, namer, Path(groups) if groups else None), loq_report(folder, namer, book)]
     return [p for p in written if p is not None]
 
 
