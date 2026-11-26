@@ -397,7 +397,13 @@
         return {min: low - span * 0.08, max: high + span * 0.08};
     }
 
-    var LOG_TICK_MANTISSAS = [1, 2, 2.5, 5];
+    // Mantissas of the candidate nice log ticks (value = mantissa * 10^k). 2.5 is left out: next to 2
+    // it gives ratios too close for labels (see LOG_TICK_MIN_RATIO), and hideOverlap does not apply
+    // to customValues.
+    var LOG_TICK_MANTISSAS = [1, 2, 5];
+
+    // A nice tick is dropped when it is less than this ratio above the previous kept tick.
+    var LOG_TICK_MIN_RATIO = 1.5;
 
     // Adds raw (rounded to 3 significant digits) when it lies strictly inside (min, max)
     // and its label is not already in ticks. Labels come from fmtNum, so the check is on text.
@@ -413,6 +419,9 @@
         ticks.push(value);
     }
 
+    // Nice ticks (LOG_TICK_MANTISSAS times powers of ten) strictly inside (min, max), sorted.
+    // Walking the sorted ticks in order, a tick whose ratio to the previous kept tick is below
+    // LOG_TICK_MIN_RATIO is dropped (the earlier tick is kept), so no two labels sit too close.
     function niceLogTicks(min, max) {
         var ticks = [];
         var first = Math.floor(Math.log10(min)) - 1;
@@ -422,7 +431,14 @@
                 addLogTick(ticks, LOG_TICK_MANTISSAS[m] * Math.pow(10, e), min, max);
             }
         }
-        return ticks.sort(function (a, b) { return a - b; });
+        ticks.sort(function (a, b) { return a - b; });
+        var kept = [];
+        for (var i = 0; i < ticks.length; i += 1) {
+            if (!kept.length || ticks[i] / kept[kept.length - 1] >= LOG_TICK_MIN_RATIO) {
+                kept.push(ticks[i]);
+            }
+        }
+        return kept;
     }
 
     // Evenly spaced in log space, for ranges too narrow for a 1, 2, 2.5, 5 step.
@@ -436,8 +452,10 @@
     }
 
     // Explicit ticks for a log axis that holds fewer than two powers of ten (10^k, integer k) inside
-    // [min, max], where ECharts' default ticks show one or zero labels. Returns null (keep ECharts'
-    // default ticks) for invalid ranges and for ranges that contain two or more powers of ten.
+    // [min, max], where ECharts' default ticks show one or zero labels. Uses the nice ticks from
+    // niceLogTicks when there are 2 to 5 of them, else evenly spaced ticks (4, then 3). Returns null
+    // (keep ECharts' default ticks) for invalid ranges, for ranges that contain two or more powers
+    // of ten, and when no candidate gives 2 to 5 ticks.
     function logAxisTicks(min, max) {
         if (!finite(min) || !finite(max) || !(min > 0) || !(max > min)) {
             return null;
@@ -455,7 +473,7 @@
             return null;
         }
         var nice = niceLogTicks(min, max);
-        if (nice.length >= 3 && nice.length <= 5) {
+        if (nice.length >= 2 && nice.length <= 5) {
             return nice;
         }
         for (var count = 4; count >= 3; count -= 1) {

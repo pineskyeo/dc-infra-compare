@@ -419,7 +419,14 @@ console.log(JSON.stringify({{
         assert len(set(labels)) == len(labels), key
         assert "0" not in labels, key
 
-    assert 3 <= len(values["it30"]["values"]) <= 5
+    assert values["it30"]["values"] == [5e-12, 1e-11, 2e-11, 5e-11]
+    assert values["narrow"]["values"] == [2e-10, 5e-10]
+
+    for key in ("it30", "narrow"):
+        ticks = values[key]["values"]
+        for a, b in zip(ticks, ticks[1:]):
+            assert b / a >= 1.5, key
+        assert not any("2.50" in label for label in values[key]["labels"]), key
 
     assert values["wide"] is None
     assert values["zero"] is None
