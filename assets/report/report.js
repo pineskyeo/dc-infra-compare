@@ -423,6 +423,11 @@
         return name + " (" + scale.label + (item.unit ? " " + item.unit : "") + ")";
     }
 
+    function logEmptyPlan(pointCount, loq) {
+        var empty = pointCount === 0;
+        return {empty: empty, helper: empty && finite(loq) && loq > 0};
+    }
+
     function marginFor(record, logBases) {
         var basis = String(record.verdict_basis);
         if ((logBases || []).indexOf(basis) >= 0) {
@@ -516,8 +521,13 @@
         }
         var delta = scaleValue(record[log ? "delta_log" : "delta"], scale.factor);
         var loq = scaleValue(record.LoQ, scale.factor);
+        var pointCount = 0;
+        for (var sc = 0; sc < series.length; sc += 1) {
+            pointCount += series[sc].data.length;
+        }
+        var emptyPlan = log ? logEmptyPlan(pointCount, loq) : {empty: false, helper: false};
         var extras = [];
-        if (finite(delta)) {
+        if (finite(delta) && !emptyPlan.empty) {
             var base = extent(values, log);
             if (log) {
                 extras = [base.min * Math.pow(10, -delta), base.max * Math.pow(10, delta)];
@@ -529,6 +539,10 @@
             extras.push(loq);
         }
         var limits = extent(values, log, extras);
+        if (emptyPlan.helper) {
+            series.unshift({name: "LoQ", type: "scatter", data: [[loq, loq]], symbolSize: 0, silent: true,
+                            tooltip: {show: false}, itemStyle: {opacity: 0}});
+        }
         series[0].markLine = {silent: true, symbol: ["none", "none"], animation: false,
                               lineStyle: {width: 1.5, type: "dashed", color: "#6B7785"},
                               label: {formatter: "{b}", fontSize: 10, color: "#55616E"},
@@ -536,9 +550,14 @@
         var option = chartBase();
         option.series = series;
         option.tooltip.valueFormatter = tooltipValueFormatter(scale.factor);
+        if (emptyPlan.empty) {
+            option.graphic = [{type: "text", left: "center", top: "middle", silent: true,
+                               style: {text: "양수 값 없음: log 축에 점 없음", fill: "#55616E", fontSize: 13}}];
+        }
         option.xAxis = {type: log ? "log" : "value", logBase: 10, min: limits.min, max: limits.max, scale: !log,
-                        name: "POR 회차 평균 · " + DIE_AXIS, nameLocation: "middle", nameGap: 44,
+                        name: scaledAxisName("POR 회차 평균 · " + DIE_AXIS, item, scale), nameLocation: "middle", nameGap: 44,
                         axisLabel: {color: "#55616E", hideOverlap: true, formatter: fmtNum},
+                        splitNumber: log ? 5 : 4,
                         splitLine: {lineStyle: {color: "#E2E6EC"}}};
         option.yAxis = {type: log ? "log" : "value", logBase: 10, min: limits.min, max: limits.max, scale: !log,
                         name: scaledAxisName((log ? "|DOE|·|POR|" : "DOE·POR") + " · " + DIE_AXIS, item, scale),
@@ -593,7 +612,8 @@
         for (var l = 0; l < 2; l += 1) {
             var name = l === 0 ? "LoD" : "LoQ";
             if (finite(record[name])) {
-                limits.push({name: name, yAxis: record[name], lineStyle: {color: CHART_COLOR.loq, type: "dotted"}});
+                limits.push({name: name, yAxis: record[name], lineStyle: {color: CHART_COLOR.loq, type: "dotted"},
+                         label: {formatter: "{b}", position: limits.length % 2 ? "insideEndBottom" : "insideEndTop"}});
             }
         }
         var scaleInput = rawValues.slice();
@@ -1018,7 +1038,8 @@
     }
 
     if (typeof module === "object" && module.exports) {
-        module.exports = {fmtNum: fmtNum, displayScale: displayScale, extent: extent, marginFor: marginFor};
+        module.exports = {fmtNum: fmtNum, displayScale: displayScale, extent: extent, marginFor: marginFor,
+                          logEmptyPlan: logEmptyPlan};
     }
     if (typeof document === "undefined") {
         return;

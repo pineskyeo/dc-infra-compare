@@ -145,6 +145,12 @@ def test_table_has_static_column_docs_and_matching_metadata(built):
     assert "|median_POR1 − median_DOE| / σ_POR1" in formula
 
 
+def test_column_docs_sit_inside_main_above_closing_tag(built):
+    text = (built["out"] / "report" / "table.html").read_text(encoding="utf-8")
+    docs_at = text.index('id="col-docs"')
+    assert text.index("<main") < docs_at < text.index("</main>", docs_at)
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")
 def test_report_js_pure_number_extent_and_margin_helpers():
     module_path = json.dumps(str(ROOT / "assets" / "report" / "report.js"))
@@ -177,6 +183,25 @@ console.log(JSON.stringify({{
     assert values["accuracy"]["value"] == 3
     assert values["limit"] is None
     assert values["log"] == {"value": 0.2, "name": "delta_log"}
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")
+def test_report_js_log_empty_plan_helper():
+    module_path = json.dumps(str(ROOT / "assets" / "report" / "report.js"))
+    script = f"""
+const h = require({module_path});
+console.log(JSON.stringify({{
+  noLoq: h.logEmptyPlan(0, null),
+  withLoq: h.logEmptyPlan(0, 1e-12),
+  hasPoints: h.logEmptyPlan(5, 1e-12)
+}}));
+"""
+    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+    values = json.loads(result.stdout)
+    assert values["withLoq"] == {"empty": True, "helper": True}
+    assert values["noLoq"] == {"empty": True, "helper": False}
+    assert values["hasPoints"]["empty"] is False
+
 
 
 def chunk_item(folder: Path, key: str):

@@ -383,7 +383,8 @@ def _write_pages(table: pd.DataFrame, summary: dict, out: Path, anon: bool, a: a
 
     col_docs = _report_column_docs(table.columns)
     (folder / "index.html").write_text(_page("요약", "index.html", _summary_html(summary), []), encoding="utf-8")
-    (folder / "table.html").write_text(_page("ITEM 표", "table.html", TABLE_BODY + _column_docs_html(col_docs),
+    table_body = TABLE_BODY.replace("</main>", _column_docs_html(col_docs) + "\n</main>", 1)
+    (folder / "table.html").write_text(_page("ITEM 표", "table.html", table_body,
                                                 ["data/table.js", "assets/report.js"]), encoding="utf-8")
     (folder / "analysis.html").write_text(_page("ITEM 분석", "analysis.html", ANALYSIS_BODY,
                                                    ["assets/echarts.min.js", "data/table.js", "data/index.js",
