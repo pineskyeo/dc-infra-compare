@@ -435,13 +435,23 @@
         return ticks;
     }
 
-    // Explicit ticks for a log axis whose range is less than one decade, where ECharts finds no
-    // power-of-ten tick. Returns null (keep ECharts' default ticks) for multi-decade or invalid ranges.
+    // Explicit ticks for a log axis that holds fewer than two powers of ten (10^k, integer k) inside
+    // [min, max], where ECharts' default ticks show one or zero labels. Returns null (keep ECharts'
+    // default ticks) for invalid ranges and for ranges that contain two or more powers of ten.
     function logAxisTicks(min, max) {
         if (!finite(min) || !finite(max) || !(min > 0) || !(max > min)) {
             return null;
         }
-        if (Math.log10(max) - Math.log10(min) >= 1) {
+        var powers = 0;
+        var firstK = Math.ceil(Math.log10(min) - 1e-9);
+        var lastK = Math.floor(Math.log10(max) + 1e-9);
+        for (var k = firstK; k <= lastK; k += 1) {
+            var power = Math.pow(10, k);
+            if (power >= min && power <= max) {
+                powers += 1;
+            }
+        }
+        if (powers >= 2) {
             return null;
         }
         var nice = niceLogTicks(min, max);

@@ -400,6 +400,7 @@ function axisSummary(option) {{
 console.log(JSON.stringify({{
   narrow: ticksOf(1.2e-10, 8e-10),
   mantissa: ticksOf(3.1, 9.7),
+  it30: ticksOf(3.464e-12, 6.631e-11),
   wide: ticksOf(1e-13, 1e-9),
   zero: ticksOf(0, 1),
   narrowOption: axisSummary(h.scatterOption(narrowItem, record, true).option),
@@ -409,7 +410,7 @@ console.log(JSON.stringify({{
     result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
     values = json.loads(result.stdout)
 
-    for key, min_value, max_value in (("narrow", 1.2e-10, 8e-10), ("mantissa", 3.1, 9.7)):
+    for key, min_value, max_value in (("narrow", 1.2e-10, 8e-10), ("mantissa", 3.1, 9.7), ("it30", 3.464e-12, 6.631e-11)):
         ticks = values[key]["values"]
         labels = values[key]["labels"]
         assert len(ticks) >= 2, key
@@ -417,6 +418,8 @@ console.log(JSON.stringify({{
         assert all(t > 0 and min_value < t < max_value for t in ticks), key
         assert len(set(labels)) == len(labels), key
         assert "0" not in labels, key
+
+    assert 3 <= len(values["it30"]["values"]) <= 5
 
     assert values["wide"] is None
     assert values["zero"] is None
