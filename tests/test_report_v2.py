@@ -7,6 +7,8 @@ import re
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
+import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -21,6 +23,7 @@ import golden_cases as gc  # noqa: E402
 import item_view  # noqa: E402
 import por_doe_compare  # noqa: E402
 import report_v2  # noqa: E402
+import simple_xlsx  # noqa: E402
 
 ECHARTS_SHA256 = "bf4a223524e40b77c304bec67e1222cf551f14880cf42c69dc046558e11c07b1"
 
@@ -93,6 +96,57 @@ def test_table_js_matches_items_rows_and_table_csv_columns(built):
     assert payload["meta"]["n_items"] == len(built["items"])
     assert payload["meta"]["chunk_size"] == 100
     assert payload["meta"]["chunks"] is True
+
+
+def test_table_xlsx_matches_table_csv_and_page_links_it(built):
+    folders = ("report", "report_anon")
+    for folder in folders:
+        assert (built["out"] / folder / "table.xlsx").is_file(), folder
+
+    ns = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    with zipfile.ZipFile(built["out"] / "report" / "table.xlsx") as zf:
+        root = ET.fromstring(zf.read("xl/worksheets/sheet1.xml"))
+    rows = root.findall(".//m:sheetData/m:row", ns)
+
+    columns = list(pd.read_csv(built["out"] / "report" / "table.csv", encoding="utf-8-sig", nrows=0).columns)
+    assert columns == list(built["table"].columns)
+    table = pd.read_csv(built["out"] / "report" / "table.csv", encoding="utf-8-sig", float_precision="round_trip")
+
+    # (a) header row
+    header = [c.find("m:is/m:t", ns).text for c in rows[0].findall("m:c", ns)]
+    assert header == columns
+
+    # (b) one header row plus one row per table row
+    assert len(rows) == len(table) + 1
+
+    # Map each data row (1-based) to {column letter: cell element}.
+    cells_by_row = {}
+    for i, row in enumerate(rows[1:], start=1):
+        cells_by_row[i] = {c.get("r").rstrip("0123456789"): c for c in row.findall("m:c", ns)}
+
+    # (c) numeric columns hold the exact csv values; (d) NaN means no cell at all.
+    assert "center" in table.columns and "delta" in table.columns
+    numeric = ("center", "delta", "delta_pct", "ms3_limit_POR1", "ms3_limit_pct_POR1")
+    for name in numeric:
+        if name not in table.columns:
+            continue
+        letter = simple_xlsx.col_letter(columns.index(name))
+        for r, value in enumerate(table[name], start=1):
+            cells = cells_by_row[r]
+            if pd.isna(value):
+                assert letter not in cells, (name, r)
+                continue
+            assert letter in cells, (name, r)
+            cell = cells[letter]
+            assert cell.get("t") != "inlineStr", (name, r)
+            assert float(cell.find("m:v", ns).text) == float(value), (name, r)
+
+    # (e) each page links the xlsx and states the row count
+    for folder in folders:
+        n = len(pd.read_csv(built["out"] / folder / "table.csv", encoding="utf-8-sig"))
+        text = (built["out"] / folder / "table.html").read_text(encoding="utf-8")
+        assert 'href="table.xlsx"' in text, folder
+        assert f"전체 {n}행" in text, folder
 
 
 def test_anon_has_no_real_item_or_blank_name_in_text_outputs(built):

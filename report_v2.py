@@ -31,6 +31,7 @@ import item_view
 import loq_check
 import por_doe_compare
 import raw_stats as raw_stats_module
+import simple_xlsx
 from compare_before_after import pct_of_median
 from explain import BASIS_NAMES, LOQ_ZONES
 from report import Namer
@@ -215,6 +216,7 @@ def write_reports(out: Path, anon: bool = False,
     folder = out / ("report_anon" if anon else "report")
     folder.mkdir(parents=True, exist_ok=True)
     table.to_csv(folder / "table.csv", index=False, encoding="utf-8-sig")
+    simple_xlsx.write(folder / "table.xlsx", [("ITEM 표", table, ())])
     _write_json(folder / "table.json", {"cols": list(table.columns),
                                        "rows": [[_json_value(v) for v in row] for row in table.itertuples(index=False, name=None)]})
     _write_json(folder / "summary.json", summary)
@@ -273,6 +275,7 @@ TABLE_BODY = '''<main class="page page-wide">
 <div id="dc-error" class="dc-error" role="alert" hidden></div>
 <div class="table-tools" aria-label="표 필터">
 <div class="menu" role="group" aria-label="LoQ 필터"><button type="button" data-filter="all" aria-pressed="true">전체</button><button type="button" data-filter="loq" aria-pressed="false">LoQ만</button><button type="button" data-filter="not-loq" aria-pressed="false">LoQ 아님</button></div>
+<a class="download" href="table.xlsx" download>엑셀 내려받기 (.xlsx, 전체 {n_rows}행)</a>
 <label>ITEM 검색 <input id="table-search" type="search" autocomplete="off"></label>
 <strong id="table-count" aria-live="polite"></strong>
 </div>
@@ -433,7 +436,7 @@ def _write_pages(table: pd.DataFrame, summary: dict, out: Path, anon: bool, a: a
 
     col_docs = _report_column_docs(table.columns)
     (folder / "index.html").write_text(_page("요약", "index.html", _summary_html(summary), []), encoding="utf-8")
-    table_body = TABLE_BODY.replace("</main>", _column_docs_html(col_docs) + "\n</main>", 1)
+    table_body = TABLE_BODY.replace("</main>", _column_docs_html(col_docs) + "\n</main>", 1).replace("{n_rows}", str(len(table)))
     (folder / "table.html").write_text(_page("ITEM 표", "table.html", table_body,
                                                 ["data/table.js", "assets/report.js"]), encoding="utf-8")
     (folder / "analysis.html").write_text(_page("ITEM 분석", "analysis.html", ANALYSIS_BODY,
