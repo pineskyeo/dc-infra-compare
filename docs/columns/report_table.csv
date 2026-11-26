@@ -10,12 +10,18 @@ verdict_basis,최종 판정 근거,최종 판정을 정한 방법의 기존 코�
 judged_by,판정을 정한 근거,최종 판정과 LoQ 동등 사유를 한 이름으로 보인다.,"`verdict_final` 이 판정 제외면 판정 제외. 차이·미결이면 `verdict_basis` 의 표시 이름. 동등이고 LoQ 구간이면 `reason` 으로 정한 pass_kind 가 이동이 허용폭 안일 때 TOST, DOE 구간도 LoQ 아래·DOE 구간이 LoQ에 걸침일 때 LoQ 규칙, 판정 길일 때 판정 길(근거 이름). 그 밖은 근거 이름. LoQ 구간 밖 동등도 근거 이름",새 판정 분기를 만들지 않고 loq_check.pass_kind 를 그대로 쓴다.
 reason,판정 사유,1·2단계 판정의 기존 사유 문장.,items.csv 의 `reason` 복사,judged_by 의 LoQ 동등 구분에도 쓴다.
 center,이동량,die별 DOE 와 POR 차이의 중앙값.,items.csv 의 `center` 복사,raw_stats.csv 의 원 중앙값 차이와 계산 대상이 다르다.
+calcval,CALCVAL 값,level.csv 의 CALCVAL 을 그대로 옮긴 값이다. 파일 값은 원측정값에 이 값을 곱한 것이다.,level.csv 의 CALCVAL 그대로 (파일 값 = 원측정값 × CALCVAL),"--level 이 없거나 level.csv 에 ITEM 이 없으면 빈 칸이다. DERIVED=Y 여도 값이 있으면 그대로 채운다. CALCVAL 이 없거나 0 이면 빈 칸이다."
+center_meas,실측 이동량,center 를 calcval 로 나눈 원측정 단위의 이동량이다. 부호는 그대로 둔다.,"`center` / `calcval` (부호 유지)",center 가 없으면 이 칸만 빈 칸이다. 그 밖의 비우는 조건은 meas_note 에 적힌다.
+meas_note,실측 단위 비운 이유,실측 단위 열 네 개를 비운 이유 문구다. 값이 있으면 빈 칸이다.,네 _meas 열 공통. 비운 이유,"비우는 조건 다섯 가지: --level 없음, level.csv에 ITEM 없음, 변형(DERIVED=Y), CALCVAL 없음 또는 0, center 없음. 앞에서부터 처음 맞는 것 하나를 적는다."
 ci_low,이동량 범위 아래 끝,이동량 90% 신뢰구간 아래 끝.,items.csv 의 `ci_low` 복사,새로 계산하지 않는다.
 ci_high,이동량 범위 위 끝,이동량 90% 신뢰구간 위 끝.,items.csv 의 `ci_high` 복사,새로 계산하지 않는다.
+ci_low_meas,실측 이동량 범위 아래 끝,ci_low 를 calcval 로 나눈 원측정 단위의 신뢰구간 아래 끝이다. 두 끝을 나눈 뒤 작은 값이 아래로 간다.,"`ci_low` / `calcval`, `ci_high` / `calcval`; `calcval` < 0 이면 작은 값이 ci_low_meas",두 끝 중 한쪽 원값이 비었으면 그 칸만 빈 칸이다. 비우는 조건이면 네 칸 모두 빈 칸이다.
+ci_high_meas,실측 이동량 범위 위 끝,ci_high 를 calcval 로 나눈 원측정 단위의 신뢰구간 위 끝이다. 두 끝을 나눈 뒤 큰 값이 위로 간다.,"`ci_low` / `calcval`, `ci_high` / `calcval`; `calcval` < 0 이면 큰 값이 ci_high_meas",두 끝 중 한쪽 원값이 비었으면 그 칸만 빈 칸이다. 비우는 조건이면 네 칸 모두 빈 칸이다.
 center_log,log 이동량,log10 값에서 본 이동량.,items.csv 의 `center_log` 복사,새로 계산하지 않는다.
 ci_low_log,log 이동량 범위 아래 끝,log 판정의 90% 신뢰구간 아래 끝.,items.csv 의 `ci_low_log` 복사,새로 계산하지 않는다.
 ci_high_log,log 이동량 범위 위 끝,log 판정의 90% 신뢰구간 위 끝.,items.csv 의 `ci_high_log` 복사,새로 계산하지 않는다.
 delta,허용 범위 Δ,실용 한계와 회차 예측 한계를 더한 기존 허용 범위.,items.csv 의 `delta` 복사,delta_pct 의 분자다.
+delta_meas,실측 허용 범위 Δ,delta 를 |calcval| 로 나눈 원측정 단위의 허용 범위다. 항상 양수다.,`delta` / |`calcval`|,비우는 조건이면 빈 칸이다.
 delta_log,log 허용 범위,log 판정에 쓴 기존 허용 범위.,items.csv 의 `delta_log` 복사,새로 계산하지 않는다.
 abs_delta,절대 허용폭,절대 허용폭 판정에 쓴 ITEM 단위 값.,items.csv 의 `abs_delta` 복사,새로 계산하지 않는다.
 accuracy_margin,장비 정확도 폭,두 측정의 장비 정확도에서 올 수 있는 차이.,items.csv 의 `accuracy_margin` 복사,새로 계산하지 않는다.

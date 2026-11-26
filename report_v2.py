@@ -38,10 +38,13 @@ from report import Namer
 
 ITEM_COLUMNS = (
     "zone", "data_type", "cls_scale", "route", "verdict_final", "verdict_basis", "judged_by", "reason",
-    "center", "ci_low", "ci_high", "center_log", "ci_low_log", "ci_high_log", "delta", "delta_log", "abs_delta",
+    "center", "calcval", "center_meas", "meas_note", "ci_low", "ci_high", "ci_low_meas", "ci_high_meas",
+    "center_log", "ci_low_log", "ci_high_log", "delta", "delta_meas", "delta_log", "abs_delta",
     "accuracy_margin", "delta_pct", "sigma_die", "sigma_run", "rsd_pct", "LoQ", "LoD", "limit_source",
     "por_median", "loq_ratio",
 )
+# 실제 측정 단위 열: 파일 값을 CALCVAL 로 나눈 값. --level 이 없거나 판정할 수 없으면 비운다.
+MEAS_COLUMNS = ("calcval", "center_meas", "meas_note", "ci_low_meas", "ci_high_meas", "delta_meas")
 OVERALL_RULE = "전체 판정 규칙(가정): 차이 ITEM이 1개라도 있으면 전체 차이, 아니면 미결이 있으면 전체 미결, 아니면 동등. 판정 제외는 전체 판정에 넣지 않고 개수로 따로 보인다."
 VERDICTS = ("동등", "미결", "차이", "판정 제외")
 CHUNK_SIZE = 100
@@ -88,19 +91,61 @@ def _read_csv(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, encoding="utf-8-sig")
 
 
-def make_table(items: pd.DataFrame, raw: pd.DataFrame | None = None, anon: bool = False) -> pd.DataFrame:
-    """items.csv 행 순서를 지켜 표를 만들고 raw_stats.csv 는 ITEM 으로 붙인다."""
+def _num(value) -> float:
+    """숫자로 읽을 수 있는 유한값이면 float, 아니면 NaN."""
+    try:
+        x = float(value)
+    except (TypeError, ValueError):
+        return math.nan
+    return x if math.isfinite(x) else math.nan
+
+
+def _meas_values(row: dict, levels: dict | None) -> dict:
+    """실제 측정 단위 열 여섯 개. 파일 값 = 원측정값 × CALCVAL 이므로 원측정 단위는 파일 값 / CALCVAL."""
+    info = None if levels is None else levels.get(str(row["ITEM"]).strip())
+    c = info.calcval if info is not None and info.calcval else None
+    out = {"calcval": math.nan if c is None else c, "center_meas": math.nan, "ci_low_meas": math.nan,
+           "ci_high_meas": math.nan, "delta_meas": math.nan, "meas_note": ""}
+    if levels is None:
+        note = "--level 없음"
+    elif info is None:
+        note = "level.csv에 ITEM 없음"
+    elif info.derived:
+        note = "변형(DERIVED=Y)"
+    elif c is None:
+        note = "CALCVAL 없음"
+    else:
+        note = None
+    if note is not None:
+        out["meas_note"] = note
+        return out
+    center, lo, hi, delta = (_num(row.get(k)) for k in ("center", "ci_low", "ci_high", "delta"))
+    out["center_meas"] = center / c
+    low_meas, high_meas = lo / c, hi / c
+    if math.isfinite(low_meas) and math.isfinite(high_meas):
+        low_meas, high_meas = min(low_meas, high_meas), max(low_meas, high_meas)
+    out["ci_low_meas"], out["ci_high_meas"] = low_meas, high_meas
+    out["delta_meas"] = delta / abs(c)
+    out["meas_note"] = "" if math.isfinite(center) else "center 없음"
+    return out
+
+
+def make_table(items: pd.DataFrame, raw: pd.DataFrame | None = None, anon: bool = False,
+               levels: dict[str, por_doe_compare.ItemInfo] | None = None) -> pd.DataFrame:
+    """items.csv 행 순서를 지켜 표를 만들고 raw_stats.csv 는 ITEM 으로 붙인다.
+    levels 가 있으면 실제 측정 단위 열(MEAS_COLUMNS)을 채운다."""
     items = items.copy().reset_index(drop=True)
     raw_columns = raw_stats_module.column_names(_n_runs(items))[1:] if raw is None else [c for c in raw.columns if c != "ITEM"]
     if raw is None:
         raw = pd.DataFrame({"ITEM": pd.Series(dtype=str), **{c: pd.Series(dtype=float) for c in raw_columns}})
     merged = items.merge(raw, on="ITEM", how="left", sort=False, validate="one_to_one", suffixes=("", "_raw_stats"))
-    present = [c for c in ITEM_COLUMNS if c in {"data_type", "judged_by", "delta_pct"} or c in items.columns]
+    present = [c for c in ITEM_COLUMNS if c in {"data_type", "judged_by", "delta_pct"} or c in MEAS_COLUMNS or c in items.columns]
     records = []
     namer = Namer(items, anon)
     for number, row in enumerate(merged.to_dict("records"), 1):
         zone = _text(row.get("zone"))
         out = {"row": number, "ITEM": namer.label(row["ITEM"])}
+        meas = _meas_values(row, levels)
         for col in ITEM_COLUMNS:
             if col == "data_type":
                 out[col] = "LoQ" if zone in LOQ_ZONES else zone
@@ -108,6 +153,8 @@ def make_table(items: pd.DataFrame, raw: pd.DataFrame | None = None, anon: bool 
                 out[col] = judged_by(row)
             elif col == "delta_pct":
                 out[col] = pct_of_median(row.get("delta"), row.get("por_median"))
+            elif col in MEAS_COLUMNS:
+                out[col] = meas[col]
             elif col in items.columns:
                 out[col] = row.get(col)
         out.update({col: row.get(col, np.nan) for col in raw_columns})
@@ -153,13 +200,14 @@ def _write_json(path: Path, value) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, allow_nan=False, indent=2) + "\n", encoding="utf-8")
 
 
-def write_reports(out: Path, anon: bool = False) -> tuple[pd.DataFrame, dict]:
+def write_reports(out: Path, anon: bool = False,
+                  levels: dict[str, por_doe_compare.ItemInfo] | None = None) -> tuple[pd.DataFrame, dict]:
     items = _read_csv(out / "items.csv")
     raw_path = out / "raw_stats.csv"
     raw = _read_csv(raw_path) if raw_path.is_file() else None
     if raw is None:
         print(f"경고: {raw_path} 가 없어 원데이터 통계 열을 빈 칸으로 둡니다.", file=sys.stderr)
-    table = make_table(items, raw, anon=anon)
+    table = make_table(items, raw, anon=anon, levels=levels)
     summary = summarize(table)
     if (out / "loq" / "loq_items.csv").is_file():
         namer = Namer(items, anon)
@@ -486,7 +534,8 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("--jobs 는 1 이상이어야 합니다")
     if bool(a.por) != bool(a.doe):
         ap.error("--por 와 --doe 는 함께 주거나 함께 생략해야 합니다")
-    table, summary = write_reports(a.out_folder, anon=a.anon)
+    levels = por_doe_compare.load_levels(a.level, a.encoding) if a.level else None
+    table, summary = write_reports(a.out_folder, anon=a.anon, levels=levels)
     _write_pages(table, summary, a.out_folder, a.anon, a)
     return 0
 

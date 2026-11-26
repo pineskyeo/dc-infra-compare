@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "tests"))
 
 import golden_cases as gc  # noqa: E402
 import loq_check  # noqa: E402
+import por_doe_compare  # noqa: E402
 import report_v2  # noqa: E402
 from explain import BASIS_NAMES, LOQ_ZONES  # noqa: E402
 
@@ -70,6 +71,82 @@ def test_delta_pct_copied_rule_and_zero_por_median(built):
                            "delta": 2.0, "por_median": 0.0}])
     made = report_v2.make_table(small, pd.DataFrame(columns=["ITEM"]))
     assert math.isnan(made.loc[0, "delta_pct"])
+
+
+def _meas_item(item="A", center=0.06, ci=(0.02, 0.10), delta=0.04):
+    return {"ITEM": item, "zone": "정량", "verdict_final": "동등", "verdict_basis": "linear",
+            "center": center, "ci_low": ci[0], "ci_high": ci[1], "delta": delta, "por_median": 1.0}
+
+
+def _meas_table(rows, levels):
+    return report_v2.make_table(pd.DataFrame(rows), pd.DataFrame(columns=["ITEM"]), levels=levels)
+
+
+def test_meas_columns_divide_by_positive_calcval():
+    lv = {"A": por_doe_compare.ItemInfo(1.0, "V", 2.0, False)}
+    t = _meas_table([_meas_item()], lv).iloc[0]
+    assert t["calcval"] == pytest.approx(2.0)
+    assert t["center_meas"] == pytest.approx(0.03)
+    assert t["ci_low_meas"] == pytest.approx(0.01)
+    assert t["ci_high_meas"] == pytest.approx(0.05)
+    assert t["delta_meas"] == pytest.approx(0.02)
+    assert t["meas_note"] == ""
+
+
+def test_meas_columns_negative_calcval_flips_and_resorts_ci():
+    lv = {"A": por_doe_compare.ItemInfo(1.0, "V", -1.0, False)}
+    t = _meas_table([_meas_item()], lv).iloc[0]
+    assert t["center_meas"] == pytest.approx(-0.06)
+    assert t["ci_low_meas"] == pytest.approx(-0.10)
+    assert t["ci_high_meas"] == pytest.approx(-0.02)
+    assert t["delta_meas"] == pytest.approx(0.04)
+    assert t["meas_note"] == ""
+
+
+def test_meas_columns_empty_without_calcval():
+    lv = {"A": por_doe_compare.ItemInfo(1.0, "V", None, False)}
+    t = _meas_table([_meas_item()], lv).iloc[0]
+    assert math.isnan(t["calcval"])
+    for col in ("center_meas", "ci_low_meas", "ci_high_meas", "delta_meas"):
+        assert math.isnan(t[col])
+    assert t["meas_note"] == "CALCVAL 없음"
+
+
+def test_meas_columns_empty_for_derived_item_but_keep_calcval():
+    lv = {"A": por_doe_compare.ItemInfo(1.0, "V", 3.0, True)}
+    t = _meas_table([_meas_item()], lv).iloc[0]
+    assert t["calcval"] == pytest.approx(3.0)
+    for col in ("center_meas", "ci_low_meas", "ci_high_meas", "delta_meas"):
+        assert math.isnan(t[col])
+    assert t["meas_note"] == "변형(DERIVED=Y)"
+
+
+def test_meas_columns_without_levels_keep_six_columns_and_note():
+    made = _meas_table([_meas_item()], None)
+    for col in ("calcval", "center_meas", "meas_note", "ci_low_meas", "ci_high_meas", "delta_meas"):
+        assert col in made.columns
+    t = made.iloc[0]
+    assert math.isnan(t["calcval"])
+    assert math.isnan(t["center_meas"])
+    assert t["meas_note"] == "--level 없음"
+
+
+def test_meas_note_when_item_missing_from_levels():
+    lv = {"OTHER": por_doe_compare.ItemInfo(1.0, "V", 2.0, False)}
+    t = _meas_table([_meas_item()], lv).iloc[0]
+    assert math.isnan(t["delta_meas"])
+    assert t["meas_note"] == "level.csv에 ITEM 없음"
+
+
+def test_meas_columns_order_follows_table_layout():
+    lv = {"A": por_doe_compare.ItemInfo(1.0, "V", 2.0, False)}
+    cols = list(_meas_table([_meas_item()], lv).columns)
+    assert cols.index("calcval") == cols.index("center") + 1
+    assert cols.index("center_meas") == cols.index("center") + 2
+    assert cols.index("meas_note") == cols.index("center") + 3
+    assert cols.index("ci_low_meas") == cols.index("ci_high") + 1
+    assert cols.index("ci_high_meas") == cols.index("ci_high") + 2
+    assert cols.index("delta_meas") == cols.index("delta") + 1
 
 
 @pytest.mark.parametrize("verdicts,overall", [

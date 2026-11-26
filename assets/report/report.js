@@ -1048,6 +1048,13 @@
             for (var n = 0; n < names.length; n += 1) {
                 addCard(cards, names[n], record[names[n]]);
             }
+            var measNames = ["calcval", "center_meas", "ci_low_meas", "ci_high_meas", "delta_meas"];
+            for (var m = 0; m < measNames.length; m += 1) {
+                addCard(cards, measNames[m], record[measNames[m]]);
+            }
+            if (record.meas_note) {
+                addCard(cards, "meas_note", record.meas_note);
+            }
             addCard(cards, "n dies", item.die.length);
             for (var p = 0; p < item.cols.length; p += 1) {
                 if (/^POR\d+$/.test(item.cols[p])) {
