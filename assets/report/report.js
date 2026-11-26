@@ -267,6 +267,332 @@
         document.head.appendChild(script);
     }
 
+    var DIE_AXIS = "판정에 쓴 die (wide)";
+    var CHART_COLOR = {doe: "#f47230", por: "#7F8A96", inside: "#257de0", ink: "#1D2733", loq: "#00A888"};
+
+    function finite(value) {
+        return typeof value === "number" && isFinite(value);
+    }
+
+    function meanAll(values) {
+        if (!values.length) {
+            return null;
+        }
+        var total = 0;
+        for (var i = 0; i < values.length; i += 1) {
+            total += values[i];
+        }
+        return total / values.length;
+    }
+
+    function meanFinite(values) {
+        var present = [];
+        for (var i = 0; i < values.length; i += 1) {
+            if (finite(values[i])) {
+                present.push(values[i]);
+            }
+        }
+        return meanAll(present);
+    }
+
+    function chunkDies(item) {
+        var porIndexes = [];
+        var porNames = [];
+        var doeIndex = columnIndex(item.cols, "DOE");
+        for (var c = 0; c < item.cols.length; c += 1) {
+            if (/^POR\d+$/.test(item.cols[c])) {
+                porIndexes.push(c);
+                porNames.push(item.cols[c]);
+            }
+        }
+        var dies = [];
+        for (var i = 0; i < item.die.length; i += 1) {
+            var values = item.v[i] || [];
+            var por = [];
+            for (var p = 0; p < porIndexes.length; p += 1) {
+                por.push(finite(values[porIndexes[p]]) ? values[porIndexes[p]] : null);
+            }
+            var label = item.die[i] && item.die[i].length ? item.die[i].join(" / ") : String(i + 1);
+            dies.push({name: label, por: por, mean: meanFinite(por),
+                       doe: finite(values[doeIndex]) ? values[doeIndex] : null});
+        }
+        return {dies: dies, porNames: porNames};
+    }
+
+    function extent(values, log, extras) {
+        var all = (values || []).concat(extras || []);
+        var present = [];
+        for (var i = 0; i < all.length; i += 1) {
+            if (finite(all[i]) && (!log || all[i] > 0)) {
+                present.push(all[i]);
+            }
+        }
+        if (!present.length) {
+            return log ? {min: 0.1, max: 10} : {min: -1, max: 1};
+        }
+        var low = Math.min.apply(null, present);
+        var high = Math.max.apply(null, present);
+        if (log) {
+            var logLow = Math.log(low) / Math.LN10;
+            var logHigh = Math.log(high) / Math.LN10;
+            var logPad = logHigh === logLow ? 0.25 : (logHigh - logLow) * 0.08;
+            return {min: Math.pow(10, logLow - logPad), max: Math.pow(10, logHigh + logPad)};
+        }
+        var span = high === low ? Math.max(Math.abs(high), 1) : high - low;
+        return {min: low - span * 0.08, max: high + span * 0.08};
+    }
+
+    function chartBase() {
+        return {
+            animation: false,
+            legend: {type: "scroll", top: 2, left: 4, right: 4, textStyle: {color: "#55616E", fontSize: 11}},
+            tooltip: {trigger: "item", confine: true, axisPointer: {type: "cross"}},
+            grid: {left: 78, right: 28, top: 76, bottom: 72, containLabel: false}
+        };
+    }
+
+    function scatterLines(low, high, log, delta, loq) {
+        var lines = [[{name: "y=x", coord: [low, low], lineStyle: {color: "#55616E", type: "solid"}},
+                      {coord: [high, high]}]];
+        if (finite(delta)) {
+            var up = log ? Math.pow(10, delta) : delta;
+            var down = log ? Math.pow(10, -delta) : -delta;
+            lines.push([{name: log ? "y=x·10^Δlog" : "y=x+Δ", coord: [low, log ? low * up : low + up]},
+                        {coord: [high, log ? high * up : high + up]}]);
+            lines.push([{name: log ? "y=x·10^-Δlog" : "y=x−Δ", coord: [low, log ? low * down : low + down]},
+                        {coord: [high, log ? high * down : high + down]}]);
+        }
+        if (finite(loq) && loq > 0) {
+            lines.push({name: "LoQ", yAxis: loq, lineStyle: {color: CHART_COLOR.loq, type: "dotted"}});
+            if (log) {
+                lines.push({name: "LoQ", xAxis: loq, lineStyle: {color: CHART_COLOR.loq, type: "dotted"}});
+            }
+        }
+        return lines;
+    }
+
+    function scatterOption(item, record, log) {
+        var parsed = chunkDies(item);
+        var series = [{name: "DOE", type: "scatter", symbolSize: 9, data: [],
+                       itemStyle: {color: CHART_COLOR.doe, borderColor: "#FFFFFF", borderWidth: 1}}];
+        var p;
+        for (p = 0; p < parsed.porNames.length; p += 1) {
+            series.push({name: parsed.porNames[p], type: "scatter", symbolSize: 8, data: [],
+                         itemStyle: {color: CHART_COLOR.por, borderColor: "#FFFFFF", borderWidth: 1}});
+        }
+        var values = [];
+        var dropped = 0;
+        for (var i = 0; i < parsed.dies.length; i += 1) {
+            var die = parsed.dies[i];
+            var invalidLog = false;
+            if (log) {
+                for (p = 0; p < die.por.length; p += 1) {
+                    invalidLog = invalidLog || (finite(die.por[p]) && die.por[p] <= 0);
+                }
+                invalidLog = invalidLog || (finite(die.doe) && die.doe <= 0);
+            }
+            if (invalidLog) {
+                dropped += 1;
+                continue;
+            }
+            var x = log ? meanFinite(die.por.map(Math.abs)) : die.mean;
+            if (!finite(x) || (log && x <= 0)) {
+                continue;
+            }
+            if (finite(die.doe) && (!log || die.doe > 0)) {
+                var doeY = log ? Math.abs(die.doe) : die.doe;
+                series[0].data.push({name: die.name, value: [x, doeY]});
+                values.push(x, doeY);
+            }
+            for (p = 0; p < die.por.length; p += 1) {
+                if (finite(die.por[p]) && (!log || die.por[p] > 0)) {
+                    var porY = log ? Math.abs(die.por[p]) : die.por[p];
+                    series[p + 1].data.push({name: die.name, value: [x, porY]});
+                    values.push(x, porY);
+                }
+            }
+        }
+        var delta = record[log ? "delta_log" : "delta"];
+        var loq = record.LoQ;
+        var extras = [];
+        if (finite(delta)) {
+            var base = extent(values, log);
+            if (log) {
+                extras = [base.min * Math.pow(10, -delta), base.max * Math.pow(10, delta)];
+            } else {
+                extras = [base.min - delta, base.max + delta];
+            }
+        }
+        if (finite(loq) && loq > 0) {
+            extras.push(loq);
+        }
+        var limits = extent(values, log, extras);
+        series[0].markLine = {silent: true, symbol: ["none", "none"], animation: false,
+                              lineStyle: {width: 1.5, type: "dashed", color: "#6B7785"},
+                              label: {formatter: "{b}", fontSize: 10, color: "#55616E"},
+                              data: scatterLines(limits.min, limits.max, log, delta, loq)};
+        var option = chartBase();
+        option.series = series;
+        option.xAxis = {type: log ? "log" : "value", logBase: 10, min: limits.min, max: limits.max, scale: !log,
+                        name: "POR 회차 평균 · " + DIE_AXIS, nameLocation: "middle", nameGap: 44,
+                        axisLabel: {color: "#55616E"}, splitLine: {lineStyle: {color: "#E2E6EC"}}};
+        option.yAxis = {type: log ? "log" : "value", logBase: 10, min: limits.min, max: limits.max, scale: !log,
+                        name: (log ? "|DOE|·|POR|" : "DOE·POR") + " · " + DIE_AXIS,
+                        nameLocation: "middle", nameGap: 58, nameRotate: 90,
+                        axisLabel: {color: "#55616E"}, splitLine: {lineStyle: {color: "#E2E6EC"}}};
+        return {option: option, dropped: dropped};
+    }
+
+    function quantile(sorted, q) {
+        if (!sorted.length) {
+            return null;
+        }
+        var position = (sorted.length - 1) * q;
+        var lower = Math.floor(position);
+        var fraction = position - lower;
+        return sorted[lower] + (sorted[Math.ceil(position)] - sorted[lower]) * fraction;
+    }
+
+    function boxOption(item, record) {
+        var parsed = chunkDies(item);
+        var columns = parsed.porNames.concat(["DOE"]);
+        var perColumn = [];
+        var porPoints = [];
+        var doePoints = [];
+        var c;
+        for (c = 0; c < columns.length; c += 1) {
+            perColumn.push([]);
+        }
+        for (var i = 0; i < parsed.dies.length; i += 1) {
+            var die = parsed.dies[i];
+            for (c = 0; c < columns.length; c += 1) {
+                var value = c === columns.length - 1 ? die.doe : die.por[c];
+                if (!finite(value)) {
+                    continue;
+                }
+                perColumn[c].push(value);
+                var jitter = (((i * 37 + c * 17) % 13) - 6) * 0.018;
+                var point = {name: die.name, value: [c + jitter, value]};
+                (c === columns.length - 1 ? doePoints : porPoints).push(point);
+            }
+        }
+        var boxes = [];
+        for (c = 0; c < perColumn.length; c += 1) {
+            var sorted = perColumn[c].slice().sort(function (a, b) { return a - b; });
+            boxes.push(sorted.length ? [sorted[0], quantile(sorted, 0.25), quantile(sorted, 0.5),
+                                        quantile(sorted, 0.75), sorted[sorted.length - 1]] : [null, null, null, null, null]);
+        }
+        var limits = [];
+        for (var l = 0; l < 2; l += 1) {
+            var name = l === 0 ? "LoD" : "LoQ";
+            if (finite(record[name])) {
+                limits.push({name: name, yAxis: record[name], lineStyle: {color: CHART_COLOR.loq, type: "dotted"}});
+            }
+        }
+        var option = chartBase();
+        option.series = [
+            {name: "분포(box)", type: "boxplot", data: boxes, boxWidth: [8, 24],
+             itemStyle: {color: "#EDF3FA", borderColor: "#55616E", borderWidth: 1.5},
+             markLine: {silent: true, symbol: ["none", "none"], label: {formatter: "{b}"}, data: limits}},
+            {name: "POR die", type: "scatter", data: porPoints, symbolSize: 8,
+             itemStyle: {color: CHART_COLOR.por, borderColor: "#FFFFFF", borderWidth: 1}},
+            {name: "DOE die", type: "scatter", data: doePoints, symbolSize: 8,
+             itemStyle: {color: CHART_COLOR.doe, borderColor: "#FFFFFF", borderWidth: 1}}
+        ];
+        option.xAxis = {type: "category", data: columns, name: "POR/DOE · " + DIE_AXIS,
+                        nameLocation: "middle", nameGap: 42, axisLabel: {color: "#55616E"}};
+        option.yAxis = {type: "value", scale: true, name: "die 값 · " + DIE_AXIS,
+                        nameLocation: "middle", nameGap: 58, nameRotate: 90,
+                        axisLabel: {color: "#55616E"}, splitLine: {lineStyle: {color: "#E2E6EC"}}};
+        return option;
+    }
+
+    function ciLine(name, value, color, dash) {
+        return {name: name, type: "line", data: [[-0.46, value], [0.46, value]], showSymbol: false,
+                silent: true, lineStyle: {color: color, width: 1.7, type: dash}, tooltip: {show: false}};
+    }
+
+    function ciOption(item, record, logBases) {
+        var log = logBases.indexOf(String(record.verdict_basis)) >= 0;
+        var suffix = log ? "_log" : "";
+        var low = record["ci_low" + suffix];
+        var high = record["ci_high" + suffix];
+        var center = record["center" + suffix];
+        var delta = record["delta" + suffix];
+        var parsed = chunkDies(item);
+        var inside = [];
+        var outside = [];
+        var values = [0];
+        for (var i = 0; i < parsed.dies.length; i += 1) {
+            var die = parsed.dies[i];
+            var d = null;
+            if (log) {
+                var logs = [];
+                for (var p = 0; p < die.por.length; p += 1) {
+                    if (finite(die.por[p])) {
+                        logs.push(Math.log(Math.abs(die.por[p])) / Math.LN10);
+                    }
+                }
+                var porLog = meanAll(logs);
+                if (finite(die.doe) && porLog !== null) {
+                    d = Math.log(Math.abs(die.doe)) / Math.LN10 - porLog;
+                }
+            } else if (finite(die.doe) && die.mean !== null) {
+                d = die.doe - die.mean;
+            }
+            if (!finite(d)) {
+                continue;
+            }
+            var jitter = (((i * 37) % 101) / 100 - 0.5) * 0.36;
+            var point = {name: die.name, value: [jitter, d]};
+            (finite(low) && finite(high) && low <= d && d <= high ? inside : outside).push(point);
+            values.push(d);
+        }
+        var option = chartBase();
+        option.series = [
+            {name: "CI 안 die", type: "scatter", data: inside, symbolSize: 9,
+             itemStyle: {color: CHART_COLOR.inside, borderColor: "#FFFFFF", borderWidth: 1}},
+            {name: "CI 밖 die", type: "scatter", data: outside, symbolSize: 8,
+             itemStyle: {color: CHART_COLOR.por, borderColor: "#FFFFFF", borderWidth: 1}}
+        ];
+        var thresholds = [{name: "center", value: center, color: CHART_COLOR.ink, dash: "solid"},
+                          {name: "ci_low", value: low, color: CHART_COLOR.inside, dash: "dashed"},
+                          {name: "ci_high", value: high, color: CHART_COLOR.inside, dash: "dashed"}];
+        if (finite(delta)) {
+            thresholds.push({name: "+Δ", value: delta, color: CHART_COLOR.doe, dash: "dashed"},
+                            {name: "−Δ", value: -delta, color: CHART_COLOR.doe, dash: "dashed"});
+        }
+        for (var t = 0; t < thresholds.length; t += 1) {
+            if (finite(thresholds[t].value)) {
+                option.series.push(ciLine(thresholds[t].name, thresholds[t].value,
+                                          thresholds[t].color, thresholds[t].dash));
+                values.push(thresholds[t].value);
+            }
+        }
+        var loqShifts = [];
+        if (finite(record.LoQ) && record.LoQ > 0 && finite(record.por_median)) {
+            if (log && Math.abs(record.por_median) > 0) {
+                loqShifts.push(Math.log(record.LoQ / Math.abs(record.por_median)) / Math.LN10);
+            } else if (!log) {
+                loqShifts.push(record.LoQ - record.por_median, -record.LoQ - record.por_median);
+            }
+        }
+        for (var s = 0; s < loqShifts.length; s += 1) {
+            if (finite(loqShifts[s])) {
+                option.series.push(ciLine("DOE가 LoQ에 닿는 이동", loqShifts[s], CHART_COLOR.loq, "dotted"));
+            }
+        }
+        var limits = extent(values, false);
+        option.xAxis = {type: "value", min: -0.5, max: 0.5, name: "die (jitter) · " + DIE_AXIS,
+                        nameLocation: "middle", nameGap: 40, axisLabel: {show: false}, axisTick: {show: false},
+                        splitLine: {show: false}};
+        option.yAxis = {type: "value", min: limits.min, max: limits.max,
+                        name: (log ? "d (log10 절댓값 차이)" : "d = DOE − POR 평균") + " · " + DIE_AXIS,
+                        nameLocation: "middle", nameGap: 60, nameRotate: 90,
+                        axisLabel: {color: "#55616E"}, splitLine: {lineStyle: {color: "#E2E6EC"}}};
+        return option;
+    }
+
     function initAnalysis() {
         var detail = document.getElementById("item-detail");
         if (!detail) {
@@ -284,6 +610,93 @@
         var itemIndex = columnIndex(table.cols, "ITEM");
         var rowIndex = columnIndex(table.cols, "row");
         var records = {};
+        var chartInstances = [];
+        var chartIds = ["chart-scatter-lin", "chart-scatter-log", "chart-box", "chart-ci"];
+
+        function disposeCharts() {
+            for (var i = 0; i < chartInstances.length; i += 1) {
+                chartInstances[i].dispose();
+            }
+            chartInstances = [];
+        }
+
+        function chartShell(id, title, record) {
+            var slot = document.getElementById(id);
+            slot.textContent = "";
+            slot.className = "chart-slot chart-filled";
+            slot.appendChild(make("h3", "chart-title", title));
+            slot.appendChild(make("p", "chart-verdict", display(record.verdict_final) + " · " +
+                                  display(record.judged_by) + " · " + display(record.reason)));
+            var plot = make("div", "chart-plot");
+            slot.appendChild(plot);
+            return plot;
+        }
+
+        function renderStaticImage(record, item) {
+            var rows = table.meta && table.meta.img_rows ? table.meta.img_rows : [];
+            var hasImage = false;
+            for (var i = 0; i < rows.length; i += 1) {
+                hasImage = hasImage || String(rows[i]) === String(record.row);
+            }
+            if (!hasImage) {
+                detail.appendChild(make("p", "hint static-figure", "정적 그림은 차이 항목만(--images)"));
+                return;
+            }
+            var padded = "00000" + String(record.row);
+            var path = "img/i" + padded.slice(-5) + ".png";
+            var link = make("a", "static-figure");
+            link.href = path;
+            var image = make("img", "static-item-image");
+            image.src = path;
+            image.alt = display(item.item) + " 정적 그림";
+            image.loading = "lazy";
+            link.appendChild(image);
+            detail.appendChild(link);
+        }
+
+        function renderCharts(record, item) {
+            if (!window.echarts) {
+                for (var e = 0; e < chartIds.length; e += 1) {
+                    var missing = document.getElementById(chartIds[e]);
+                    missing.className = "chart-slot";
+                    missing.textContent = "ECharts가 없어 차트를 표시하지 못합니다.";
+                }
+                showError("ECharts를 읽지 못해 차트는 그리지 않았습니다. ITEM 수치 카드는 그대로 볼 수 있습니다.");
+                return;
+            }
+            var logBases = table.meta && table.meta.log_bases ? table.meta.log_bases : [];
+            var definitions = [
+                {id: chartIds[0], build: function () {
+                    var result = scatterOption(item, record, false);
+                    return {title: "Y=X 산점도 (선형)", option: result.option};
+                }},
+                {id: chartIds[1], build: function () {
+                    var result = scatterOption(item, record, true);
+                    return {title: "Y=X 산점도 (log 절댓값 · 0/음수 제외 " + result.dropped + "die)", option: result.option};
+                }},
+                {id: chartIds[2], build: function () {
+                    return {title: "POR 회차·DOE 상자그림", option: boxOption(item, record)};
+                }},
+                {id: chartIds[3], build: function () {
+                    var basis = logBases.indexOf(String(record.verdict_basis)) >= 0 ? "log" : "선형";
+                    return {title: "die별 이동 d·신뢰구간 (" + basis + ")", option: ciOption(item, record, logBases)};
+                }}
+            ];
+            for (var i = 0; i < definitions.length; i += 1) {
+                try {
+                    var built = definitions[i].build();
+                    var plot = chartShell(definitions[i].id, built.title, record);
+                    var chart = window.echarts.init(plot);
+                    chartInstances.push(chart);
+                    chart.setOption(built.option);
+                } catch (error) {
+                    var slot = document.getElementById(definitions[i].id);
+                    slot.className = "chart-slot";
+                    slot.textContent = "이 차트를 그리지 못했습니다.";
+                    showError("차트를 그리지 못했습니다: " + (error && error.message ? error.message : String(error)));
+                }
+            }
+        }
 
         function tableRecord(key) {
             if (own(records, key)) {
@@ -322,6 +735,7 @@
         }
 
         function render(key, item, started) {
+            disposeCharts();
             var record = tableRecord(key);
             if (!record) {
                 showError("ITEM " + key + "의 표 행이 없습니다.");
@@ -355,7 +769,9 @@
                 }
             }
             detail.appendChild(cards);
+            renderStaticImage(record, item);
             clearError();
+            renderCharts(record, item);
             window.__dcItemMs = Date.now() - started;
             window.__dcReady = true;
         }
@@ -424,6 +840,11 @@
             showError("검색어와 일치하는 ITEM이 없습니다.");
         }));
         window.addEventListener("hashchange", guard(requestItem));
+        window.addEventListener("resize", guard(function () {
+            for (var i = 0; i < chartInstances.length; i += 1) {
+                chartInstances[i].resize();
+            }
+        }));
         requestItem();
     }
 

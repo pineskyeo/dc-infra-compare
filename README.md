@@ -95,11 +95,32 @@ python report_v2.py <out> --por POR1/ --por POR2/ --por POR3/ --doe DOE/ \
   --level item_info.csv [--anon] [--images fail|fail+pending|all|none]
 ```
 
-브라우저에서 여는 세 페이지를 만듭니다. `index.html`은 전체 판정과 LoQ 요약, `table.html`은 가상 스크롤 ITEM 표와 필터·검색, `analysis.html`은 ITEM별 수치와 차트 자리를 보여 줍니다. 표의 행이나 ITEM 검색으로 상세 페이지에 들어갑니다. `--images`는 다음 단계에서 넣을 그림 범위를 meta에 저장하며, 현재 그림을 만들지는 않습니다. POR/DOE 인자를 생략하면 표와 페이지는 만들고 원데이터 chunk는 비웁니다.
+브라우저에서 여는 세 페이지를 만듭니다. `index.html`은 전체 판정과 LoQ 요약, `table.html`은 가상 스크롤 ITEM 표와 필터·검색, `analysis.html`은 ITEM별 수치·네 차트·정적 그림을 보여 줍니다. 표의 행이나 ITEM 검색으로 상세 페이지에 들어가며, 각 차트 제목 아래 `verdict_final · judged_by · reason`을 그대로 적습니다.
+
+`--images`는 기본값 `fail`에서 **차이 ITEM만** `img/iNNNNN.png`를 만들고, `fail+pending`은 차이와 미결, `all`은 전체 ITEM, `none`은 그림을 만들지 않습니다. 상세 페이지의 PNG는 파일로 연결되며 HTML에 base64로 넣지 않습니다. POR/DOE 인자를 생략하면 표와 페이지는 만들지만 원데이터 chunk와 정적 그림은 만들지 않고 경고를 출력합니다.
+
+네 차트는 모두 선택한 ITEM의 chunk에 있는 **판정에 쓴 die (wide)**만 사용합니다.
+
+- **Y=X 선형 산점도:** x는 die별 POR 회차 평균, y는 색을 입힌 DOE와 회색 POR 회차 값입니다. `y=x`, `y=x±Δ`와 가로 `LoQ` 선으로 이동과 허용폭을 읽습니다.
+- **Y=X log 산점도:** 절댓값 축을 쓰되 0이나 음수가 있는 die는 빼고 제목에 뺀 수를 적습니다. `y=x`, `y=x·10^(±Δ_log)`와 세로·가로 `LoQ` 선을 보여 줍니다.
+- **POR/DOE 상자그림:** POR1..PORj와 DOE의 상자 위에 die 점을 흩어 보여 분포와 치우친 die를 함께 봅니다. `LoD`, `LoQ` 숫자가 있으면 항상 가로선으로 표시합니다.
+- **die별 이동 d·신뢰구간:** 판정 척도의 die별 `d`를 세로축에 놓고 `±Δ`, `center`, `ci_low`, `ci_high`를 그으며, CI 안 die를 다른 색으로 표시합니다. `DOE가 LoQ에 닿는 이동` 선은 LoQ까지 필요한 이동이며, 보이는 범위 밖이면 범례에만 남깁니다.
 
 ITEM 원데이터는 **100개씩 한 chunk**(`data/chunks/c00000.js`부터)에 넣습니다. 61 die × 4값이 ITEM당 약 3.4 KB이므로 chunk당 약 340 KB이고, ITEM 10,000개면 약 100개 파일이 됩니다. 상세 ITEM 하나를 열 때 그 ITEM이 든 chunk 하나만 읽으므로 전체 원데이터를 한꺼번에 올리지 않습니다. 파일 이름에는 행 번호 기반 chunk 번호만 써 ITEM 이름을 넣지 않습니다.
 
-모든 script·stylesheet 경로가 상대 경로이고 데이터도 `<script src>`로 읽으므로 **서버 없이 `file://`로 index.html을 열면 됩니다**. 차트 단계를 위해 ECharts 5.6.0(Apache-2.0) vendor 파일과 LICENSE/NOTICE를 `report/assets/`에 복사합니다.
+모든 script·stylesheet 경로가 상대 경로이고 데이터도 `<script src>`로 읽으므로 **서버 없이 `file://`로 index.html을 열면 됩니다**. 차트에는 ECharts 5.6.0(Apache-2.0) vendor 파일과 LICENSE/NOTICE를 `report/assets/`에 복사합니다.
+
+합성 데이터로 전 과정을 실행하려면 아래 명령을 씁니다. 단계별 초와 전체 초를 출력하고 마지막에 `report/index.html` 경로를 보여 줍니다.
+
+```bash
+python examples/demo_report_v2.py OUT --items 6000 --dies 60 --seed 7 --images fail
+```
+
+측정 기록(Dev 작성):
+
+| ITEM 수 | 빌드 초 | table.js 크기 | 한 ITEM 여는 ms | img 수·크기 |
+|---:|---:|---:|---:|---:|
+|  |  |  |  |  |
 
 ### run_all.py로 한 번에
 

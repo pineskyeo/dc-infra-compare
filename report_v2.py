@@ -19,6 +19,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+import fail_evidence
+import item_view
 import loq_check
 import por_doe_compare
 import raw_stats as raw_stats_module
@@ -229,12 +231,44 @@ ANALYSIS_BODY = '''<main class="page">
 <div id="dc-error" class="dc-error" role="alert" hidden></div>
 <form id="analysis-search" class="analysis-search"><label>ITEM 검색 <input id="analysis-query" type="search" autocomplete="off"></label><button type="submit">첫 항목 열기</button></form>
 <section id="item-detail" aria-live="polite"></section>
-<section class="charts" aria-label="ITEM 차트"><div id="chart-scatter-lin" class="chart-slot">차트는 다음 단계</div><div id="chart-scatter-log" class="chart-slot">차트는 다음 단계</div><div id="chart-box" class="chart-slot">차트는 다음 단계</div><div id="chart-ci" class="chart-slot">차트는 다음 단계</div></section>
+<section class="charts" aria-label="ITEM 차트"><div id="chart-scatter-lin" class="chart-slot">ITEM 원데이터를 읽는 중</div><div id="chart-scatter-log" class="chart-slot">ITEM 원데이터를 읽는 중</div><div id="chart-box" class="chart-slot">ITEM 원데이터를 읽는 중</div><div id="chart-ci" class="chart-slot">ITEM 원데이터를 읽는 중</div></section>
 </main>'''
 
 
 def _write_js(path: Path, name: str, value) -> None:
     path.write_text(f"window.{name} = {json.dumps(value, ensure_ascii=False, allow_nan=False)};\n", encoding="utf-8")
+
+
+def _write_item_images(table: pd.DataFrame, items: pd.DataFrame, groups: dict, folder: Path,
+                       mode: str, anon: bool) -> list[int]:
+    """선택한 ITEM을 fail_evidence와 같은 rows/srow 형태로 item_view에 넘긴다."""
+    wanted = {"차이"} if mode == "fail" else {"차이", "미결"} if mode == "fail+pending" else set(VERDICTS)
+    records = [row for row in table.to_dict("records") if _text(row.get("verdict_final")) in wanted]
+    if not records:
+        return []
+    image_dir = folder / "img"
+    image_dir.mkdir(parents=True, exist_ok=True)
+    namer = Namer(items, anon)
+    fail_evidence.configure_font()
+    image_rows = []
+    for record in records:
+        row_number = int(record["row"])
+        raw_item = items.iloc[row_number - 1]["ITEM"]
+        rows = groups.get(raw_item)
+        if rows is None or rows.empty:
+            print(f"경고: {raw_item} 의 원데이터가 없어 정적 그림을 만들지 않았습니다.", file=sys.stderr)
+            continue
+        summary = fail_evidence.item_summary(items, str(raw_item).strip(), None)
+        if summary.empty:
+            print(f"경고: {raw_item} 의 items.csv 행이 없어 정적 그림을 만들지 않았습니다.", file=sys.stderr)
+            continue
+        srow = summary.iloc[0].to_dict()
+        if anon:
+            srow = {key: _anon_text(value, namer, True) for key, value in srow.items()}
+            srow["ITEM"] = record["ITEM"]
+        item_view.plot_item_view(rows, srow, image_dir / f"i{row_number:05d}.png")
+        image_rows.append(row_number)
+    return image_rows
 
 
 def _write_pages(table: pd.DataFrame, summary: dict, out: Path, anon: bool, a: argparse.Namespace) -> None:
@@ -263,11 +297,36 @@ def _write_pages(table: pd.DataFrame, summary: dict, out: Path, anon: bool, a: a
                                                     "assets/report.js"]), encoding="utf-8")
 
     has_raw = bool(a.por and a.doe)
+    image_dir = folder / "img"
+    if image_dir.exists():
+        for old in image_dir.iterdir():
+            if old.is_file() and re.fullmatch(r"i\d{5}\.png", old.name):
+                old.unlink()
+
+    wide = groups = items = None
+    por_cols, units = [], {}
+    image_rows = []
+    if not has_raw:
+        print("경고: --por/--doe 가 없어 ITEM 원데이터 chunk 를 만들지 않았습니다.", file=sys.stderr)
+        if a.images != "none":
+            print("경고: --por/--doe 가 없어 정적 그림도 만들지 않았습니다.", file=sys.stderr)
+    else:
+        items = _read_csv(out / "items.csv")
+        # load_raw는 load_wide의 값에 blank·d 열을 더한 표다. chunk 값은 바뀌지 않는다.
+        wide = fail_evidence.load_raw(a, items["ITEM"].astype(str).tolist())
+        por_cols = [col for col in wide.columns if re.fullmatch(r"POR\d+", str(col))]
+        if "UNIT" in items:
+            units = items.drop_duplicates("ITEM").set_index("ITEM")["UNIT"].to_dict()
+        groups = {item: group for item, group in wide.groupby("ITEM", sort=False)}
+        if a.images != "none":
+            image_rows = _write_item_images(table, items, groups, folder, a.images, anon)
+
     rows = [[_json_value(v) for v in row] for row in table.itertuples(index=False, name=None)]
     table_text = "window.__dcTable = " + json.dumps({
         "cols": list(table.columns), "rows": rows,
         "meta": {"name": folder.name, "anon": anon, "n_items": len(table), "chunk_size": CHUNK_SIZE,
-                 "chunks": has_raw, "images": a.images, "overall": summary["overall"]},
+                 "chunks": has_raw, "images": a.images, "img_rows": image_rows,
+                 "log_bases": list(item_view.LOG_BASES), "overall": summary["overall"]},
     }, ensure_ascii=False, allow_nan=False) + ";\n"
     (data / "table.js").write_text(table_text, encoding="utf-8")
     if len(table_text.encode("utf-8")) > 5 * 1024 * 1024:
@@ -277,12 +336,7 @@ def _write_pages(table: pd.DataFrame, summary: dict, out: Path, anon: bool, a: a
         if re.fullmatch(r"c\d{5}\.js", old.name):
             old.unlink()
     index = {}
-    if not has_raw:
-        print("경고: --por/--doe 가 없어 ITEM 원데이터 chunk 를 만들지 않았습니다.", file=sys.stderr)
-    else:
-        wide, por_cols, units = por_doe_compare.load_wide(a)
-        groups = {item: group for item, group in wide.groupby("ITEM", sort=False)}
-        items = _read_csv(out / "items.csv")
+    if has_raw:
         die_cols = [key for key in a.key.split(",") if key != "ITEM"]
         value_cols = [*por_cols, "DOE"]
         chunk_lines = []
@@ -329,7 +383,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("out_folder", type=Path)
     ap.add_argument("--anon", action="store_true")
     ap.add_argument("--images", choices=("fail", "fail+pending", "all", "none"), default="fail",
-                    help="R3에서 넣을 그림 범위. 현재는 meta 에만 저장")
+                    help="정적 PNG 범위: 차이만(기본), 차이+미결, 전체, 만들지 않음")
     _add_optional_common_args(ap)
     a = ap.parse_args(argv)
     if bool(a.por) != bool(a.doe):

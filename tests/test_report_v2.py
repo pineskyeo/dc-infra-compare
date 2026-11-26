@@ -8,6 +8,7 @@ import shutil
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -15,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tests"))
 
 import golden_cases as gc  # noqa: E402
+import item_view  # noqa: E402
 import por_doe_compare  # noqa: E402
 
 ECHARTS_SHA256 = "bf4a223524e40b77c304bec67e1222cf551f14880cf42c69dc046558e11c07b1"
@@ -118,6 +120,8 @@ def test_without_raw_args_succeeds_with_table_and_empty_index(built):
     payload = read_assignment(out / "report" / "data" / "table.js", "__dcTable")
     assert len(payload["rows"]) == len(built["items"])
     assert payload["meta"]["chunks"] is False
+    assert payload["meta"]["img_rows"] == []
+    assert payload["meta"]["log_bases"] == list(item_view.LOG_BASES)
     assert read_assignment(out / "report" / "data" / "index.js", "__dcIndex") == {}
 
 
@@ -153,3 +157,79 @@ def test_two_chunk_items_have_load_wide_values(built):
                     assert actual_value is None
                 else:
                     assert actual_value == pytest.approx(expected_value)
+
+
+def test_chunk_die_evidence_reproduces_items_rank_ci(built):
+    checked = 0
+    folder = built["out"] / "report"
+    for position, item_row in built["items"].iterrows():
+        if str(item_row["verdict_basis"]) == "limit":
+            continue
+        key = str(built["table"].iloc[position]["row"])
+        chunk = chunk_item(folder, key)
+        if len(chunk["die"]) < 2:
+            continue
+        rows = pd.DataFrame(chunk["die"], columns=["WAFERID", "COORD_X_Y"])
+        for c, col in enumerate(chunk["cols"]):
+            rows[col] = [values[c] for values in chunk["v"]]
+        evidence = item_view.die_evidence(rows, item_row)
+        assert evidence.n >= 2, key
+        ordered = np.sort(evidence.d)
+        k = evidence.k
+        suffix = "_log" if str(item_row["verdict_basis"]) in item_view.LOG_BASES else ""
+        low = item_row["ci_low" + suffix]
+        high = item_row["ci_high" + suffix]
+        assert ordered[k - 1] == pytest.approx(low, rel=1e-9, abs=1e-15), key
+        assert ordered[evidence.n - k] == pytest.approx(high, rel=1e-9, abs=1e-15), key
+        assert ((low <= evidence.d) & (evidence.d <= high)).sum() >= evidence.n - 2 * k + 2, key
+        assert low <= item_row["center" + suffix] <= high, key
+        checked += 1
+    assert checked > 0
+
+
+@pytest.fixture(scope="module")
+def image_modes(built):
+    folders = {}
+    for mode in ("fail+pending", "none"):
+        out = built["base"] / ("images_" + mode.replace("+", "_"))
+        out.mkdir()
+        shutil.copyfile(built["out"] / "items.csv", out / "items.csv")
+        shutil.copyfile(built["out"] / "raw_stats.csv", out / "raw_stats.csv")
+        gc._run([ROOT / "report_v2.py", out, *built["common"], "--images", mode])
+        folders[mode] = out / "report"
+    return folders
+
+
+def png_files(folder: Path):
+    image_dir = folder / "img"
+    return sorted(image_dir.glob("*.png")) if image_dir.exists() else []
+
+
+def test_static_image_modes_counts_names_and_no_data_urls(built, image_modes):
+    verdicts = built["table"]["verdict_final"].astype(str)
+    cases = ((built["out"] / "report", int((verdicts == "차이").sum())),
+             (image_modes["fail+pending"], int(verdicts.isin(["차이", "미결"]).sum())),
+             (image_modes["none"], 0))
+    for folder, expected in cases:
+        files = png_files(folder)
+        assert len(files) == expected, folder
+        assert all(re.fullmatch(r"i\d{5}\.png", path.name) for path in files)
+        if expected == 0:
+            assert not (folder / "img").exists() or not any((folder / "img").iterdir())
+        for path in folder.rglob("*"):
+            if path.is_file() and path.suffix in {".html", ".js"}:
+                assert "data:image" not in path.read_text(encoding="utf-8"), path.relative_to(folder)
+
+
+def test_table_meta_log_bases_and_img_rows_match_files(built):
+    for name in ("report", "report_anon"):
+        folder = built["out"] / name
+        meta = read_assignment(folder / "data" / "table.js", "__dcTable")["meta"]
+        assert meta["log_bases"] == list(item_view.LOG_BASES)
+        assert meta["img_rows"] == [int(path.stem[1:]) for path in png_files(folder)]
+
+
+def test_anon_static_image_names_do_not_contain_item_names(built):
+    folder = built["out"] / "report_anon"
+    assert png_files(folder), "기본 fail 실행은 차이 ITEM의 익명 PNG를 만들어야 한다"
+    assert all(re.fullmatch(r"i\d{5}\.png", path.name) for path in png_files(folder))
