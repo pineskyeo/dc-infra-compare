@@ -425,7 +425,20 @@
 
     function logEmptyPlan(pointCount, loq) {
         var empty = pointCount === 0;
-        return {empty: empty, helper: empty && finite(loq) && loq > 0};
+        var helper = empty && finite(loq) && loq > 0;
+        return {empty: empty, helper: helper,
+                min: helper ? loq / 10 : null, max: helper ? loq * 10 : null};
+    }
+
+    function loqLineSeries(loq, min, max) {
+        return [
+            {name: "LoQ", type: "line", data: [[min, loq], [max, loq]], symbol: "none", silent: true,
+             tooltip: {show: false}, lineStyle: {color: CHART_COLOR.loq, type: "dotted", width: 1.5},
+             itemStyle: {color: CHART_COLOR.loq}, animation: false},
+            {name: "LoQ", type: "line", data: [[loq, min], [loq, max]], symbol: "none", silent: true,
+             tooltip: {show: false}, lineStyle: {color: CHART_COLOR.loq, type: "dotted", width: 1.5},
+             itemStyle: {color: CHART_COLOR.loq}, animation: false}
+        ];
     }
 
     function marginFor(record, logBases) {
@@ -539,14 +552,16 @@
             extras.push(loq);
         }
         var limits = extent(values, log, extras);
+        var markLoq = loq;
         if (emptyPlan.helper) {
-            series.unshift({name: "LoQ", type: "scatter", data: [[loq, loq]], symbolSize: 0, silent: true,
-                            tooltip: {show: false}, itemStyle: {opacity: 0}});
+            limits = {min: emptyPlan.min, max: emptyPlan.max};
+            markLoq = null;
+            series.push.apply(series, loqLineSeries(loq, limits.min, limits.max));
         }
         series[0].markLine = {silent: true, symbol: ["none", "none"], animation: false,
                               lineStyle: {width: 1.5, type: "dashed", color: "#6B7785"},
                               label: {formatter: "{b}", fontSize: 10, color: "#55616E"},
-                              data: scatterLines(limits.min, limits.max, log, delta, loq)};
+                              data: scatterLines(limits.min, limits.max, log, delta, markLoq)};
         var option = chartBase();
         option.series = series;
         option.tooltip.valueFormatter = tooltipValueFormatter(scale.factor);
@@ -1039,7 +1054,7 @@
 
     if (typeof module === "object" && module.exports) {
         module.exports = {fmtNum: fmtNum, displayScale: displayScale, extent: extent, marginFor: marginFor,
-                          logEmptyPlan: logEmptyPlan};
+                          logEmptyPlan: logEmptyPlan, loqLineSeries: loqLineSeries};
     }
     if (typeof document === "undefined") {
         return;

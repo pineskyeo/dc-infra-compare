@@ -193,14 +193,32 @@ const h = require({module_path});
 console.log(JSON.stringify({{
   noLoq: h.logEmptyPlan(0, null),
   withLoq: h.logEmptyPlan(0, 1e-12),
-  hasPoints: h.logEmptyPlan(5, 1e-12)
+  hasPoints: h.logEmptyPlan(5, 1e-12),
+  series: h.loqLineSeries(1e-12, 1e-13, 1e-11)
 }}));
 """
     result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
     values = json.loads(result.stdout)
-    assert values["withLoq"] == {"empty": True, "helper": True}
-    assert values["noLoq"] == {"empty": True, "helper": False}
+    assert values["withLoq"]["empty"] is True
+    assert values["withLoq"]["helper"] is True
+    assert math.isclose(values["withLoq"]["min"], 1e-13, rel_tol=1e-9)
+    assert math.isclose(values["withLoq"]["max"], 1e-11, rel_tol=1e-9)
+    assert values["noLoq"] == {"empty": True, "helper": False, "min": None, "max": None}
     assert values["hasPoints"]["empty"] is False
+    assert values["hasPoints"]["helper"] is False
+    line_a, line_b = values["series"]
+    for line in (line_a, line_b):
+        assert line["type"] == "line"
+        assert line["name"] == "LoQ"
+        assert line["symbol"] == "none"
+        assert line["lineStyle"]["color"] == "#00A888"
+        assert line["tooltip"]["show"] is False
+    expected_a = [[1e-13, 1e-12], [1e-11, 1e-12]]
+    expected_b = [[1e-12, 1e-13], [1e-12, 1e-11]]
+    for got, want in ((line_a["data"], expected_a), (line_b["data"], expected_b)):
+        assert len(got) == len(want)
+        for got_point, want_point in zip(got, want):
+            assert all(math.isclose(g, w, rel_tol=1e-9) for g, w in zip(got_point, want_point)), (got, want)
 
 
 
