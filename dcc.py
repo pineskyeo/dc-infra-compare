@@ -229,6 +229,7 @@ def judge_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
     extra = [*groups, *(s for flag, p in given.items() for s in (flag, str(p)))]
     return [
         ("por_doe_compare", ["por_doe_compare.py", *c.raw_args(), *extra, "--out", str(c.out)]),
+        ("raw_stats", ["raw_stats.py", *c.raw_args(), "--out", str(c.out)]),
         ("review", ["review.py", "--input", str(c.items_csv), "--out", str(c.out), *c.raw_args()]),
         ("plot_verdicts", ["plot_verdicts.py", "--items-csv", str(c.items_csv), "--summary",
                            "--out", str(c.out / "plots")]),
@@ -241,7 +242,7 @@ def loq_step(c: Combo) -> Step:
 
 
 def loq_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
-    return [loq_step(c), report_step(c, a.anon)]
+    return [loq_step(c), report_step(c, a.anon), report_v2_step(c, a.anon)]
 
 
 def item_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
@@ -306,8 +307,12 @@ def report_step(c: Combo, anon: bool = False) -> Step:
     return ("report", ["report.py", str(c.out), *groups, *(["--anon"] if anon else [])])
 
 
+def report_v2_step(c: Combo, anon: bool = False) -> Step:
+    return ("report_v2", ["report_v2.py", str(c.out), *(["--anon"] if anon else [])])
+
+
 def report_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
-    return [report_step(c, a.anon)]
+    return [report_step(c, a.anon), report_v2_step(c, a.anon)]
 
 
 def slides_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
@@ -357,7 +362,7 @@ def run_target(c: Combo, a: argparse.Namespace, steps: list[Step]) -> tuple[str,
             print(f"[{c.name}] 차이·미결 ITEM 이 없어 item 분석을 건너뜁니다", flush=True)
     if failed is not None or a.cmd in OWN_REPORT:
         return failed
-    return run_combo(c, "report", [report_step(c)])
+    return run_combo(c, "report", [report_step(c), report_v2_step(c)])
 
 
 def print_list(combos: dict[str, Combo]) -> None:

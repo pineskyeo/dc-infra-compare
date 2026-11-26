@@ -42,7 +42,7 @@ doe = data/A/DOE
 
 ```bash
 python dcc.py list                          # 조합 이름, POR 회차 수, DOE, 출력 폴더
-python dcc.py judge A1                      # 판정(por_doe_compare) → LoQ·log 재확인(review) → 판정 지도(plot_verdicts) → LoQ 점검(loq_check)
+python dcc.py judge A1                      # 판정(por_doe_compare) → 원데이터 통계(raw_stats) → LoQ·log 재확인(review) → 판정 지도(plot_verdicts) → LoQ 점검(loq_check)
 python dcc.py judge A1 --detail             # + 최종 판정이 차이·미결인 ITEM 전부 item 분석
 python dcc.py judge all                     # 모든 조합을 파일 순서대로. 실패한 조합이 있어도 계속하고 끝에 조합별 결과 한 줄
 python dcc.py item A1 VT_SAME,VT_SHIFT      # 그 ITEM만 Fail 근거 (원데이터 포함: item_view.png, evidence.csv)
@@ -64,6 +64,8 @@ python dcc.py slides A1                     # 판정 기준 장표 2쪽 slides.p
 | 경로 | 내용 | 명령 |
 |---|---|---|
 | `items.csv`, `outlier_dies.csv` | 판정 결과 | `judge` |
+| `raw_stats.csv` | 가공하지 않은 원데이터의 ITEM·회차별 참고 통계 | `judge` |
+| `report/` | 새 리포트 데이터 `table.csv`, `table.json`, `summary.json` | `judge`, `report` |
 | `stability/` | 측정 안정도 ([아래](#측정-안정도-stability)) | `judge` |
 | `review/` | LoQ·log 판정 재확인 ([아래](#loqlog-판정-재확인-review)) | `judge` |
 | `loq/` | LoQ 점검: `loq_items.csv`, `loq_levels.csv`, `loq_trials.csv`, `loq_curve.png`, `loq_reasons.png`, `report.html`, `LoQ.xlsx` ([아래](#loq-점검-loq)) | `judge`, `loq` |
@@ -75,6 +77,16 @@ python dcc.py slides A1                     # 판정 기준 장표 2쪽 slides.p
 | `slides.pptx` | 판정 기준 장표 2쪽. 1쪽 기존 문제와 해결 · 새 판정 흐름 6단계 · 판정 3단계, 2쪽 판정 길별 결과 · 믿을 근거(같은 조건 t-test, 차이 확인, 허용폭 ±20%) · 그룹 × LEVEL 측정 정밀도 · 미결 원인과 다음 조치. ITEM은 익명 번호만 | `slides` |
 
 `item`, `group`, `compare`, `loq`는 `items.csv`를 다시 쓰고, 없을 때만 `judge` 단계를 먼저 돌립니다. 각 단계 이름과 실행 명령을 찍고, 실패하면 그 단계에서 멈추고 오류 끝 20줄을 보여 줍니다. 요약(summarize)과 전체 Fail 근거까지 한 번에 돌리려면 아래 `run_all.py`를 씁니다.
+
+### 원데이터 통계와 새 리포트 데이터
+
+`raw_stats.csv`는 ITEM·POR 회차별로 가공 없음(원데이터 전체)의 개수, 중앙값, 표본 표준편차(n−1)를 적습니다. die 맞추기, 중복 제거, 이상치 제거를 하지 않으며 **판정에 쓰지 않음(참고)**입니다. 두 비교 지표는 `med_shift_POR{k} = |median_POR{k} − median_DOE| / σ_POR{k}`와 `sigma_ratio_POR{k} = σ_DOE / σ_POR{k}`입니다.
+
+```bash
+python report_v2.py <out> [--anon]
+```
+
+이 명령은 기존 `items.csv`와 `raw_stats.csv`를 읽어 `report/table.csv`, `report/table.json`, `report/summary.json`을 씁니다. `--anon`이면 실제 ITEM 이름 대신 익명 ID를 쓰고 `report_anon/`에 씁니다.
 
 ### run_all.py로 한 번에
 

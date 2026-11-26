@@ -1,0 +1,13 @@
+﻿column,쉬운이름,뜻,수식,볼것
+ITEM,ITEM 이름,측정 항목 이름. 원데이터에 적힌 그대로다.,원데이터 `ITEM` 그대로,POR 이나 DOE 한쪽에만 있어도 행을 만든다.
+n_raw_DOE,DOE 숫자 행 수,DOE 원데이터에서 숫자로 읽힌 모든 행 수. 무한대와 1E+90 도 센다.,가공 없음 (원 데이터 전체)의 숫자 `DATA` 개수,die 중복과 한쪽에만 있는 die 도 그대로 센다.
+n_nonnum_DOE,DOE 숫자 아닌 행 수,DOE 원데이터에서 DATA 를 숫자로 읽지 못한 행 수.,숫자로 변환할 수 없는 `DATA` 개수,n_raw_DOE 에는 넣지 않는다.
+median_raw_DOE,DOE 원 중앙값,DOE 숫자 원데이터 전체의 중앙값.,median(`DATA`); 가공 없음 (원 데이터 전체),판정의 die 맞춘 중앙값과 다르다.
+sd_raw_DOE,DOE 원 표본 표준편차,DOE 숫자 원데이터 전체의 표본 표준편차.,std(`DATA`; ddof=1); σ = 표본 표준편차(n−1); 가공 없음 (원 데이터 전체),n_raw_DOE < 2 이면 빈 칸이다.
+n_raw_POR{k},POR{k} 숫자 행 수,POR{k} 원데이터에서 숫자로 읽힌 모든 행 수. 무한대와 1E+90 도 센다.,가공 없음 (원 데이터 전체)의 숫자 `DATA` 개수,die 중복과 다른 회차에 없는 die 도 그대로 센다.
+n_nonnum_POR{k},POR{k} 숫자 아닌 행 수,POR{k} 원데이터에서 DATA 를 숫자로 읽지 못한 행 수.,숫자로 변환할 수 없는 `DATA` 개수,n_raw_POR{k} 에는 넣지 않는다.
+median_raw_POR{k},POR{k} 원 중앙값,POR{k} 숫자 원데이터 전체의 중앙값.,median(`DATA`); 가공 없음 (원 데이터 전체),판정의 die별 회차 평균과 다르다.
+sd_raw_POR{k},POR{k} 원 표본 표준편차,POR{k} 숫자 원데이터 전체의 표본 표준편차.,std(`DATA`; ddof=1); σ = 표본 표준편차(n−1); 가공 없음 (원 데이터 전체),n_raw_POR{k} < 2 이면 빈 칸이다.
+med_shift_POR{k},POR{k} 산포 단위 중앙값 이동,POR{k} 와 DOE 원 중앙값 차이를 POR{k} 원 표본 표준편차로 나눈 절댓값.,|median_POR{k} − median_DOE| / σ_POR{k}; σ = 표본 표준편차(n−1); 가공 없음 (원 데이터 전체),판정에 쓰지 않음(참고). stability 회차 점수와 다름. 계산 조건이 없으면 raw_note_POR{k} 를 본다.
+sigma_ratio_POR{k},DOE 대 POR{k} 산포 비,DOE 원 표본 표준편차를 POR{k} 원 표본 표준편차로 나눈 값.,σ_DOE / σ_POR{k}; σ = 표본 표준편차(n−1); 가공 없음 (원 데이터 전체),판정에 쓰지 않음(참고). stability 회차 점수와 다름. σ_DOE = 0 이면 0 이 정상 값이다.
+raw_note_POR{k},원 통계 계산 메모,med_shift_POR{k} 와 sigma_ratio_POR{k} 를 낼 수 없는 첫 번째 이유.,n<2 / 비유한 값 / σ_ref=0,빈 칸이면 두 비교 값을 계산했다. σ_DOE = 0 은 메모를 남기지 않는다.

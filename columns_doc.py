@@ -54,6 +54,8 @@ class Output:
 
 OUTPUTS: tuple[Output, ...] = (
     Output("items.csv", ("items.csv",), "items", "por_doe_compare.py (dcc judge, run_all)"),
+    Output("raw_stats.csv", ("raw_stats.csv",), "raw_stats", "raw_stats.py (dcc judge)"),
+    Output("report/table.csv", ("report/table.csv",), "report_table", "report_v2.py (dcc report)"),
     Output("outlier_dies.csv", ("outlier_dies.csv",), "outlier_dies", "por_doe_compare.py"),
     Output("scales_auto.csv", ("scales_auto.csv",), "scales_auto", "por_doe_compare.py --scales"),
     Output("stability/overall.csv", ("stability/overall.csv",), "measure_stability_overall",

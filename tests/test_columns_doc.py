@@ -43,6 +43,10 @@ out = {base / "dcc"}
 """, encoding="utf-8")
     config = ["--config", base / "combos.ini"]
     run(ROOT / "dcc.py", "judge", "A1", *config)
+    run(ROOT / "raw_stats.py", *(a for i in (1, 2, 3) for a in ("--por", data / f"por_run{i}")),
+        "--doe", data / "doe", "--level", data / "level.csv", "--blank", data / "blank",
+        "--blank-map", data / "blank_map.csv", "--out", base / "dcc" / "A1")
+    run(ROOT / "report_v2.py", base / "dcc" / "A1")
     run(ROOT / "dcc.py", "item", "A1", "VT_SHIFT,VT_SAME,IOFF_LEAK,VT_NOISY_DOE", *config)
     run(ROOT / "dcc.py", "classes", "A1", *config)
     shutil.copytree(base / "dcc" / "A1", base / "before_run")     # stability/group_levels.csv 도 같이 (그룹 × LEVEL)

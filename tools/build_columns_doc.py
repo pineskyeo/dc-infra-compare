@@ -28,6 +28,8 @@ RAW_FILE_COLUMNS = ("DATA", "CALCVAL", "LEVEL", "BLANK_ITEM")
 # 결과 파일 종류마다 한 줄 설명
 PURPOSE = {
     "items.csv": "ITEM마다 판정, 판정 근거 숫자, 데이터 상태를 한 행에 적는다. 모든 결과의 출발점이다.",
+    "raw_stats.csv": "ITEM과 POR 회차마다 원데이터 전체의 개수, 중앙값, 표본 표준편차를 적고 DOE와 비교한다. 판정에는 쓰지 않는 참고 표다.",
+    "report/table.csv": "새 리포트가 쓰는 ITEM별 표. items.csv 행 순서를 유지하고 원데이터 통계를 ITEM으로 붙인다.",
     "outlier_dies.csv": "튀는 die(items.csv `n_outlier_die`에 센 die)마다 한 행. die 위치와 회차별 값을 적는다.",
     "scales_auto.csv": "척도가 auto인 그룹마다 log와 linear 중 무엇을 골랐는지 적는다. --scales를 줄 때만 생긴다.",
     "item_map.csv": "익명 번호와 실제 ITEM 이름의 대응표. 공유하지 않는다.",
@@ -73,7 +75,7 @@ PURPOSE = {
 
 # 열 설명 문서마다 수식이 읽는 다른 문서 (그 파일이 입력으로 읽는 결과 파일). 원데이터는 모든 문서가 읽는다.
 INPUTS = {
-    "items": (), "outlier_dies": (), "item_raw": (),
+    "items": (), "outlier_dies": (), "item_raw": (), "raw_stats": (), "report_table": ("items", "raw_stats"),
     "scales_auto": ("items",), "item_map": ("items",), "fail_evidence": ("items",), "items_index": ("items",),
     "compare": ("items",), "compare_scope": ("compare",), "compare_overview": ("compare",),
     "compare_group_levels": ("measure_stability_group_levels",),
