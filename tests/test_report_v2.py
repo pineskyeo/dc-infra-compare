@@ -15,9 +15,11 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tests"))
 
+import dcc  # noqa: E402
 import golden_cases as gc  # noqa: E402
 import item_view  # noqa: E402
 import por_doe_compare  # noqa: E402
+import report_v2  # noqa: E402
 
 ECHARTS_SHA256 = "bf4a223524e40b77c304bec67e1222cf551f14880cf42c69dc046558e11c07b1"
 
@@ -234,3 +236,65 @@ def test_anon_static_image_names_do_not_contain_item_names(built):
     folder = built["out"] / "report_anon"
     assert png_files(folder), "기본 fail 실행은 차이 ITEM의 익명 PNG를 만들어야 한다"
     assert all(re.fullmatch(r"i\d{5}\.png", path.name) for path in png_files(folder))
+
+
+@pytest.fixture(scope="module")
+def job_images(built):
+    folders = {}
+    for jobs in (1, 2):
+        out = built["base"] / f"images_jobs_{jobs}"
+        out.mkdir()
+        shutil.copyfile(built["out"] / "items.csv", out / "items.csv")
+        shutil.copyfile(built["out"] / "raw_stats.csv", out / "raw_stats.csv")
+        gc._run([ROOT / "report_v2.py", out, *built["common"], "--jobs", jobs])
+        folders[jobs] = out / "report"
+    return folders
+
+
+def test_static_image_jobs_match_names_meta_and_bytes(job_images):
+    sequential, parallel = job_images[1], job_images[2]
+    sequential_files, parallel_files = png_files(sequential), png_files(parallel)
+    assert [path.name for path in parallel_files] == [path.name for path in sequential_files]
+    sequential_meta = read_assignment(sequential / "data" / "table.js", "__dcTable")["meta"]
+    parallel_meta = read_assignment(parallel / "data" / "table.js", "__dcTable")["meta"]
+    assert parallel_meta["img_rows"] == sequential_meta["img_rows"]
+    assert [path.read_bytes() for path in parallel_files] == [path.read_bytes() for path in sequential_files]
+
+
+def test_static_image_failure_is_isolated(built, monkeypatch, capsys):
+    source_files = png_files(built["out"] / "report")
+    target_name = source_files[0].name
+    original_plot = report_v2.item_view.plot_item_view
+
+    def fail_target(rows, srow, path):
+        if path.name == target_name:
+            raise RuntimeError("의도한 실패")
+        return original_plot(rows, srow, path)
+
+    monkeypatch.setattr(report_v2.item_view, "plot_item_view", fail_target)
+    out = built["base"] / "images_one_failure"
+    out.mkdir()
+    shutil.copyfile(built["out"] / "items.csv", out / "items.csv")
+    shutil.copyfile(built["out"] / "raw_stats.csv", out / "raw_stats.csv")
+    report_v2.main([str(out), *map(str, built["common"]), "--jobs", "1"])
+
+    expected = [path.name for path in source_files if path.name != target_name]
+    assert [path.name for path in png_files(out / "report")] == expected
+    assert "정적 그림 실패" in capsys.readouterr().err
+
+
+def test_jobs_zero_is_argparse_error(built):
+    with pytest.raises(SystemExit):
+        report_v2.main([str(built["out"]), "--jobs", "0"])
+
+
+def test_dcc_report_v2_step_forwards_only_explicit_jobs():
+    class ComboStub:
+        out = Path("out")
+
+        def raw_args(self):
+            return ["--por", "POR"]
+
+    combo = ComboStub()
+    assert dcc.report_v2_step(combo, jobs=3)[1][-2:] == ["--jobs", "3"]
+    assert "--jobs" not in dcc.report_v2_step(combo, jobs=None)[1]

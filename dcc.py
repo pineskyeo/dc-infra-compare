@@ -307,12 +307,13 @@ def report_step(c: Combo, anon: bool = False) -> Step:
     return ("report", ["report.py", str(c.out), *groups, *(["--anon"] if anon else [])])
 
 
-def report_v2_step(c: Combo, anon: bool = False) -> Step:
-    return ("report_v2", ["report_v2.py", str(c.out), *c.raw_args(), *(["--anon"] if anon else [])])
+def report_v2_step(c: Combo, anon: bool = False, jobs=None) -> Step:
+    jobs_args = ["--jobs", str(jobs)] if jobs is not None else []
+    return ("report_v2", ["report_v2.py", str(c.out), *c.raw_args(), *(["--anon"] if anon else []), *jobs_args])
 
 
 def report_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
-    return [report_step(c, a.anon), report_v2_step(c, a.anon)]
+    return [report_step(c, a.anon), report_v2_step(c, a.anon, getattr(a, "jobs", None))]
 
 
 def slides_steps(c: Combo, a: argparse.Namespace) -> list[Step]:
@@ -403,6 +404,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("report", parents=[common], help="리포트만 다시 쓰기 (report.html, item/, group/, compare/)")
     p.add_argument("name", help="조합 이름")
     p.add_argument("--anon", action="store_true", help="ITEM 이름 대신 익명 ID 만 (report_anon.html, 밖으로 공유할 때)")
+    p.add_argument("--jobs", type=int, default=None, help="정적 PNG 를 만들 프로세스 수 (기본은 report_v2 기본값)")
     p = sub.add_parser("loq", parents=[common],
                        help="LoQ 아래 ITEM 점검과 그 리포트 (<out>/<이름>/loq/report.html, LoQ.xlsx)")
     p.add_argument("name", help="조합 이름")

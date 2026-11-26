@@ -8,14 +8,20 @@ POR/DOE 공통 인자를 함께 주면 ITEM 원데이터 chunk 도 만든다. �
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
+import concurrent.futures.process
 import html
 import json
 import math
+import multiprocessing
+import os
 import re
 import shutil
 import sys
+import time
 from pathlib import Path
 
+import matplotlib
 import numpy as np
 import pandas as pd
 
@@ -239,18 +245,32 @@ def _write_js(path: Path, name: str, value) -> None:
     path.write_text(f"window.{name} = {json.dumps(value, ensure_ascii=False, allow_nan=False)};\n", encoding="utf-8")
 
 
+def _init_worker() -> None:
+    matplotlib.use("Agg")
+    fail_evidence.configure_font()
+
+
+def _plot_one(task) -> tuple[int, str | None]:
+    row_number, rows, srow, path = task
+    try:
+        item_view.plot_item_view(rows, srow, path)
+    except Exception as e:
+        path.unlink(missing_ok=True)
+        return row_number, f"{type(e).__name__}: {e}"
+    return row_number, None
+
+
 def _write_item_images(table: pd.DataFrame, items: pd.DataFrame, groups: dict, folder: Path,
-                       mode: str, anon: bool) -> list[int]:
+                       mode: str, anon: bool, jobs: int) -> list[int]:
     """선택한 ITEM을 fail_evidence와 같은 rows/srow 형태로 item_view에 넘긴다."""
     wanted = {"차이"} if mode == "fail" else {"차이", "미결"} if mode == "fail+pending" else set(VERDICTS)
     records = [row for row in table.to_dict("records") if _text(row.get("verdict_final")) in wanted]
-    if not records:
-        return []
     image_dir = folder / "img"
-    image_dir.mkdir(parents=True, exist_ok=True)
-    namer = Namer(items, anon)
-    fail_evidence.configure_font()
-    image_rows = []
+    tasks = []
+    if records:
+        image_dir.mkdir(parents=True, exist_ok=True)
+        namer = Namer(items, anon)
+        fail_evidence.configure_font()
     for record in records:
         row_number = int(record["row"])
         raw_item = items.iloc[row_number - 1]["ITEM"]
@@ -266,8 +286,38 @@ def _write_item_images(table: pd.DataFrame, items: pd.DataFrame, groups: dict, f
         if anon:
             srow = {key: _anon_text(value, namer, True) for key, value in srow.items()}
             srow["ITEM"] = record["ITEM"]
-        item_view.plot_item_view(rows, srow, image_dir / f"i{row_number:05d}.png")
-        image_rows.append(row_number)
+        tasks.append((row_number, rows, srow, image_dir / f"i{row_number:05d}.png"))
+
+    started = time.perf_counter()
+    workers = 1 if jobs == 1 or len(tasks) <= 1 else min(jobs, len(tasks))
+    results = []
+    if workers == 1:
+        results = [_plot_one(task) for task in tasks]
+    else:
+        try:
+            context = multiprocessing.get_context("spawn")
+            with concurrent.futures.ProcessPoolExecutor(max_workers=workers, mp_context=context,
+                                                        initializer=_init_worker) as executor:
+                chunksize = max(1, len(tasks) // (workers * 4))
+                for result in executor.map(_plot_one, tasks, chunksize=chunksize):
+                    results.append(result)
+        except Exception as e:
+            done = {row_number for row_number, _ in results}
+            remaining = [task for task in tasks if task[0] not in done]
+            print(f"경고: 정적 그림 프로세스 풀 실패: {type(e).__name__}: {e}; "
+                  f"남은 {len(remaining)}장을 순차로 다시 그립니다.", file=sys.stderr)
+            results.extend(_plot_one(task) for task in remaining)
+
+    image_rows = []
+    failed = 0
+    for task, (row_number, error) in zip(tasks, results):
+        if error is None:
+            image_rows.append(row_number)
+        else:
+            failed += 1
+            print(f"경고: {task[2].get('ITEM')} 정적 그림 실패: {error}", file=sys.stderr)
+    seconds = time.perf_counter() - started
+    print(f"정적 그림 {len(image_rows)}장, 실패 {failed}장, {seconds:.2f}초 (jobs={workers})")
     return image_rows
 
 
@@ -319,7 +369,7 @@ def _write_pages(table: pd.DataFrame, summary: dict, out: Path, anon: bool, a: a
             units = items.drop_duplicates("ITEM").set_index("ITEM")["UNIT"].to_dict()
         groups = {item: group for item, group in wide.groupby("ITEM", sort=False)}
         if a.images != "none":
-            image_rows = _write_item_images(table, items, groups, folder, a.images, anon)
+            image_rows = _write_item_images(table, items, groups, folder, a.images, anon, a.jobs)
 
     rows = [[_json_value(v) for v in row] for row in table.itertuples(index=False, name=None)]
     table_text = "window.__dcTable = " + json.dumps({
@@ -384,8 +434,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--anon", action="store_true")
     ap.add_argument("--images", choices=("fail", "fail+pending", "all", "none"), default="fail",
                     help="정적 PNG 범위: 차이만(기본), 차이+미결, 전체, 만들지 않음")
+    ap.add_argument("--jobs", type=int, default=os.cpu_count() or 1,
+                    help="정적 PNG 를 만들 프로세스 수 (1 이면 순차)")
     _add_optional_common_args(ap)
     a = ap.parse_args(argv)
+    if a.jobs < 1:
+        ap.error("--jobs 는 1 이상이어야 합니다")
     if bool(a.por) != bool(a.doe):
         ap.error("--por 와 --doe 는 함께 주거나 함께 생략해야 합니다")
     table, summary = write_reports(a.out_folder, anon=a.anon)

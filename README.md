@@ -92,12 +92,14 @@ python report_v2.py <out> [--anon]
 
 ```bash
 python report_v2.py <out> --por POR1/ --por POR2/ --por POR3/ --doe DOE/ \
-  --level item_info.csv [--anon] [--images fail|fail+pending|all|none]
+  --level item_info.csv [--anon] [--images fail|fail+pending|all|none] [--jobs N]
 ```
 
 브라우저에서 여는 세 페이지를 만듭니다. `index.html`은 전체 판정과 LoQ 요약, `table.html`은 가상 스크롤 ITEM 표와 필터·검색, `analysis.html`은 ITEM별 수치·네 차트·정적 그림을 보여 줍니다. 표의 행이나 ITEM 검색으로 상세 페이지에 들어가며, 각 차트 제목 아래 `verdict_final · judged_by · reason`을 그대로 적습니다.
 
 `--images`는 기본값 `fail`에서 **차이 ITEM만** `img/iNNNNN.png`를 만들고, `fail+pending`은 차이와 미결, `all`은 전체 ITEM, `none`은 그림을 만들지 않습니다. 상세 페이지의 PNG는 파일로 연결되며 HTML에 base64로 넣지 않습니다. POR/DOE 인자를 생략하면 표와 페이지는 만들지만 원데이터 chunk와 정적 그림은 만들지 않고 경고를 출력합니다.
+
+`--jobs N`은 정적 PNG를 N개 프로세스로 병렬 생성합니다. 기본값은 CPU 수이며, `1`이면 순차 생성합니다.
 
 네 차트는 모두 선택한 ITEM의 chunk에 있는 **판정에 쓴 die (wide)**만 사용합니다.
 

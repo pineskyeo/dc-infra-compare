@@ -1,6 +1,6 @@
 """합성 데이터로 report_v2 브라우저 리포트를 처음부터 끝까지 만든다.
 
-  python examples/demo_report_v2.py OUT [--items N] [--dies D] [--seed S] [--images MODE]
+  python examples/demo_report_v2.py OUT [--items N] [--dies D] [--seed S] [--images MODE] [--jobs N]
 """
 from __future__ import annotations
 
@@ -29,6 +29,7 @@ def main() -> None:
     parser.add_argument("--dies", type=int, default=60)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--images", choices=("fail", "fail+pending", "all", "none"), default="fail")
+    parser.add_argument("--jobs", type=int, default=None)
     args = parser.parse_args()
     out = args.out.resolve()
     common = [
@@ -44,7 +45,8 @@ def main() -> None:
     run_step("POR/DOE 판정", [ROOT / "por_doe_compare.py", *common, "--out", out])
     run_step("원데이터 통계", [ROOT / "raw_stats.py", *common, "--out", out])
     run_step("LoQ 점검", [ROOT / "loq_check.py", "--input", out / "items.csv", "--out", out, *common])
-    run_step("브라우저 리포트", [ROOT / "report_v2.py", out, *common, "--images", args.images])
+    run_step("브라우저 리포트", [ROOT / "report_v2.py", out, *common, "--images", args.images,
+                             *(["--jobs", args.jobs] if args.jobs is not None else [])])
     print(f"\n전체 {time.perf_counter() - started:.2f}초")
     print(f"리포트: {out / 'report' / 'index.html'}")
 
