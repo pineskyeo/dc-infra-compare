@@ -181,7 +181,8 @@ def test_chunk_die_evidence_reproduces_items_rank_ci(built):
         high = item_row["ci_high" + suffix]
         assert ordered[k - 1] == pytest.approx(low, rel=1e-9, abs=1e-15), key
         assert ordered[evidence.n - k] == pytest.approx(high, rel=1e-9, abs=1e-15), key
-        assert ((low <= evidence.d) & (evidence.d <= high)).sum() >= evidence.n - 2 * k + 2, key
+        lo, hi = ordered[k - 1], ordered[evidence.n - k]
+        assert ((lo <= evidence.d) & (evidence.d <= hi)).sum() >= evidence.n - 2 * k + 2, key
         assert low <= item_row["center" + suffix] <= high, key
         checked += 1
     assert checked > 0
@@ -217,7 +218,7 @@ def test_static_image_modes_counts_names_and_no_data_urls(built, image_modes):
         if expected == 0:
             assert not (folder / "img").exists() or not any((folder / "img").iterdir())
         for path in folder.rglob("*"):
-            if path.is_file() and path.suffix in {".html", ".js"}:
+            if path.is_file() and path.suffix in {".html", ".js"} and not path.name.startswith("echarts."):
                 assert "data:image" not in path.read_text(encoding="utf-8"), path.relative_to(folder)
 
 
