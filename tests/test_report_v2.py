@@ -229,7 +229,8 @@ const inside = h.ciOption(item, Object.assign({{}}, record, {{LoQ: 0.02, por_med
 function summary(option) {{
   return {{min: option.yAxis.min, max: option.yAxis.max,
            seriesNames: option.series.map(s => s.name),
-           graphics: (option.graphic || []).map(g => g.style.text)}};
+           graphics: (option.graphic || []).map(g => g.style.text),
+           backgrounds: (option.graphic || []).map(g => g.style.backgroundColor)}};
 }}
 console.log(JSON.stringify({{outside: summary(outside), inside: summary(inside)}}));
 """
@@ -241,6 +242,7 @@ console.log(JSON.stringify({{outside: summary(outside), inside: summary(inside)}
     assert outside["min"] > -0.1
     assert "DOE가 LoQ에 닿는 이동" not in outside["seriesNames"]
     assert len(outside["graphics"]) == 1
+    assert outside["backgrounds"] == ["rgba(255,255,255,0.9)"]
     merged = outside["graphics"][0]
     assert " / " in merged
     assert merged.startswith("LoQ 이동 ")
@@ -263,7 +265,8 @@ const stacked = opt.graphic.map(g => ({{bottom: g.bottom, text: g.style.text}}))
 h.appendEdgeLabel(opt, counts, 'LoQ', 3, 'below', 'y');
 console.log(JSON.stringify({{
   stacked: stacked,
-  texts: opt.graphic.map(g => g.style.text)
+  texts: opt.graphic.map(g => g.style.text),
+  styles: opt.graphic.map(g => ({{backgroundColor: g.style.backgroundColor, padding: g.style.padding}}))
 }}));
 """
     result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
@@ -272,6 +275,9 @@ console.log(JSON.stringify({{
     assert abs(values["stacked"][0]["bottom"] - values["stacked"][1]["bottom"]) >= 18
     assert len(values["texts"]) == 2
     assert values["texts"] == ["LoD 1 (범위 밖 ↓)", "LoQ 2 / 3 (범위 밖 ↓)"]
+    for style in values["styles"]:
+        assert style["backgroundColor"] == "rgba(255,255,255,0.9)"
+        assert style["padding"] == [2, 4]
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")

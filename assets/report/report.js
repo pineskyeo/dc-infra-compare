@@ -474,9 +474,11 @@
         var index = counts[key] || 0;
         counts[key] = index + 1;
         var values = [rawValue];
-        var graphic = {type: "text", silent: true,
+        var graphic = {type: "text", silent: true, z: 100,
                        style: {text: edgeText(name, values, placement, axis),
-                               fill: CHART_COLOR.loq, fontSize: 11}};
+                               fill: CHART_COLOR.loq, fontSize: 11,
+                               backgroundColor: "rgba(255,255,255,0.9)",
+                               padding: [2, 4]}};
         if (axis === "x") {
             graphic.top = "middle";
             graphic.y = index * 18;
