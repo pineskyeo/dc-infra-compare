@@ -397,6 +397,78 @@
         return {min: low - span * 0.08, max: high + span * 0.08};
     }
 
+    var LOG_TICK_MANTISSAS = [1, 2, 2.5, 5];
+
+    // Adds raw (rounded to 3 significant digits) when it lies strictly inside (min, max)
+    // and its label is not already in ticks. Labels come from fmtNum, so the check is on text.
+    function addLogTick(ticks, raw, min, max) {
+        var value = Number(raw.toPrecision(3));
+        if (!(value > min && value < max)) {
+            return;
+        }
+        var label = fmtNum(value);
+        if (label === "0" || ticks.map(fmtNum).indexOf(label) >= 0) {
+            return;
+        }
+        ticks.push(value);
+    }
+
+    function niceLogTicks(min, max) {
+        var ticks = [];
+        var first = Math.floor(Math.log10(min)) - 1;
+        var last = Math.ceil(Math.log10(max)) + 1;
+        for (var e = first; e <= last; e += 1) {
+            for (var m = 0; m < LOG_TICK_MANTISSAS.length; m += 1) {
+                addLogTick(ticks, LOG_TICK_MANTISSAS[m] * Math.pow(10, e), min, max);
+            }
+        }
+        return ticks.sort(function (a, b) { return a - b; });
+    }
+
+    // Evenly spaced in log space, for ranges too narrow for a 1, 2, 2.5, 5 step.
+    function spacedLogTicks(min, max, count) {
+        var ticks = [];
+        var ratio = max / min;
+        for (var k = 1; k <= count; k += 1) {
+            addLogTick(ticks, min * Math.pow(ratio, k / (count + 1)), min, max);
+        }
+        return ticks;
+    }
+
+    // Explicit ticks for a log axis whose range is less than one decade, where ECharts finds no
+    // power-of-ten tick. Returns null (keep ECharts' default ticks) for multi-decade or invalid ranges.
+    function logAxisTicks(min, max) {
+        if (!finite(min) || !finite(max) || !(min > 0) || !(max > min)) {
+            return null;
+        }
+        if (Math.log10(max) - Math.log10(min) >= 1) {
+            return null;
+        }
+        var nice = niceLogTicks(min, max);
+        if (nice.length >= 3 && nice.length <= 5) {
+            return nice;
+        }
+        for (var count = 4; count >= 3; count -= 1) {
+            var spaced = spacedLogTicks(min, max, count);
+            if (spaced.length >= 3 && spaced.length <= 5) {
+                return spaced;
+            }
+        }
+        return null;
+    }
+
+    // Log-axis label formatter: ECharts can pass 0 (or other non-positive values) as a tick,
+    // and a log axis has no zero, so those print as an empty label.
+    function fmtLogNum(value) {
+        return finite(value) && value > 0 ? fmtNum(value) : "";
+    }
+
+    function withLogTicks(axis, ticks) {
+        axis.axisLabel.customValues = ticks.slice();
+        axis.axisTick = {show: true, customValues: ticks.slice()};
+        return axis;
+    }
+
     function chartBase() {
         return {
             animation: false,
@@ -673,16 +745,21 @@
             option.graphic = (option.graphic || []).concat([{type: "text", left: "center", top: "middle", silent: true,
                                style: {text: "양수 값 없음: log 축에 점 없음", fill: "#55616E", fontSize: 13}}]);
         }
+        var logTicks = log ? logAxisTicks(limits.min, limits.max) : null;
         option.xAxis = {type: log ? "log" : "value", logBase: 10, min: limits.min, max: limits.max, scale: !log,
                         name: scaledAxisName("POR 회차 평균 · " + DIE_AXIS, item, scale), nameLocation: "middle", nameGap: 44,
-                        axisLabel: {color: "#55616E", hideOverlap: true, formatter: fmtNum},
+                        axisLabel: {color: "#55616E", hideOverlap: true, formatter: log ? fmtLogNum : fmtNum},
                         splitNumber: log ? 5 : 4,
                         splitLine: {lineStyle: {color: "#E2E6EC"}}};
         option.yAxis = {type: log ? "log" : "value", logBase: 10, min: limits.min, max: limits.max, scale: !log,
                         name: scaledAxisName((log ? "|DOE|·|POR|" : "DOE·POR") + " · " + DIE_AXIS, item, scale),
                         nameLocation: "middle", nameGap: 58, nameRotate: 90,
-                        axisLabel: {color: "#55616E", hideOverlap: true, formatter: fmtNum},
+                        axisLabel: {color: "#55616E", hideOverlap: true, formatter: log ? fmtLogNum : fmtNum},
                         splitLine: {lineStyle: {color: "#E2E6EC"}}};
+        if (logTicks) {
+            withLogTicks(option.xAxis, logTicks);
+            withLogTicks(option.yAxis, logTicks);
+        }
         return {option: option, dropped: dropped};
     }
 
@@ -1177,7 +1254,7 @@
         module.exports = {fmtNum: fmtNum, rawNum: rawNum, displayScale: displayScale, extent: extent,
                           marginFor: marginFor, logEmptyPlan: logEmptyPlan, loqLineSeries: loqLineSeries,
                           loqPlacement: loqPlacement, edgeLabel: edgeLabel,
-                          appendEdgeLabel: appendEdgeLabel,
+                          appendEdgeLabel: appendEdgeLabel, logAxisTicks: logAxisTicks,
                           tooltipValueFormatter: tooltipValueFormatter,
                           ciOption: ciOption, boxOption: boxOption, scatterOption: scatterOption,
                           headTransform: headTransform};

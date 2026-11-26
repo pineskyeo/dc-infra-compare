@@ -44,4 +44,6 @@ median_raw_POR{k},POR{k} 원 중앙값,POR{k} 숫자 원데이터 전체의 중�
 sd_raw_POR{k},POR{k} 원 표본 표준편차,POR{k} 숫자 원데이터 전체의 표본 표준편차.,raw_stats.csv 의 `sd_raw_POR{k}` 복사; σ = 표본 표준편차(n−1),n_raw_POR{k} < 2 이면 빈 칸이다.
 med_shift_POR{k},POR{k} 산포 단위 중앙값 이동,POR{k} 와 DOE 원 중앙값 차이를 POR{k} 원 표본 표준편차로 나눈 절댓값.,|median_POR{k} − median_DOE| / σ_POR{k}; σ = 표본 표준편차(n−1); 가공 없음 (원 데이터 전체),판정에 쓰지 않음(참고). stability 회차 점수와 다름.
 sigma_ratio_POR{k},DOE 대 POR{k} 산포 비,DOE 원 표본 표준편차를 POR{k} 원 표본 표준편차로 나눈 값.,σ_DOE / σ_POR{k}; σ = 표본 표준편차(n−1); 가공 없음 (원 데이터 전체),판정에 쓰지 않음(참고). stability 회차 점수와 다름.
-raw_note_POR{k},원 통계 계산 메모,원 중앙값 이동과 산포 비를 낼 수 없는 첫 번째 이유.,n<2 / 비유한 값 / σ_ref=0,빈 칸이면 계산했다. σ_DOE = 0 은 메모를 남기지 않는다.
+ms3_limit_POR{k},POR{k} median shift 3 기준 리밋,POR{k} 원 표본 표준편차의 3배. DOE 원 중앙값이 POR{k} 원 중앙값에서 이만큼 안에 있으면 기존 median shift 3 기준을 통과한다.,"3 · σ_POR{k}; σ = 표본 표준편차(n−1); 가공 없음 (원 데이터 전체). |median_DOE − median_POR{k}| ≤ 3σ_POR{k} 이면 기존 median shift 3 기준 Pass(= med_shift ≤ 3)","판정에 쓰지 않음(참고). σ_POR{k} 가 빈 칸이면 빈 칸, σ_POR{k} = 0 이면 0."
+ms3_limit_pct_POR{k},POR{k} median shift 3 리밋 (%),ms3_limit_POR{k} 를 POR{k} 원 중앙값 절댓값으로 나눈 백분율.,"3 · σ_POR{k} / |median_POR{k}| × 100 (%); 기존 Δ%와 같은 |POR median| 기준 비교용. median_POR{k}=0 이면 빈칸(사유 raw_note)",판정에 쓰지 않음(참고).
+raw_note_POR{k},원 통계 계산 메모,원 중앙값 이동과 산포 비를 낼 수 없는 첫 번째 이유.,n<2 / 비유한 값 / σ_ref=0 / median_ref=0 (ms3 % 없음),빈 칸이면 계산했다. σ_DOE = 0 은 메모를 남기지 않는다. median_ref=0 사유는 기존 사유 뒤에 세미콜론과 공백으로 이어 붙인다.

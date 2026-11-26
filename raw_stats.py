@@ -18,7 +18,9 @@ from por_doe_compare import add_common_args
 
 
 DOE_COLUMNS = ("n_raw_DOE", "n_nonnum_DOE", "median_raw_DOE", "sd_raw_DOE")
-RUN_COLUMNS = ("n_raw", "n_nonnum", "median_raw", "sd_raw", "med_shift", "sigma_ratio", "raw_note")
+RUN_COLUMNS = ("n_raw", "n_nonnum", "median_raw", "sd_raw", "med_shift", "sigma_ratio",
+               "ms3_limit", "ms3_limit_pct", "raw_note")
+MS3_NO_PCT_NOTE = "median_ref=0 (ms3 % 없음)"
 
 
 def column_names(n_runs: int) -> list[str]:
@@ -52,6 +54,20 @@ def _shift_ratio(ref: np.ndarray, doe: np.ndarray, sd_ref: float, sd_doe: float)
     return shift, (0.0 if sd_doe == 0 else sd_doe / sd_ref), ""
 
 
+def _ms3_limit(ref: np.ndarray, sd_ref: float) -> float:
+    """POR 원 표본 표준편차의 3배 (원 단위). 비유한 값이 있거나 σ 를 못 내면 빈 칸."""
+    if not np.isfinite(sd_ref) or not np.isfinite(ref).all():
+        return np.nan
+    return 3.0 * sd_ref
+
+
+def _ms3_limit_pct(ms3: float, ref_median: float) -> float:
+    """ms3 리밋을 POR 원 중앙값 절댓값으로 나눈 백분율. 중앙값이 0 이면 빈 칸."""
+    if not np.isfinite(ms3) or not np.isfinite(ref_median) or ref_median == 0:
+        return np.nan
+    return ms3 / abs(ref_median) * 100
+
+
 def raw_stats(por_frames: list[pd.DataFrame], doe_frame: pd.DataFrame) -> pd.DataFrame:
     """긴 형식 POR 회차들과 DOE 에서 ITEM 별 원데이터 통계를 계산한다."""
     frames = [*por_frames, doe_frame]
@@ -68,9 +84,15 @@ def raw_stats(por_frames: list[pd.DataFrame], doe_frame: pd.DataFrame) -> pd.Dat
             ref, ref_nonnum = values.get(item, (np.array([], dtype=float), 0))
             ref_median, ref_sd = _median_sd(ref)
             shift, ratio, note = _shift_ratio(ref, doe, ref_sd, doe_sd)
+            ms3 = _ms3_limit(ref, ref_sd)
+            ms3_pct = _ms3_limit_pct(ms3, ref_median)
+            if np.isfinite(ms3) and ref_median == 0:
+                note = "; ".join(part for part in (note, MS3_NO_PCT_NOTE) if part)
             row.update({f"n_raw_POR{k}": len(ref), f"n_nonnum_POR{k}": ref_nonnum,
                         f"median_raw_POR{k}": ref_median, f"sd_raw_POR{k}": ref_sd,
-                        f"med_shift_POR{k}": shift, f"sigma_ratio_POR{k}": ratio, f"raw_note_POR{k}": note})
+                        f"med_shift_POR{k}": shift, f"sigma_ratio_POR{k}": ratio,
+                        f"ms3_limit_POR{k}": ms3, f"ms3_limit_pct_POR{k}": ms3_pct,
+                        f"raw_note_POR{k}": note})
         rows.append(row)
     return pd.DataFrame(rows, columns=column_names(len(por_frames)))
 

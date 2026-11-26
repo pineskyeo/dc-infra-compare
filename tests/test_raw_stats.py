@@ -60,6 +60,53 @@ def test_edge_rules_first_match_and_zero_doe_is_valid():
     assert np.isfinite(rows.loc["ZERO_DOE", "med_shift_POR1"])
 
 
+def test_ms3_limit_is_three_ref_sd_and_pct_uses_ref_median():
+    por_values = [1.0, 2.0, 4.0, 8.0]
+    row = rs.raw_stats([frame(por_values)], frame([2.0, 3.0])).iloc[0]
+    sd = np.std(por_values, ddof=1)
+    assert row["ms3_limit_POR1"] == pytest.approx(3 * sd, rel=1e-12)
+    assert row["ms3_limit_pct_POR1"] == pytest.approx(3 * sd / abs(np.median(por_values)) * 100, rel=1e-12)
+    assert row["raw_note_POR1"] == ""
+
+
+def test_median_ref_zero_blanks_pct_and_adds_note():
+    ref_values = [-1.0, 0.0, 1.0]
+    rows = rs.raw_stats([frame(ref_values)], frame([2.0, 3.0])).set_index("ITEM")
+    assert rows.loc["A", "ms3_limit_POR1"] == pytest.approx(3 * np.std(ref_values, ddof=1), rel=1e-12)
+    assert np.isnan(rows.loc["A", "ms3_limit_pct_POR1"])
+    assert rows.loc["A", "raw_note_POR1"] == "median_ref=0 (ms3 % 없음)"
+
+
+def test_median_ref_zero_note_joins_after_existing_reason():
+    rows = rs.raw_stats([frame([-1.0, 0.0, 1.0])], frame([2.0])).set_index("ITEM")
+    assert rows.loc["A", "raw_note_POR1"] == "n<2; median_ref=0 (ms3 % 없음)"
+    assert rows.loc["A", "ms3_limit_POR1"] == pytest.approx(3 * np.std([-1.0, 0.0, 1.0], ddof=1), rel=1e-12)
+    assert np.isnan(rows.loc["A", "ms3_limit_pct_POR1"])
+
+
+def test_zero_ref_sd_gives_zero_ms3_limit():
+    row = rs.raw_stats([frame([1.0, 1.0, 1.0])], frame([1.0, 2.0])).iloc[0]
+    assert row["ms3_limit_POR1"] == 0.0
+    assert row["ms3_limit_pct_POR1"] == 0.0
+    assert row["raw_note_POR1"] == "σ_ref=0"
+
+
+def test_short_or_nonfinite_ref_gives_blank_ms3_limit_and_pct():
+    por = pd.concat([frame([1.0], "ONE"), frame([1.0, np.inf], "INF")], ignore_index=True)
+    doe = pd.concat([frame([1.0, 2.0], "ONE"), frame([1.0, 2.0], "INF")], ignore_index=True)
+    rows = rs.raw_stats([por], doe).set_index("ITEM")
+    for item in ("ONE", "INF"):
+        assert np.isnan(rows.loc[item, "ms3_limit_POR1"])
+        assert np.isnan(rows.loc[item, "ms3_limit_pct_POR1"])
+
+
+def test_ms3_columns_sit_between_sigma_ratio_and_raw_note():
+    cols = rs.column_names(1)
+    start = cols.index("med_shift_POR1")
+    assert cols[start:start + 5] == ["med_shift_POR1", "sigma_ratio_POR1",
+                                     "ms3_limit_POR1", "ms3_limit_pct_POR1", "raw_note_POR1"]
+
+
 def test_cli_reads_dcnormal_and_accepts_common_args(tmp_path):
     data = tmp_path / "por3"
     gc.make_por3(data)

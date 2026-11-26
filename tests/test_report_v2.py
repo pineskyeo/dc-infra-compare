@@ -145,6 +145,19 @@ def test_table_has_static_column_docs_and_matching_metadata(built):
     assert "|median_POR1 − median_DOE| / σ_POR1" in formula
 
 
+def test_ms3_column_docs_and_table_column_order(built):
+    folder = built["out"] / "report"
+    payload = read_assignment(folder / "data" / "table.js", "__dcTable")
+    col_docs = payload["meta"]["col_docs"]
+    assert "3 · σ_POR1" in col_docs["ms3_limit_POR1"]["formula"]
+    assert "med_shift ≤ 3" in col_docs["ms3_limit_POR1"]["formula"]
+    assert "|median_POR1| × 100" in col_docs["ms3_limit_pct_POR1"]["formula"]
+    cols = payload["cols"]
+    assert cols[cols.index("sigma_ratio_POR1") + 1] == "ms3_limit_POR1"
+    assert cols[cols.index("ms3_limit_POR1") + 1] == "ms3_limit_pct_POR1"
+    assert cols[cols.index("ms3_limit_pct_POR1") + 1] == "raw_note_POR1"
+
+
 def test_column_docs_sit_inside_main_above_closing_tag(built):
     text = (built["out"] / "report" / "table.html").read_text(encoding="utf-8")
     docs_at = text.index('id="col-docs"')
@@ -350,6 +363,75 @@ console.log(JSON.stringify({{
     assert not any(text.startswith("LoQ ") for text in values["logGraphicTexts"])
     assert values["linLoqSeries"] == 0
     assert values["linLoqMarkLines"] == [True]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")
+def test_report_js_log_axis_ticks_within_one_decade_and_no_zero_label():
+    module_path = json.dumps(str(ROOT / "assets" / "report" / "report.js"))
+    script = f"""
+const h = require({module_path});
+const narrowItem = {{
+  item: 'IT00030', unit: '', cols: ['POR1', 'POR2', 'DOE'],
+  die: [['1'], ['2'], ['3'], ['4']],
+  v: [[1.5e-10, 2e-10, 3e-10], [2.5e-10, 3e-10, 5e-10],
+      [5e-10, 6e-10, 4e-10], [4e-10, 1.6e-10, 2e-10]]
+}};
+const wideItem = {{
+  item: 'IT00006', unit: '', cols: ['POR1', 'POR2', 'DOE'],
+  die: [['1'], ['2'], ['3'], ['4']],
+  v: [[1e-13, 2e-13, 1e-10], [1e-12, 1e-11, 1e-9],
+      [5e-11, 3e-10, 2e-13], [1e-10, 1e-9, 4e-12]]
+}};
+const record = {{verdict_basis: 'log', delta_log: 0.05}};
+function ticksOf(min, max) {{
+  const t = h.logAxisTicks(min, max);
+  return t === null ? null : {{values: t, labels: t.map(h.fmtNum)}};
+}}
+function axisSummary(option) {{
+  return {{
+    xTicks: option.xAxis.axisLabel.customValues || null,
+    yTicks: option.yAxis.axisLabel.customValues || null,
+    xTickShow: option.xAxis.axisTick ? option.xAxis.axisTick.show : null,
+    yZeroLabel: option.yAxis.axisLabel.formatter(0),
+    yNegLabel: option.yAxis.axisLabel.formatter(-1e-10),
+    yPosLabel: option.yAxis.axisLabel.formatter(2e-10)
+  }};
+}}
+console.log(JSON.stringify({{
+  narrow: ticksOf(1.2e-10, 8e-10),
+  mantissa: ticksOf(3.1, 9.7),
+  wide: ticksOf(1e-13, 1e-9),
+  zero: ticksOf(0, 1),
+  narrowOption: axisSummary(h.scatterOption(narrowItem, record, true).option),
+  wideOption: axisSummary(h.scatterOption(wideItem, record, true).option)
+}}));
+"""
+    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+    values = json.loads(result.stdout)
+
+    for key, min_value, max_value in (("narrow", 1.2e-10, 8e-10), ("mantissa", 3.1, 9.7)):
+        ticks = values[key]["values"]
+        labels = values[key]["labels"]
+        assert len(ticks) >= 2, key
+        assert ticks == sorted(ticks), key
+        assert all(t > 0 and min_value < t < max_value for t in ticks), key
+        assert len(set(labels)) == len(labels), key
+        assert "0" not in labels, key
+
+    assert values["wide"] is None
+    assert values["zero"] is None
+
+    narrow = values["narrowOption"]
+    assert len(narrow["xTicks"]) >= 2
+    assert len(narrow["yTicks"]) >= 2
+    assert narrow["xTickShow"] is True
+    assert narrow["yZeroLabel"] == ""
+    assert narrow["yNegLabel"] == ""
+    assert narrow["yPosLabel"] == "2.00e-10"
+
+    wide = values["wideOption"]
+    assert wide["xTicks"] is None
+    assert wide["yTicks"] is None
 
 
 def chunk_item(folder: Path, key: str):

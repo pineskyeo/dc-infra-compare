@@ -304,6 +304,8 @@ def _column_docs_html(col_docs: dict[str, dict[str, str]]) -> str:
     fixed = (
         "median shift = |median_ref − median_com| / σ_ref (ref = POR 회차, com = DOE)",
         "sigma ratio = σ_com / σ_ref",
+        "ms3 limit = 3 · σ_ref (기존 median shift 3 기준 리밋, 원 단위)",
+        "ms3 limit % = 3 · σ_ref / |median_ref| × 100 (median_ref = 0 이면 빈 칸)",
         "σ = 표본 표준편차(n−1)",
         "가공 없음 (원 데이터 전체): 원 중앙값·표본 표준편차·median shift·sigma ratio 는 die 를 맞추거나 튀는 값을 빼지 않은 원데이터 전체로 계산",
         OVERALL_RULE,
