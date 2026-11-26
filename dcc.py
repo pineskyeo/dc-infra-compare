@@ -308,7 +308,7 @@ def report_step(c: Combo, anon: bool = False) -> Step:
 
 
 def report_v2_step(c: Combo, anon: bool = False) -> Step:
-    return ("report_v2", ["report_v2.py", str(c.out), *(["--anon"] if anon else [])])
+    return ("report_v2", ["report_v2.py", str(c.out), *c.raw_args(), *(["--anon"] if anon else [])])
 
 
 def report_steps(c: Combo, a: argparse.Namespace) -> list[Step]:

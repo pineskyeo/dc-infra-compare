@@ -88,6 +88,19 @@ python report_v2.py <out> [--anon]
 
 이 명령은 기존 `items.csv`와 `raw_stats.csv`를 읽어 `report/table.csv`, `report/table.json`, `report/summary.json`을 씁니다. `--anon`이면 실제 ITEM 이름 대신 익명 ID를 쓰고 `report_anon/`에 씁니다.
 
+### 새 리포트 (report/)
+
+```bash
+python report_v2.py <out> --por POR1/ --por POR2/ --por POR3/ --doe DOE/ \
+  --level item_info.csv [--anon] [--images fail|fail+pending|all|none]
+```
+
+브라우저에서 여는 세 페이지를 만듭니다. `index.html`은 전체 판정과 LoQ 요약, `table.html`은 가상 스크롤 ITEM 표와 필터·검색, `analysis.html`은 ITEM별 수치와 차트 자리를 보여 줍니다. 표의 행이나 ITEM 검색으로 상세 페이지에 들어갑니다. `--images`는 다음 단계에서 넣을 그림 범위를 meta에 저장하며, 현재 그림을 만들지는 않습니다. POR/DOE 인자를 생략하면 표와 페이지는 만들고 원데이터 chunk는 비웁니다.
+
+ITEM 원데이터는 **100개씩 한 chunk**(`data/chunks/c00000.js`부터)에 넣습니다. 61 die × 4값이 ITEM당 약 3.4 KB이므로 chunk당 약 340 KB이고, ITEM 10,000개면 약 100개 파일이 됩니다. 상세 ITEM 하나를 열 때 그 ITEM이 든 chunk 하나만 읽으므로 전체 원데이터를 한꺼번에 올리지 않습니다. 파일 이름에는 행 번호 기반 chunk 번호만 써 ITEM 이름을 넣지 않습니다.
+
+모든 script·stylesheet 경로가 상대 경로이고 데이터도 `<script src>`로 읽으므로 **서버 없이 `file://`로 index.html을 열면 됩니다**. 차트 단계를 위해 ECharts 5.6.0(Apache-2.0) vendor 파일과 LICENSE/NOTICE를 `report/assets/`에 복사합니다.
+
 ### run_all.py로 한 번에
 
 판정 → 요약 → LoQ·log 재확인 → Fail 근거 → 판정 지도를 차례로 돌리고, 모든 산출물을 `--out` 폴더 하나에 모읍니다. 입력 옵션은 `por_doe_compare.py`와 같습니다(아래 표). 각 도구는 실행을 시작할 때 같은 --out 폴더에서 자기가 만드는 그림·표 파일만 지우고 다시 만듭니다(다른 파일은 그대로).
