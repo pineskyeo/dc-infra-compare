@@ -56,11 +56,7 @@
             return String(value);
         }
         if (magnitude >= 1e-3 && magnitude < 1e4) {
-            var text = value.toPrecision(3);
-            if (text.indexOf("e") < 0 && text.indexOf(".") >= 0) {
-                text = text.replace(/\.?0+$/, "");
-            }
-            return text;
+            return value.toPrecision(3).replace("e+", "e");
         }
         return value.toExponential(2).replace("e+", "e");
     }
@@ -89,6 +85,11 @@
             }
         }
         return -1;
+    }
+
+    function headTransform(scrollLeft) {
+        var shift = finite(scrollLeft) ? scrollLeft : 0;
+        return "translateX(" + (-shift) + "px)";
     }
 
     function make(tag, className, text) {
@@ -262,7 +263,10 @@
             renderHead();
             applyView(false);
         }));
-        viewport.addEventListener("scroll", guard(renderRows));
+        viewport.addEventListener("scroll", guard(function () {
+            head.style.transform = headTransform(viewport.scrollLeft);
+            renderRows();
+        }));
         search.addEventListener("input", guard(function () { applyView(true); }));
         var buttons = document.querySelectorAll("button[data-filter]");
         for (var b = 0; b < buttons.length; b += 1) {
@@ -442,28 +446,40 @@
         return "in";
     }
 
+    function edgeText(name, rawValues, placement, axis) {
+        var arrow = axis === "x" ? (placement === "above" ? "→" : "←")
+                                 : (placement === "above" ? "↑" : "↓");
+        return name + " " + rawValues.map(fmtNum).join(" / ") + " (범위 밖 " + arrow + ")";
+    }
+
     function edgeLabel(name, rawValue, placement, axis) {
         if (placement !== "above" && placement !== "below") {
             return "";
         }
-        var arrow = axis === "x" ? (placement === "above" ? "→" : "←")
-                                 : (placement === "above" ? "↑" : "↓");
-        return name + " " + fmtNum(rawValue) + " (범위 밖 " + arrow + ")";
+        return edgeText(name, [rawValue], placement, axis);
     }
 
     function appendEdgeLabel(option, counts, name, rawValue, placement, axis) {
-        var text = edgeLabel(name, rawValue, placement, axis);
-        if (!text) {
+        if (!edgeLabel(name, rawValue, placement, axis)) {
             return;
         }
         var key = axis + ":" + placement;
+        var mergeKey = "name|" + key + "|" + name;
+        var merged = counts[mergeKey];
+        if (merged) {
+            merged.values.push(rawValue);
+            merged.graphic.style.text = edgeText(name, merged.values, placement, axis);
+            return;
+        }
         var index = counts[key] || 0;
         counts[key] = index + 1;
+        var values = [rawValue];
         var graphic = {type: "text", silent: true,
-                       style: {text: text, fill: CHART_COLOR.loq, fontSize: 11}};
+                       style: {text: edgeText(name, values, placement, axis),
+                               fill: CHART_COLOR.loq, fontSize: 11}};
         if (axis === "x") {
             graphic.top = "middle";
-            graphic.y = index * 14;
+            graphic.y = index * 18;
             if (placement === "above") {
                 graphic.right = 32;
             } else {
@@ -472,11 +488,12 @@
         } else {
             graphic.right = 32;
             if (placement === "above") {
-                graphic.top = 80 + index * 14;
+                graphic.top = 80 + index * 18;
             } else {
-                graphic.bottom = 76 + index * 14;
+                graphic.bottom = 76 + index * 18;
             }
         }
+        counts[mergeKey] = {graphic: graphic, values: values};
         option.graphic = (option.graphic || []).concat([graphic]);
     }
 
@@ -619,18 +636,21 @@
         var loqXPlacement = null;
         if (!emptyPlan.helper && finite(loq) && loq > 0) {
             loqYPlacement = loqPlacement(loq, limits.min, limits.max);
-            if (loqYPlacement === "in") {
+            if (loqYPlacement === "in" && !log) {
                 markLoqY = loq;
             }
             if (log) {
                 loqXPlacement = loqPlacement(loq, limits.min, limits.max);
-                if (loqXPlacement === "in") {
-                    markLoqX = loq;
-                }
             }
         }
         if (emptyPlan.helper) {
             limits = {min: emptyPlan.min, max: emptyPlan.max};
+            series.push.apply(series, loqLineSeries(loq, limits.min, limits.max));
+        }
+        // On a log scatter with points, ECharts does not draw LoQ markLines, so an in-range LoQ
+        // is a real line pair instead. The empty-log helper above already added its pair (it has
+        // no points, so loqYPlacement stays null here) and is never added twice.
+        if (log && !emptyPlan.helper && loqYPlacement === "in") {
             series.push.apply(series, loqLineSeries(loq, limits.min, limits.max));
         }
         series[0].markLine = {silent: true, symbol: ["none", "none"], animation: false,
@@ -1155,8 +1175,10 @@
         module.exports = {fmtNum: fmtNum, rawNum: rawNum, displayScale: displayScale, extent: extent,
                           marginFor: marginFor, logEmptyPlan: logEmptyPlan, loqLineSeries: loqLineSeries,
                           loqPlacement: loqPlacement, edgeLabel: edgeLabel,
+                          appendEdgeLabel: appendEdgeLabel,
                           tooltipValueFormatter: tooltipValueFormatter,
-                          ciOption: ciOption, boxOption: boxOption, scatterOption: scatterOption};
+                          ciOption: ciOption, boxOption: boxOption, scatterOption: scatterOption,
+                          headTransform: headTransform};
     }
     if (typeof document === "undefined") {
         return;

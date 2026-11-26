@@ -172,7 +172,7 @@ console.log(JSON.stringify({{
 """
     result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
     values = json.loads(result.stdout)
-    assert values["formatted"] == ["1.23e-13", "0.5", "—", "—", "0"]
+    assert values["formatted"] == ["1.23e-13", "0.500", "—", "—", "0"]
     assert "e" in values["large"]
     assert values["smallScale"]["k"] == -13
     assert values["smallScale"]["label"] == "×1e-13"
@@ -195,6 +195,7 @@ console.log(JSON.stringify({{
                h.loqPlacement(0.5, 0, 1), h.loqPlacement(NaN, 0, 1)],
   formatted: [h.fmtNum(0.030263), h.fmtNum(1.4e-11), h.fmtNum(12345),
               h.fmtNum(0.5), h.fmtNum(61), h.fmtNum(0), h.fmtNum(null)],
+  sigZeros: [h.fmtNum(0.450211), h.fmtNum(1.1016)],
   edge: h.edgeLabel('LoQ', 1.4e-11, 'above', 'y'),
   tinyTooltip: h.tooltipValueFormatter(1e-11)(3.0263),
   regularTooltip: h.tooltipValueFormatter(1)(0.030263)
@@ -203,7 +204,8 @@ console.log(JSON.stringify({{
     result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
     values = json.loads(result.stdout)
     assert values["placements"] == ["above", "below", "in", None]
-    assert values["formatted"] == ["0.0303", "1.40e-11", "1.23e4", "0.5", "61", "0", "—"]
+    assert values["formatted"] == ["0.0303", "1.40e-11", "1.23e4", "0.500", "61", "0", "—"]
+    assert values["sigZeros"] == ["0.450", "1.10"]
     assert values["edge"] == "LoQ 1.40e-11 (범위 밖 ↑)"
     assert values["tinyTooltip"] == "3.0263e-11"
     assert values["regularTooltip"] == "0.030263"
@@ -238,12 +240,38 @@ console.log(JSON.stringify({{outside: summary(outside), inside: summary(inside)}
     assert 0.05 < outside["max"] < 0.08
     assert outside["min"] > -0.1
     assert "DOE가 LoQ에 닿는 이동" not in outside["seriesNames"]
-    assert outside["graphics"]
-    assert all("범위 밖 ↓" in text for text in outside["graphics"])
-    assert all(text.startswith("LoQ 이동 ") for text in outside["graphics"])
+    assert len(outside["graphics"]) == 1
+    merged = outside["graphics"][0]
+    assert " / " in merged
+    assert merged.startswith("LoQ 이동 ")
+    assert merged.endswith("(범위 밖 ↓)")
     inside = values["inside"]
     assert inside["seriesNames"].count("DOE가 LoQ에 닿는 이동") == 2
     assert inside["graphics"] == []
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")
+def test_report_js_edge_labels_same_name_merge_and_different_names_stack():
+    module_path = json.dumps(str(ROOT / "assets" / "report" / "report.js"))
+    script = f"""
+const h = require({module_path});
+const opt = {{}};
+const counts = {{}};
+h.appendEdgeLabel(opt, counts, 'LoD', 1, 'below', 'y');
+h.appendEdgeLabel(opt, counts, 'LoQ', 2, 'below', 'y');
+const stacked = opt.graphic.map(g => ({{bottom: g.bottom, text: g.style.text}}));
+h.appendEdgeLabel(opt, counts, 'LoQ', 3, 'below', 'y');
+console.log(JSON.stringify({{
+  stacked: stacked,
+  texts: opt.graphic.map(g => g.style.text)
+}}));
+"""
+    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+    values = json.loads(result.stdout)
+    assert len(values["stacked"]) == 2
+    assert abs(values["stacked"][0]["bottom"] - values["stacked"][1]["bottom"]) >= 18
+    assert len(values["texts"]) == 2
+    assert values["texts"] == ["LoD 1 (범위 밖 ↓)", "LoQ 2 / 3 (범위 밖 ↓)"]
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")
@@ -281,6 +309,41 @@ console.log(JSON.stringify({{
         for got_point, want_point in zip(got, want):
             assert all(math.isclose(g, w, rel_tol=1e-9) for g, w in zip(got_point, want_point)), (got, want)
 
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")
+def test_report_js_log_scatter_in_range_loq_is_line_series_not_markline():
+    module_path = json.dumps(str(ROOT / "assets" / "report" / "report.js"))
+    script = f"""
+const h = require({module_path});
+const item = {{
+  item: 'IT00030', unit: '', cols: ['POR1', 'POR2', 'DOE'],
+  die: [['1'], ['2'], ['3'], ['4']],
+  v: [[1e-12, 2e-12, 3e-11], [2e-11, 3e-11, 5e-11],
+      [5e-11, 8e-11, 1e-10], [1e-10, 9e-11, 4e-11]]
+}};
+const logRecord = {{verdict_basis: 'log', delta_log: 0.1, delta: 0.05, LoQ: 5e-12}};
+const linearRecord = {{verdict_basis: 'delta', delta: 1e-11, LoQ: 5e-11}};
+function loqSeries(option) {{
+  return option.series.filter(s => s.name === 'LoQ');
+}}
+const logOption = h.scatterOption(item, logRecord, true).option;
+const linOption = h.scatterOption(item, linearRecord, false).option;
+console.log(JSON.stringify({{
+  logLoqSeries: loqSeries(logOption).map(s => [s.type, s.data.length]),
+  logMarkLineNames: logOption.series[0].markLine.data.map(d => d.name),
+  logGraphicTexts: (logOption.graphic || []).map(g => (g.style || {{}}).text),
+  linLoqSeries: loqSeries(linOption).length,
+  linLoqMarkLines: linOption.series[0].markLine.data.filter(d => d.name === 'LoQ').map(d => 'yAxis' in d)
+}}));
+"""
+    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+    values = json.loads(result.stdout)
+    assert values["logLoqSeries"] == [["line", 2], ["line", 2]]
+    assert "LoQ" not in values["logMarkLineNames"]
+    assert not any(text.startswith("LoQ ") for text in values["logGraphicTexts"])
+    assert values["linLoqSeries"] == 0
+    assert values["linLoqMarkLines"] == [True]
 
 
 def chunk_item(folder: Path, key: str):
@@ -454,3 +517,48 @@ def test_dcc_report_v2_step_forwards_only_explicit_jobs():
     combo = ComboStub()
     assert dcc.report_v2_step(combo, jobs=3)[1][-2:] == ["--jobs", "3"]
     assert "--jobs" not in dcc.report_v2_step(combo, jobs=None)[1]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")
+def test_report_js_head_transform_follows_horizontal_scroll():
+    module_path = json.dumps(str(ROOT / "assets" / "report" / "report.js"))
+    script = f"""
+const h = require({module_path});
+console.log(JSON.stringify({{
+  zero: h.headTransform(0),
+  shifted: h.headTransform(240),
+  missing: h.headTransform(undefined)
+}}));
+"""
+    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+    values = json.loads(result.stdout)
+    assert values["zero"] == "translateX(0px)"
+    assert values["shifted"] == "translateX(-240px)"
+    assert values["missing"] == "translateX(0px)"
+
+
+def css_rule_bodies(selector: str):
+    css = (ROOT / "assets" / "report" / "report.css").read_text(encoding="utf-8")
+    return re.findall(re.escape(selector) + r"\{([^}]*)\}", css)
+
+
+def test_report_css_viewport_is_the_only_horizontal_scroller():
+    viewport_rules = css_rule_bodies("#dc-viewport")
+    assert viewport_rules, "#dc-viewport 규칙이 없습니다"
+    for body in viewport_rules:
+        assert "overflow-x:hidden" not in body
+    assert any("overflow:auto" in body or "overflow-x:auto" in body for body in viewport_rules)
+
+    scroll_rules = css_rule_bodies(".dc-table-scroll")
+    assert scroll_rules, ".dc-table-scroll 규칙이 없습니다"
+    for body in scroll_rules:
+        assert "overflow-x:auto" not in body
+
+
+def test_report_js_init_table_moves_header_with_scroll_left():
+    js = (ROOT / "assets" / "report" / "report.js").read_text(encoding="utf-8")
+    match = re.search(r"    function initTable\(\) \{(.*?)\n    var chunkLoads = \{\};", js, re.S)
+    assert match, "initTable 본문을 찾지 못했습니다"
+    body = match.group(1)
+    assert "headTransform" in body
+    assert "scrollLeft" in body
