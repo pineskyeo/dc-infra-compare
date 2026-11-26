@@ -52,14 +52,17 @@
             return "0";
         }
         var magnitude = Math.abs(value);
-        if (magnitude >= 1e-3 && magnitude < 1e6 && Math.floor(value) === value) {
+        if (magnitude < 1e4 && Math.floor(value) === value) {
             return String(value);
         }
-        var text = magnitude >= 1e-3 && magnitude < 1e6 ? value.toPrecision(4) : value.toExponential(3);
-        if (text.indexOf("e") < 0 && text.indexOf(".") >= 0) {
-            text = text.replace(/\.?0+$/, "");
+        if (magnitude >= 1e-3 && magnitude < 1e4) {
+            var text = value.toPrecision(3);
+            if (text.indexOf("e") < 0 && text.indexOf(".") >= 0) {
+                text = text.replace(/\.?0+$/, "");
+            }
+            return text;
         }
-        return text;
+        return value.toExponential(2).replace("e+", "e");
     }
 
     function displayScale(values) {
@@ -203,7 +206,13 @@
                 row.style.width = tableWidth;
                 row.setAttribute("aria-label", display(record[itemIndex]) + " 분석 열기");
                 for (var c = 0; c < cols.length; c += 1) {
-                    row.appendChild(make("span", "dc-cell", display(record[c])));
+                    var cellValue = record[c];
+                    var numeric = finite(cellValue);
+                    var cell = make("span", "dc-cell", numeric ? fmtNum(cellValue) : display(cellValue));
+                    if (numeric) {
+                        cell.title = String(cellValue);
+                    }
+                    row.appendChild(cell);
                 }
                 fragment.appendChild(row);
             }
@@ -403,17 +412,72 @@
         }
     }
 
+    function rawNum(value) {
+        return finite(value) ? String(Number(value.toPrecision(15))) : display(value);
+    }
+
     function tooltipValueFormatter(factor) {
         return function (value) {
             if (Array.isArray(value)) {
                 var formatted = [];
                 for (var i = 0; i < value.length; i += 1) {
-                    formatted.push(fmtNum(finite(value[i]) ? value[i] * factor : value[i]));
+                    formatted.push(rawNum(finite(value[i]) ? value[i] * factor : value[i]));
                 }
                 return formatted.join(", ");
             }
-            return fmtNum(finite(value) ? value * factor : value);
+            return rawNum(finite(value) ? value * factor : value);
         };
+    }
+
+    function loqPlacement(value, min, max) {
+        if (!finite(value)) {
+            return null;
+        }
+        if (value > max) {
+            return "above";
+        }
+        if (value < min) {
+            return "below";
+        }
+        return "in";
+    }
+
+    function edgeLabel(name, rawValue, placement, axis) {
+        if (placement !== "above" && placement !== "below") {
+            return "";
+        }
+        var arrow = axis === "x" ? (placement === "above" ? "→" : "←")
+                                 : (placement === "above" ? "↑" : "↓");
+        return name + " " + fmtNum(rawValue) + " (범위 밖 " + arrow + ")";
+    }
+
+    function appendEdgeLabel(option, counts, name, rawValue, placement, axis) {
+        var text = edgeLabel(name, rawValue, placement, axis);
+        if (!text) {
+            return;
+        }
+        var key = axis + ":" + placement;
+        var index = counts[key] || 0;
+        counts[key] = index + 1;
+        var graphic = {type: "text", silent: true,
+                       style: {text: text, fill: CHART_COLOR.loq, fontSize: 11}};
+        if (axis === "x") {
+            graphic.top = "middle";
+            graphic.y = index * 14;
+            if (placement === "above") {
+                graphic.right = 32;
+            } else {
+                graphic.left = 82;
+            }
+        } else {
+            graphic.right = 32;
+            if (placement === "above") {
+                graphic.top = 80 + index * 14;
+            } else {
+                graphic.bottom = 76 + index * 14;
+            }
+        }
+        option.graphic = (option.graphic || []).concat([graphic]);
     }
 
     function scaledAxisName(name, item, scale) {
@@ -459,7 +523,7 @@
         return {value: record.delta, name: "delta"};
     }
 
-    function scatterLines(low, high, log, delta, loq) {
+    function scatterLines(low, high, log, delta, loqY, loqX) {
         var lines = [[{name: "y=x", coord: [low, low], lineStyle: {color: "#55616E", type: "solid"}},
                       {coord: [high, high]}]];
         if (finite(delta)) {
@@ -470,11 +534,11 @@
             lines.push([{name: log ? "y=x·10^-Δlog" : "y=x−Δ", coord: [low, log ? low * down : low + down]},
                         {coord: [high, log ? high * down : high + down]}]);
         }
-        if (finite(loq) && loq > 0) {
-            lines.push({name: "LoQ", yAxis: loq, lineStyle: {color: CHART_COLOR.loq, type: "dotted"}});
-            if (log) {
-                lines.push({name: "LoQ", xAxis: loq, lineStyle: {color: CHART_COLOR.loq, type: "dotted"}});
-            }
+        if (finite(loqY) && loqY > 0) {
+            lines.push({name: "LoQ", yAxis: loqY, lineStyle: {color: CHART_COLOR.loq, type: "dotted"}});
+        }
+        if (finite(loqX) && loqX > 0) {
+            lines.push({name: "LoQ", xAxis: loqX, lineStyle: {color: CHART_COLOR.loq, type: "dotted"}});
         }
         return lines;
     }
@@ -520,7 +584,7 @@
                 }
             }
         }
-        var scale = log ? {factor: 1, k: 0, label: ""} : displayScale(values);
+        var scale = log ? {factor: 1, k: 0, label: ""} : displayScale(values.concat([record.delta]));
         if (!log) {
             for (var s = 0; s < series.length; s += 1) {
                 for (var d = 0; d < series[s].data.length; d += 1) {
@@ -548,26 +612,44 @@
                 extras = [base.min - delta, base.max + delta];
             }
         }
-        if (finite(loq) && loq > 0) {
-            extras.push(loq);
-        }
         var limits = extent(values, log, extras);
-        var markLoq = loq;
+        var markLoqY = null;
+        var markLoqX = null;
+        var loqYPlacement = null;
+        var loqXPlacement = null;
+        if (!emptyPlan.helper && finite(loq) && loq > 0) {
+            loqYPlacement = loqPlacement(loq, limits.min, limits.max);
+            if (loqYPlacement === "in") {
+                markLoqY = loq;
+            }
+            if (log) {
+                loqXPlacement = loqPlacement(loq, limits.min, limits.max);
+                if (loqXPlacement === "in") {
+                    markLoqX = loq;
+                }
+            }
+        }
         if (emptyPlan.helper) {
             limits = {min: emptyPlan.min, max: emptyPlan.max};
-            markLoq = null;
             series.push.apply(series, loqLineSeries(loq, limits.min, limits.max));
         }
         series[0].markLine = {silent: true, symbol: ["none", "none"], animation: false,
                               lineStyle: {width: 1.5, type: "dashed", color: "#6B7785"},
                               label: {formatter: "{b}", fontSize: 10, color: "#55616E"},
-                              data: scatterLines(limits.min, limits.max, log, delta, markLoq)};
+                              data: scatterLines(limits.min, limits.max, log, delta, markLoqY, markLoqX)};
         var option = chartBase();
         option.series = series;
         option.tooltip.valueFormatter = tooltipValueFormatter(scale.factor);
+        var edgeCounts = {};
+        if (loqYPlacement && loqYPlacement !== "in") {
+            appendEdgeLabel(option, edgeCounts, "LoQ", record.LoQ, loqYPlacement, "y");
+        }
+        if (loqXPlacement && loqXPlacement !== "in") {
+            appendEdgeLabel(option, edgeCounts, "LoQ", record.LoQ, loqXPlacement, "x");
+        }
         if (emptyPlan.empty) {
-            option.graphic = [{type: "text", left: "center", top: "middle", silent: true,
-                               style: {text: "양수 값 없음: log 축에 점 없음", fill: "#55616E", fontSize: 13}}];
+            option.graphic = (option.graphic || []).concat([{type: "text", left: "center", top: "middle", silent: true,
+                               style: {text: "양수 값 없음: log 축에 점 없음", fill: "#55616E", fontSize: 13}}]);
         }
         option.xAxis = {type: log ? "log" : "value", logBase: 10, min: limits.min, max: limits.max, scale: !log,
                         name: scaledAxisName("POR 회차 평균 · " + DIE_AXIS, item, scale), nameLocation: "middle", nameGap: 44,
@@ -631,11 +713,7 @@
                          label: {formatter: "{b}", position: limits.length % 2 ? "insideEndBottom" : "insideEndTop"}});
             }
         }
-        var scaleInput = rawValues.slice();
-        for (l = 0; l < limits.length; l += 1) {
-            scaleInput.push(limits[l].yAxis);
-        }
-        var scale = displayScale(scaleInput);
+        var scale = displayScale(rawValues);
         var values = [];
         for (var v = 0; v < rawValues.length; v += 1) {
             values.push(scaleValue(rawValues[v], scale.factor));
@@ -647,18 +725,26 @@
         }
         scaleY(porPoints, scale.factor);
         scaleY(doePoints, scale.factor);
-        var extras = [];
         for (l = 0; l < limits.length; l += 1) {
             limits[l].yAxis = scaleValue(limits[l].yAxis, scale.factor);
-            extras.push(limits[l].yAxis);
         }
-        var axisLimits = extent(values, false, extras);
+        var axisLimits = extent(values, false);
         var option = chartBase();
         option.tooltip.valueFormatter = tooltipValueFormatter(scale.factor);
+        var markLimits = [];
+        var edgeCounts = {};
+        for (l = 0; l < limits.length; l += 1) {
+            var placement = loqPlacement(limits[l].yAxis, axisLimits.min, axisLimits.max);
+            if (placement === "in") {
+                markLimits.push(limits[l]);
+            } else {
+                appendEdgeLabel(option, edgeCounts, limits[l].name, record[limits[l].name], placement, "y");
+            }
+        }
         option.series = [
             {name: "분포(box)", type: "boxplot", data: boxes, boxWidth: [8, 24],
              itemStyle: {color: "#EDF3FA", borderColor: "#55616E", borderWidth: 1.5},
-             markLine: {silent: true, symbol: ["none", "none"], label: {formatter: "{b}"}, data: limits}},
+             markLine: {silent: true, symbol: ["none", "none"], label: {formatter: "{b}"}, data: markLimits}},
             {name: "POR die", type: "scatter", data: porPoints, symbolSize: 8,
              itemStyle: {color: CHART_COLOR.por, borderColor: "#FFFFFF", borderWidth: 1}},
             {name: "DOE die", type: "scatter", data: doePoints, symbolSize: 8,
@@ -732,7 +818,7 @@
                 loqShifts.push(record.LoQ - record.por_median, -record.LoQ - record.por_median);
             }
         }
-        var scaleInput = values.concat([center, low, high], loqShifts);
+        var scaleInput = values.concat([center, low, high]);
         if (margin && finite(margin.value)) {
             scaleInput.push(margin.value, -margin.value);
         }
@@ -748,9 +834,15 @@
         for (var t = 0; t < thresholds.length; t += 1) {
             thresholds[t].value = scaleValue(thresholds[t].value, scale.factor);
         }
+        var rawLoqShifts = loqShifts.slice();
         for (var s = 0; s < loqShifts.length; s += 1) {
             loqShifts[s] = scaleValue(loqShifts[s], scale.factor);
         }
+        var extras = [center, low, high];
+        if (margin && finite(margin.value)) {
+            extras.push(scaleValue(margin.value, scale.factor), scaleValue(-margin.value, scale.factor));
+        }
+        var limits = extent(values, false, extras);
         var option = chartBase();
         option.tooltip.valueFormatter = tooltipValueFormatter(scale.factor);
         option.series = [
@@ -765,17 +857,17 @@
                                           thresholds[t].color, thresholds[t].dash));
             }
         }
+        var edgeCounts = {};
         for (s = 0; s < loqShifts.length; s += 1) {
             if (finite(loqShifts[s])) {
-                option.series.push(ciLine("DOE가 LoQ에 닿는 이동", loqShifts[s], CHART_COLOR.loq, "dotted"));
+                var placement = loqPlacement(loqShifts[s], limits.min, limits.max);
+                if (placement === "in") {
+                    option.series.push(ciLine("DOE가 LoQ에 닿는 이동", loqShifts[s], CHART_COLOR.loq, "dotted"));
+                } else {
+                    appendEdgeLabel(option, edgeCounts, "LoQ 이동", rawLoqShifts[s], placement, "y");
+                }
             }
         }
-        var extras = [center, low, high];
-        if (margin && finite(margin.value)) {
-            extras.push(scaleValue(margin.value, scale.factor), scaleValue(-margin.value, scale.factor));
-        }
-        extras = extras.concat(loqShifts);
-        var limits = extent(values, false, extras);
         option.xAxis = {type: "value", min: -0.5, max: 0.5, name: "die (jitter) · " + DIE_AXIS,
                         nameLocation: "middle", nameGap: 40, axisLabel: {show: false}, axisTick: {show: false},
                         splitLine: {show: false}};
@@ -1053,8 +1145,11 @@
     }
 
     if (typeof module === "object" && module.exports) {
-        module.exports = {fmtNum: fmtNum, displayScale: displayScale, extent: extent, marginFor: marginFor,
-                          logEmptyPlan: logEmptyPlan, loqLineSeries: loqLineSeries};
+        module.exports = {fmtNum: fmtNum, rawNum: rawNum, displayScale: displayScale, extent: extent,
+                          marginFor: marginFor, logEmptyPlan: logEmptyPlan, loqLineSeries: loqLineSeries,
+                          loqPlacement: loqPlacement, edgeLabel: edgeLabel,
+                          tooltipValueFormatter: tooltipValueFormatter,
+                          ciOption: ciOption, boxOption: boxOption, scatterOption: scatterOption};
     }
     if (typeof document === "undefined") {
         return;
