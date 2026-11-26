@@ -26,11 +26,13 @@ def column_names(n_runs: int) -> list[str]:
     return ["ITEM", *DOE_COLUMNS, *(f"{name}_POR{k}" for k in range(1, n_runs + 1) for name in RUN_COLUMNS)]
 
 
-def _values(frame: pd.DataFrame, item: str) -> tuple[np.ndarray, int]:
+def _by_item(frame: pd.DataFrame) -> dict[str, tuple[np.ndarray, int]]:
     if frame is None or frame.empty:
-        return np.array([], dtype=float), 0
-    data = pd.to_numeric(frame.loc[frame["ITEM"].astype(str) == item, "DATA"], errors="coerce")
-    return data.dropna().to_numpy(dtype=float), int(data.isna().sum())
+        return {}
+    work = pd.DataFrame({"ITEM": frame["ITEM"].astype(str),
+                         "DATA": pd.to_numeric(frame["DATA"], errors="coerce")})
+    return {item: (data.dropna().to_numpy(dtype=float), int(data.isna().sum()))
+            for item, data in work.groupby("ITEM")["DATA"]}
 
 
 def _median_sd(values: np.ndarray) -> tuple[float, float]:
@@ -53,16 +55,17 @@ def _shift_ratio(ref: np.ndarray, doe: np.ndarray, sd_ref: float, sd_doe: float)
 def raw_stats(por_frames: list[pd.DataFrame], doe_frame: pd.DataFrame) -> pd.DataFrame:
     """긴 형식 POR 회차들과 DOE 에서 ITEM 별 원데이터 통계를 계산한다."""
     frames = [*por_frames, doe_frame]
+    grouped = [_by_item(frame) for frame in frames]
     items = sorted({str(item) for frame in frames if frame is not None and not frame.empty
                     for item in frame["ITEM"].dropna().unique()})
     rows = []
     for item in items:
-        doe, doe_nonnum = _values(doe_frame, item)
+        doe, doe_nonnum = grouped[-1].get(item, (np.array([], dtype=float), 0))
         doe_median, doe_sd = _median_sd(doe)
         row = {"ITEM": item, "n_raw_DOE": len(doe), "n_nonnum_DOE": doe_nonnum,
                "median_raw_DOE": doe_median, "sd_raw_DOE": doe_sd}
-        for k, frame in enumerate(por_frames, 1):
-            ref, ref_nonnum = _values(frame, item)
+        for k, values in enumerate(grouped[:-1], 1):
+            ref, ref_nonnum = values.get(item, (np.array([], dtype=float), 0))
             ref_median, ref_sd = _median_sd(ref)
             shift, ratio, note = _shift_ratio(ref, doe, ref_sd, doe_sd)
             row.update({f"n_raw_POR{k}": len(ref), f"n_nonnum_POR{k}": ref_nonnum,

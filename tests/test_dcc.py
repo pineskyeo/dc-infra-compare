@@ -314,11 +314,11 @@ blank_map = {por3_data / "blank_map.csv"}
     proc = run_dcc("judge", "all", "--config", path)
     print(proc.stdout)
     assert proc.returncode == 1, proc.stdout + proc.stderr
-    assert "[실패] 단계 1/4 por_doe_compare" in proc.stdout
+    assert "[실패] 단계 1/5 por_doe_compare" in proc.stdout
     assert proc.stdout.rstrip().endswith("결과\nBAD  실패 (단계 por_doe_compare, rc=1)\nA1  성공")
     assert (out / "items.csv").is_file() and (out / "plots" / "summary.png").is_file()
     assert (out / "review" / "loq_review.csv").is_file() and (out / "review" / "log_review.png").is_file()
-    assert "[단계 1/1] report" in proc.stdout and (out / "report.html").is_file()
+    assert "[단계 1/2] report" in proc.stdout and (out / "report.html").is_file()
 
     proc = run_dcc("item", "A1", "VT_SHIFT,VT_SAME", "--plots", "--config", path)
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -342,7 +342,7 @@ blank_map = {por3_data / "blank_map.csv"}
 
     proc = run_dcc("compare", "A1", "--before", before, "--config", path)
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    assert "[단계 2/2] group_summary" in proc.stdout and "[단계 1/1] report" in proc.stdout
+    assert "[단계 2/2] group_summary" in proc.stdout and "[단계 1/2] report" in proc.stdout
     assert "그룹 파일(--groups)을 주지 않아" not in (out / "group" / "report.html").read_text(encoding="utf-8")
 
     named = (out / "report.html").read_text(encoding="utf-8")
