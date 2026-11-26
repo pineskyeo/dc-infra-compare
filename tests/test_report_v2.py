@@ -5,6 +5,7 @@ import json
 import math
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -125,6 +126,57 @@ def test_without_raw_args_succeeds_with_table_and_empty_index(built):
     assert payload["meta"]["img_rows"] == []
     assert payload["meta"]["log_bases"] == list(item_view.LOG_BASES)
     assert read_assignment(out / "report" / "data" / "index.js", "__dcIndex") == {}
+
+
+def test_table_has_static_column_docs_and_matching_metadata(built):
+    folder = built["out"] / "report"
+    text = (folder / "table.html").read_text(encoding="utf-8")
+    for expected in (
+            "median shift = |median_ref − median_com| / σ_ref",
+            "sigma ratio = σ_com / σ_ref",
+            "σ = 표본 표준편차(n−1)",
+            "가공 없음 (원 데이터 전체)",
+            report_v2.OVERALL_RULE,
+            'id="col-docs"',
+    ):
+        assert expected in text
+    payload = read_assignment(folder / "data" / "table.js", "__dcTable")
+    formula = payload["meta"]["col_docs"]["med_shift_POR1"]["formula"]
+    assert "|median_POR1 − median_DOE| / σ_POR1" in formula
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")
+def test_report_js_pure_number_extent_and_margin_helpers():
+    module_path = json.dumps(str(ROOT / "assets" / "report" / "report.js"))
+    script = f"""
+const h = require({module_path});
+const tiny = h.extent([1e-13, 1e-13], false);
+console.log(JSON.stringify({{
+  formatted: [h.fmtNum(1.23456e-13), h.fmtNum(0.5), h.fmtNum(NaN), h.fmtNum(null), h.fmtNum(0)],
+  large: h.fmtNum(123456789),
+  smallScale: h.displayScale([1e-13, 3e-13]),
+  regularScale: h.displayScale([1, 20]),
+  tinyWidth: tiny.max - tiny.min,
+  extraMax: h.extent([1, 2], false, [10]).max,
+  abs: h.marginFor({{verdict_basis: 'abs', abs_delta: 2, delta: 1}}, []),
+  accuracy: h.marginFor({{verdict_basis: 'accuracy', accuracy_margin: 3, delta: 2}}, []),
+  limit: h.marginFor({{verdict_basis: 'limit', delta: 2}}, []),
+  log: h.marginFor({{verdict_basis: 'log', delta_log: 0.2, delta: 5}}, ['log'])
+}}));
+"""
+    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+    values = json.loads(result.stdout)
+    assert values["formatted"] == ["1.235e-13", "0.5", "—", "—", "0"]
+    assert "e" in values["large"]
+    assert values["smallScale"]["k"] == -13
+    assert values["smallScale"]["label"] == "×1e-13"
+    assert values["regularScale"]["factor"] == 1
+    assert values["tinyWidth"] < 1e-12
+    assert values["extraMax"] >= 10
+    assert values["abs"] == {"value": 2, "name": "abs_delta"}
+    assert values["accuracy"]["value"] == 3
+    assert values["limit"] is None
+    assert values["log"] == {"value": 0.2, "name": "delta_log"}
 
 
 def chunk_item(folder: Path, key: str):

@@ -25,6 +25,7 @@ import matplotlib
 import numpy as np
 import pandas as pd
 
+import columns_doc
 import fail_evidence
 import item_view
 import loq_check
@@ -232,6 +233,47 @@ TABLE_BODY = '''<main class="page page-wide">
 </main>'''
 
 
+def _report_column_docs(columns) -> dict[str, dict[str, str]]:
+    """table.js 의 실제 열에 맞춘 설명. {k} 자리에는 실제 POR 회차 번호를 넣는다."""
+    docs = {}
+    for column in columns:
+        column = str(column)
+        doc = columns_doc.doc_for("report/table.csv", column)
+        if doc is None:
+            continue
+        match = None
+        if "{k}" in doc.column:
+            pattern = re.escape(doc.column).replace(re.escape("{k}"), r"(\d+)")
+            match = re.fullmatch(pattern, column)
+        k = match.group(1) if match else ""
+        docs[column] = {"name": doc.easy_name.replace("{k}", k),
+                        "desc": doc.meaning.replace("{k}", k),
+                        "formula": doc.formula.replace("{k}", k)}
+    return docs
+
+
+def _column_docs_html(col_docs: dict[str, dict[str, str]]) -> str:
+    fixed = (
+        "median shift = |median_ref − median_com| / σ_ref (ref = POR 회차, com = DOE)",
+        "sigma ratio = σ_com / σ_ref",
+        "σ = 표본 표준편차(n−1)",
+        "가공 없음 (원 데이터 전체): 원 중앙값·표본 표준편차·median shift·sigma ratio 는 die 를 맞추거나 튀는 값을 빼지 않은 원데이터 전체로 계산",
+        OVERALL_RULE,
+    )
+    fixed_html = "".join(f"<li>{html.escape(sentence)}</li>" for sentence in fixed)
+    rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(column)}</td><td>{html.escape(doc['name'])}</td>"
+        f"<td>{html.escape(doc['desc'])}</td><td>{html.escape(doc['formula'])}</td>"
+        "</tr>"
+        for column, doc in col_docs.items()
+    )
+    return ('<section id="col-docs" class="col-docs"><h2>열 설명</h2>'
+            f"<ul>{fixed_html}</ul>"
+            '<table><thead><tr><th>열</th><th>쉬운 이름</th><th>뜻</th><th>식</th></tr></thead>'
+            f"<tbody>{rows}</tbody></table></section>")
+
+
 ANALYSIS_BODY = '''<main class="page">
 <h1>ITEM 분석</h1>
 <div id="dc-error" class="dc-error" role="alert" hidden></div>
@@ -339,8 +381,9 @@ def _write_pages(table: pd.DataFrame, summary: dict, out: Path, anon: bool, a: a
         except FileNotFoundError:
             print(f"경고: vendor 파일 {source} 가 없어 복사하지 않았습니다.", file=sys.stderr)
 
+    col_docs = _report_column_docs(table.columns)
     (folder / "index.html").write_text(_page("요약", "index.html", _summary_html(summary), []), encoding="utf-8")
-    (folder / "table.html").write_text(_page("ITEM 표", "table.html", TABLE_BODY,
+    (folder / "table.html").write_text(_page("ITEM 표", "table.html", TABLE_BODY + _column_docs_html(col_docs),
                                                 ["data/table.js", "assets/report.js"]), encoding="utf-8")
     (folder / "analysis.html").write_text(_page("ITEM 분석", "analysis.html", ANALYSIS_BODY,
                                                    ["assets/echarts.min.js", "data/table.js", "data/index.js",
@@ -376,7 +419,7 @@ def _write_pages(table: pd.DataFrame, summary: dict, out: Path, anon: bool, a: a
         "cols": list(table.columns), "rows": rows,
         "meta": {"name": folder.name, "anon": anon, "n_items": len(table), "chunk_size": CHUNK_SIZE,
                  "chunks": has_raw, "images": a.images, "img_rows": image_rows,
-                 "log_bases": list(item_view.LOG_BASES), "overall": summary["overall"]},
+                 "log_bases": list(item_view.LOG_BASES), "overall": summary["overall"], "col_docs": col_docs},
     }, ensure_ascii=False, allow_nan=False) + ";\n"
     (data / "table.js").write_text(table_text, encoding="utf-8")
     if len(table_text.encode("utf-8")) > 5 * 1024 * 1024:

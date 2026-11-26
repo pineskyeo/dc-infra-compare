@@ -118,11 +118,12 @@ ITEM 원데이터는 **100개씩 한 chunk**(`data/chunks/c00000.js`부터)에 �
 python examples/demo_report_v2.py OUT --items 6000 --dies 60 --seed 7 --images fail
 ```
 
-측정 기록(Dev 작성):
+측정 기록(Dev 측정, 상자 8 vCPU, 10,000 ITEM × 61 die, seed 7, 커밋 cefaf6c):
 
-| ITEM 수 | 빌드 초 | table.js 크기 | 한 ITEM 여는 ms | img 수·크기 |
-|---:|---:|---:|---:|---:|
-|  |  |  |  |  |
+| 조건 | ITEM 수 | 빌드 초 | 리포트 크기 | 첫 화면 ms | ITEM 차트 ms |
+|---|---:|---:|---:|---:|---:|
+| PNG 있음(fail, `--jobs 8`) | 10,000 | 101.2 (PNG 1,034장 77.0) | 384.4 MB | 157 | 50 (최대 81) |
+| PNG 없음(`--images none`) | 10,000 | 21.4 | 72.2 MB | — | — |
 
 ### run_all.py로 한 번에
 

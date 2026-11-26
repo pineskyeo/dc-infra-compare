@@ -40,6 +40,45 @@
         return value === null || value === undefined || value === "" ? "—" : String(value);
     }
 
+    function fmtNum(value) {
+        if (value === null || value === undefined || value === "" ||
+                (typeof value === "number" && isNaN(value))) {
+            return "—";
+        }
+        if (typeof value !== "number" || !isFinite(value)) {
+            return display(value);
+        }
+        if (value === 0) {
+            return "0";
+        }
+        var magnitude = Math.abs(value);
+        if (magnitude >= 1e-3 && magnitude < 1e6 && Math.floor(value) === value) {
+            return String(value);
+        }
+        var text = magnitude >= 1e-3 && magnitude < 1e6 ? value.toPrecision(4) : value.toExponential(3);
+        if (text.indexOf("e") < 0 && text.indexOf(".") >= 0) {
+            text = text.replace(/\.?0+$/, "");
+        }
+        return text;
+    }
+
+    function displayScale(values) {
+        var largest = 0;
+        for (var i = 0; i < (values || []).length; i += 1) {
+            if (finite(values[i])) {
+                largest = Math.max(largest, Math.abs(values[i]));
+            }
+        }
+        if (largest === 0) {
+            return {factor: 1, k: 0, label: ""};
+        }
+        var k = Math.floor(Math.log(largest) / Math.LN10);
+        if (Math.abs(k) < 3) {
+            return {factor: 1, k: 0, label: ""};
+        }
+        return {factor: Math.pow(10, k), k: k, label: "×1e" + k};
+    }
+
     function columnIndex(cols, name) {
         for (var i = 0; i < cols.length; i += 1) {
             if (cols[i] === name) {
@@ -70,6 +109,7 @@
             return;
         }
         var cols = window.__dcTable.cols;
+        var colDocs = window.__dcTable.meta && window.__dcTable.meta.col_docs ? window.__dcTable.meta.col_docs : {};
         var allRows = window.__dcTable.rows;
         var viewRows = allRows.slice();
         var head = document.getElementById("dc-table-head");
@@ -137,7 +177,8 @@
                 var button = make("button", "dc-sort", cols[i]);
                 button.type = "button";
                 button.setAttribute("data-col", String(i));
-                button.title = cols[i] + " 정렬";
+                var doc = colDocs[cols[i]];
+                button.title = doc ? doc.name + " — " + doc.desc + "\n식: " + doc.formula : cols[i] + " 정렬";
                 if (i === sortColumn) {
                     button.textContent += sortDirection === 1 ? " ▲" : " ▼";
                     button.setAttribute("aria-sort", sortDirection === 1 ? "ascending" : "descending");
@@ -228,6 +269,7 @@
         applyView(true);
         clearError();
         window.__dcReady = true;
+        window.__dcReadyMs = performance.now();
     }
 
     var chunkLoads = {};
@@ -338,7 +380,7 @@
             var logPad = logHigh === logLow ? 0.25 : (logHigh - logLow) * 0.08;
             return {min: Math.pow(10, logLow - logPad), max: Math.pow(10, logHigh + logPad)};
         }
-        var span = high === low ? Math.max(Math.abs(high), 1) : high - low;
+        var span = high === low ? Math.abs(high) || 1 : high - low;
         return {min: low - span * 0.08, max: high + span * 0.08};
     }
 
@@ -349,6 +391,54 @@
             tooltip: {trigger: "item", confine: true, axisPointer: {type: "cross"}},
             grid: {left: 78, right: 28, top: 76, bottom: 72, containLabel: false}
         };
+    }
+
+    function scaleValue(value, factor) {
+        return finite(value) ? value / factor : value;
+    }
+
+    function scaleY(points, factor) {
+        for (var i = 0; i < points.length; i += 1) {
+            points[i].value[1] = scaleValue(points[i].value[1], factor);
+        }
+    }
+
+    function tooltipValueFormatter(factor) {
+        return function (value) {
+            if (Array.isArray(value)) {
+                var formatted = [];
+                for (var i = 0; i < value.length; i += 1) {
+                    formatted.push(fmtNum(finite(value[i]) ? value[i] * factor : value[i]));
+                }
+                return formatted.join(", ");
+            }
+            return fmtNum(finite(value) ? value * factor : value);
+        };
+    }
+
+    function scaledAxisName(name, item, scale) {
+        if (!scale.label) {
+            return name;
+        }
+        return name + " (" + scale.label + (item.unit ? " " + item.unit : "") + ")";
+    }
+
+    function marginFor(record, logBases) {
+        var basis = String(record.verdict_basis);
+        if ((logBases || []).indexOf(basis) >= 0) {
+            return {value: record.delta_log, name: "delta_log"};
+        }
+        if (basis === "abs") {
+            return {value: record.abs_delta, name: "abs_delta"};
+        }
+        if (basis === "accuracy") {
+            return {value: finite(record.accuracy_margin) ? Math.max(record.delta, record.accuracy_margin) : record.delta,
+                    name: finite(record.accuracy_margin) ? "max(delta, accuracy_margin)" : "delta"};
+        }
+        if (basis === "limit") {
+            return null;
+        }
+        return {value: record.delta, name: "delta"};
     }
 
     function scatterLines(low, high, log, delta, loq) {
@@ -412,8 +502,20 @@
                 }
             }
         }
-        var delta = record[log ? "delta_log" : "delta"];
-        var loq = record.LoQ;
+        var scale = log ? {factor: 1, k: 0, label: ""} : displayScale(values);
+        if (!log) {
+            for (var s = 0; s < series.length; s += 1) {
+                for (var d = 0; d < series[s].data.length; d += 1) {
+                    series[s].data[d].value[0] = scaleValue(series[s].data[d].value[0], scale.factor);
+                    series[s].data[d].value[1] = scaleValue(series[s].data[d].value[1], scale.factor);
+                }
+            }
+            for (var v = 0; v < values.length; v += 1) {
+                values[v] = scaleValue(values[v], scale.factor);
+            }
+        }
+        var delta = scaleValue(record[log ? "delta_log" : "delta"], scale.factor);
+        var loq = scaleValue(record.LoQ, scale.factor);
         var extras = [];
         if (finite(delta)) {
             var base = extent(values, log);
@@ -433,13 +535,16 @@
                               data: scatterLines(limits.min, limits.max, log, delta, loq)};
         var option = chartBase();
         option.series = series;
+        option.tooltip.valueFormatter = tooltipValueFormatter(scale.factor);
         option.xAxis = {type: log ? "log" : "value", logBase: 10, min: limits.min, max: limits.max, scale: !log,
                         name: "POR 회차 평균 · " + DIE_AXIS, nameLocation: "middle", nameGap: 44,
-                        axisLabel: {color: "#55616E"}, splitLine: {lineStyle: {color: "#E2E6EC"}}};
+                        axisLabel: {color: "#55616E", hideOverlap: true, formatter: fmtNum},
+                        splitLine: {lineStyle: {color: "#E2E6EC"}}};
         option.yAxis = {type: log ? "log" : "value", logBase: 10, min: limits.min, max: limits.max, scale: !log,
-                        name: (log ? "|DOE|·|POR|" : "DOE·POR") + " · " + DIE_AXIS,
+                        name: scaledAxisName((log ? "|DOE|·|POR|" : "DOE·POR") + " · " + DIE_AXIS, item, scale),
                         nameLocation: "middle", nameGap: 58, nameRotate: 90,
-                        axisLabel: {color: "#55616E"}, splitLine: {lineStyle: {color: "#E2E6EC"}}};
+                        axisLabel: {color: "#55616E", hideOverlap: true, formatter: fmtNum},
+                        splitLine: {lineStyle: {color: "#E2E6EC"}}};
         return {option: option, dropped: dropped};
     }
 
@@ -459,6 +564,7 @@
         var perColumn = [];
         var porPoints = [];
         var doePoints = [];
+        var rawValues = [];
         var c;
         for (c = 0; c < columns.length; c += 1) {
             perColumn.push([]);
@@ -471,6 +577,7 @@
                     continue;
                 }
                 perColumn[c].push(value);
+                rawValues.push(value);
                 var jitter = (((i * 37 + c * 17) % 13) - 6) * 0.018;
                 var point = {name: die.name, value: [c + jitter, value]};
                 (c === columns.length - 1 ? doePoints : porPoints).push(point);
@@ -489,7 +596,30 @@
                 limits.push({name: name, yAxis: record[name], lineStyle: {color: CHART_COLOR.loq, type: "dotted"}});
             }
         }
+        var scaleInput = rawValues.slice();
+        for (l = 0; l < limits.length; l += 1) {
+            scaleInput.push(limits[l].yAxis);
+        }
+        var scale = displayScale(scaleInput);
+        var values = [];
+        for (var v = 0; v < rawValues.length; v += 1) {
+            values.push(scaleValue(rawValues[v], scale.factor));
+        }
+        for (var b = 0; b < boxes.length; b += 1) {
+            for (var q = 0; q < boxes[b].length; q += 1) {
+                boxes[b][q] = scaleValue(boxes[b][q], scale.factor);
+            }
+        }
+        scaleY(porPoints, scale.factor);
+        scaleY(doePoints, scale.factor);
+        var extras = [];
+        for (l = 0; l < limits.length; l += 1) {
+            limits[l].yAxis = scaleValue(limits[l].yAxis, scale.factor);
+            extras.push(limits[l].yAxis);
+        }
+        var axisLimits = extent(values, false, extras);
         var option = chartBase();
+        option.tooltip.valueFormatter = tooltipValueFormatter(scale.factor);
         option.series = [
             {name: "분포(box)", type: "boxplot", data: boxes, boxWidth: [8, 24],
              itemStyle: {color: "#EDF3FA", borderColor: "#55616E", borderWidth: 1.5},
@@ -501,9 +631,11 @@
         ];
         option.xAxis = {type: "category", data: columns, name: "POR/DOE · " + DIE_AXIS,
                         nameLocation: "middle", nameGap: 42, axisLabel: {color: "#55616E"}};
-        option.yAxis = {type: "value", scale: true, name: "die 값 · " + DIE_AXIS,
+        option.yAxis = {type: "value", scale: true, min: axisLimits.min, max: axisLimits.max,
+                        name: scaledAxisName("die 값 · " + DIE_AXIS, item, scale),
                         nameLocation: "middle", nameGap: 58, nameRotate: 90,
-                        axisLabel: {color: "#55616E"}, splitLine: {lineStyle: {color: "#E2E6EC"}}};
+                        axisLabel: {color: "#55616E", hideOverlap: true, formatter: fmtNum},
+                        splitLine: {lineStyle: {color: "#E2E6EC"}}};
         return option;
     }
 
@@ -518,7 +650,7 @@
         var low = record["ci_low" + suffix];
         var high = record["ci_high" + suffix];
         var center = record["center" + suffix];
-        var delta = record["delta" + suffix];
+        var margin = marginFor(record, logBases);
         var parsed = chunkDies(item);
         var inside = [];
         var outside = [];
@@ -548,26 +680,14 @@
             (finite(low) && finite(high) && low <= d && d <= high ? inside : outside).push(point);
             values.push(d);
         }
-        var option = chartBase();
-        option.series = [
-            {name: "CI 안 die", type: "scatter", data: inside, symbolSize: 9,
-             itemStyle: {color: CHART_COLOR.inside, borderColor: "#FFFFFF", borderWidth: 1}},
-            {name: "CI 밖 die", type: "scatter", data: outside, symbolSize: 8,
-             itemStyle: {color: CHART_COLOR.por, borderColor: "#FFFFFF", borderWidth: 1}}
-        ];
         var thresholds = [{name: "center", value: center, color: CHART_COLOR.ink, dash: "solid"},
                           {name: "ci_low", value: low, color: CHART_COLOR.inside, dash: "dashed"},
                           {name: "ci_high", value: high, color: CHART_COLOR.inside, dash: "dashed"}];
-        if (finite(delta)) {
-            thresholds.push({name: "+Δ", value: delta, color: CHART_COLOR.doe, dash: "dashed"},
-                            {name: "−Δ", value: -delta, color: CHART_COLOR.doe, dash: "dashed"});
-        }
-        for (var t = 0; t < thresholds.length; t += 1) {
-            if (finite(thresholds[t].value)) {
-                option.series.push(ciLine(thresholds[t].name, thresholds[t].value,
-                                          thresholds[t].color, thresholds[t].dash));
-                values.push(thresholds[t].value);
-            }
+        if (margin && finite(margin.value)) {
+            thresholds.push({name: "+마진 (" + margin.name + ")", value: margin.value,
+                             color: CHART_COLOR.doe, dash: "dashed"},
+                            {name: "−마진 (" + margin.name + ")", value: -margin.value,
+                             color: CHART_COLOR.doe, dash: "dashed"});
         }
         var loqShifts = [];
         if (finite(record.LoQ) && record.LoQ > 0 && finite(record.por_median)) {
@@ -577,19 +697,59 @@
                 loqShifts.push(record.LoQ - record.por_median, -record.LoQ - record.por_median);
             }
         }
+        var scaleInput = values.concat([center, low, high], loqShifts);
+        if (margin && finite(margin.value)) {
+            scaleInput.push(margin.value, -margin.value);
+        }
+        var scale = log ? {factor: 1, k: 0, label: ""} : displayScale(scaleInput);
+        scaleY(inside, scale.factor);
+        scaleY(outside, scale.factor);
+        for (var v = 0; v < values.length; v += 1) {
+            values[v] = scaleValue(values[v], scale.factor);
+        }
+        center = scaleValue(center, scale.factor);
+        low = scaleValue(low, scale.factor);
+        high = scaleValue(high, scale.factor);
+        for (var t = 0; t < thresholds.length; t += 1) {
+            thresholds[t].value = scaleValue(thresholds[t].value, scale.factor);
+        }
         for (var s = 0; s < loqShifts.length; s += 1) {
+            loqShifts[s] = scaleValue(loqShifts[s], scale.factor);
+        }
+        var option = chartBase();
+        option.tooltip.valueFormatter = tooltipValueFormatter(scale.factor);
+        option.series = [
+            {name: "CI 안 die", type: "scatter", data: inside, symbolSize: 9,
+             itemStyle: {color: CHART_COLOR.inside, borderColor: "#FFFFFF", borderWidth: 1}},
+            {name: "CI 밖 die", type: "scatter", data: outside, symbolSize: 8,
+             itemStyle: {color: CHART_COLOR.por, borderColor: "#FFFFFF", borderWidth: 1}}
+        ];
+        for (t = 0; t < thresholds.length; t += 1) {
+            if (finite(thresholds[t].value)) {
+                option.series.push(ciLine(thresholds[t].name, thresholds[t].value,
+                                          thresholds[t].color, thresholds[t].dash));
+            }
+        }
+        for (s = 0; s < loqShifts.length; s += 1) {
             if (finite(loqShifts[s])) {
                 option.series.push(ciLine("DOE가 LoQ에 닿는 이동", loqShifts[s], CHART_COLOR.loq, "dotted"));
             }
         }
-        var limits = extent(values, false);
+        var extras = [center, low, high];
+        if (margin && finite(margin.value)) {
+            extras.push(scaleValue(margin.value, scale.factor), scaleValue(-margin.value, scale.factor));
+        }
+        extras = extras.concat(loqShifts);
+        var limits = extent(values, false, extras);
         option.xAxis = {type: "value", min: -0.5, max: 0.5, name: "die (jitter) · " + DIE_AXIS,
                         nameLocation: "middle", nameGap: 40, axisLabel: {show: false}, axisTick: {show: false},
                         splitLine: {show: false}};
         option.yAxis = {type: "value", min: limits.min, max: limits.max,
-                        name: (log ? "d (log10 절댓값 차이)" : "d = DOE − POR 평균") + " · " + DIE_AXIS,
+                        name: scaledAxisName((log ? "d (log10 절댓값 차이)" : "d = DOE − POR 평균") + " · " + DIE_AXIS,
+                                             item, scale),
                         nameLocation: "middle", nameGap: 60, nameRotate: 90,
-                        axisLabel: {color: "#55616E"}, splitLine: {lineStyle: {color: "#E2E6EC"}}};
+                        axisLabel: {color: "#55616E", hideOverlap: true, formatter: fmtNum},
+                        splitLine: {lineStyle: {color: "#E2E6EC"}}};
         return option;
     }
 
@@ -730,7 +890,7 @@
         function addCard(list, label, value) {
             var card = make("div", "number-card");
             card.appendChild(make("dt", "", label));
-            card.appendChild(make("dd", "", display(value)));
+            card.appendChild(make("dd", "", fmtNum(value)));
             list.appendChild(card);
         }
 
@@ -774,6 +934,7 @@
             renderCharts(record, item);
             window.__dcItemMs = Date.now() - started;
             window.__dcReady = true;
+            window.__dcReadyMs = performance.now();
         }
 
         function requestItem() {
@@ -854,6 +1015,13 @@
         } else if (document.getElementById("item-detail")) {
             initAnalysis();
         }
+    }
+
+    if (typeof module === "object" && module.exports) {
+        module.exports = {fmtNum: fmtNum, displayScale: displayScale, extent: extent, marginFor: marginFor};
+    }
+    if (typeof document === "undefined") {
+        return;
     }
 
     if (document.readyState === "loading") {
