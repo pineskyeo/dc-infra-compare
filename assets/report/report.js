@@ -87,6 +87,50 @@
         return -1;
     }
 
+    // idx: {type, item, verdict} data column indexes (-1 when absent).
+    // state: {filter: "all" | "loq" | "not-loq", query: lowercased text or "", verdicts: null | string[]}.
+    function rowPasses(record, idx, state) {
+        var type = idx.type >= 0 ? record[idx.type] : "";
+        if (state.filter === "loq" && type !== "LoQ") {
+            return false;
+        }
+        if (state.filter === "not-loq" && type === "LoQ") {
+            return false;
+        }
+        if (state.query && String(record[idx.item] || "").toLowerCase().indexOf(state.query) < 0) {
+            return false;
+        }
+        if (state.verdicts !== null) {
+            if (idx.verdict < 0 || state.verdicts.indexOf(String(record[idx.verdict])) < 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Data column indexes to show, in display order: ITEM first (if present), then the default
+    // names that are on (in defaultCols order), then the other names that are on (in cols order).
+    function visibleColumnOrder(cols, defaultCols, onSet) {
+        var order = [];
+        function add(index) {
+            if (index >= 0 && order.indexOf(index) < 0) {
+                order.push(index);
+            }
+        }
+        add(columnIndex(cols, "ITEM"));
+        for (var d = 0; d < defaultCols.length; d += 1) {
+            if (defaultCols[d] !== "ITEM" && onSet.indexOf(defaultCols[d]) >= 0) {
+                add(columnIndex(cols, defaultCols[d]));
+            }
+        }
+        for (var c = 0; c < cols.length; c += 1) {
+            if (cols[c] !== "ITEM" && defaultCols.indexOf(cols[c]) < 0 && onSet.indexOf(cols[c]) >= 0) {
+                add(c);
+            }
+        }
+        return order;
+    }
+
     function headTransform(scrollLeft) {
         var shift = finite(scrollLeft) ? scrollLeft : 0;
         return "translateX(" + (-shift) + "px)";
@@ -124,17 +168,24 @@
         var itemIndex = columnIndex(cols, "ITEM");
         var typeIndex = columnIndex(cols, "data_type");
         var rowIndex = columnIndex(cols, "row");
+        var verdictIndex = columnIndex(cols, "verdict_final");
+        var meta = window.__dcTable.meta;
+        var defaultCols = (meta && Array.isArray(meta.default_cols)) ? meta.default_cols : [];
         var filter = "all";
+        var verdicts = null;
         var sortColumn = -1;
         var sortDirection = 1;
-        var widths = [];
-        var gridColumns = [];
+        var onSet = [];
+        var shown = [];
+        var gridTemplate = "";
+        var tableWidth = "0px";
         var numeric = [];
+        var colCount = document.getElementById("col-count");
+        var columnList = document.getElementById("column-list");
+        var colsAll = document.getElementById("cols-all");
+        var colsDefault = document.getElementById("cols-default");
 
         for (var c = 0; c < cols.length; c += 1) {
-            var width = cols[c] === "reason" ? 320 : (cols[c] === "ITEM" ? 220 : 148);
-            widths.push(width);
-            gridColumns.push(width + "px");
             var sawNumber = false;
             var onlyNumbers = true;
             for (var r = 0; r < allRows.length; r += 1) {
@@ -150,11 +201,40 @@
             }
             numeric.push(sawNumber && onlyNumbers);
         }
-        var gridTemplate = gridColumns.join(" ");
-        var tableWidth = widths.reduce(function (sum, value) { return sum + value; }, 0) + "px";
-        head.style.gridTemplateColumns = gridTemplate;
-        head.style.width = tableWidth;
-        spacer.style.width = tableWidth;
+
+        function presentDefaults() {
+            var names = [];
+            for (var d = 0; d < defaultCols.length; d += 1) {
+                if (columnIndex(cols, defaultCols[d]) >= 0 && names.indexOf(defaultCols[d]) < 0) {
+                    names.push(defaultCols[d]);
+                }
+            }
+            return names;
+        }
+
+        // Computes the shown columns and the grid widths for them only.
+        function layout() {
+            shown = visibleColumnOrder(cols, defaultCols, onSet);
+            var gridColumns = [];
+            var total = 0;
+            for (var i = 0; i < shown.length; i += 1) {
+                var name = cols[shown[i]];
+                var width = name === "reason" ? 320 : (name === "ITEM" ? 220 : 148);
+                gridColumns.push(width + "px");
+                total += width;
+            }
+            gridTemplate = gridColumns.join(" ");
+            tableWidth = total + "px";
+            head.style.gridTemplateColumns = gridTemplate;
+            head.style.width = tableWidth;
+            spacer.style.width = tableWidth;
+            if (colCount) {
+                colCount.textContent = shown.length + "/" + cols.length;
+            }
+        }
+
+        onSet = presentDefaults();
+        layout();
 
         function compareRows(left, right) {
             var a = left[sortColumn];
@@ -177,13 +257,14 @@
 
         function renderHead() {
             head.textContent = "";
-            for (var i = 0; i < cols.length; i += 1) {
-                var button = make("button", "dc-sort", cols[i]);
+            for (var i = 0; i < shown.length; i += 1) {
+                var col = shown[i];
+                var button = make("button", "dc-sort", cols[col]);
                 button.type = "button";
-                button.setAttribute("data-col", String(i));
-                var doc = colDocs[cols[i]];
-                button.title = doc ? doc.name + " — " + doc.desc + "\n식: " + doc.formula : cols[i] + " 정렬";
-                if (i === sortColumn) {
+                button.setAttribute("data-col", String(col));
+                var doc = colDocs[cols[col]];
+                button.title = doc ? doc.name + " — " + doc.desc + "\n식: " + doc.formula : cols[col] + " 정렬";
+                if (col === sortColumn) {
                     button.textContent += sortDirection === 1 ? " ▲" : " ▼";
                     button.setAttribute("aria-sort", sortDirection === 1 ? "ascending" : "descending");
                 }
@@ -206,8 +287,8 @@
                 row.style.gridTemplateColumns = gridTemplate;
                 row.style.width = tableWidth;
                 row.setAttribute("aria-label", display(record[itemIndex]) + " 분석 열기");
-                for (var c = 0; c < cols.length; c += 1) {
-                    var cellValue = record[c];
+                for (var k = 0; k < shown.length; k += 1) {
+                    var cellValue = record[shown[k]];
                     var numeric = finite(cellValue);
                     var cell = make("span", "dc-cell", numeric ? fmtNum(cellValue) : display(cellValue));
                     if (numeric) {
@@ -221,21 +302,13 @@
         }
 
         function applyView(resetScroll) {
-            var query = search.value.toLowerCase();
+            var state = {filter: filter, query: search.value.toLowerCase(), verdicts: verdicts};
+            var idx = {type: typeIndex, item: itemIndex, verdict: verdictIndex};
             viewRows = [];
             for (var i = 0; i < allRows.length; i += 1) {
-                var record = allRows[i];
-                var type = typeIndex >= 0 ? record[typeIndex] : "";
-                if (filter === "loq" && type !== "LoQ") {
-                    continue;
+                if (rowPasses(allRows[i], idx, state)) {
+                    viewRows.push(allRows[i]);
                 }
-                if (filter === "not-loq" && type === "LoQ") {
-                    continue;
-                }
-                if (query && String(record[itemIndex] || "").toLowerCase().indexOf(query) < 0) {
-                    continue;
-                }
-                viewRows.push(record);
             }
             if (sortColumn >= 0) {
                 viewRows.sort(compareRows);
@@ -278,6 +351,97 @@
                 applyView(true);
             }));
         }
+        function columnsChanged() {
+            layout();
+            if (sortColumn >= 0 && shown.indexOf(sortColumn) < 0) {
+                sortColumn = -1;
+                sortDirection = 1;
+            }
+            renderHead();
+            applyView(false);
+        }
+
+        function columnBoxes() {
+            return columnList ? columnList.querySelectorAll("input[type=\"checkbox\"]") : [];
+        }
+
+        function syncColumnBoxes() {
+            var boxes = columnBoxes();
+            for (var i = 0; i < boxes.length; i += 1) {
+                boxes[i].checked = onSet.indexOf(boxes[i].value) >= 0;
+            }
+        }
+
+        function buildColumnList() {
+            if (!columnList) {
+                return;
+            }
+            columnList.textContent = "";
+            for (var n = 0; n < cols.length; n += 1) {
+                if (cols[n] === "ITEM") {
+                    continue;
+                }
+                var box = make("input");
+                box.type = "checkbox";
+                box.value = cols[n];
+                var label = make("label");
+                label.appendChild(box);
+                label.appendChild(document.createTextNode(" " + cols[n]));
+                columnList.appendChild(label);
+            }
+            syncColumnBoxes();
+        }
+
+        var verdictBoxes = document.querySelectorAll("input[name=\"verdict\"]");
+        for (var v = 0; v < verdictBoxes.length; v += 1) {
+            verdictBoxes[v].addEventListener("change", guard(function () {
+                var checkedValues = [];
+                var allChecked = true;
+                for (var j = 0; j < verdictBoxes.length; j += 1) {
+                    if (verdictBoxes[j].checked) {
+                        checkedValues.push(verdictBoxes[j].value);
+                    } else {
+                        allChecked = false;
+                    }
+                }
+                verdicts = allChecked ? null : checkedValues;
+                applyView(true);
+            }));
+        }
+        if (columnList) {
+            columnList.addEventListener("change", guard(function () {
+                var boxes = columnBoxes();
+                var next = [];
+                for (var i = 0; i < boxes.length; i += 1) {
+                    if (boxes[i].checked) {
+                        next.push(boxes[i].value);
+                    }
+                }
+                onSet = next;
+                columnsChanged();
+            }));
+        }
+        if (colsAll) {
+            colsAll.addEventListener("click", guard(function () {
+                onSet = [];
+                for (var a = 0; a < cols.length; a += 1) {
+                    if (cols[a] !== "ITEM") {
+                        onSet.push(cols[a]);
+                    }
+                }
+                syncColumnBoxes();
+                columnsChanged();
+            }));
+        }
+        if (colsDefault) {
+            colsDefault.addEventListener("click", guard(function () {
+                onSet = presentDefaults();
+                syncColumnBoxes();
+                columnsChanged();
+            }));
+        }
+        buildColumnList();
+
         renderHead();
         applyView(true);
         clearError();
@@ -1285,7 +1449,8 @@
                           appendEdgeLabel: appendEdgeLabel, logAxisTicks: logAxisTicks,
                           tooltipValueFormatter: tooltipValueFormatter,
                           ciOption: ciOption, boxOption: boxOption, scatterOption: scatterOption,
-                          headTransform: headTransform};
+                          headTransform: headTransform,
+                          rowPasses: rowPasses, visibleColumnOrder: visibleColumnOrder};
     }
     if (typeof document === "undefined") {
         return;

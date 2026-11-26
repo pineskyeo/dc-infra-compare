@@ -48,6 +48,9 @@ ITEM_COLUMNS = (
 MEAS_COLUMNS = ("calcval", "center_meas", "meas_note", "ci_low_meas", "ci_high_meas", "delta_meas")
 OVERALL_RULE = "전체 판정 규칙(가정): 차이 ITEM이 1개라도 있으면 전체 차이, 아니면 미결이 있으면 전체 미결, 아니면 동등. 판정 제외는 전체 판정에 넣지 않고 개수로 따로 보인다."
 VERDICTS = ("동등", "미결", "차이", "판정 제외")
+TABLE_DEFAULT_COLUMNS = ("data_type", "verdict_final", "judged_by", "center", "center_meas", "ci_low", "ci_high",
+                         "ci_low_meas", "ci_high_meas", "delta", "delta_meas", "delta_pct", "sigma_die", "sigma_run",
+                         "rsd_pct", "LoQ", "por_median")
 CHUNK_SIZE = 100
 
 
@@ -279,6 +282,10 @@ TABLE_BODY = '''<main class="page page-wide">
 <label>ITEM 검색 <input id="table-search" type="search" autocomplete="off"></label>
 <strong id="table-count" aria-live="polite"></strong>
 </div>
+<div class="table-panels">
+<details class="table-panel" id="verdict-panel"><summary>판정 필터</summary><div class="panel-body">{verdict_boxes}</div></details>
+<details class="table-panel" id="column-panel"><summary>열 설정 (<span id="col-count">{col_count}</span>)</summary><div class="panel-body"><div class="panel-buttons"><button type="button" id="cols-all">전체 켜기</button><button type="button" id="cols-default">기본값 복원</button></div><div id="column-list" class="column-list"></div></div></details>
+</div>
 <p class="hint">열 머리글을 누륵면 정렬합니다. 행을 누륵면 ITEM 분석으로 이동합니다.</p>
 <div class="dc-table-scroll"><div id="dc-table-head" class="dc-grid dc-head"></div><div id="dc-viewport"><div id="dc-spacer"><div id="dc-rows"></div></div></div></div>
 </main>'''
@@ -301,6 +308,15 @@ def _report_column_docs(columns) -> dict[str, dict[str, str]]:
                         "desc": doc.meaning.replace("{k}", k),
                         "formula": doc.formula.replace("{k}", k)}
     return docs
+
+
+def _verdict_boxes_html(table: pd.DataFrame) -> str:
+    boxes = []
+    for v in VERDICTS:
+        n = int((table["verdict_final"] == v).sum()) if "verdict_final" in table.columns else 0
+        boxes.append(f'<label><input type="checkbox" name="verdict" value="{html.escape(v)}" checked> '
+                     f'{html.escape(v)} ({n})</label>')
+    return "".join(boxes)
 
 
 def _column_docs_html(col_docs: dict[str, dict[str, str]]) -> str:
@@ -436,7 +452,11 @@ def _write_pages(table: pd.DataFrame, summary: dict, out: Path, anon: bool, a: a
 
     col_docs = _report_column_docs(table.columns)
     (folder / "index.html").write_text(_page("요약", "index.html", _summary_html(summary), []), encoding="utf-8")
-    table_body = TABLE_BODY.replace("</main>", _column_docs_html(col_docs) + "\n</main>", 1).replace("{n_rows}", str(len(table)))
+    shown = int("ITEM" in table.columns) + sum(1 for c in TABLE_DEFAULT_COLUMNS if c != "ITEM" and c in table.columns)
+    table_body = (TABLE_BODY.replace("</main>", _column_docs_html(col_docs) + "\n</main>", 1)
+                  .replace("{n_rows}", str(len(table)))
+                  .replace("{verdict_boxes}", _verdict_boxes_html(table))
+                  .replace("{col_count}", f"{shown}/{len(table.columns)}"))
     (folder / "table.html").write_text(_page("ITEM 표", "table.html", table_body,
                                                 ["data/table.js", "assets/report.js"]), encoding="utf-8")
     (folder / "analysis.html").write_text(_page("ITEM 분석", "analysis.html", ANALYSIS_BODY,
@@ -473,7 +493,8 @@ def _write_pages(table: pd.DataFrame, summary: dict, out: Path, anon: bool, a: a
         "cols": list(table.columns), "rows": rows,
         "meta": {"name": folder.name, "anon": anon, "n_items": len(table), "chunk_size": CHUNK_SIZE,
                  "chunks": has_raw, "images": a.images, "img_rows": image_rows,
-                 "log_bases": list(item_view.LOG_BASES), "overall": summary["overall"], "col_docs": col_docs},
+                 "log_bases": list(item_view.LOG_BASES), "overall": summary["overall"], "col_docs": col_docs,
+                 "default_cols": list(TABLE_DEFAULT_COLUMNS)},
     }, ensure_ascii=False, allow_nan=False) + ";\n"
     (data / "table.js").write_text(table_text, encoding="utf-8")
     if len(table_text.encode("utf-8")) > 5 * 1024 * 1024:

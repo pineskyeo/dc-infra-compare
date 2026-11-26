@@ -149,6 +149,68 @@ def test_table_xlsx_matches_table_csv_and_page_links_it(built):
         assert f"전체 {n}행" in text, folder
 
 
+def test_table_page_has_verdict_and_column_panels(built):
+    text = (built["out"] / "report" / "table.html").read_text(encoding="utf-8")
+    verdicts = re.findall(r'<input type="checkbox" name="verdict" value="([^"]+)" checked>', text)
+    assert verdicts == list(report_v2.VERDICTS)
+    for expected in ('id="verdict-panel"', 'id="column-panel"', 'id="cols-all"', 'id="cols-default"',
+                     'id="column-list"'):
+        assert expected in text, expected
+    count = f'<span id="col-count">{1 + len(report_v2.TABLE_DEFAULT_COLUMNS)}/{len(built["table"].columns)}</span>'
+    assert count in text
+    assert 'href="table.xlsx"' in text
+    assert f"전체 {len(built['table'])}행" in text
+
+
+def test_table_js_default_cols_match_constant_and_exist(built):
+    payload = read_assignment(built["out"] / "report" / "data" / "table.js", "__dcTable")
+    defaults = payload["meta"]["default_cols"]
+    assert defaults == list(report_v2.TABLE_DEFAULT_COLUMNS)
+    for name in defaults:
+        assert name in payload["cols"], name
+    assert len(set(defaults)) == 17
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")
+def test_report_js_row_passes_and_visible_column_order():
+    module_path = json.dumps(str(ROOT / "assets" / "report" / "report.js"))
+    script = f"""
+const h = require({module_path});
+const cols = ['row', 'ITEM', 'data_type', 'verdict_final', 'center', 'zone', 'reason', 'delta'];
+const defaults = ['data_type', 'verdict_final', 'center', 'delta'];
+const rows = [['A', 'LoQ', '차이'], ['B', 'LoQ', '동등'], ['C', 'normal', '차이'],
+              ['D', 'normal', '미결'], ['E', 'LoQ', '판정 제외']];
+const idx = {{item: 0, type: 1, verdict: 2}};
+function pick(state) {{
+  return rows.filter(r => h.rowPasses(r, idx, state)).map(r => r[0]);
+}}
+console.log(JSON.stringify({{
+  def: h.visibleColumnOrder(cols, defaults, defaults),
+  extra: h.visibleColumnOrder(cols, defaults, defaults.concat(['zone'])),
+  extraTwo: h.visibleColumnOrder(cols, defaults, ['reason', 'center', 'row']),
+  noItem: h.visibleColumnOrder(cols, defaults, []),
+  verdictOnly: pick({{filter: 'all', query: '', verdicts: ['차이']}}),
+  verdictAndLoq: pick({{filter: 'loq', query: '', verdicts: ['차이']}}),
+  verdictEmpty: pick({{filter: 'all', query: '', verdicts: []}}),
+  verdictNull: pick({{filter: 'all', query: '', verdicts: null}}),
+  verdictAll: pick({{filter: 'all', query: '', verdicts: ['동등', '미결', '차이', '판정 제외']}}),
+  searchAndNotLoq: pick({{filter: 'not-loq', query: 'd', verdicts: null}})
+}}));
+"""
+    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+    values = json.loads(result.stdout)
+    assert values["def"] == [1, 2, 3, 4, 7]
+    assert values["extra"] == [1, 2, 3, 4, 7, 5]
+    assert values["extraTwo"] == [1, 4, 0, 6]
+    assert values["noItem"] == [1]
+    assert values["verdictOnly"] == ["A", "C"]
+    assert values["verdictAndLoq"] == ["A"]
+    assert values["verdictEmpty"] == []
+    assert values["verdictNull"] == ["A", "B", "C", "D", "E"]
+    assert values["verdictAll"] == ["A", "B", "C", "D", "E"]
+    assert values["searchAndNotLoq"] == ["D"]
+
+
 def test_anon_has_no_real_item_or_blank_name_in_text_outputs(built):
     folder = built["out"] / "report_anon"
     names = set(built["items"]["ITEM"].dropna()) | set(built["items"]["blank_item"].dropna())
