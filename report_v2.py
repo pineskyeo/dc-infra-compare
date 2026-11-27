@@ -109,10 +109,12 @@ def _num(value) -> float:
 
 
 def legacy_verdict(row, n_runs: int) -> tuple[str, str]:
-    """방식 B 기존식 판정. LoQ 구간은 현재 최종 판정을 그대로 쓴다.
+    """방식 B 기존식 판정. LoQ 구간은 현재 최종 판정을 그대로 쓰고, die 부족 구간은 판정 불가다.
     그 밖은 POR 회차마다 med_shift 와 sigma_ratio 가 기준을 넘는지 보고, 기준과 같은 값은 통과다."""
     if _text(row.get("zone")) in LOQ_ZONES:
         return _text(row.get("verdict_final")), ""
+    if _text(row.get("zone")) == "die 부족":
+        return "판정 불가", "die 부족"
     if n_runs <= 0:
         return "판정 불가", "값 없음"
     shift_fail = sigma_fail = missing = False
@@ -227,8 +229,13 @@ def summarize(table: pd.DataFrame) -> dict:
         overall = "동등"
     else:
         overall = "판정 없음"
+    legacy_counts = {v: sum(_text(r.get("verdict_legacy")) == v for r in records) for v in LEGACY_VERDICTS}
+    legacy_fail_reasons = {r: sum(_text(x.get("verdict_legacy")) == "Fail" and _text(x.get("verdict_legacy_reason")) == r
+                                  for x in records)
+                           for r in ("shift", "sigma", "shift / sigma")}
     return {"verdict_counts": verdict_counts, "loq": loq, "overall": overall,
-            "overall_rule": OVERALL_RULE, "loq_headline": []}
+            "overall_rule": OVERALL_RULE, "loq_headline": [],
+            "legacy_counts": legacy_counts, "legacy_fail_reasons": legacy_fail_reasons}
 
 
 def _json_value(value):
@@ -296,6 +303,11 @@ def _summary_html(summary: dict) -> str:
     rule = html.escape(_text(summary["overall_rule"]))
     counts = "".join(f'<div class="count-card"><dt>{html.escape(v)}</dt><dd>{summary["verdict_counts"].get(v, 0)}</dd></div>'
                      for v in VERDICTS)
+    legacy_counts = summary.get("legacy_counts", {})
+    legacy = "".join(f'<div class="count-card"><dt>{html.escape(v)}</dt><dd>{legacy_counts.get(v, 0)}</dd></div>'
+                     for v in LEGACY_VERDICTS)
+    reasons = summary.get("legacy_fail_reasons", {})
+    reason_a, reason_b, reason_c = (reasons.get(r, 0) for r in ("shift", "sigma", "shift / sigma"))
     loq = summary["loq"]
     loq_rows = "".join(f'<div class="count-card"><dt>{html.escape(label)}</dt><dd>{loq.get(key, 0)}</dd></div>'
                        for key, label in (("TOST로 동등", "TOST로 동등"), ("LoQ 규칙으로 동등", "LoQ 규칙으로 동등"),
@@ -306,7 +318,9 @@ def _summary_html(summary: dict) -> str:
     return f'''<main class="page">
 <h1 class="overall">전체 판정: {overall}</h1>
 <p class="overall-rule">{rule}</p>
-<h2>최종 판정</h2><dl class="card-grid">{counts}</dl>
+<div class="verdict-mode" id="verdict-mode" role="radiogroup" aria-label="판정 방식"><label><input type="radio" name="verdict-mode" value="A" checked> 방식 A (현재: TOST·LoQ)</label><label><input type="radio" name="verdict-mode" value="B"> 방식 B (기존식: shift·sigma)</label></div>
+<section class="mode-a" id="mode-a-cards"><h2>최종 판정</h2><dl class="card-grid">{counts}</dl></section>
+<section class="mode-b" id="mode-b-cards"><h2>기존식 판정 (방식 B)</h2><dl class="card-grid">{legacy}</dl><p class="legacy-reasons">Fail 사유: shift {reason_a} · sigma {reason_b} · shift / sigma {reason_c}</p></section>
 <h2>LoQ 구간 ({loq["n_items"]} ITEM)</h2><dl class="card-grid">{loq_rows}</dl>
 <h2>LoQ 점검</h2><ul class="headline">{headlines}</ul>
 </main>'''

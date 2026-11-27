@@ -248,8 +248,19 @@ def test_legacy_verdict_rules():
     missing_ok = legacy_row("정량", "Pass", [nan, 0.5, 0.5], [nan, 1.0, 1.0])
     assert report_v2.legacy_verdict(missing_ok, 3) == ("판정 불가", "값 없음")
 
-    # die 부족, 판정 제외: verdict_final 을 복사하지 않고 같은 규칙을 적용한다.
-    for zone in ("die 부족", "판정 제외"):
+    # die 부족: shift/sigma 와 무관하게 항상 판정 불가이고, verdict_final 과도 무관하다.
+    for verdict in report_v2.VERDICTS:
+        under = legacy_row("die 부족", verdict, [0.5] * 3, [1.0] * 3)
+        assert report_v2.legacy_verdict(under, 3) == ("판정 불가", "die 부족"), verdict
+        shift = legacy_row("die 부족", verdict, [0.0, 3.5, 0.0], [1.0] * 3)
+        assert report_v2.legacy_verdict(shift, 3) == ("판정 불가", "die 부족"), verdict
+        sigma = legacy_row("die 부족", verdict, [0.0] * 3, [9.0] * 3)
+        assert report_v2.legacy_verdict(sigma, 3) == ("판정 불가", "die 부족"), verdict
+        missing = legacy_row("die 부족", verdict, [nan] * 3, [nan] * 3)
+        assert report_v2.legacy_verdict(missing, 3) == ("판정 불가", "die 부족"), verdict
+
+    # 판정 제외: verdict_final 을 복사하지 않고 같은 shift/sigma 규칙을 적용한다.
+    for zone in ("판정 제외",):
         ok = legacy_row(zone, "차이", [0.5] * 3, [1.0] * 3)
         assert report_v2.legacy_verdict(ok, 3) == ("Pass", ""), zone
         bad = legacy_row(zone, "동등", [0.5, 3.5, 0.5], [1.0] * 3)
@@ -299,6 +310,12 @@ def test_table_outputs_have_legacy_columns_after_verdict_final(built):
         else:
             expected = report_v2.legacy_verdict(row.to_dict(), n_runs)
             assert (row["verdict_legacy"], reason) == expected, i
+    for i, row in table.iterrows():
+        if row["zone"] != "die 부족":
+            continue
+        reason = "" if pd.isna(row["verdict_legacy_reason"]) else row["verdict_legacy_reason"]
+        assert row["verdict_legacy"] == "판정 불가", i
+        assert reason == "die 부족", i
     assert table["verdict_final"].tolist() == built["items"]["verdict_final"].tolist()
 
 
@@ -323,6 +340,65 @@ def test_table_page_has_verdict_mode_switch(built):
 
     count = f'<span id="col-count">{1 + len(report_v2.TABLE_DEFAULT_COLUMNS)}/{len(built["table"].columns)}</span>'
     assert count in text
+
+
+def test_index_page_has_verdict_mode_switch_and_both_card_sets(built):
+    radios = ('<label><input type="radio" name="verdict-mode" value="A" checked> 방식 A (현재: TOST·LoQ)</label>'
+              '<label><input type="radio" name="verdict-mode" value="B"> 방식 B (기존식: shift·sigma)</label>')
+    folder = built["out"] / "report"
+    text = (folder / "index.html").read_text(encoding="utf-8")
+    assert '<div class="verdict-mode" id="verdict-mode"' in text
+    assert radios in text
+    assert 'value="A" checked' in text
+    assert 'value="B" checked' not in text
+    assert "<script" not in text
+
+    # 방식 A 카드: 최종 판정 (verdict_final)
+    section_a = re.search(r'id="mode-a-cards".*?</section>', text, re.S)
+    assert section_a, "mode-a-cards 섹션이 없습니다"
+    pairs_a = re.findall(r"<dt>([^<]*)</dt><dd>([^<]*)</dd>", section_a.group(0))
+    table_csv = pd.read_csv(folder / "table.csv", encoding="utf-8-sig", keep_default_na=False)
+    final_counts = table_csv["verdict_final"].astype(str).value_counts()
+    assert [(v, int(n)) for v, n in pairs_a] == [(v, int(final_counts.get(v, 0))) for v in report_v2.VERDICTS]
+
+    # 방식 B 카드: 기존식 판정 (verdict_legacy), 0 건도 포함
+    section_b = re.search(r'id="mode-b-cards".*?</section>', text, re.S)
+    assert section_b, "mode-b-cards 섹션이 없습니다"
+    pairs_b = re.findall(r"<dt>([^<]*)</dt><dd>([^<]*)</dd>", section_b.group(0))
+    legacy_counts_csv = table_csv["verdict_legacy"].astype(str).value_counts()
+    assert [(v, int(n)) for v, n in pairs_b] == [(v, int(legacy_counts_csv.get(v, 0)))
+                                                  for v in report_v2.LEGACY_VERDICTS]
+
+    # Fail 사유 줄: table.csv 의 Fail 행을 사유별로 센 값과 같아야 한다.
+    reasons_line = re.search(r'<p class="legacy-reasons">([^<]*)</p>', section_b.group(0))
+    assert reasons_line, "legacy-reasons 줄이 없습니다"
+    reasons_match = re.fullmatch(r"Fail 사유: shift (\d+) · sigma (\d+) · shift / sigma (\d+)", reasons_line.group(1))
+    assert reasons_match, reasons_line.group(1)
+    fail_rows = table_csv[table_csv["verdict_legacy"] == "Fail"]
+    fail_reason_counts = fail_rows["verdict_legacy_reason"].value_counts()
+    expected_reasons = [int(fail_reason_counts.get(r, 0)) for r in ("shift", "sigma", "shift / sigma")]
+    assert [int(g) for g in reasons_match.groups()] == expected_reasons
+
+    # summary.json: 방식 A 판정 개수는 그대로, overall 은 같은 의미, 방식 B 값은 table.csv 와 같다.
+    summary = json.loads((folder / "summary.json").read_text(encoding="utf-8"))
+    assert summary["verdict_counts"] == {v: int(final_counts.get(v, 0)) for v in report_v2.VERDICTS}
+    assert summary["overall"] in {"동등", "미결", "차이", "판정 없음"}
+    counts = summary["verdict_counts"]
+    if counts["차이"]:
+        expected_overall = "차이"
+    elif counts["미결"]:
+        expected_overall = "미결"
+    elif counts["동등"]:
+        expected_overall = "동등"
+    else:
+        expected_overall = "판정 없음"
+    assert summary["overall"] == expected_overall
+    assert summary["legacy_counts"] == {v: int(legacy_counts_csv.get(v, 0)) for v in report_v2.LEGACY_VERDICTS}
+    assert summary["legacy_fail_reasons"] == dict(zip(("shift", "sigma", "shift / sigma"), expected_reasons))
+
+    # 익명 출력도 같은 라디오 줄을 가진다.
+    anon_text = (built["out"] / "report_anon" / "index.html").read_text(encoding="utf-8")
+    assert radios in anon_text
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")
