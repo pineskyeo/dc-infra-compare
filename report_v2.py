@@ -48,6 +48,7 @@ ITEM_COLUMNS = (
 # 실제 측정 단위 열: 파일 값을 CALCVAL 로 나눈 값. --level 이 없거나 판정할 수 없으면 비운다.
 MEAS_COLUMNS = ("calcval", "center_meas", "meas_note", "ci_low_meas", "ci_high_meas", "delta_meas")
 OVERALL_RULE = "전체 판정 규칙(가정): 차이 ITEM이 1개라도 있으면 전체 차이, 아니면 미결이 있으면 전체 미결, 아니면 동등. 판정 제외는 전체 판정에 넣지 않고 개수로 따로 보인다."
+LEGACY_OVERALL_RULE = "전체 판정 규칙(방식 B): Fail ITEM이 1개라도 있으면 전체 Fail, 아니면 Pass. 판정 불가는 전체 판정에 넣지 않고 개수를 따로 보인다."
 VERDICTS = ("동등", "미결", "차이", "판정 제외")
 LEGACY_VERDICTS = ("Pass", "Fail", "판정 불가", "동등", "미결", "차이")
 LEGACY_SHIFT_LIMIT = 3.0
@@ -207,6 +208,11 @@ def make_table(items: pd.DataFrame, raw: pd.DataFrame | None = None, anon: bool 
     return pd.DataFrame(records, columns=["row", "ITEM", *present, *raw_columns])
 
 
+def legacy_overall(legacy_counts: dict) -> str:
+    """방식 B 전체 판정: Fail 이 1개라도 있으면 Fail, 아니면 Pass. 판정 불가와 LoQ 에서 복사된 동등·미결·차이는 Fail 이 아니다."""
+    return "Fail" if legacy_counts.get("Fail", 0) else "Pass"
+
+
 def summarize(table: pd.DataFrame) -> dict:
     """표의 최종 판정과 LoQ 구간을 센다. 판정 규칙을 새로 만들지 않는다."""
     records = table.to_dict("records")
@@ -235,7 +241,8 @@ def summarize(table: pd.DataFrame) -> dict:
                            for r in ("shift", "sigma", "shift / sigma")}
     return {"verdict_counts": verdict_counts, "loq": loq, "overall": overall,
             "overall_rule": OVERALL_RULE, "loq_headline": [],
-            "legacy_counts": legacy_counts, "legacy_fail_reasons": legacy_fail_reasons}
+            "legacy_counts": legacy_counts, "legacy_fail_reasons": legacy_fail_reasons,
+            "legacy_overall": legacy_overall(legacy_counts)}
 
 
 def _json_value(value):
@@ -306,6 +313,9 @@ def _summary_html(summary: dict) -> str:
     legacy_counts = summary.get("legacy_counts", {})
     legacy = "".join(f'<div class="count-card"><dt>{html.escape(v)}</dt><dd>{legacy_counts.get(v, 0)}</dd></div>'
                      for v in LEGACY_VERDICTS)
+    legacy_overall_text = html.escape(_text(summary.get("legacy_overall", legacy_overall(summary.get("legacy_counts", {})))))
+    legacy_rule = html.escape(LEGACY_OVERALL_RULE)
+    n_undecided = summary.get("legacy_counts", {}).get("판정 불가", 0)
     reasons = summary.get("legacy_fail_reasons", {})
     reason_a, reason_b, reason_c = (reasons.get(r, 0) for r in ("shift", "sigma", "shift / sigma"))
     loq = summary["loq"]
@@ -316,8 +326,10 @@ def _summary_html(summary: dict) -> str:
     if not headlines:
         headlines = "<li>LoQ 점검 요약이 없습니다.</li>"
     return f'''<main class="page">
-<h1 class="overall">전체 판정: {overall}</h1>
-<p class="overall-rule">{rule}</p>
+<div class="mode-a" id="mode-a-overall"><h1 class="overall">전체 판정: {overall}</h1>
+<p class="overall-rule">{rule}</p></div>
+<div class="mode-b" id="mode-b-overall"><h1 class="overall">전체 판정: {legacy_overall_text}</h1>
+<p class="overall-rule">{legacy_rule} (판정 불가 {n_undecided}개)</p></div>
 <div class="verdict-mode" id="verdict-mode" role="radiogroup" aria-label="판정 방식"><label><input type="radio" name="verdict-mode" value="A" checked> 방식 A (현재: TOST·LoQ)</label><label><input type="radio" name="verdict-mode" value="B"> 방식 B (기존식: shift·sigma)</label></div>
 <section class="mode-a" id="mode-a-cards"><h2>최종 판정</h2><dl class="card-grid">{counts}</dl></section>
 <section class="mode-b" id="mode-b-cards"><h2>기존식 판정 (방식 B)</h2><dl class="card-grid">{legacy}</dl><p class="legacy-reasons">Fail 사유: shift {reason_a} · sigma {reason_b} · shift / sigma {reason_c}</p></section>

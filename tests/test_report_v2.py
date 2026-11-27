@@ -1,6 +1,7 @@
 """새 브라우저 리포트의 상대 경로, chunk, 익명 출력과 원데이터 값을 검사한다."""
 import argparse
 import hashlib
+import html
 import json
 import math
 import re
@@ -274,6 +275,50 @@ def test_legacy_verdict_rules():
     assert report_v2.legacy_verdict(legacy_row("정량", "Pass", [3.0] * 3, [1.8] * 3), 0) == ("판정 불가", "값 없음")
 
 
+def full_legacy(counts):
+    return {v: counts.get(v, 0) for v in report_v2.LEGACY_VERDICTS}
+
+
+def test_legacy_overall_rule():
+    # Fail 이 1개라도 있으면 전체 Fail. 나머지 값은 무관하다.
+    assert report_v2.legacy_overall(full_legacy({"Fail": 1})) == "Fail"
+    assert report_v2.legacy_overall(full_legacy({"Fail": 1, "Pass": 9, "판정 불가": 4, "동등": 2, "미결": 1, "차이": 3})) == "Fail"
+    assert report_v2.legacy_overall(full_legacy({"Fail": 5, "Pass": 3, "판정 불가": 2})) == "Fail"
+
+    # Fail 이 없으면 전체 Pass. 판정 불가와 LoQ 에서 복사된 동등·미결·차이는 Fail 이 아니다.
+    assert report_v2.legacy_overall(full_legacy({"Fail": 0, "Pass": 7})) == "Pass"
+    assert report_v2.legacy_overall(full_legacy({"Fail": 0, "판정 불가": 3})) == "Pass"
+    assert report_v2.legacy_overall(full_legacy({"Pass": 4, "판정 불가": 2})) == "Pass"
+    assert report_v2.legacy_overall(full_legacy({"Fail": 0, "차이": 5})) == "Pass"
+    assert report_v2.legacy_overall(full_legacy({"Fail": 0, "미결": 2})) == "Pass"
+    assert report_v2.legacy_overall(full_legacy({"Fail": 0, "동등": 6})) == "Pass"
+    assert report_v2.legacy_overall(full_legacy({})) == "Pass"
+
+    # summarize: 전체 Fail 은 verdict_legacy 로, 방식 A 전체 판정과 판정 개수는 verdict_final 로만 센다.
+    table = pd.DataFrame([
+        {"verdict_final": "차이", "zone": "정량", "verdict_legacy": "Fail", "verdict_legacy_reason": "shift"},
+        {"verdict_final": "동등", "zone": "정량", "verdict_legacy": "Pass", "verdict_legacy_reason": ""},
+    ])
+    summary = report_v2.summarize(table)
+    assert summary["legacy_overall"] == "Fail"
+    assert summary["overall"] == "차이"
+    assert summary["verdict_counts"]["차이"] == 1
+    assert summary["verdict_counts"]["동등"] == 1
+    assert summary["verdict_counts"]["미결"] == 0
+
+    table = pd.DataFrame([
+        {"verdict_final": "동등", "zone": "정량", "verdict_legacy": "Pass", "verdict_legacy_reason": ""},
+        {"verdict_final": "미결", "zone": "정량", "verdict_legacy": "판정 불가", "verdict_legacy_reason": "값 없음"},
+        {"verdict_final": "차이", "zone": "정량", "verdict_legacy": "차이", "verdict_legacy_reason": ""},
+    ])
+    summary = report_v2.summarize(table)
+    assert summary["legacy_overall"] == "Pass"
+    assert summary["overall"] == "차이"
+    assert summary["verdict_counts"]["동등"] == 1
+    assert summary["verdict_counts"]["미결"] == 1
+    assert summary["verdict_counts"]["차이"] == 1
+
+
 def test_table_outputs_have_legacy_columns_after_verdict_final(built):
     ns = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
     loq_zones = ("검출한계 이하", "검출~정량")
@@ -399,6 +444,26 @@ def test_index_page_has_verdict_mode_switch_and_both_card_sets(built):
     # 익명 출력도 같은 라디오 줄을 가진다.
     anon_text = (built["out"] / "report_anon" / "index.html").read_text(encoding="utf-8")
     assert radios in anon_text
+
+    # 전체 판정 블록: 방식 A 는 verdict_final, 방식 B 는 summary["legacy_overall"] (Fail 이 있으면 Fail).
+    assert summary["legacy_overall"] == ("Fail" if legacy_counts_csv.get("Fail", 0) else "Pass")
+    assert summary["legacy_overall"] == report_v2.legacy_overall(summary["legacy_counts"])
+
+    block_a = re.search(r'id="mode-a-overall".*?</div>', text, re.S)
+    assert block_a, "mode-a-overall 블록이 없습니다"
+    assert f'<h1 class="overall">전체 판정: {summary["overall"]}</h1>' in block_a.group(0)
+    assert html.escape(report_v2.OVERALL_RULE) in block_a.group(0)
+
+    block_b = re.search(r'id="mode-b-overall".*?</div>', text, re.S)
+    assert block_b, "mode-b-overall 블록이 없습니다"
+    assert f'<h1 class="overall">전체 판정: {summary["legacy_overall"]}</h1>' in block_b.group(0)
+    assert html.escape(report_v2.LEGACY_OVERALL_RULE) in block_b.group(0)
+    assert f'(판정 불가 {summary["legacy_counts"]["판정 불가"]}개)' in block_b.group(0)
+
+    assert text.index('id="mode-a-overall"') < text.index('id="mode-b-overall"') < text.index('id="verdict-mode"')
+
+    anon_block_b = re.search(r'id="mode-b-overall".*?</div>', anon_text, re.S)
+    assert anon_block_b, "익명 index.html 에 mode-b-overall 블록이 없습니다"
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")
