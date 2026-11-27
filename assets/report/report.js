@@ -131,6 +131,40 @@
         return order;
     }
 
+    // Copy of defaultCols with fromCol replaced by toCol at the same position (copy when nothing changes).
+    function modeDefaultCols(defaultCols, fromCol, toCol) {
+        var out = defaultCols.slice();
+        if (fromCol === toCol) {
+            return out;
+        }
+        for (var i = 0; i < out.length; i += 1) {
+            if (out[i] === fromCol) {
+                out[i] = toCol;
+            }
+        }
+        return out;
+    }
+
+    // Number of rows whose String(row[index]) equals each entry of values, in the same order.
+    function verdictCounts(rows, index, values) {
+        var counts = [];
+        for (var j = 0; j < values.length; j += 1) {
+            counts.push(0);
+        }
+        if (index < 0) {
+            return counts;
+        }
+        for (var r = 0; r < rows.length; r += 1) {
+            var text = String(rows[r][index]);
+            for (var k = 0; k < values.length; k += 1) {
+                if (text === values[k]) {
+                    counts[k] += 1;
+                }
+            }
+        }
+        return counts;
+    }
+
     function headTransform(scrollLeft) {
         var shift = finite(scrollLeft) ? scrollLeft : 0;
         return "translateX(" + (-shift) + "px)";
@@ -168,9 +202,13 @@
         var itemIndex = columnIndex(cols, "ITEM");
         var typeIndex = columnIndex(cols, "data_type");
         var rowIndex = columnIndex(cols, "row");
-        var verdictIndex = columnIndex(cols, "verdict_final");
         var meta = window.__dcTable.meta;
         var defaultCols = (meta && Array.isArray(meta.default_cols)) ? meta.default_cols : [];
+        var baseDefaults = defaultCols;
+        var modes = (meta && meta.verdict_modes && meta.verdict_modes.A && meta.verdict_modes.B) ? meta.verdict_modes : null;
+        var mode = "A";
+        var verdictIndex = columnIndex(cols, modes ? modes[mode].column : "verdict_final");
+        var verdictPanel = document.querySelector("#verdict-panel .panel-body");
         var filter = "all";
         var verdicts = null;
         var sortColumn = -1;
@@ -392,14 +430,57 @@
             syncColumnBoxes();
         }
 
-        var verdictBoxes = document.querySelectorAll("input[name=\"verdict\"]");
-        for (var v = 0; v < verdictBoxes.length; v += 1) {
-            verdictBoxes[v].addEventListener("change", guard(function () {
+        function verdictBoxList() {
+            return verdictPanel ? verdictPanel.querySelectorAll("input[name=\"verdict\"]") : [];
+        }
+
+        // Rebuilds the method checkboxes for values, all checked, with counts on verdictIndex.
+        function rebuildVerdictBoxes(values) {
+            if (!verdictPanel) {
+                return;
+            }
+            var counts = verdictCounts(allRows, verdictIndex, values);
+            verdictPanel.textContent = "";
+            for (var i = 0; i < values.length; i += 1) {
+                var box = make("input");
+                box.type = "checkbox";
+                box.name = "verdict";
+                box.value = values[i];
+                box.checked = true;
+                var label = make("label");
+                label.appendChild(box);
+                label.appendChild(document.createTextNode(" " + values[i] + " (" + counts[i] + ")"));
+                verdictPanel.appendChild(label);
+            }
+        }
+
+        function switchMode(next) {
+            var prevCol = modes[mode].column;
+            var nextCol = modes[next].column;
+            mode = next;
+            defaultCols = modeDefaultCols(baseDefaults, modes.A.column, nextCol);
+            if (onSet.indexOf(prevCol) >= 0 && onSet.indexOf(nextCol) < 0) {
+                var swapped = [];
+                for (var s = 0; s < onSet.length; s += 1) {
+                    swapped.push(onSet[s] === prevCol ? nextCol : onSet[s]);
+                }
+                onSet = swapped;
+            }
+            syncColumnBoxes();
+            verdictIndex = columnIndex(cols, nextCol);
+            verdicts = null;
+            rebuildVerdictBoxes(modes[next].values);
+            columnsChanged();
+        }
+
+        if (verdictPanel) {
+            verdictPanel.addEventListener("change", guard(function () {
+                var boxes = verdictBoxList();
                 var checkedValues = [];
                 var allChecked = true;
-                for (var j = 0; j < verdictBoxes.length; j += 1) {
-                    if (verdictBoxes[j].checked) {
-                        checkedValues.push(verdictBoxes[j].value);
+                for (var j = 0; j < boxes.length; j += 1) {
+                    if (boxes[j].checked) {
+                        checkedValues.push(boxes[j].value);
                     } else {
                         allChecked = false;
                     }
@@ -407,6 +488,20 @@
                 verdicts = allChecked ? null : checkedValues;
                 applyView(true);
             }));
+        }
+        if (modes) {
+            var modeRadios = document.querySelectorAll("input[name=\"verdict-mode\"]");
+            for (var mr = 0; mr < modeRadios.length; mr += 1) {
+                modeRadios[mr].checked = modeRadios[mr].value === "A";
+            }
+            for (var mc = 0; mc < modeRadios.length; mc += 1) {
+                modeRadios[mc].addEventListener("change", guard(function (event) {
+                    var radio = event.currentTarget;
+                    if (radio.checked && radio.value !== mode && modes[radio.value]) {
+                        switchMode(radio.value);
+                    }
+                }));
+            }
         }
         if (columnList) {
             columnList.addEventListener("change", guard(function () {
@@ -1450,7 +1545,8 @@
                           tooltipValueFormatter: tooltipValueFormatter,
                           ciOption: ciOption, boxOption: boxOption, scatterOption: scatterOption,
                           headTransform: headTransform,
-                          rowPasses: rowPasses, visibleColumnOrder: visibleColumnOrder};
+                          rowPasses: rowPasses, visibleColumnOrder: visibleColumnOrder,
+                          modeDefaultCols: modeDefaultCols, verdictCounts: verdictCounts};
     }
     if (typeof document === "undefined") {
         return;

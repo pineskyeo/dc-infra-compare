@@ -211,6 +211,169 @@ console.log(JSON.stringify({{
     assert values["searchAndNotLoq"] == ["D"]
 
 
+def legacy_row(zone, verdict_final, shifts, sigmas):
+    row = {"zone": zone, "verdict_final": verdict_final}
+    for k, (shift, sigma) in enumerate(zip(shifts, sigmas), start=1):
+        row[f"med_shift_POR{k}"] = shift
+        row[f"sigma_ratio_POR{k}"] = sigma
+    return row
+
+
+def test_legacy_verdict_rules():
+    nan = float("nan")
+    loq_zones = ("검출한계 이하", "검출~정량")
+    for zone in loq_zones:
+        for verdict in ("동등", "미결", "차이"):
+            row = legacy_row(zone, verdict, [9.0, 9.0, 9.0], [9.0, 9.0, 9.0])
+            assert report_v2.legacy_verdict(row, 3) == (verdict, ""), (zone, verdict)
+
+    # 정량: 한계값(같음)은 실패가 아니다.
+    assert report_v2.legacy_verdict(legacy_row("정량", "차이", [3.0] * 3, [1.8] * 3), 3) == ("Pass", "")
+    shift_por2 = legacy_row("정량", "차이", [0.0, 3.01, 0.0], [1.0] * 3)
+    assert report_v2.legacy_verdict(shift_por2, 3) == ("Fail", "shift")
+    sigma_por3 = legacy_row("정량", "차이", [0.0] * 3, [1.0, 1.0, 1.81])
+    assert report_v2.legacy_verdict(sigma_por3, 3) == ("Fail", "sigma")
+    both = legacy_row("정량", "차이", [3.5, 0.0, 0.0], [1.0, 1.9, 1.0])
+    assert report_v2.legacy_verdict(both, 3) == ("Fail", "shift / sigma")
+    one_of_three = legacy_row("정량", "동등", [0.0, 0.0, 3.5], [1.0] * 3)
+    assert report_v2.legacy_verdict(one_of_three, 3)[0] == "Fail"
+
+    # 값 없음: NaN 과 None 은 모두 누락 실행이다.
+    assert report_v2.legacy_verdict(legacy_row("정량", "Pass", [nan] * 3, [nan] * 3), 3) == ("판정 불가", "값 없음")
+    none_row = legacy_row("정량", "Pass", [None] * 3, [None] * 3)
+    assert report_v2.legacy_verdict(none_row, 3) == ("판정 불가", "값 없음")
+    # 실패가 누락보다 우선한다.
+    missing_fail = legacy_row("정량", "Pass", [nan, 5.0, 1.0], [nan, 1.0, 1.0])
+    assert report_v2.legacy_verdict(missing_fail, 3) == ("Fail", "shift")
+    missing_ok = legacy_row("정량", "Pass", [nan, 0.5, 0.5], [nan, 1.0, 1.0])
+    assert report_v2.legacy_verdict(missing_ok, 3) == ("판정 불가", "값 없음")
+
+    # die 부족, 판정 제외: verdict_final 을 복사하지 않고 같은 규칙을 적용한다.
+    for zone in ("die 부족", "판정 제외"):
+        ok = legacy_row(zone, "차이", [0.5] * 3, [1.0] * 3)
+        assert report_v2.legacy_verdict(ok, 3) == ("Pass", ""), zone
+        bad = legacy_row(zone, "동등", [0.5, 3.5, 0.5], [1.0] * 3)
+        assert report_v2.legacy_verdict(bad, 3) == ("Fail", "shift"), zone
+
+    # sigma_ratio = 0 은 정상 값이다.
+    zero_sigma = legacy_row("정량", "차이", [0.5] * 3, [0.0] * 3)
+    assert report_v2.legacy_verdict(zero_sigma, 3) == ("Pass", "")
+
+    # n_runs 가 0 이하이면 값 없음이다.
+    assert report_v2.legacy_verdict(legacy_row("정량", "Pass", [3.0] * 3, [1.8] * 3), 0) == ("판정 불가", "값 없음")
+
+
+def test_table_outputs_have_legacy_columns_after_verdict_final(built):
+    ns = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    loq_zones = ("검출한계 이하", "검출~정량")
+    csv_columns = {}
+    for folder in ("report", "report_anon"):
+        base = built["out"] / folder
+        columns = list(pd.read_csv(base / "table.csv", encoding="utf-8-sig", nrows=0).columns)
+        csv_columns[folder] = columns
+        i = columns.index("verdict_final")
+        assert columns[i + 1:i + 3] == ["verdict_legacy", "verdict_legacy_reason"], folder
+
+        payload = json.loads((base / "table.json").read_text(encoding="utf-8"))
+        assert payload["cols"] == columns, folder
+        js = read_assignment(base / "data" / "table.js", "__dcTable")
+        assert js["cols"] == columns, folder
+
+        with zipfile.ZipFile(base / "table.xlsx") as zf:
+            root = ET.fromstring(zf.read("xl/worksheets/sheet1.xml"))
+        first = root.find(".//m:sheetData/m:row", ns)
+        header = [c.find("m:is/m:t", ns).text for c in first.findall("m:c", ns)]
+        assert header == columns, folder
+
+    columns = csv_columns["report"]
+    table = pd.read_csv(built["out"] / "report" / "table.csv", encoding="utf-8-sig", float_precision="round_trip")
+    assert len(table) == len(built["items"])
+    assert all(v in report_v2.LEGACY_VERDICTS for v in table["verdict_legacy"])
+    n_runs = sum(1 for c in columns if re.fullmatch(r"med_shift_POR\d+", c))
+    assert n_runs >= 1
+    for i, row in table.iterrows():
+        reason = "" if pd.isna(row["verdict_legacy_reason"]) else row["verdict_legacy_reason"]
+        if row["zone"] in loq_zones:
+            assert row["verdict_legacy"] == row["verdict_final"], i
+            assert reason == "", i
+        else:
+            expected = report_v2.legacy_verdict(row.to_dict(), n_runs)
+            assert (row["verdict_legacy"], reason) == expected, i
+    assert table["verdict_final"].tolist() == built["items"]["verdict_final"].tolist()
+
+
+def test_table_page_has_verdict_mode_switch(built):
+    folder = built["out"] / "report"
+    text = (folder / "table.html").read_text(encoding="utf-8")
+    assert '<div class="verdict-mode" id="verdict-mode"' in text
+    radios = ('<label><input type="radio" name="verdict-mode" value="A" checked> 방식 A (현재: TOST·LoQ)</label>'
+              '<label><input type="radio" name="verdict-mode" value="B"> 방식 B (기존식: shift·sigma)</label>')
+    assert radios in text
+    assert 'value="B" checked' not in text
+
+    verdicts = re.findall(r'<input type="checkbox" name="verdict" value="([^"]+)" checked>', text)
+    assert verdicts == list(report_v2.VERDICTS)
+
+    payload = read_assignment(folder / "data" / "table.js", "__dcTable")
+    assert payload["meta"]["verdict_modes"] == {
+        "A": {"column": "verdict_final", "values": list(report_v2.VERDICTS)},
+        "B": {"column": "verdict_legacy", "values": list(report_v2.LEGACY_VERDICTS)},
+    }
+    assert payload["meta"]["default_cols"] == list(report_v2.TABLE_DEFAULT_COLUMNS)
+
+    count = f'<span id="col-count">{1 + len(report_v2.TABLE_DEFAULT_COLUMNS)}/{len(built["table"].columns)}</span>'
+    assert count in text
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node 가 없습니다")
+def test_report_js_method_b_filter_and_mode_helpers():
+    module_path = json.dumps(str(ROOT / "assets" / "report" / "report.js"))
+    script = f"""
+const h = require({module_path});
+const rows = [['A', 'LoQ', '동등', '동등'], ['B', 'normal', '동등', 'Fail'], ['C', 'normal', '차이', 'Pass'],
+              ['D', 'LoQ', '미결', '미결'], ['E', 'normal', '판정 제외', '판정 불가'], ['F', 'LoQ', '차이', '차이'],
+              ['G', 'normal', '동등', 'Fail']];
+const LEGACY = ['Pass', 'Fail', '판정 불가', '동등', '미결', '차이'];
+const idxB = {{item: 0, type: 1, verdict: 3}};
+const idxA = {{item: 0, type: 1, verdict: 2}};
+function pick(idx, state) {{
+  return rows.filter(r => h.rowPasses(r, idx, state)).map(r => r[0]);
+}}
+const d1 = ['data_type', 'verdict_final', 'center'];
+const d2 = ['data_type', 'center'];
+console.log(JSON.stringify({{
+  bFail: pick(idxB, {{filter: 'all', query: '', verdicts: ['Fail']}}),
+  loqFail: pick(idxB, {{filter: 'loq', query: '', verdicts: ['Fail']}}),
+  notLoqFailPass: pick(idxB, {{filter: 'not-loq', query: '', verdicts: ['Fail', 'Pass']}}),
+  empty: pick(idxB, {{filter: 'all', query: '', verdicts: []}}),
+  nul: pick(idxB, {{filter: 'all', query: '', verdicts: null}}),
+  allLegacy: pick(idxB, {{filter: 'all', query: '', verdicts: LEGACY}}),
+  aDiff: pick(idxA, {{filter: 'all', query: '', verdicts: ['차이']}}),
+  modeCols: h.modeDefaultCols(d1, 'verdict_final', 'verdict_legacy'),
+  d1After: d1,
+  modeAbsent: h.modeDefaultCols(d2, 'verdict_final', 'verdict_legacy'),
+  absentIsCopy: h.modeDefaultCols(d2, 'verdict_final', 'verdict_legacy') !== d2,
+  counts: h.verdictCounts(rows, 3, LEGACY),
+  noIndex: h.verdictCounts(rows, -1, ['a', 'b'])
+}}));
+"""
+    result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+    values = json.loads(result.stdout)
+    assert values["bFail"] == ["B", "G"]
+    assert values["loqFail"] == []
+    assert values["notLoqFailPass"] == ["B", "C", "G"]
+    assert values["empty"] == []
+    assert values["nul"] == ["A", "B", "C", "D", "E", "F", "G"]
+    assert values["allLegacy"] == ["A", "B", "C", "D", "E", "F", "G"]
+    assert values["aDiff"] == ["C", "F"]
+    assert values["modeCols"] == ["data_type", "verdict_legacy", "center"]
+    assert values["d1After"] == ["data_type", "verdict_final", "center"]
+    assert values["modeAbsent"] == ["data_type", "center"]
+    assert values["absentIsCopy"] is True
+    assert values["counts"] == [1, 2, 1, 1, 1, 1]
+    assert values["noIndex"] == [0, 0]
+
+
 def test_anon_has_no_real_item_or_blank_name_in_text_outputs(built):
     folder = built["out"] / "report_anon"
     names = set(built["items"]["ITEM"].dropna()) | set(built["items"]["blank_item"].dropna())

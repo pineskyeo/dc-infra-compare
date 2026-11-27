@@ -38,7 +38,8 @@ from report import Namer
 
 
 ITEM_COLUMNS = (
-    "zone", "data_type", "cls_scale", "route", "verdict_final", "verdict_basis", "judged_by", "reason",
+    "zone", "data_type", "cls_scale", "route", "verdict_final", "verdict_legacy", "verdict_legacy_reason",
+    "verdict_basis", "judged_by", "reason",
     "center", "calcval", "center_meas", "meas_note", "ci_low", "ci_high", "ci_low_meas", "ci_high_meas",
     "center_log", "ci_low_log", "ci_high_log", "delta", "delta_meas", "delta_log", "abs_delta",
     "accuracy_margin", "delta_pct", "sigma_die", "sigma_run", "rsd_pct", "LoQ", "LoD", "limit_source",
@@ -48,6 +49,9 @@ ITEM_COLUMNS = (
 MEAS_COLUMNS = ("calcval", "center_meas", "meas_note", "ci_low_meas", "ci_high_meas", "delta_meas")
 OVERALL_RULE = "전체 판정 규칙(가정): 차이 ITEM이 1개라도 있으면 전체 차이, 아니면 미결이 있으면 전체 미결, 아니면 동등. 판정 제외는 전체 판정에 넣지 않고 개수로 따로 보인다."
 VERDICTS = ("동등", "미결", "차이", "판정 제외")
+LEGACY_VERDICTS = ("Pass", "Fail", "판정 불가", "동등", "미결", "차이")
+LEGACY_SHIFT_LIMIT = 3.0
+LEGACY_SIGMA_LIMIT = 1.8
 TABLE_DEFAULT_COLUMNS = ("data_type", "verdict_final", "judged_by", "center", "center_meas", "ci_low", "ci_high",
                          "ci_low_meas", "ci_high_meas", "delta", "delta_meas", "delta_pct", "sigma_die", "sigma_run",
                          "rsd_pct", "LoQ", "por_median")
@@ -104,6 +108,34 @@ def _num(value) -> float:
     return x if math.isfinite(x) else math.nan
 
 
+def legacy_verdict(row, n_runs: int) -> tuple[str, str]:
+    """방식 B 기존식 판정. LoQ 구간은 현재 최종 판정을 그대로 쓴다.
+    그 밖은 POR 회차마다 med_shift 와 sigma_ratio 가 기준을 넘는지 보고, 기준과 같은 값은 통과다."""
+    if _text(row.get("zone")) in LOQ_ZONES:
+        return _text(row.get("verdict_final")), ""
+    if n_runs <= 0:
+        return "판정 불가", "값 없음"
+    shift_fail = sigma_fail = missing = False
+    for k in range(1, n_runs + 1):
+        shift = _num(row.get(f"med_shift_POR{k}"))
+        sigma = _num(row.get(f"sigma_ratio_POR{k}"))
+        if math.isnan(shift) or math.isnan(sigma):
+            missing = True
+        if not math.isnan(shift) and shift > LEGACY_SHIFT_LIMIT:
+            shift_fail = True
+        if not math.isnan(sigma) and sigma > LEGACY_SIGMA_LIMIT:
+            sigma_fail = True
+    if shift_fail or sigma_fail:
+        if shift_fail and sigma_fail:
+            reason = "shift / sigma"
+        else:
+            reason = "shift" if shift_fail else "sigma"
+        return "Fail", reason
+    if missing:
+        return "판정 불가", "값 없음"
+    return "Pass", ""
+
+
 def _meas_values(row: dict, levels: dict | None) -> dict:
     """실제 측정 단위 열 여섯 개. 파일 값 = 원측정값 × CALCVAL 이므로 원측정 단위는 파일 값 / CALCVAL."""
     info = None if levels is None else levels.get(str(row["ITEM"]).strip())
@@ -143,13 +175,16 @@ def make_table(items: pd.DataFrame, raw: pd.DataFrame | None = None, anon: bool 
     if raw is None:
         raw = pd.DataFrame({"ITEM": pd.Series(dtype=str), **{c: pd.Series(dtype=float) for c in raw_columns}})
     merged = items.merge(raw, on="ITEM", how="left", sort=False, validate="one_to_one", suffixes=("", "_raw_stats"))
-    present = [c for c in ITEM_COLUMNS if c in {"data_type", "judged_by", "delta_pct"} or c in MEAS_COLUMNS or c in items.columns]
+    n_runs = _n_runs(items)
+    always = {"data_type", "judged_by", "delta_pct", "verdict_legacy", "verdict_legacy_reason"}
+    present = [c for c in ITEM_COLUMNS if c in always or c in MEAS_COLUMNS or c in items.columns]
     records = []
     namer = Namer(items, anon)
     for number, row in enumerate(merged.to_dict("records"), 1):
         zone = _text(row.get("zone"))
         out = {"row": number, "ITEM": namer.label(row["ITEM"])}
         meas = _meas_values(row, levels)
+        legacy = legacy_verdict(row, n_runs)
         for col in ITEM_COLUMNS:
             if col == "data_type":
                 out[col] = "LoQ" if zone in LOQ_ZONES else zone
@@ -157,6 +192,10 @@ def make_table(items: pd.DataFrame, raw: pd.DataFrame | None = None, anon: bool 
                 out[col] = judged_by(row)
             elif col == "delta_pct":
                 out[col] = pct_of_median(row.get("delta"), row.get("por_median"))
+            elif col == "verdict_legacy":
+                out[col] = legacy[0]
+            elif col == "verdict_legacy_reason":
+                out[col] = legacy[1]
             elif col in MEAS_COLUMNS:
                 out[col] = meas[col]
             elif col in items.columns:
@@ -278,6 +317,7 @@ TABLE_BODY = '''<main class="page page-wide">
 <div id="dc-error" class="dc-error" role="alert" hidden></div>
 <div class="table-tools" aria-label="표 필터">
 <div class="menu" role="group" aria-label="LoQ 필터"><button type="button" data-filter="all" aria-pressed="true">전체</button><button type="button" data-filter="loq" aria-pressed="false">LoQ만</button><button type="button" data-filter="not-loq" aria-pressed="false">LoQ 아님</button></div>
+<div class="verdict-mode" id="verdict-mode" role="radiogroup" aria-label="판정 방식"><label><input type="radio" name="verdict-mode" value="A" checked> 방식 A (현재: TOST·LoQ)</label><label><input type="radio" name="verdict-mode" value="B"> 방식 B (기존식: shift·sigma)</label></div>
 <a class="download" href="table.xlsx" download>엑셀 내려받기 (.xlsx, 전체 {n_rows}행)</a>
 <label>ITEM 검색 <input id="table-search" type="search" autocomplete="off"></label>
 <strong id="table-count" aria-live="polite"></strong>
@@ -494,7 +534,9 @@ def _write_pages(table: pd.DataFrame, summary: dict, out: Path, anon: bool, a: a
         "meta": {"name": folder.name, "anon": anon, "n_items": len(table), "chunk_size": CHUNK_SIZE,
                  "chunks": has_raw, "images": a.images, "img_rows": image_rows,
                  "log_bases": list(item_view.LOG_BASES), "overall": summary["overall"], "col_docs": col_docs,
-                 "default_cols": list(TABLE_DEFAULT_COLUMNS)},
+                 "default_cols": list(TABLE_DEFAULT_COLUMNS),
+                 "verdict_modes": {"A": {"column": "verdict_final", "values": list(VERDICTS)},
+                                   "B": {"column": "verdict_legacy", "values": list(LEGACY_VERDICTS)}}},
     }, ensure_ascii=False, allow_nan=False) + ";\n"
     (data / "table.js").write_text(table_text, encoding="utf-8")
     if len(table_text.encode("utf-8")) > 5 * 1024 * 1024:
